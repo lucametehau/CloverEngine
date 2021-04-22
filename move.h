@@ -6,6 +6,8 @@
 
 using namespace std;
 
+/// testing kek
+
 inline void makeMove(Board *board, uint16_t mv) { /// assuming move is at least pseudo-legal
   int posFrom = sqFrom(mv), posTo = sqTo(mv);
   int pieceFrom = board->board[posFrom], pieceTo = board->board[posTo];
