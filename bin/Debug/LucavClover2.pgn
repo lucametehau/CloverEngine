@@ -1,0 +1,45 @@
+[Event "Computer chess game"]
+[Site "DESKTOP-TE5ME8R"]
+[Date "2021.01.07"]
+[Round "?"]
+[White "LMM"]
+[Black "Clover"]
+[Result "1-0"]
+[BlackElo "2200"]
+[ECO "B01"]
+[Opening "Scandinavian"]
+[Time "11:19:14"]
+[Variation "2...Qxd5 3.Nc3"]
+[WhiteElo "2400"]
+[TimeControl "300"]
+[Termination "normal"]
+[PlyCount "39"]
+[WhiteType "human"]
+[BlackType "program"]
+
+1. e4 d5 {(d7-d5 e4-e5 d5-d4 Bf1-c4 Nb8-c6 f2-f4 g7-g5 d2-d3 a7-a6 a2-a4
+e7-e6 c2-c3) -0.14/12 8} 2. exd5 Qxd5 {(Qd8xd5 Nb1-c3 Qd5-e6+ Bf1-e2 Qe6-g6
+Nc3-d5 Qg6-c6 c2-c4 e7-e6 Nd5-e3 e6-e5 d2-d4) -0.21/12 3} 3. Nc3 Qe5+
+{(Qd5-e5+ Bf1-e2 Qe5-g5 g2-g3 e7-e5 d2-d4 Qg5-f5 d4xe5 Qf5xe5 Ng1-f3
+Qe5-h5) 0.00/11 9} 4. Be2 Qa5 {(Qe5-a5 d2-d4 Ng8-f6 Ng1-f3 Nf6-d5 Bc1-d2
+Nd5xc3 Bd2xc3 Qa5-d5 b2-b3 f7-f6 Be2-c4) -0.42/12 8} 5. d4 c6 {(c7-c6
+Bc1-f4 Ng8-f6 Ng1-f3 Nf6-d5 Qd1-d2 Nd5xc3 Qd2xc3 Qa5xc3+ b2xc3 Bc8-f5
+O-O-O) -0.45/12 6} 6. Nf3 f6 {(f7-f6 h2-h3 e7-e5 Be2-c4 Bc8-f5 a2-a3 Nb8-d7
+Bc1-d2 e5xd4 Nf3xd4 Qa5-e5+ Bd2-e3) -0.44/12 8} 7. Kf1 e5 {(e7-e5 Be2-c4
+Bc8-g4 d4xe5 f6xe5 h2-h3 Bg4xf3 Qd1xf3 Ng8-f6 a2-a3 Qa5-c5 Qf3-d3) 0.00/12
+8} 8. dxe5 fxe5 {(f6xe5 Be2-c4 Bc8-g4 h2-h3 Bg4xf3 Qd1xf3 Ng8-f6 Bc1-d2
+Qa5-b4 b2-b3 h7-h6) 0.00/11 8} 9. Bc4 Bg4 {(Bc8-g4 h2-h3 Bg4xf3 Qd1xf3
+Ng8-f6 Bc1-d2 Qa5-b6 b2-b3 Qb6-d4 Ra1-d1) 0.00/10 7} 10. Bf7+ Kxf7 {(Ke8xf7
+Nf3-g5+ Kf7-g6 Qd1xg4 Ng8-f6 Qg4-e6 Nb8-d7 Qe6-f7+ Kg6-f5 Qf7-e6+) 0.00/10
+7} 11. Ng5+ Kg6 {(Kf7-g6 Qd1xg4 Ng8-f6 Qg4-e6 Nb8-d7 Qe6-f7+ Kg6-f5 g2-g4+
+Kf5xg4 Rh1-g1+) 0.00/10 7} 12. Qxg4 Nf6 {(Ng8-f6 Qg4-e6 Qa5-a6+ Kf1-e1
+c6-c5 Qe6-f7+ Kg6-f5 Ng5xh7 Rh8xh7 Qf7xf8) 0.00/10 7} 13. Qe6 Qa6+
+{(Qa5-a6+ Kf1-e1 c6-c5 Qe6-f7+ Kg6-f5 g2-g4+ Kf5xg4 Rh1-g1+ Kg4-f5) 0.00/9
+6} 14. Kg1 Bc5 {(Bf8-c5 Qe6-f7+ Kg6-f5 g2-g4+ Kf5xg4 Qf7-e6+ Kg4-h5 Ng5-f7
+Bc5xf2+ Kg1xf2) 0.00/10 6} 15. g4 Bxf2+ {(Bc5xf2+ Kg1-g2 Nb8-d7 Qe6-f5+
+Kg6-h6 Ng5-f7+) 0.00/8 6} 16. Kxf2 Qb6+ {(Qa6-b6+ Kf2-g3 Qb6-e3+ Bc1xe3
+Nb8-d7 Qe6-f5+ Kg6-h6 Ng5xh7+) 0.00/8 6} 17. Kg2 Qg1+ {(Qb6-g1+ Kg2xg1
+Rh8-d8 Qe6-f5+ Kg6-h6 Ng5-f7+) 0.00/10 6} 18. Rxg1 Rd8 {(Rh8-d8 Qe6-f5+
+Kg6-h6 Ng5-f7+) 0.00/10 5} 19. Qf5+ Kh6 {(Kg6-h6 Ng5-f7+) 0.00/8 5} 20.
+Nf7# 1-0
+

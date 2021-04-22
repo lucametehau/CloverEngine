@@ -1,0 +1,266 @@
+#include <bits/stdc++.h>
+#include "defs.h"
+#include "board.h"
+#include "move.h"
+#include "evaluate.h"
+#include "history.h"
+#pragma once
+
+using namespace std;
+
+enum {
+  STAGE_NONE = 0, STAGE_HASHMOVE, STAGE_GEN_NOISY, STAGE_GOOD_NOISY,
+  STAGE_GEN_QUIETS, STAGE_KILLER_1, STAGE_KILLER_2, STAGE_QUIETS,
+  STAGE_BAD_NOISY, STAGE_DONE
+};
+
+int see(Board *board, uint16_t move);
+
+int killers[205][2];
+const int seeVal[] = {0, 100, 310, 330, 500, 1000, 20000};
+
+class Movepick {
+public:
+  int moveInd;
+  int stage;
+
+  uint16_t hashMove, killer1, killer2;
+
+  vector <uint16_t> moves, badNoisy;
+  vector <int> scores;
+
+  Movepick(const uint16_t HashMove) {
+    hashMove = HashMove;
+    moveInd = -1;
+    stage = STAGE_HASHMOVE;
+    killer1 = killer2 = NULLMOVE;
+    moves.clear();
+    scores.clear();
+    badNoisy.clear();
+  }
+
+  int getBestMoveInd(int start) {
+    int ind = start;
+
+    for(int i = start + 1; i < moves.size(); i++) {
+      if(scores[i] > scores[ind])
+        ind = i;
+    }
+
+    return ind;
+  }
+
+  uint16_t nextMove(Board *board, StackEntry Stack[], bool skip, bool noisyPicker) {
+
+    //cout << moveInd << " " << moves.size() << " " << stage << "\n";
+
+    if(stage == STAGE_HASHMOVE) {
+      stage++;
+      if(hashMove != NULLMOVE && !skip) {
+        return hashMove;
+      }
+    }
+
+    if(stage == STAGE_GEN_NOISY) {
+      /// good noisy
+      moves = genLegalNoisy(board);
+      scores.clear();
+      //random_shuffle(allMoves.begin(), allMoves.end());
+
+      for(int i = 0; i < moves.size(); i++) {
+        uint16_t move = moves[i];
+        int p = board->piece_type_at(sqFrom(move)), cap = board->piece_type_at(sqTo(move)), score;
+        if(type(move) == ENPASSANT)
+          cap = PAWN;
+        score = 2000000 + captureValue[p][cap];
+        /*if(type(move) == ENPASSANT)
+          cap = PAWN;
+        score = 2000000 + 10 * seeVal[cap] - seeVal[p];*/
+        if(type(move) == PROMOTION)
+          score += 100 * (promoted(move) + BN);
+        scores.push_back(score);
+      }
+      stage++;
+      moveInd = -1;
+    }
+
+    if(stage == STAGE_GOOD_NOISY) {
+      moveInd++;
+
+      if(moveInd != moves.size()) {
+
+        int ind = getBestMoveInd(moveInd);
+
+        swap(moves[moveInd], moves[ind]);
+        swap(scores[moveInd], scores[ind]);
+
+        uint16_t best = moves[moveInd];
+
+        if(see(board, best) < 0) {
+          badNoisy.push_back(best);
+          return nextMove(board, Stack, skip, noisyPicker);
+        }
+
+        if(best == hashMove)
+          return nextMove(board, Stack, skip, noisyPicker);
+
+        return best;
+      } else {
+        if(skip) {
+          moves.clear();
+          stage = STAGE_BAD_NOISY;
+          return nextMove(board, Stack, skip, noisyPicker);
+        }
+        stage++;
+      }
+    }
+
+    if(stage == STAGE_GEN_QUIETS) {
+      /// quiet moves
+      moves = genLegalQuiets(board);
+      scores.clear();
+
+      int ply = board->ply;
+      //random_shuffle(allMoves.begin(), allMoves.end());
+
+      for(int i = 0; i < moves.size(); i++) {
+        int move = moves[i], score = 0;
+        if(move == hashMove) {
+
+        } else if(move == killers[ply][0]) {
+          killer1 = move;
+          score = -100000;
+        } else if(move == killers[ply][1]) {
+          killer2 = move;
+          score = -100000;
+        } else {
+          int h, ch, fh;
+          getHistory(board, Stack, move, ply, h, ch, fh);
+          score = h + fh + ch;
+        }
+        scores.push_back(score);
+      }
+
+      moveInd = -1;
+
+      stage++;
+    }
+
+    if(stage == STAGE_KILLER_1) {
+
+      stage++;
+
+      if(!skip && killer1 != NULLMOVE && killer1 != hashMove)
+        return killer1;
+    }
+
+    if(stage == STAGE_KILLER_2) {
+
+      stage++;
+
+      if(!skip && killer2 != NULLMOVE && killer2 != hashMove)
+        return killer2;
+    }
+
+    if(stage == STAGE_QUIETS) {
+      moveInd++;
+
+      if(!skip && moveInd != moves.size()) {
+
+        int ind = getBestMoveInd(moveInd);
+
+        swap(moves[moveInd], moves[ind]);
+        swap(scores[moveInd], scores[ind]);
+
+        int best = moves[moveInd];
+
+        if(best == hashMove || best == killer1 || best == killer2)
+          return nextMove(board, Stack, skip, noisyPicker);
+
+        return best;
+      } else {
+        moves.clear();
+        stage++;
+      }
+    }
+
+    if(stage == STAGE_BAD_NOISY) {
+      /// bad noisy moves
+      //scores.resize(moves.size());
+      if(!badNoisy.empty() && !noisyPicker) {
+        int move = badNoisy.back();
+
+        badNoisy.pop_back();
+
+        if(move == hashMove || move == killer1 || move == killer2)
+          return nextMove(board, Stack, skip, noisyPicker);
+        return move;
+      } else {
+        stage++;
+      }
+    }
+
+    if(stage == STAGE_DONE) {
+      return NULLMOVE;
+    }
+  }
+};
+
+
+
+int see(Board *board, uint16_t move) {
+  if(move == NULLMOVE || type(move) != NEUT)
+    return 0;
+  int from = sqFrom(move), to = sqTo(move), piece = board->piece_type_at(from), capPiece = board->piece_type_at(to);
+  bool us = board->turn, them = 1 ^ us;
+  uint64_t occ = board->pieces[WHITE] | board->pieces[BLACK], att = 0, allAtt = 0;
+
+  if(piece == KING)
+    return seeVal[capPiece];
+
+  while(true) {
+    occ ^= (1ULL << from);
+    allAtt = getAttackers(board, WHITE, occ, to) | getAttackers(board, BLACK, occ, to) |
+             (kingBBAttacks[to] & (board->bb[WK] | board->bb[BK]));
+    if(from != -1)
+      break;
+    att = allAtt & board->pieces[us];
+    if(!att)
+      return 0;
+    int pt = PAWN;
+    while(!(att & board->bb[getType(pt, us)]))
+      pt++;
+    from = Sq(att & board->bb[getType(pt, us)]);
+    piece = board->piece_type_at(from);
+  }
+  att = allAtt & board->pieces[them];
+  if(!att)
+    return seeVal[capPiece];
+  allAtt &= occ;
+  int lastCap = seeVal[piece];
+  int swaplist[100], n = 1;
+  bool side = them;
+  swaplist[0] = seeVal[capPiece];
+  do {
+    int pt = PAWN;
+
+    while(!(att & board->bb[getType(pt, us)]) && pt < KING)
+      pt++;
+    uint64_t b = att & board->bb[getType(pt, us)];
+    occ ^= lsb(b);
+    allAtt |= (genAttacksRook(occ, to) & board->orthSliders(us)) | (genAttacksBishop(occ, to) & board->diagSliders(us));
+    allAtt &= occ;
+    swaplist[n] = -swaplist[n - 1] + lastCap;
+    n++;
+    lastCap = seeVal[pt];
+    side ^= 1;
+    att = allAtt & board->pieces[side];
+    if(pt == KING && att) {
+      swaplist[n++] = 10000;
+      break;
+    }
+  } while(att);
+  while(--n)
+    swaplist[n - 1] = min(swaplist[n - 1], -swaplist[n]);
+  return swaplist[0];
+}

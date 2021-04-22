@@ -1,0 +1,350 @@
+# depslib dependency file v1.0
+1619006414 source:c:\users\lmm\desktop\probleme info\chess\main.cpp
+	<iostream>
+	"init.h"
+	"perft.h"
+	"play.h"
+	"uci.h"
+
+1618924575 c:\users\lmm\desktop\probleme info\chess\defs.h
+	<string>
+	<chrono>
+	<ctime>
+	<ratio>
+
+1618482512 c:\users\lmm\desktop\probleme info\chess\init.h
+	<string>
+	"board.h"
+	"defs.h"
+	"move.h"
+	"attacks.h"
+
+1618924008 c:\users\lmm\desktop\probleme info\chess\board.h
+	<vector>
+	<algorithm>
+	<iostream>
+	"defs.h"
+
+1609760150 c:\users\lmm\desktop\probleme info\chess\bitboards.h
+	<stdio.h>
+	<stdlib.h>
+
+1618922800 c:\users\lmm\desktop\probleme info\chess\movegen.h
+	"board.h"
+	"defs.h"
+	"attacks.h"
+
+1618924717 c:\users\lmm\desktop\probleme info\chess\move.h
+	"board.h"
+	"defs.h"
+	"movegen.h"
+	"attacks.h"
+
+1618920564 c:\users\lmm\desktop\probleme info\chess\perft.h
+	"move.h"
+
+1618477420 c:\users\lmm\desktop\probleme info\chess\play.h
+	<windows.h>
+	"move.h"
+	"search.h"
+
+1619016876 c:\users\lmm\desktop\probleme info\chess\search.h
+	<algorithm>
+	"evaluate.h"
+	"movepick.h"
+	"tt.h"
+	"tbprobe.h"
+	"thread.h"
+
+1618922722 c:\users\lmm\desktop\probleme info\chess\evaluate.h
+	<cstring>
+	"move.h"
+	"board.h"
+
+1619018771 c:\users\lmm\desktop\probleme info\chess\uci.h
+	<string>
+	<fstream>
+	<sstream>
+	"move.h"
+	"search.h"
+	"tune.h"
+	"tbcore.h"
+	"init.h"
+	"perft.h"
+
+1618477569 c:\users\lmm\desktop\probleme info\chess\magic.h
+
+1618477570 c:\users\lmm\desktop\probleme info\chess\attacks.h
+	"magic.h"
+	"defs.h"
+	"board.h"
+
+1619018423 c:\users\lmm\desktop\probleme info\chess\movepick.h
+	"defs.h"
+	"board.h"
+	"move.h"
+	"evaluate.h"
+	"history.h"
+
+1619006474 c:\users\lmm\desktop\probleme info\chess\tt.h
+	"defs.h"
+
+1618941318 c:\users\lmm\desktop\probleme info\chess\tune.h
+	<thread>
+	<windows.h>
+	<memory>
+	<vector>
+	<thread>
+	<future>
+	<functional>
+	<fstream>
+	<cassert>
+	"search.h"
+	"evaluate.h"
+
+1609178140 source:c:\users\lmm\desktop\probleme info\chess\init.cpp
+	<bits/stdc++.h>
+
+1609093603 source:c:\users\lmm\desktop\probleme info\chess\main.c
+	"Python.h"
+	<stddef.h>
+	"longintrepr.h"
+	<stdint.h>
+	"pythread.h"
+	<math.h>
+	<omp.h>
+	<cstdlib>
+	"frameobject.h"
+	<structmember.h>
+	"compile.h"
+	"frameobject.h"
+	"traceback.h"
+
+1618920717 c:\users\lmm\desktop\probleme info\chess\history.h
+	<vector>
+	"board.h"
+	"defs.h"
+	"thread.h"
+
+1614542709 source:c:\users\lmm\desktop\probleme info\chess\search.cpp
+	<bits/stdc++.h>
+	"search.h"
+	"evaluate.h"
+	"movepick.h"
+
+1619006395 source:c:\users\lmm\desktop\probleme info\chess\tbcore.c
+	<assert.h>
+	<stdio.h>
+	<stdint.h>
+	<stdlib.h>
+	<string.h>
+	<sys/stat.h>
+	<fcntl.h>
+	<unistd.h>
+	<sys/mman.h>
+	"tbcore.h"
+
+1616400977 c:\users\lmm\desktop\probleme info\chess\tbcore.h
+	<atomic>
+	<pthread.h>
+	<windows.h>
+	<mutex>
+
+1616400994 source:c:\users\lmm\desktop\probleme info\chess\tbprobe.c
+	<assert.h>
+	<stdio.h>
+	<stdlib.h>
+	<intrin.h>
+	"tbprobe.h"
+	<popcntintrin.h>
+	<nmmintrin.h>
+	"tbcore.c"
+
+1616401009 c:\users\lmm\desktop\probleme info\chess\tbprobe.h
+	"tbconfig.h"
+	<stdint.h>
+	<stdbool.h>
+
+1616401027 c:\users\lmm\desktop\probleme info\chess\tbconfig.h
+
+1619006395 c:\users\lmm\desktop\probleme info\chess\tbcore.c
+	<assert.h>
+	<stdio.h>
+	<stdint.h>
+	<stdlib.h>
+	<string.h>
+	<sys/stat.h>
+	<fcntl.h>
+	<unistd.h>
+	<sys/mman.h>
+	"tbcore.h"
+
+1619006579 c:\users\lmm\desktop\probleme info\chess\thread.h
+	"board.h"
+	"tt.h"
+	<thread>
+	<mutex>
+	<condition_variable>
+	<functional>
+
+1619032169 source:c:\users\lmm\desktop\probleme_info\chess\main.cpp
+	<iostream>
+	"init.h"
+	"perft.h"
+	"play.h"
+	"uci.h"
+
+1619032169 c:\users\lmm\desktop\probleme_info\chess\init.h
+	<string>
+	"board.h"
+	"defs.h"
+	"move.h"
+	"attacks.h"
+
+1619032168 c:\users\lmm\desktop\probleme_info\chess\board.h
+	<vector>
+	<algorithm>
+	<iostream>
+	"defs.h"
+
+1619032168 c:\users\lmm\desktop\probleme_info\chess\defs.h
+	<string>
+	<chrono>
+	<ctime>
+	<ratio>
+
+1619032169 c:\users\lmm\desktop\probleme_info\chess\move.h
+	"board.h"
+	"defs.h"
+	"movegen.h"
+	"attacks.h"
+
+1619032169 c:\users\lmm\desktop\probleme_info\chess\movegen.h
+	"board.h"
+	"defs.h"
+	"attacks.h"
+
+1619032168 c:\users\lmm\desktop\probleme_info\chess\attacks.h
+	"magic.h"
+	"defs.h"
+	"board.h"
+
+1619032169 c:\users\lmm\desktop\probleme_info\chess\magic.h
+
+1619032169 c:\users\lmm\desktop\probleme_info\chess\perft.h
+	"move.h"
+
+1619032169 c:\users\lmm\desktop\probleme_info\chess\play.h
+	<windows.h>
+	"move.h"
+	"search.h"
+
+1619032169 c:\users\lmm\desktop\probleme_info\chess\search.h
+	<algorithm>
+	"evaluate.h"
+	"movepick.h"
+	"tt.h"
+	"tbprobe.h"
+	"thread.h"
+
+1619032169 c:\users\lmm\desktop\probleme_info\chess\evaluate.h
+	<cstring>
+	"move.h"
+	"board.h"
+
+1619032169 c:\users\lmm\desktop\probleme_info\chess\movepick.h
+	"defs.h"
+	"board.h"
+	"move.h"
+	"evaluate.h"
+	"history.h"
+	<cassert>
+
+1619032169 c:\users\lmm\desktop\probleme_info\chess\history.h
+	<vector>
+	"board.h"
+	"defs.h"
+	"thread.h"
+
+1619032169 c:\users\lmm\desktop\probleme_info\chess\thread.h
+	"board.h"
+	"tt.h"
+	<thread>
+	<mutex>
+	<condition_variable>
+	<functional>
+
+1619032169 c:\users\lmm\desktop\probleme_info\chess\tt.h
+	"defs.h"
+
+1619032169 c:\users\lmm\desktop\probleme_info\chess\tbprobe.h
+	"tbconfig.h"
+	<stdint.h>
+	<stdbool.h>
+
+1619032169 c:\users\lmm\desktop\probleme_info\chess\tbconfig.h
+
+1619032169 c:\users\lmm\desktop\probleme_info\chess\uci.h
+	<string>
+	<fstream>
+	<sstream>
+	"move.h"
+	"search.h"
+	"tune.h"
+	"tbcore.h"
+	"init.h"
+	"perft.h"
+
+1619032169 c:\users\lmm\desktop\probleme_info\chess\tune.h
+	<thread>
+	<windows.h>
+	<memory>
+	<vector>
+	<thread>
+	<future>
+	<functional>
+	<fstream>
+	<cassert>
+	"search.h"
+	"evaluate.h"
+
+1619032169 c:\users\lmm\desktop\probleme_info\chess\tbcore.h
+	<atomic>
+	<pthread.h>
+	<windows.h>
+	<mutex>
+
+1619032169 source:c:\users\lmm\desktop\probleme_info\chess\tbprobe.c
+	<assert.h>
+	<stdio.h>
+	<stdlib.h>
+	<intrin.h>
+	"tbprobe.h"
+	<popcntintrin.h>
+	<nmmintrin.h>
+	"tbcore.c"
+
+1619032169 c:\users\lmm\desktop\probleme_info\chess\tbcore.c
+	<assert.h>
+	<stdio.h>
+	<stdint.h>
+	<stdlib.h>
+	<string.h>
+	<sys/stat.h>
+	<fcntl.h>
+	<unistd.h>
+	<sys/mman.h>
+	"tbcore.h"
+
+1619032169 source:c:\users\lmm\desktop\probleme_info\chess\tbcore.c
+	<assert.h>
+	<stdio.h>
+	<stdint.h>
+	<stdlib.h>
+	<string.h>
+	<sys/stat.h>
+	<fcntl.h>
+	<unistd.h>
+	<sys/mman.h>
+	"tbcore.h"
+

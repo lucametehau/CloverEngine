@@ -1,0 +1,39 @@
+[Event "Turneu6.at"]
+[Site "DESKTOP-TE5ME8R"]
+[Date "2021.01.23"]
+[Round "2"]
+[White "MORA_1.1.0"]
+[Black "Clover"]
+[Result "1-0"]
+[BlackElo "2200"]
+[ECO "A45"]
+[Opening "Queen's Pawn"]
+[Variation "Indian"]
+[WhiteElo "2200"]
+[TimeControl "300"]
+[Termination "normal"]
+[PlyCount "109"]
+[WhiteType "human"]
+[BlackType "program"]
+
+1. d4 {+ 11} Nf6 {9} 2. Qd3 {+ 9} Nc6 {9} 3. e4 {+ 8} e5 {9} 4. d5 {10} Nb4
+{8} 5. Qe2 {+ 7} c6 {8} 6. Nc3 {+ 10} cxd5 {8} 7. exd5 {6} Bd6 {8} 8. Bg5
+{+ 9} Qa5 {7} 9. Bxf6 {+ 7} gxf6 {7} 10. Qd2 {+ 7} Na6 {7} 11. O-O-O {+ 4}
+Bb4 {7} 12. Nge2 {+ 4} Qb6 {6} 13. a3 {+ 6} Bf8 {6} 14. Ng3 {+ 7} d6 {6}
+15. Nge4 {+ 9} Qd8 {6} 16. Bb5+ {+ 8} Bd7 {5} 17. Bxd7+ {+ 8} Kxd7 {5} 18.
+Qe3 {+ 8} Ke8 {5} 19. Rhe1 {+ 7} Rg8 {5} 20. Qh3 {+ 7} Rg6 {5} 21. Qxh7 {+
+4} f5 {5} 22. Nd2 {+ 4} Qd7 {4} 23. Qh3 {+ 4} Rh6 {4} 24. Qg3 {+ 4} Rg6 {4}
+25. Qf3 {+ 2} Be7 {4} 26. Nf1 {+ 4} Rc8 {4} 27. Ng3 {+ 4} f4 {4} 28. Nge4
+{+ 4} Kd8 {3} 29. g3 {+ 3} f5 {3} 30. Nd2 {+ 2} fxg3 {3} 31. hxg3 {+ 3} Kc7
+{3} 32. Rh1 {+ 4} Bg5 {3} 33. Qh5 {+ 4} Rcg8 {3} 34. Qe2 {+ 3} Kb8 {3} 35.
+Kb1 {+ 4} e4 {3} 36. Nb3 {+ 2} Bf6 {3} 37. Nd4 {+ 2} Bxd4 {2} 38. Rxd4 {+
+2} Qg7 {2} 39. Rdd1 {+ 3} Nc7 {2} 40. Qe3 {+ 4} Rg4 {2} 41. Ne2 {+ 3} Rc8
+{2} 42. Nf4 {+ 1} Qf6 {2} 43. Rh7 {+ 3} Rh8 {2} 44. Rxh8+ {+ 2} Qxh8 {2}
+45. c4 {+ 2} b6 {2} 46. Ne2 {+ 3} Kb7 {2} 47. Nd4 {+ 2} Qh5 {2} 48. Rc1 {+
+1} Na6 {2} 49. Nb5 {+ 2} Nc5 {1} 50. Nxd6+ {+ 2} Ka6 {1} 51. b4 {(b2-b4
+Rg4xg3 Qe3xg3 Nc5-d3 Qg3xd3 e4xd3 Nd6xf5 Qh5xf5 Kb1-a2) +M5/10 1} Nd3 {1}
+52. Qd2 {(Qe3-d2 Nd3xb4 a3xb4 b6-b5 c4xb5+ Ka6-b6 Rc1-c6+) +M4/10 2} Nxb4
+{1} 53. axb4 {(a3xb4 b6-b5 c4xb5+ Ka6-b6 Rc1-c6+) +M3/10 2} b5 {(b6-b5
+c4xb5+ Ka6-b6 Qd2-d4+) -M2/30 1} 54. cxb5+ {(c4xb5+ Ka6-b6) +M3/9 2} Kb6
+{(Ka6-b6 Qd2-e3+) -M1/30} 55. Rc6# {(Rc1-c6+) +M1/10 1} 1-0
+
