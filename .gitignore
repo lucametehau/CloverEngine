@@ -4,5 +4,4 @@
 *.layout
 bin
 gmon.out
-weights.txt
 search.cpp
