@@ -5,7 +5,7 @@
 
 using namespace std;
 
-struct EvalTools {
+struct EvalTools { /// to avoid data races, kinda dirty tho
 
     uint64_t kingRing[2], kingSquare[2], pawnShield[2], defendedByPawn[2], pawns[2], allPawns;
     //uint64_t attackedBy[2], attackedBy2[2], attackedByPiece[2][7];
@@ -39,14 +39,19 @@ const int TEMPO = 20;
 int doubledPawnsPenalty[2] = {-10, 19, };
 int isolatedPenalty[2] = {17, -1, };
 int backwardPenalty[2] = {17, 23, };
+
 int mat[2][7] = {
     {0, 82, 355, 369, 522, 1075, 0},
     {0, 90, 307, 341, 605, 1125, 0},
 };
+
 int phaseVal[] = {0, 0, 1, 1, 2, 4};
+
 const int maxWeight = 16 * phaseVal[PAWN] + 4 * phaseVal[KNIGHT] + 4 * phaseVal[BISHOP] + 4 * phaseVal[ROOK] + 2 * phaseVal[QUEEN];
+
 int passedBonus[] = {0, 9, 12, 30, 56, 114, 195};
 int connectedBonus[] = {0, 2, 3, 5, 9, 21, 26};
+
 int kingAttackWeight[] = {0, 0, 2, 2, 3, 5};
 int SafetyTable[100] = {
   0, 0, 1, 2, 3, 5, 7, 9, 12, 15,
@@ -60,13 +65,18 @@ int SafetyTable[100] = {
   500, 500, 500, 500, 500, 500, 500, 500, 500, 500,
   500, 500, 500, 500, 500, 500, 500, 500, 500, 500,
 };
+
 int outpostBonus[] = {0, 0, 23, 18};
 int outpostHoleBonus[] = {0, 0, 28, 25};
+
 int rookOpenFile[2] = {50, 1, };
 int rookSemiOpenFile[2] = {14, 9, };
+
 int bishopPair[2] = {49, 64, };
 int longDiagonalBishop[2] = {16, 6, };
+
 int trappedRook = 28;
+
 int mobilityBonus[7][2][30] = {
     {},
     {},
@@ -87,6 +97,7 @@ int mobilityBonus[7][2][30] = {
         {-44, -34, -8, 1, -13, -41, -39, -16, -16, -8, 4, 14, 43, 42, 58, 69, 76, 89, 91, 103, 107, 109, 113, 117, 116, 117, 118, 113, },
     }
 };
+
 int bonusTable[7][2][64] = {
     {},
     {
@@ -242,13 +253,13 @@ void matEval(Board *board, int color, EvalTools &tools) {
 
   while(pieces) {
     uint64_t b = lsb(pieces);
-    int sq = Sq(b), sq2 = mirror(1 - color, sq);
-    tools.score[color][MG] += mat[MG][board->piece_type_at(sq)];
-    tools.score[color][EG] += mat[EG][board->piece_type_at(sq)];
+    int sq = Sq(b), sq2 = mirror(1 - color, sq), piece = board->piece_type_at(sq);
+    tools.score[color][MG] += mat[MG][piece];
+    tools.score[color][EG] += mat[EG][piece];
 
-    tools.score[color][MG] += bonusTable[board->piece_type_at(sq)][MG][sq2];
-    tools.score[color][EG] += bonusTable[board->piece_type_at(sq)][EG][sq2];
-    pieces ^= b;
+    tools.score[color][MG] += bonusTable[piece][MG][sq2];
+    tools.score[color][EG] += bonusTable[piece][EG][sq2];
+    pieces &= pieces - 1;
   }
 }
 
@@ -310,11 +321,9 @@ void pawnEval(Board *board, int color, EvalTools &tools) {
 
     /// check for passed pawn
 
-    //cout << "Scoring pawn " << sq << "\n";
-
     if(color == WHITE) {
       if(!(neighFileUpMask[sq] & tools.pawns[BLACK])) {
-        if(!(fileUpMask[sq] & tools.pawns[WHITE])) /// in case of double pawns, the one in the front is passed, but the other is not
+        /*if(!(fileUpMask[sq] & tools.pawns[WHITE])) /// in case of double pawns, the one in the front is passed, but the other is not*/
           passers |= b;
       }
 
@@ -328,7 +337,7 @@ void pawnEval(Board *board, int color, EvalTools &tools) {
       }
     } else {
       if(!(neighFileDownMask[sq] & tools.pawns[WHITE])) {
-        if(!(fileDownMask[sq] & tools.pawns[BLACK])) /// in case of double pawns, the one in the front is passed, but the other is not
+        /*if(!(fileDownMask[sq] & tools.pawns[BLACK])) /// in case of double pawns, the one in the front is passed, but the other is not*/
           passers |= b;
       }
 
@@ -344,7 +353,6 @@ void pawnEval(Board *board, int color, EvalTools &tools) {
     /// check for isolated pawn / connected pawns
 
     if(phalanx | defenders) {
-      //cout << "connected pawn at sq " << sq << " and " << phalanx << ", " << defended << "\n";
       int bonus = connectedBonus[(color == WHITE ? rank : 7 - rank)] * (phalanx ? 3 : 2) / (opposed ? 2 : 1) + 10 * count(defenders);
       tools.score[color][MG] += bonus;
       tools.score[color][EG] += bonus;
@@ -357,6 +365,8 @@ void pawnEval(Board *board, int color, EvalTools &tools) {
 
     pieces ^= b;
   }
+
+  /// blocked passers aren't given any passed bonus - to change?
 
   blockedPassers = passers & shift(color, SOUTH, board->pieces[color ^ 1]);
   passers ^= blockedPassers;
@@ -542,85 +552,11 @@ void kingEval(Board *board, int color, EvalTools &tools) {
     tools.kingDanger[color] = SafetyTable[weight];
   }
 
-  //cout << kingDanger << "\n";
-
-  //cout << count(b1) << "\n";
-
-  //kingDanger += count(b1) * count(b1) / 8 - 4 * count(b2);
-
-  //cout << kingDanger << "\n";
-  //kingDanger += 10 * count(kingRing[color] & weak);
-
-  //cout << kingDanger << "\n";
-
-  //cout << kingDanger[color] << "\n";
-
-  /*if(isOpenFile(board, file))
-    kingDanger[color] += openFileKing;
-  else if(isHalfOpenFile(board, 1 ^ color, file))
-    kingDanger[color] += halfOpenFileKing;
-
-  if(file > 0) {
-    if(isOpenFile(board, file - 1))
-      kingDanger[color] += openFileKing;
-    else if(isHalfOpenFile(board, 1 ^ color, file - 1))
-      kingDanger[color] += halfOpenFileKing;
-  }
-
-  if(file < 7) {
-    if(isOpenFile(board, file + 1))
-      kingDanger[color] += openFileKing;
-    else if(isHalfOpenFile(board, 1 ^ color, file + 1))
-      kingDanger[color] += halfOpenFileKing;
-  }*/
-
-  //cout << kingDanger[color] << "\n";
-
   tools.score[color][MG] += 10 * shieldCount;
   tools.score[color][EG] += 10 * shieldCount;
-
-  //cout << count(pawnShield) << "\n";
-
-  //score += bishopKingRing * count(kingRing[color] & board->bb[getType(BISHOP, color)]);
-  //score += rookKingRing * count(kingRing[color] & board->bb[getType(ROOK, color)]);
-
-  //cout << kingDanger[color] << "\n";
   tools.score[color][MG] -= tools.kingDanger[color];
   tools.score[color][EG] -= tools.kingDanger[color];
-
-  //cout << kingDanger[color] << "\n";
-
-  //cout << "KING SAFETY FOR " << (color == WHITE ? "WHITE " : "BLACK ") << score << "\n";
 }
-
-/*inline void threatsEval(Board *board, int color) {
-  bool enemy = color ^ 1;
-  uint64_t b, b1, weak, strong, defended, pieces = board->pieces[enemy] ^ board->bb[getType(PAWN, enemy)] ^ board->bb[getType(KING, enemy)];
-
-  strong = defendedByPawn[enemy] | (attackedBy2[enemy] & ~tools.attackedBy2[color]);
-  weak = board->pieces[enemy] & attackedBy[color] & ~strong;
-  defended = pieces & strong;
-
-  if(defended || weak) {
-    b = (defended | weak) & (attackedByPiece[color][KNIGHT] | attackedByPiece[color][BISHOP]);
-    while(b) {
-      b1 = lsb(b);
-      score[color][MG] += threatMinor[board->piece_type_at(Sq(b1))];
-      score[color][EG] += threatMinor[board->piece_type_at(Sq(b1))];
-      b ^= b1;
-    }
-    b = weak & (attackedByPiece[color][ROOK]);
-    while(b) {
-      b1 = lsb(b);
-      score[color][MG] += threatRook[board->piece_type_at(Sq(b1))];
-      score[color][EG] += threatRook[board->piece_type_at(Sq(b1))];
-      b ^= b1;
-    }
-    b = ~attackedBy[enemy] | (pieces & attackedBy2[color]);
-    score[color][MG] += hangingPiece * count(weak & b);
-    score[color][EG] += hangingPiece * count(weak & b);
-  }
-}*/
 
 void initEval() {
   /*for(int color = BLACK; color <= WHITE; color++) {
@@ -642,18 +578,9 @@ void eval(Board *board, int color, EvalTools &tools) {
   //cout << color << "\n";
   //cout << "initially: " << score[color][MG] << "\n";
   matEval(board, color, tools);
-  //cout << score[color][MG] << "\n";
-
-  //score += activeEval(board, color, isEndgame);
-  //score += centerEval(board, color);
   rookEval(board, color, tools);
-  //cout << score[color][MG] << "\n";
   pawnEval(board, color, tools);
-  //cout << score[color][MG] << "\n";
   kingEval(board, color, tools);
-  //cout << score[color][MG] << "\n";
-  //threatsEval(board, color);
-  //cout << score[color][MG] << "\n";
 }
 
 int evaluate(Board *board) {

@@ -35,7 +35,7 @@ std::mutex M;
 bool openFile(ifstream &stream) {
   if(stream.is_open())
     stream.close();
-  stream.open("quiet-labeled.txt", ifstream :: in);
+  stream.open("C:\\Users\\LMM\\Desktop\\quiet-labeled.txt", ifstream :: in);
   return stream.is_open();
 }
 
