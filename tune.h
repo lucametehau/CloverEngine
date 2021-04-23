@@ -10,6 +10,7 @@
 #include <cassert>
 #include "search.h"
 #include "evaluate.h"
+#include "search.h"
 #pragma once
 
 using namespace std;
@@ -35,31 +36,46 @@ std::mutex M;
 bool openFile(ifstream &stream) {
   if(stream.is_open())
     stream.close();
-  stream.open("quiet-labeled.txt", ifstream :: in);
+  stream.open("C:\\Users\\LMM\\Desktop\\lichess-quiet.txt", ifstream :: in);
   return stream.is_open();
 }
 
-void load(vector <Position> &texelPos, ifstream &stream) {
+void load(vector <Position> &texelPos, ifstream &stream, Search &searcher) {
 
   string line;
   int ind = 0;
+  Board board[1];
+  Info info[1];
+
+  info->timeset = 0;
+  info->startTime = 0;
+
   while(getline(stream, line)) {
     Position pos;
 
     ind++;
 
+    if(ind % 100000 == 0)
+      cout << ind << "\n";
+
     auto fenEnd = line.find_last_of(' ', string::npos) + 1;
 
     string result = "";
     int i = fenEnd + 1;
-    while(line[i] != '"')
+    while(i < line.size() && line[i] != '"')
       result += line[i++];
 
-    if(result == "1/2-1/2")
+    if(result == "1/2-1/2") /// for zurichess positions
       pos.result = 0.5;
     else if(result == "1-0")
       pos.result = 1.0;
     else if(result == "0-1")
+      pos.result = 0.0;
+    else if(result == "Draw") /// for lichess-quiet positions
+      pos.result = 0.5;
+    else if(result == "White")
+      pos.result = 1.0;
+    else if(result == "Black")
       pos.result = 0.0;
 
     //cout << pos.result << "\n";
@@ -74,7 +90,17 @@ void load(vector <Position> &texelPos, ifstream &stream) {
 
 
     pos.fen = fenString;
-    //cout << pos.fen << " " << pos.result << "\n";
+
+    /*searcher._setFen(pos.fen);
+    searcher.setTime(info);
+
+    searcher.quiesce(-INF, INF);
+
+    for(int i = 0; i < searcher.pvTableLen[0]; i++)
+      searcher._makeMove(searcher.pvTable[0][i]);
+
+    pos.fen = searcher.board->fen();*/
+
 
     //Board board[1];
 
@@ -418,7 +444,7 @@ bool isBetter(vector <int> &weights, vector <Position> &texelPos, double &mn, do
   return 0;
 }
 
-void tune() {
+void tune(Search &searcher) {
   int nrThreads = 8;
 
   ifstream stream;
@@ -428,7 +454,7 @@ void tune() {
   //cout << sizeof(Board) << endl;
 
   vector <Position> texelPos;
-  load(texelPos, stream);
+  load(texelPos, stream, searcher);
 
   //cout << texelPos.size() << " positions stored" << endl;
 

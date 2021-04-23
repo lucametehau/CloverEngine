@@ -4,6 +4,7 @@
 #include "tt.h"
 #include "tbprobe.h"
 #include "thread.h"
+#include <cmath>
 #pragma once
 
 using namespace std;
