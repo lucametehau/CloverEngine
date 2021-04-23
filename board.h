@@ -42,7 +42,8 @@ public:
   uint64_t key;
 
   Board() {
-    halfMoves = moveIndex = turn = key = 0;
+    halfMoves = moveIndex = key = 0;
+    turn = 0;
     ply = gamePly = 0;
     //checkers = 0;
     for(int i = 0; i <= 12; i++)
@@ -134,7 +135,7 @@ public:
       while(fen[ind] != '/' && fen[ind] != ' ') {
         int sq = getSq(i, j);
         if(fen[ind] < '0' || '9' < fen[ind]) {
-          board[sq] = cod[fen[ind]];
+          board[sq] = cod[int(fen[ind])];
           key ^= hashKey[board[sq]][sq];
           //cout << "INIT " << fen[ind] << " " << sq << " " << cod[fen[ind]] << " " << hashKey[cod[fen[ind]]][sq] << "\n";
           pieces[(board[sq] > 6)] |= (1ULL << sq);
