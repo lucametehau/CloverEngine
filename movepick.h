@@ -211,7 +211,6 @@ public:
 
     if(stage == STAGE_BAD_NOISY) {
       /// bad noisy moves
-      //scores.resize(moves.size());
       if(nrBadNoisy && !noisyPicker) {
         nrBadNoisy--;
         uint16_t move = badNoisy[nrBadNoisy];

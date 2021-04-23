@@ -101,13 +101,7 @@ int Search :: quiesce(int alpha, int beta) {
 
   while((move = noisyPicker.nextMove(this, 1, 1))) {
 
-    /*int move_score = see(board, move);
-
-    if(type(move) != PROMOTION) {
-
-      if(move_score < max(1, alpha - eval - 110))
-        continue;
-    }*/
+    //cout << "in quiesce, ply = " << ply << ", move = " << toString(move) << "\n";
 
     Stack[ply].move = move;
     Stack[ply].piece = board->piece_at(sqFrom(move));
@@ -306,23 +300,15 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
   uint16_t move;
 
-  //bool flag = (rootNode && depth <= 3); /// for debugging only
-
   while((move = picker.nextMove(this, skip, 0)) != NULLMOVE) {
 
     if(move == excluded)
       continue;
 
-    /*if(flag) {
-      cout << "Searching move " << toString(move) << "\n";
-      cout << "HashMove " << toString(hashMove) << "\n";
-    }*/
-
     bool isQuiet = !isNoisyMove(board, move);
     History :: Heuristics H{}; /// history values for quiet moves
 
-    /// quiet move pruning (to add things...)
-
+    /// quiet move pruning
     if(!rootNode && best > -MATE) {
       if(isQuiet) {
         History :: getHistory(this, move, ply, H);
@@ -361,7 +347,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
     /// singular extension
 
-    if(!rootNode && !excluded && abs(ttValue) < MATE && depth >= 8 && move == hashMove && entry.depth() >= depth - 3 && (bound & LOWER)) { /// had best instead of ttValue lol
+    if(!rootNode && !excluded && move == hashMove && abs(ttValue) < MATE && depth >= 8 && entry.depth() >= depth - 3 && (bound & LOWER)) { /// had best instead of ttValue lol
       int rBeta = ttValue - depth;
       //cout << "Entering singular extension with ";
       //cout << "depth = " << depth << ", alpha = " << alpha << ", beta = " << beta << "\n";
@@ -409,33 +395,21 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
       R = min(depth - 1, max(R, 1));
     }
 
-    /*if(flag)
-      cout << "newDepth " << newDepth << ", R " << R << "\n";*/
-
     int score = -INF;
 
     if(R != 1) {
-      /*if(flag)
-        cout << "A\n";*/
       score = -search(-alpha - 1, -alpha, newDepth - R);
     }
 
     if((R != 1 && score > alpha) || (R == 1 && !(pvNode && played == 1))) {
-      /*if(flag)
-        cout << "B\n";*/
       score = -search(-alpha - 1, -alpha, newDepth - 1);
     }
 
     if(pvNode && (played == 1 || score > alpha)) {
-      /*if(flag)
-        cout << "C " << -beta << " " << -alpha << "\n", cout << alpha << " " << beta << "\n";*/
       score = -search(-beta, -alpha, newDepth - 1);
     }
 
     undoMove(board, move);
-
-    /*if(flag)
-      cout << score << "\n";*/
 
     if(score > best) {
       best = score;
@@ -455,6 +429,8 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
   if(!played)
     return (isCheck ? -INF + ply : 0);
+
+  /// update killers and history heuristics
 
   if(best >= beta && !isNoisyMove(board, bestMove)) {
     if(killers[ply][0] != bestMove) {
@@ -506,7 +482,7 @@ void Search :: startSearch(Info *_info) {
         return;
       }
 
-      /// position is in table base
+      /// position is in tablebase
 
       if(PROBE_ROOT && count(board->pieces[WHITE] | board->pieces[BLACK]) <= (int)TB_LARGEST) {
         int move = NULLMOVE;
