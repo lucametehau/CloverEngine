@@ -15,8 +15,6 @@
 
 using namespace std;
 
-ofstream out ("weights.txt");
-
 const int PRECISION = 5;
 
 struct Position {
@@ -232,132 +230,132 @@ void saveWeights(vector <int> &weights) {
 void printWeights(vector <int> weights) {
   int ind = 0;
 
-  out << "int doubledPawnsPenalty[2] = {";
+  cout << "int doubledPawnsPenalty[2] = {";
   for(int i = MG; i <= EG; i++)
-    out << weights[ind++] << ", ";
-  out << "};\n";
+    cout << weights[ind++] << ", ";
+  cout << "};\n";
 
-  out << "int isolatedPenalty[2] = {";
+  cout << "int isolatedPenalty[2] = {";
   for(int i = MG; i <= EG; i++)
-    out << weights[ind++] << ", ";
-  out << "};\n";
+    cout << weights[ind++] << ", ";
+  cout << "};\n";
 
-  out << "int backwardPenalty[2] = {";
+  cout << "int backwardPenalty[2] = {";
   for(int i = MG; i <= EG; i++)
-    out << weights[ind++] << ", ";
-  out << "};\n";
+    cout << weights[ind++] << ", ";
+  cout << "};\n";
 
-  out << "int mat[2][7] = {\n";
+  cout << "int mat[2][7] = {\n";
   for(int s = MG; s <= EG; s++) {
-    out << "    {0, ";
+    cout << "    {0, ";
     for(int i = PAWN; i <= QUEEN; i++)
-      out << weights[ind++] << ", ";
-    out << "0},\n";
+      cout << weights[ind++] << ", ";
+    cout << "0},\n";
   }
-  out << "};\n";
-  out << "int phaseVal[] = {0, 0, 1, 1, 2, 4};\n";
-  out << "const int maxWeight = 16 * phaseVal[PAWN] + 4 * phaseVal[KNIGHT] + 4 * phaseVal[BISHOP] + 4 * phaseVal[ROOK] + 2 * phaseVal[QUEEN];\n";
-  out << "int passedBonus[] = {0";
+  cout << "};\n";
+  cout << "int phaseVal[] = {0, 0, 1, 1, 2, 4};\n";
+  cout << "const int maxWeight = 16 * phaseVal[PAWN] + 4 * phaseVal[KNIGHT] + 4 * phaseVal[BISHOP] + 4 * phaseVal[ROOK] + 2 * phaseVal[QUEEN];\n";
+  cout << "int passedBonus[] = {0";
   for(int i = 1; i <= 6; i++)
-    out << ", " << weights[ind++];
-  out << "};\n";
-  out << "int connectedBonus[] = {0";
+    cout << ", " << weights[ind++];
+  cout << "};\n";
+  cout << "int connectedBonus[] = {0";
   for(int i = 1; i <= 6; i++)
-    out << ", " << weights[ind++];
-  out << "};\n";
-  out << "int kingAttackWeight[] = {0, 0";
+    cout << ", " << weights[ind++];
+  cout << "};\n";
+  cout << "int kingAttackWeight[] = {0, 0";
   for(int i = KNIGHT; i <= QUEEN; i++)
-    out << ", " << kingAttackWeight[i];
-  out << "};\n";
-  out << "int SafetyTable[100] = {\n";
+    cout << ", " << kingAttackWeight[i];
+  cout << "};\n";
+  cout << "int SafetyTable[100] = {\n";
   for(int i = 0; i < 10; i++) {
-    out << "  ";
+    cout << "  ";
     for(int j = 0; j < 10; j++) {
-      out << SafetyTable[i * 10 + j] << ", ";
+      cout << SafetyTable[i * 10 + j] << ", ";
     }
-    out << "\n";
+    cout << "\n";
   }
-  out << "};\n";
-  out << "int outpostBonus[] = {0, 0";
+  cout << "};\n";
+  cout << "int outpostBonus[] = {0, 0";
   for(int i = KNIGHT; i <= BISHOP; i++)
-    out << ", " << weights[ind++];
-  out << "};\n";
-  out << "int outpostHoleBonus[] = {0, 0";
+    cout << ", " << weights[ind++];
+  cout << "};\n";
+  cout << "int outpostHoleBonus[] = {0, 0";
   for(int i = KNIGHT; i <= BISHOP; i++)
-    out << ", " << weights[ind++];
-  out << "};\n";
-  out << "int rookOpenFile[2] = {";
+    cout << ", " << weights[ind++];
+  cout << "};\n";
+  cout << "int rookOpenFile[2] = {";
   for(int i = MG; i <= EG; i++)
-    out << weights[ind++] << ", ";
-  out << "};\n";
-  out << "int rookSemiOpenFile[2] = {";
+    cout << weights[ind++] << ", ";
+  cout << "};\n";
+  cout << "int rookSemiOpenFile[2] = {";
   for(int i = MG; i <= EG; i++)
-    out << weights[ind++] << ", ";
-  out << "};\n";
-  out << "int bishopPair[2] = {";
+    cout << weights[ind++] << ", ";
+  cout << "};\n";
+  cout << "int bishopPair[2] = {";
   for(int i = MG; i <= EG; i++)
-    out << weights[ind++] << ", ";
-  out << "};\n";
-  out << "int longDiagonalBishop[2] = {";
+    cout << weights[ind++] << ", ";
+  cout << "};\n";
+  cout << "int longDiagonalBishop[2] = {";
   for(int i = MG; i <= EG; i++)
-    out << weights[ind++] << ", ";
-  out << "};\n";
+    cout << weights[ind++] << ", ";
+  cout << "};\n";
 
-  out << "int trappedRook = " << weights[ind++] << ";\n";
+  cout << "int trappedRook = " << weights[ind++] << ";\n";
 
-  out << "int mobilityBonus[7][2][30] = {\n";
-  out << "    {},\n";
-  out << "    {},\n";
-  out << "    {\n";
+  cout << "int mobilityBonus[7][2][30] = {\n";
+  cout << "    {},\n";
+  cout << "    {},\n";
+  cout << "    {\n";
   for(int s = MG; s <= EG; s++) {
-    out << "        {";
+    cout << "        {";
     for(int i = 0; i < 9; i++)
-      out << weights[ind++] << ", ";
-    out << "},\n";
+      cout << weights[ind++] << ", ";
+    cout << "},\n";
   }
-  out << "    },\n";
-  out << "    {\n";
+  cout << "    },\n";
+  cout << "    {\n";
   for(int s = MG; s <= EG; s++) {
-    out << "        {";
+    cout << "        {";
     for(int i = 0; i < 14; i++)
-      out << weights[ind++] << ", ";
-    out << "},\n";
+      cout << weights[ind++] << ", ";
+    cout << "},\n";
   }
-  out << "    },\n";
-  out << "    {\n";
+  cout << "    },\n";
+  cout << "    {\n";
   for(int s = MG; s <= EG; s++) {
-    out << "        {";
+    cout << "        {";
     for(int i = 0; i < 15; i++)
-      out << weights[ind++] << ", ";
-    out << "},\n";
+      cout << weights[ind++] << ", ";
+    cout << "},\n";
   }
-  out << "    },\n";
-  out << "    {\n";
+  cout << "    },\n";
+  cout << "    {\n";
   for(int s = MG; s <= EG; s++) {
-    out << "        {";
+    cout << "        {";
     for(int i = 0; i < 28; i++)
-      out << weights[ind++] << ", ";
-    out << "},\n";
+      cout << weights[ind++] << ", ";
+    cout << "},\n";
   }
-  out << "    }\n";
-  out << "};\n";
+  cout << "    }\n";
+  cout << "};\n";
 
-  out << "int bonusTable[7][2][64] = {\n";
-  out << "    {},\n";
+  cout << "int bonusTable[7][2][64] = {\n";
+  cout << "    {},\n";
   for(int i = PAWN; i <= KING; i++) {
-    out << "    {\n";
+    cout << "    {\n";
     for(int s = MG; s <= EG; s++) {
-      out << "        {\n            ";
+      cout << "        {\n            ";
       for(int j = A1; j <= H8; j++) {
-        out << weights[ind++] << ", ";
+        cout << weights[ind++] << ", ";
         if(j % 8 == 7)
-          out << "\n            ";
+          cout << "\n            ";
       }
-      out << "\n        },\n";
+      cout << "\n        },\n";
     }
-    out << "    },\n";
+    cout << "    },\n";
   }
-  out << "};\n";
+  cout << "};\n";
 }
 
 void rangeEvalError(vector <Position> &texelPos, atomic <double> & error, double k, int l, int r) {

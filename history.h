@@ -38,7 +38,7 @@ void History :: updateHist(int &hist, int score) {
 }
 
 void History :: updateHistory(Search *searcher, uint16_t *quiets, int nrQuiets, int ply, int bonus) {
-  if(ply < 2 || !nrQuiets)
+  if(ply < 2 || !nrQuiets) /// we can't update if we don't have a follow move or no quiets
     return;
 
   uint16_t counterMove = searcher->Stack[ply - 1].move, followMove = searcher->Stack[ply - 2].move;
@@ -49,7 +49,7 @@ void History :: updateHistory(Search *searcher, uint16_t *quiets, int nrQuiets, 
   bool turn = searcher->board->turn;
 
   if(counterMove)
-    searcher->cmTable[1 ^ turn][counterPiece][counterTo] = best;
+    searcher->cmTable[1 ^ turn][counterPiece][counterTo] = best; /// update counter move table
 
   bonus = min(bonus, histMax);
 

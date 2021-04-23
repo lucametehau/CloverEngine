@@ -254,6 +254,9 @@ void matEval(Board *board, int color, EvalTools &tools) {
   while(pieces) {
     uint64_t b = lsb(pieces);
     int sq = Sq(b), sq2 = mirror(1 - color, sq), piece = board->piece_type_at(sq);
+
+    /// piece values and psqt
+
     tools.score[color][MG] += mat[MG][piece];
     tools.score[color][EG] += mat[EG][piece];
 
@@ -267,12 +270,15 @@ bool isOpenFile(int file, EvalTools &tools) {
   return !(tools.allPawns & fileMask[file]);
 }
 
-bool isHalfOpenFile(int color, int file, EvalTools &tools) {
+bool isHalfOpenFile(int color, int file, EvalTools &tools) { /// is file half-open for color
   return !(tools.pawns[color] & fileMask[file]);
 }
 
 void rookEval(Board *board, int color, EvalTools &tools) {
   uint64_t pieces = 0;
+
+  /// evaluation pattern: apply a penaly if rook is trapped by king
+
   if(color == WHITE) {
     pieces = board->bb[WR];
     if((pieces & (1ULL << A1)) && (board->bb[getType(KING, color)] & between[A1][E1])) {
@@ -292,6 +298,7 @@ void rookEval(Board *board, int color, EvalTools &tools) {
       tools.score[color][EG] -= trappedRook;
     }
   }
+
   while(pieces) {
     uint64_t b = lsb(pieces);
     int sq = Sq(b), file = sq % 8;
@@ -322,7 +329,7 @@ void pawnEval(Board *board, int color, EvalTools &tools) {
     /// check for passed pawn
 
     if(color == WHITE) {
-      if(!(neighFileUpMask[sq] & tools.pawns[BLACK])) {
+      if(!(neighFileUpMask[sq] & tools.pawns[BLACK])) { /// no enemy pawns on the neighbour files on all ranks in front of it
         /*if(!(fileUpMask[sq] & tools.pawns[WHITE])) /// in case of double pawns, the one in the front is passed, but the other is not*/
           passers |= b;
       }
@@ -336,7 +343,7 @@ void pawnEval(Board *board, int color, EvalTools &tools) {
         tools.score[color][EG] -= doubledPawnsPenalty[EG];
       }
     } else {
-      if(!(neighFileDownMask[sq] & tools.pawns[WHITE])) {
+      if(!(neighFileDownMask[sq] & tools.pawns[WHITE])) { /// no enemy pawns on the neighbour files on all ranks in front of it
         /*if(!(fileDownMask[sq] & tools.pawns[BLACK])) /// in case of double pawns, the one in the front is passed, but the other is not*/
           passers |= b;
       }
@@ -353,10 +360,13 @@ void pawnEval(Board *board, int color, EvalTools &tools) {
     /// check for isolated pawn / connected pawns
 
     if(phalanx | defenders) {
+      /// give bonus if pawn is connected, increase it if pawn makes a phalanx, decrease it if pawn is blocked
       int bonus = connectedBonus[(color == WHITE ? rank : 7 - rank)] * (phalanx ? 3 : 2) / (opposed ? 2 : 1) + 10 * count(defenders);
       tools.score[color][MG] += bonus;
       tools.score[color][EG] += bonus;
     }
+
+    /// no supporting pawns
     if(!neigh) {
       tools.score[color][MG] -= isolatedPenalty[MG];
       tools.score[color][EG] -= isolatedPenalty[EG];
@@ -386,6 +396,8 @@ void pieceEval(Board *board, int color, EvalTools &tools) {
   uint64_t outpostRanks = (color == WHITE ? rankMask[3] | rankMask[4] | rankMask[5] : rankMask[2] | rankMask[3] | rankMask[4]);
   int outpostScore = 0;
 
+  /// mobility area is all squares without our king, squares attacked by enemy pawns and our blocked pawns
+
   mobilityArea = ~(board->bb[getType(KING, color)] | tools.defendedByPawn[enemy] | (tools.pawns[color] & shift(color, SOUTH, all)));
 
   pieces = board->bb[getType(KNIGHT, color)];
@@ -402,6 +414,7 @@ void pieceEval(Board *board, int color, EvalTools &tools) {
     tools.phase += phaseVal[KNIGHT];
 
     if(b & (outpostRanks | tools.defendedByPawn[color])) {
+      /// assign bonus if on outpost or outpost hole (black: f5, d5, e6 then e5 is a hole)
       if((color == WHITE && !(tools.pawns[enemy] & (neighFileUpMask[sq] ^ fileUpMask[sq]))) || (color == BLACK && !(tools.pawns[enemy] & (neighFileDownMask[sq] ^ fileDownMask[sq])))) {
         if(isHalfOpenFile(color, file, tools))
           outpostScore += outpostBonus[KNIGHT];
@@ -415,6 +428,7 @@ void pieceEval(Board *board, int color, EvalTools &tools) {
     tools.attackedByPiece[color][KNIGHT] |= att;*/
 
     //kingDanger[color] -= defenseBonus[KNIGHT] * count(att & kingRing[color]);
+    /// update king safety terms
     if(att & tools.kingRing[enemy]) {
       tools.kingAttackersWeight[color] += kingAttackWeight[KNIGHT] * count(att & tools.kingRing[enemy]);
       tools.kingAttackersCount[color]++;
@@ -424,6 +438,8 @@ void pieceEval(Board *board, int color, EvalTools &tools) {
   }
 
   pieces = board->bb[getType(BISHOP, color)];
+
+  /// assign bonus for bishop pair
 
   if(count(pieces) >= 2) {
     tools.score[color][MG] += bishopPair[MG];
@@ -442,6 +458,7 @@ void pieceEval(Board *board, int color, EvalTools &tools) {
     tools.phase += phaseVal[BISHOP];
 
     if(b & (outpostRanks | tools.defendedByPawn[color])) {
+      /// same as knight outposts
       if((color == WHITE && !(tools.pawns[enemy] & (neighFileUpMask[sq] ^ fileUpMask[sq]))) || (color == BLACK && !(tools.pawns[enemy] & (neighFileDownMask[sq] ^ fileDownMask[sq])))) {
         if(isHalfOpenFile(color, file, tools))
           outpostScore += outpostBonus[BISHOP];
@@ -449,6 +466,8 @@ void pieceEval(Board *board, int color, EvalTools &tools) {
           outpostScore += outpostHoleBonus[BISHOP];
       }
     }
+
+    /// assign bonus if bishop is on a long diagonal (controls 2 squares in the center)
 
     if(count(att & CENTER) >= 2 && ((1ULL << sq) & (LONG_DIAGONALS & ~CENTER))) {
       tools.score[color][MG] += longDiagonalBishop[MG];
@@ -460,6 +479,8 @@ void pieceEval(Board *board, int color, EvalTools &tools) {
     tools.attackedByPiece[color][BISHOP] |= att;*/
 
     //kingDanger[color] -= defenseBonus[BISHOP] * count(att & kingRing[color]);
+
+    /// update king safety terms
     if(att & tools.kingRing[enemy]) {
       tools.kingAttackersWeight[color] += kingAttackWeight[BISHOP] * count(att & tools.kingRing[enemy]);
       tools.kingAttackersCount[color]++;
@@ -486,6 +507,8 @@ void pieceEval(Board *board, int color, EvalTools &tools) {
 
 
     //kingDanger[color] -= defenseBonus[ROOK] * count(att & kingRing[color]);
+
+    /// update king safety terms
     if(att & tools.kingRing[enemy]) {
       tools.kingAttackersWeight[color] += kingAttackWeight[ROOK] * count(att & tools.kingRing[enemy]);
       tools.kingAttackersCount[color]++;
@@ -512,6 +535,8 @@ void pieceEval(Board *board, int color, EvalTools &tools) {
     tools.attackedByPiece[color][QUEEN] |= att;*/
 
     //kingDanger[color] -= defenseBonus[QUEEN] * count(att & kingRing[color]);
+
+    /// update king safety terms
     if(att & tools.kingRing[enemy]) {
       tools.kingAttackersWeight[color] += kingAttackWeight[QUEEN] * count(att & tools.kingRing[enemy]);
       tools.kingAttackersCount[color]++;
@@ -532,11 +557,15 @@ void kingEval(Board *board, int color, EvalTools &tools) {
   //uint64_t camp = (color == WHITE ? ALL ^ rankMask[5] ^ rankMask[6] ^ rankMask[7] : ALL ^ rankMask[0] ^ rankMask[1] ^ rankMask[2]), weak;
   bool enemy = 1 ^ color;
 
+  /// king psqt
+
   tools.score[color][MG] += bonusTable[KING][MG][mirror(1 - color, king)];
   tools.score[color][EG] += bonusTable[KING][EG][mirror(1 - color, king)];
 
   uint64_t shield = tools.pawnShield[color] & tools.pawns[color];
   int shieldCount = min(3, count(shield));
+
+  /// as one cpw (https://www.chessprogramming.org/King_Safety)
 
   if(tools.kingAttackersCount[enemy] >= 2) {
     int weight = min(99, tools.kingAttackersWeight[enemy]);
@@ -551,6 +580,8 @@ void kingEval(Board *board, int color, EvalTools &tools) {
 
     tools.kingDanger[color] = SafetyTable[weight];
   }
+
+  /// assign bonus for pawns in king ring
 
   tools.score[color][MG] += 10 * shieldCount;
   tools.score[color][EG] += 10 * shieldCount;
@@ -620,6 +651,8 @@ int evaluate(Board *board) {
   eval(board, WHITE, tools);
   eval(board, BLACK, tools);
 
+  /// mg and eg score
+
   int mg = tools.score[WHITE][MG] - tools.score[BLACK][MG], eg = tools.score[WHITE][EG] - tools.score[BLACK][EG];
 
   //cout << mg << " " << eg << "\n";
@@ -630,7 +663,7 @@ int evaluate(Board *board) {
 
   tools.phase = min(tools.phase, maxWeight);
 
-  int score = (mg * tools.phase + eg * (maxWeight - tools.phase)) / maxWeight;
+  int score = (mg * tools.phase + eg * (maxWeight - tools.phase)) / maxWeight; /// interpolate mg and eg score
 
   return TEMPO + score * (board->turn == WHITE ? 1 : -1);
 }

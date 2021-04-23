@@ -98,7 +98,7 @@ public:
 
           if(!see(searcher->board, best, threshold)) {
             badNoisy[nrBadNoisy++] = best;
-            scores[ind] = -1;
+            scores[ind] = -1; /// mark capture as bad
             return nextMove(searcher, skip, noisyPicker);
           }
 
@@ -106,13 +106,13 @@ public:
           noisy[ind] = noisy[nrNoisy];
           scores[ind] = scores[nrNoisy];
 
-          if(best == hashMove)
+          if(best == hashMove) /// don't play the same move
             return nextMove(searcher, skip, noisyPicker);
 
           return best;
         }
       }
-      if(skip) {
+      if(skip) { /// no need to go through quiets
         stage = STAGE_BAD_NOISY;
         return nextMove(searcher, skip, noisyPicker);
       }
@@ -121,6 +121,8 @@ public:
 
     if(stage == STAGE_GEN_QUIETS) {
       /// quiet moves
+      /// TO DO: don't generate all quiets to validate refutation moves, add fast isLegal(move) function ?
+
       nrQuiets = genLegalQuiets(searcher->board, quiets);
 
       int ply = searcher->board->ply;
@@ -211,7 +213,7 @@ public:
 
     if(stage == STAGE_BAD_NOISY) {
       /// bad noisy moves
-      if(nrBadNoisy && !noisyPicker) {
+      if(nrBadNoisy && !noisyPicker) { /// bad captures can't improve the current position in quiesce search
         nrBadNoisy--;
         uint16_t move = badNoisy[nrBadNoisy];
 

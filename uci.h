@@ -18,6 +18,7 @@ using namespace std;
 ///       - tune on lichess-quiet.txt
 ///       - add kp-hash
 ///       - improve evaluation -> improve king safety, add more terms (idk)
+///       - improve time management -> currently, it's something similar to vice :)
 
 /// is this working?
 /// i guess so?
@@ -140,6 +141,8 @@ void UCI :: Uci_Loop() {
                 info->timeset = FALSE;
 
                 string param;
+
+                ///
 
                 while(iss >> param) {
 

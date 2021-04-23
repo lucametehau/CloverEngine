@@ -91,13 +91,15 @@ int Search :: quiesce(int alpha, int beta) {
 
   Stack[ply].eval = eval;
 
+  /// stand-pat
+
   if(eval >= beta)
     return eval;
 
   alpha = max(alpha, eval);
   best = eval;
 
-  Movepick noisyPicker(NULLMOVE, NULLMOVE, max(1, alpha - eval - 110));
+  Movepick noisyPicker(NULLMOVE, NULLMOVE, max(1, alpha - eval - 110)); /// delta pruning -> TO DO: find better constant
 
   uint16_t move;
 
@@ -229,6 +231,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
   if(eval == INF)
     eval = (ply >= 1 && Stack[ply - 1].move == NULLMOVE ? -Stack[ply - 1].eval + 2 * TEMPO : evaluate(board));
+
   bool isCheck = inCheck(board), improving = (ply >= 2 && eval > Stack[ply - 2].eval);
 
   killers[ply + 1][0] = killers[ply + 1][1] = NULLMOVE;
@@ -295,6 +298,8 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
     }
   }
 
+  /// get counter move for move picker
+
   uint16_t counter = (ply == 0 || Stack[ply - 1].move == NULLMOVE ? NULLMOVE :
                                                                     cmTable[1 ^ board->turn][Stack[ply - 1].piece][sqTo(Stack[ply - 1].move)]);
 
@@ -316,6 +321,8 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
         History :: getHistory(this, move, ply, H);
 
         //cout << h << " " << ch << " " << fh << "\n";
+
+        /// cm and fm pruning
 
         if(depth <= cmpDepth[improving] && H.ch < cmpHistoryLimit[improving])
           continue;
@@ -376,6 +383,8 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
       cout << "info depth " << depth << " currmove " << toString(move) << " currmovenumber " << played << "\n";
     }
 
+    /// store quiets for history
+
     if(isQuiet)
       quiets[nrQuiets++] = move;
 
@@ -398,6 +407,8 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
     }
 
     int score = -INF;
+
+    /// principal variation search
 
     if(R != 1) {
       score = -search(-alpha - 1, -alpha, newDepth - R);
@@ -441,6 +452,8 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
     }
     History :: updateHistory(this, quiets, nrQuiets, ply, depth * depth);
   }
+
+  /// update tt only if we aren't in a singular search
 
   if(excluded == NULLMOVE) {
     bound = (best >= beta ? LOWER : (best > alphaOrig ? EXACT : UPPER));
