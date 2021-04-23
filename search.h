@@ -41,6 +41,7 @@ bool Search :: checkForStop() {
 
   checkCount++;
   checkCount &= 1023;
+
   if(!checkCount) {
     if(info->timeset && getTime() > info->stopTime)
       flag |= TERMINATED_BY_TIME;
@@ -85,7 +86,7 @@ int Search :: quiesce(int alpha, int beta) {
   }
 
   if(eval == INF)
-    eval = (Stack[ply - 1].move == NULLMOVE ? -Stack[ply - 1].eval + 2 * TEMPO : evaluate(board));
+    eval = (ply && Stack[ply - 1].move == NULLMOVE ? -Stack[ply - 1].eval + 2 * TEMPO : evaluate(board));
 
   Stack[ply].eval = eval;
 
@@ -636,9 +637,12 @@ void Search :: startSearch(Info *_info) {
 
 void Search :: clearHistory() {
   memset(hist, 0, sizeof(hist));
+  memset(cmTable, 0, sizeof(cmTable));
 
-  for(int i = 0; i < threadCount; i++)
+  for(int i = 0; i < threadCount; i++) {
     memset(params[i].hist, 0, sizeof(params[i].hist));
+    memset(params[i].cmTable, 0, sizeof(params[i].cmTable));
+  }
 }
 
 void Search :: clearKillers() {

@@ -37,6 +37,8 @@ class Search {
     void _setFen(string fen);
     void _makeMove(uint16_t move);
 
+    int quiesce(int alpha, int beta);
+
     void setTime(Info *tInfo) {
       info = tInfo;
     }
@@ -51,7 +53,6 @@ class Search {
 
     void startSearch(Info *info);
     int search(int alpha, int beta, int depth, uint16_t excluded = NULLMOVE);
-    int quiesce(int alpha, int beta);
 
     void printPv();
     void updatePv(int ply, int move);

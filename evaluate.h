@@ -632,5 +632,5 @@ int evaluate(Board *board) {
 
   int score = (mg * tools.phase + eg * (maxWeight - tools.phase)) / maxWeight;
 
-  return TEMPO + score * (board->turn == WHITE ? 1 : -1);
+  return /*TEMPO +*/ score * (board->turn == WHITE ? 1 : -1);
 }

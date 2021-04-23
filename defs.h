@@ -2,6 +2,7 @@
 #include <chrono>
 #include <ctime>
 #include <ratio>
+#include <random>
 #pragma once
 
 using namespace std;

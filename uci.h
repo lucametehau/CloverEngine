@@ -43,7 +43,7 @@ class UCI {
     void Position();
     void SetOption();
     void Eval();
-    void Tune();
+    void Tune(Search &searcher);
     void Perft(int depth);
 
   private:
@@ -261,7 +261,7 @@ void UCI :: Uci_Loop() {
 
           } else if(cmd == "tune") {
 
-            Tune();
+            Tune(searcher);
 
           } else if(cmd == "eval") {
 
@@ -316,8 +316,8 @@ void UCI :: Eval() {
   cout << evaluate(searcher.board) << endl;
 }
 
-void UCI :: Tune() {
-  tune();
+void UCI :: Tune(Search &searcher) {
+  tune(searcher);
 }
 
 void UCI :: IsReady() {
