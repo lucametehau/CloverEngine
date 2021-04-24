@@ -42,7 +42,6 @@ void load(vector <Position> &texelPos, ifstream &stream, Search &searcher) {
 
   string line;
   int ind = 0;
-  Board board[1];
   Info info[1];
 
   info->timeset = 0;
@@ -60,7 +59,7 @@ void load(vector <Position> &texelPos, ifstream &stream, Search &searcher) {
 
     string result = "";
     int i = fenEnd + 1;
-    while(i < line.size() && line[i] != '"')
+    while(i < (int)line.size() && line[i] != '"')
       result += line[i++];
 
     if(result == "1/2-1/2") /// for zurichess positions

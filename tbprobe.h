@@ -319,3 +319,4 @@ extern uint64_t tb_pawn_attacks(unsigned _square, bool _color);
 #endif
 
 #endif
+

@@ -1993,3 +1993,4 @@ uint64_t tb_pawn_attacks(unsigned sq, bool color)
 }
 
 #endif      /* TB_NO_HELPER_API */
+

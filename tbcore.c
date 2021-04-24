@@ -1716,3 +1716,4 @@ static void free_dtz_entry(struct TBEntry *entry)
 
 static int wdl_to_map[5] = { 1, 3, 0, 2, 0 };
 static ubyte pa_flags[5] = { 8, 0, 0, 0, 4 };
+

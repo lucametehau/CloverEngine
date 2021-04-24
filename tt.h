@@ -85,6 +85,7 @@ inline uint64_t pow2(uint64_t size) {
 }
 
 inline tt :: HashTable :: HashTable() {
+  entries = 0;
   initTable(128 * MB);
 }
 

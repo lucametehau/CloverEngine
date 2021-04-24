@@ -23,7 +23,7 @@ using namespace std;
 /// is this working?
 /// i guess so?
 
-const string VERSION = "2.1"; /// 2.0 was "FM"
+const string VERSION = "2.1.1.3"; /// 2.0 was "FM"
 
 char line[INPUTBUFFER];
 
