@@ -7,12 +7,13 @@
 #include <cmath>
 #pragma once
 
-Search :: Search() : threads(nullptr), params(nullptr)
+Search::Search() : threads(nullptr), params(nullptr), principalThread(nullptr)
 {
   nodes = tbHits = t0 = tDepth = selDepth = lazyDepth = threadCount = flag = checkCount = 0;
   principalSearcher = terminateSMP = SMPThreadExit = false;
   memset(&lmrRed, 0, sizeof(lmrRed));
   memset(&lmrCnt, 0, sizeof(lmrCnt));
+  memset(&info  , 0, sizeof(info));
 
   for(int i = 0; i < 64; i++) { /// depth
     for(int j = 0; j < 64; j++) /// moves played
@@ -24,7 +25,7 @@ Search :: Search() : threads(nullptr), params(nullptr)
   }
 }
 
-Search :: ~Search() {
+Search::~Search() {
   releaseThreads();
 }
 
@@ -52,14 +53,14 @@ const bool printStats = 1;
 const bool PROBE_ROOT = false; /// default true
 
 int Search :: quiesce(int alpha, int beta) {
-  int ply = board->ply;
+  int ply = board.ply;
 
   pvTableLen[ply] = 0;
 
   selDepth = std::max(selDepth, ply);
   nodes++;
 
-  if((isRepetition(board, ply) || board->halfMoves >= 100 || board->isMaterialDraw()) && ply) /// check for draw
+  if((isRepetition(board, ply) || board.halfMoves >= 100 || board.isMaterialDraw()) && ply) /// check for draw
     return 0;
 
   if(checkForStop())
@@ -67,7 +68,7 @@ int Search :: quiesce(int alpha, int beta) {
 
     /// check if in transposition table
 
-  uint64_t key = board->key;
+  uint64_t key = board.key;
   int score = 0, best = -INF;
   int bound = NONE;
 
@@ -105,7 +106,7 @@ int Search :: quiesce(int alpha, int beta) {
     //cout << "in quiesce, ply = " << ply << ", move = " << toString(move) << "\n";
 
     Stack[ply].move = move;
-    Stack[ply].piece = board->piece_at(sqFrom(move));
+    Stack[ply].piece = board.piece_at(sqFrom(move));
 
     makeMove(board, move);
     score = -quiesce(-beta, -alpha);
@@ -128,11 +129,11 @@ int Search :: quiesce(int alpha, int beta) {
 }
 
 int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
-  int pvNode = (alpha < beta - 1), rootNode = (board->ply == 0);
+  int pvNode = (alpha < beta - 1), rootNode = (board.ply == 0);
   uint16_t hashMove = NULLMOVE;
-  int ply = board->ply;
+  int ply = board.ply;
   int alphaOrig = alpha;
-  uint64_t key = board->key;
+  uint64_t key = board.key;
   uint16_t quiets[256], nrQuiets = 0;
 
   //cout << alpha << " " << beta << " " << depth << "\n";
@@ -155,7 +156,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
   pvTableLen[ply] = 0;
 
   if(!rootNode) {
-    if(isRepetition(board, ply) || board->halfMoves >= 100 || board->isMaterialDraw())
+    if(isRepetition(board, ply) || board.halfMoves >= 100 || board.isMaterialDraw())
       return 0;
     int rAlpha = std::max(alpha, -INF + ply), rBeta = std::min(beta, INF - ply - 1);
     if(rAlpha >= rBeta)
@@ -182,32 +183,32 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
   /// tablebase probing
 
-  if(!rootNode && TB_LARGEST && depth >= 2 && !board->halfMoves && !board->castleRights) {
-    unsigned pieces = count(board->pieces[WHITE] | board->pieces[BLACK]);
+  if(!rootNode && TB_LARGEST && depth >= 2 && !board.halfMoves && !board.castleRights) {
+    unsigned pieces = count(board.pieces[WHITE] | board.pieces[BLACK]);
 
     if(pieces <= TB_LARGEST) {
-      int ep = board->enPas, score = 0, type = NONE;
+      int ep = board.enPas, score = 0, type = NONE;
       if(ep == -1)
         ep = 0;
 
-      auto probe = tb_probe_wdl(board->pieces[WHITE], board->pieces[BLACK],
-                                board->bb[WK] | board->bb[BK],
-                                board->bb[WQ] | board->bb[BQ],
-                                board->bb[WR] | board->bb[BR],
-                                board->bb[WB] | board->bb[BB],
-                                board->bb[WN] | board->bb[BN],
-                                board->bb[WP] | board->bb[BP],
-                                0, 0, ep, board->turn);
+      auto probe = tb_probe_wdl(board.pieces[WHITE], board.pieces[BLACK],
+                                board.bb[WK] | board.bb[BK],
+                                board.bb[WQ] | board.bb[BQ],
+                                board.bb[WR] | board.bb[BR],
+                                board.bb[WB] | board.bb[BB],
+                                board.bb[WN] | board.bb[BN],
+                                board.bb[WP] | board.bb[BP],
+                                0, 0, ep, board.turn);
 
       if(probe != TB_RESULT_FAILED) {
         tbHits++;
         switch(probe) {
           case TB_WIN:
-            score = TB_BASE_SCORE - DEPTH - board->ply;
+            score = TB_BASE_SCORE - DEPTH - board.ply;
             type = LOWER;
             break;
           case TB_LOSS:
-            score = -(TB_BASE_SCORE - DEPTH - board->ply);
+            score = -(TB_BASE_SCORE - DEPTH - board.ply);
             type = UPPER;
             break;
           default:
@@ -218,7 +219,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
         if(type == EXACT || (type == UPPER && score <= alpha) || (type == LOWER && score >= beta)) {
           //TT->save()
-          //board->print();
+          //board.print();
           TT->save(key, score, DEPTH, 0, type, NULLMOVE, 0);
           return score;
         }
@@ -248,7 +249,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
   if(!pvNode && !isCheck && eval >= beta && depth >= 2 &&
      Stack[ply - 1].move != NULLMOVE &&
-     (board->pieces[board->turn] ^ board->bb[getType(PAWN, board->turn)] ^ board->bb[getType(KING, board->turn)]) &&
+     (board.pieces[board.turn] ^ board.bb[getType(PAWN, board.turn)] ^ board.bb[getType(KING, board.turn)]) &&
      (!ttHit || !(bound & UPPER) || ttValue >= beta)) {
     int R = 4 + depth / 6 + std::min(3, (eval - beta) / 200);
 
@@ -278,7 +279,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
         continue;
 
       Stack[ply].move = move;
-      Stack[ply].piece = board->piece_at(sqFrom(move));
+      Stack[ply].piece = board.piece_at(sqFrom(move));
 
       makeMove(board, move);
 
@@ -298,7 +299,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
   /// get counter move for move picker
 
   uint16_t counter = (ply == 0 || Stack[ply - 1].move == NULLMOVE ? NULLMOVE :
-                                                                    cmTable[1 ^ board->turn][Stack[ply - 1].piece][sqTo(Stack[ply - 1].move)]);
+                                                                    cmTable[1 ^ board.turn][Stack[ply - 1].piece][sqTo(Stack[ply - 1].move)]);
 
   Movepick picker(hashMove, counter, 0);
 
@@ -357,7 +358,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
       int rBeta = ttValue - depth;
       //cout << "Entering singular extension with ";
       //cout << "depth = " << depth << ", alpha = " << alpha << ", beta = " << beta << "\n";
-      //board->print();
+      //board.print();
       int score = search(rBeta - 1, rBeta, depth / 2, move);
 
       if(score < rBeta)
@@ -369,7 +370,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
     }
 
     Stack[ply].move = move;
-    Stack[ply].piece = board->piece_at(sqFrom(move));
+    Stack[ply].piece = board.piece_at(sqFrom(move));
 
     makeMove(board, move);
     played++;
@@ -394,7 +395,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
       R += !pvNode + !improving; /// not on pv or not improving
 
-      R += isCheck && piece_type(board->board[sqTo(move)]) == KING; /// check evasions
+      R += isCheck && piece_type(board.board[sqTo(move)]) == KING; /// check evasions
 
       R -= picker.stage < STAGE_QUIETS; /// refutation moves
 
@@ -462,7 +463,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
 void Search :: startSearch(Info *_info) {
   int alpha, beta, score = 0;
-  int depthLimit = tDepth, bestMove = NULLMOVE;
+  int bestMove = NULLMOVE;
 
   nodes = selDepth = tbHits = 0;
   t0 = getTime();
@@ -480,7 +481,7 @@ void Search :: startSearch(Info *_info) {
 
       int nrMoves = genLegal(board, moves);
 
-      //board->print();
+      //board.print();
 
       /*for(int i = 0; i < nrMoves; i++)
         cout << toString(moves[i]) << " ";
@@ -496,19 +497,19 @@ void Search :: startSearch(Info *_info) {
 
       /// position is in tablebase
 
-      if(PROBE_ROOT && count(board->pieces[WHITE] | board->pieces[BLACK]) <= (int)TB_LARGEST) {
+      if(PROBE_ROOT && count(board.pieces[WHITE] | board.pieces[BLACK]) <= (int)TB_LARGEST) {
         int move = NULLMOVE;
-        auto probe = tb_probe_root(board->pieces[WHITE], board->pieces[BLACK],
-                                  board->bb[WK] | board->bb[BK],
-                                  board->bb[WQ] | board->bb[BQ],
-                                  board->bb[WR] | board->bb[BR],
-                                  board->bb[WB] | board->bb[BB],
-                                  board->bb[WN] | board->bb[BN],
-                                  board->bb[WP] | board->bb[BP],
-                                  board->halfMoves,
-                                  (board->castleRights & (3 << board->turn)) > 0,
+        auto probe = tb_probe_root(board.pieces[WHITE], board.pieces[BLACK],
+                                  board.bb[WK] | board.bb[BK],
+                                  board.bb[WQ] | board.bb[BQ],
+                                  board.bb[WR] | board.bb[BR],
+                                  board.bb[WB] | board.bb[BB],
+                                  board.bb[WN] | board.bb[BN],
+                                  board.bb[WP] | board.bb[BP],
+                                  board.halfMoves,
+                                  (board.castleRights & (3 << board.turn)) > 0,
                                   0,
-                                  board->turn,
+                                  board.turn,
                                   nullptr);
         if(probe != TB_RESULT_CHECKMATE && probe != TB_RESULT_FAILED && probe != TB_RESULT_STALEMATE) {
           int to = int(TB_GET_TO(probe)), from = int(TB_GET_FROM(probe)), promote = TB_GET_PROMOTES(probe), ep = TB_GET_EP(probe);
@@ -808,14 +809,10 @@ void Search :: releaseThreads() {
 
 void Search :: _setFen(std::string fen) {
   for(int i = 0; i < threadCount; i++) {
-    params[i].board->setFen(fen);
+    params[i].board.setFen(fen);
   }
 
-  std::cout << "setting fen... " << threadCount << std::endl;
-
-  board->setFen(fen);
-
-  board->print();
+  board.setFen(fen);
 }
 
 void Search :: _makeMove(uint16_t move) {
@@ -827,7 +824,7 @@ void Search :: _makeMove(uint16_t move) {
 
 void Search :: clearBoard() {
   for(int i = 0; i < threadCount; i++)
-    params[i].board->clear();
+    params[i].board.clear();
 
-  board->clear();
+  board.clear();
 }

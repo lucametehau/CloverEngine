@@ -92,13 +92,13 @@ void load(std::vector <Position> &texelPos, std::ifstream &stream, Search &searc
     for(int i = 0; i < searcher.pvTableLen[0]; i++)
       searcher._makeMove(searcher.pvTable[0][i]);
 
-    pos.fen = searcher.board->fen();*/
+    pos.fen = searcher.board.fen();*/
 
 
-    //Board board[1];
+    //Board &board[1];
 
-    //board->setFen(pos.fen);
-    //board->print();
+    //board.setFen(pos.fen);
+    //board.print();
 
 
     texelPos.push_back(pos);
@@ -356,12 +356,12 @@ void printWeights(std::vector <int> weights) {
 void rangeEvalError(std::vector <Position> &texelPos, std::atomic <double> & error, double k, int l, int r) {
 
   double errorRange = 0;
-  Board board[1];
+  Board board;
 
   for(int i = l; i < r; i++) {
-    board->setFen(texelPos[i].fen);
-    //board->print();
-    int score = evaluate(board) * (board->turn == WHITE ? 1 : -1);
+    board.setFen(texelPos[i].fen);
+    //board.print();
+    int score = evaluate(board) * (board.turn == WHITE ? 1 : -1);
 
     errorRange += pow(texelPos[i].result - sigmoid(k, score), 2);
     //cout << errorRange << "\n";
@@ -452,7 +452,7 @@ void tune(Search &searcher) {
   //cout << texelPos.size() << " positions stored" << endl;
 
   /*for(auto &pos : texelPos) {
-    std::cout << pos.board->fen() << " " << pos.result << "\n";
+    std::cout << pos.board.fen() << " " << pos.result << "\n";
   }*/
 
   //cout << "memory allocated: " << (sizeof(Position) * texelPos.size() >> 20) << " MB" << endl;
@@ -469,11 +469,11 @@ void tune(Search &searcher) {
   //return;
   //return;
 
-  /*Board board[1];
+  /*Board &board;
 
   for(auto &pos : texelPos) {
-    board->setFen(pos.fen);
-    int score = evaluate(board) * (board->turn == WHITE ? 1 : -1);
+    board.setFen(pos.fen);
+    int score = evaluate(board) * (board.turn == WHITE ? 1 : -1);
 
   }
 

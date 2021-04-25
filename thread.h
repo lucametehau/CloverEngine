@@ -87,7 +87,7 @@ class Search {
 
   public:
     bool principalSearcher;
-    Board board[1];
+    Board board;
 
   private:
     std::unique_ptr <std::thread[]> threads;

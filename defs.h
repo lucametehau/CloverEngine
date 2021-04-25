@@ -240,6 +240,9 @@ inline void init_defs() {
   deltaPos[NORTHWEST] = 7, deltaPos[NORTHEAST] = 9;
   deltaPos[SOUTHWEST] = -9, deltaPos[SOUTHEAST] = -7;
 
+  for(int i = 0; i < 256; i++)
+    cod[i] = 0;
+
   cod['p'] = 1, cod['n'] = 2, cod['b'] = 3,  cod['r'] = 4,  cod['q'] = 5,  cod['k'] = 6,
   cod['P'] = 7, cod['N'] = 8, cod['B'] = 9, cod['R'] = 10, cod['Q'] = 11, cod['K'] = 12;
 

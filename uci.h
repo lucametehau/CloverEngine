@@ -49,31 +49,20 @@ class UCI {
     Search &searcher;
 };
 
-Info info[1];
-
 void UCI :: Uci_Loop() {
 
     int ttSize = 128;
 
-    for(int i = 0; i < 100; i++)
-        std::cout << i << "\n";
-
     std::cout << "Clover " << VERSION << " by Luca Metehau" << std::endl;
-
-    std::cout << "0\n";
-
-    std::cout << "1\n";
 
     TT = new tt :: HashTable();
 
-    std::cout << "2\n";
+    Info info[1];
 
     init(info);
 
     //pvMove.clear();
     //table.clear();
-
-    std::cout << "3\n";
 
     //searcher.setThreadCount(1); /// 2 threads for debugging data races
     UciNewGame();
@@ -130,7 +119,7 @@ void UCI :: Uci_Loop() {
               }
             }
 
-            searcher.board->print(); /// just to be sure
+            searcher.board.print(); /// just to be sure
 
           } else if (cmd == "ucinewgame") {
 
@@ -144,8 +133,8 @@ void UCI :: Uci_Loop() {
 
                 int depth = -1, movestogo = 30, movetime = -1;
                 int time = -1, inc = 0;
-                bool turn = searcher.board->turn;
-                info->timeset = FALSE;
+                bool turn = searcher.board.turn;
+                info->timeset = 0;
 
                 std::string param;
 
@@ -217,8 +206,7 @@ void UCI :: Uci_Loop() {
 
           } else if (cmd == "quit") {
 
-            info->quit = 1;
-            break;
+            return;
 
           } else if(cmd == "stop") {
 

@@ -11,12 +11,9 @@ int main() {
   init_defs();
   initAttacks();
 
-  std::cout << "?\n";
-
   std::unique_ptr <Search> searcher(new Search);
 
-  std::cout << "initialized searcher...\n";
-  std::cout << searcher->getThreadCount() << "\n";
+  //std::cout << searcher->getThreadCount() << "\n";
 
   searcher->_setFen(START_POS_FEN);
 

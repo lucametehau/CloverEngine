@@ -92,7 +92,7 @@ inline void initKnightAndKingAttacks() {
   /// king area masks
 
   for(int i = 0; i < 64; i++) {
-    int rank = i / 8, file = i % 8, sq = 0; /// board->king(color)
+    int rank = i / 8, file = i % 8, sq = 0; /// board.king(color)
     if(rank < 1)
       sq = 1 * 8;
     else if(rank > 6)
@@ -223,14 +223,14 @@ inline uint64_t genAttacksSq(uint64_t blockers, int sq, int pieceType) {
   }
 }
 
-inline uint64_t getAttackers(Board *board, int color, uint64_t blockers, int sq) {
-  return (pawnAttacksMask[color ^ 1][sq] & board->bb[getType(PAWN, color)]) |
-         (knightBBAttacks[sq] & board->bb[getType(KNIGHT, color)]) | (genAttacksBishop(blockers, sq) & board->diagSliders(color)) |
-         (genAttacksRook(blockers, sq) & board->orthSliders(color)) | (kingBBAttacks[sq] & board->bb[getType(KING, color)]);
+inline uint64_t getAttackers(Board &board, int color, uint64_t blockers, int sq) {
+  return (pawnAttacksMask[color ^ 1][sq] & board.bb[getType(PAWN, color)]) |
+         (knightBBAttacks[sq] & board.bb[getType(KNIGHT, color)]) | (genAttacksBishop(blockers, sq) & board.diagSliders(color)) |
+         (genAttacksRook(blockers, sq) & board.orthSliders(color)) | (kingBBAttacks[sq] & board.bb[getType(KING, color)]);
 }
 
-inline uint64_t pawnAttacks(Board *board, int color) {
-  uint64_t b = board->bb[getType(PAWN, color)];
+inline uint64_t pawnAttacks(Board &board, int color) {
+  uint64_t b = board.bb[getType(PAWN, color)];
   int fileA = (color == WHITE ? 0 : 7), fileH = 7 - fileA;
   return shift(color, NORTHWEST, b & ~fileMask[fileA]) | shift(color, NORTHEAST, b & ~fileMask[fileH]);
 }

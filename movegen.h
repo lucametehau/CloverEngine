@@ -3,26 +3,26 @@
 #include "attacks.h"
 #pragma once
 
-inline bool isSqAttacked(Board *board, int color, int sq) {
+inline bool isSqAttacked(Board &board, int color, int sq) {
   /*
   /// pawn attacks
-  if(pawnAttacksMask[color ^ 1][sq] & board->bb[getType(PAWN, color)])
+  if(pawnAttacksMask[color ^ 1][sq] & board.bb[getType(PAWN, color)])
     return 1;
-  if(knightBBAttacks[sq] & board->bb[getType(KNIGHT, color)])
+  if(knightBBAttacks[sq] & board.bb[getType(KNIGHT, color)])
     return 1;
-  uint64_t all = board->pieces[WHITE] | board->pieces[BLACK];
-  if(genAttacksBishop(all, sq) & board->diagSliders(color))
+  uint64_t all = board.pieces[WHITE] | board.pieces[BLACK];
+  if(genAttacksBishop(all, sq) & board.diagSliders(color))
     return 1;
-  if(genAttacksRook(all, sq) & board->orthSliders(color))
+  if(genAttacksRook(all, sq) & board.orthSliders(color))
     return 1;
-  if(kingBBAttacks[sq] & board->bb[getType(KING, color)])
+  if(kingBBAttacks[sq] & board.bb[getType(KING, color)])
     return 1;
   */
-  return getAttackers(board, color, board->pieces[WHITE] | board->pieces[BLACK], sq);
+  return getAttackers(board, color, board.pieces[WHITE] | board.pieces[BLACK], sq);
 }
 
-inline bool inCheck(Board *board) {
-  return isSqAttacked(board, 1 ^ board->turn, board->king(board->turn));
+inline bool inCheck(Board &board) {
+  return isSqAttacked(board, 1 ^ board.turn, board.king(board.turn));
 }
 
 inline uint16_t* addQuiets(uint16_t *moves, int &nrMoves, int pos, uint64_t att) {
@@ -59,9 +59,9 @@ inline uint16_t* addMoves(uint16_t *moves, int &nrMoves, int pos, uint64_t att) 
   return moves;
 }
 
-/*vector <uint16_t> genMovesKnights(Board *board, int pieceType) {
+/*vector <uint16_t> genMovesKnights(Board &board, int pieceType) {
   vector <uint16_t> moves;
-  uint64_t knights = board->bb[pieceType], notOwn = ~board->pieces[board->turn];
+  uint64_t knights = board.bb[pieceType], notOwn = ~board.pieces[board.turn];
   while(knights) {
     uint64_t b = lsb(knights);
     int pos = Sq(b);
@@ -72,9 +72,9 @@ inline uint16_t* addMoves(uint16_t *moves, int &nrMoves, int pos, uint64_t att) 
   return moves;
 }
 
-vector <uint16_t> genMovesBishops(Board *board, int pieceType) {
+vector <uint16_t> genMovesBishops(Board &board, int pieceType) {
   vector <uint16_t> moves;
-  uint64_t bishops = board->bb[pieceType], notOwn = ~board->pieces[board->turn], all = board->pieces[WHITE] | board->pieces[BLACK];
+  uint64_t bishops = board.bb[pieceType], notOwn = ~board.pieces[board.turn], all = board.pieces[WHITE] | board.pieces[BLACK];
   while(bishops) {
     uint64_t b = lsb(bishops);
     int pos = Sq(b);
@@ -85,9 +85,9 @@ vector <uint16_t> genMovesBishops(Board *board, int pieceType) {
   return moves;
 }
 
-vector <uint16_t> genMovesRooks(Board *board, int pieceType) {
+vector <uint16_t> genMovesRooks(Board &board, int pieceType) {
   vector <uint16_t> moves;
-  uint64_t rooks = board->bb[pieceType], notOwn = ~board->pieces[board->turn], all = board->pieces[WHITE] | board->pieces[BLACK];
+  uint64_t rooks = board.bb[pieceType], notOwn = ~board.pieces[board.turn], all = board.pieces[WHITE] | board.pieces[BLACK];
   while(rooks) {
     uint64_t b = lsb(rooks);
     int pos = Sq(b);
@@ -98,10 +98,10 @@ vector <uint16_t> genMovesRooks(Board *board, int pieceType) {
   return moves;
 }
 
-vector <uint16_t> genMovesQueens(Board *board, int pieceType) {
+vector <uint16_t> genMovesQueens(Board &board, int pieceType) {
   vector <uint16_t> moves;
-  uint64_t queens = board->bb[pieceType], notOwn = ~board->pieces[board->turn], all = board->pieces[WHITE] | board->pieces[BLACK];
-  bool turn = board->turn;
+  uint64_t queens = board.bb[pieceType], notOwn = ~board.pieces[board.turn], all = board.pieces[WHITE] | board.pieces[BLACK];
+  bool turn = board.turn;
   while(queens) {
     uint64_t b = lsb(queens);
     int pos = Sq(b);
@@ -112,21 +112,21 @@ vector <uint16_t> genMovesQueens(Board *board, int pieceType) {
   return moves;
 }
 
-vector <uint16_t> genMovesKing(Board *board, int pieceType) {
+vector <uint16_t> genMovesKing(Board &board, int pieceType) {
   vector <uint16_t> moves;
-  int pos = Sq(board->bb[pieceType]);
-  uint64_t att = kingBBAttacks[pos] & (~board->pieces[board->turn]);
+  int pos = Sq(board.bb[pieceType]);
+  uint64_t att = kingBBAttacks[pos] & (~board.pieces[board.turn]);
   addMoves(moves, board, pos, att);
   return moves;
 }
 
-vector <uint16_t> genCastles(Board *board) {
-  int pos = board->king(board->turn), rank = pos / 8, file = pos % 8;
-  uint64_t all = board->pieces[WHITE] | board->pieces[BLACK];
-  bool turn = board->turn;
+vector <uint16_t> genCastles(Board &board) {
+  int pos = board.king(board.turn), rank = pos / 8, file = pos % 8;
+  uint64_t all = board.pieces[WHITE] | board.pieces[BLACK];
+  bool turn = board.turn;
 
   vector <uint16_t> moves;
-  if(board->castleRights & (1 << (2 * turn))) {
+  if(board.castleRights & (1 << (2 * turn))) {
     int rankTo = rank, fileTo = file - 2, posTo = getSq(rankTo, fileTo);
     //cout << ((all >> (pos - 3)) & 7) << " XDDDDDDDD????????\n";
     if(!((all >> (pos - 3)) & 7)) {
@@ -135,7 +135,7 @@ vector <uint16_t> genCastles(Board *board) {
         moves.push_back(getMove(pos, posTo, 0, CASTLE));
     }
   }
-  if(board->castleRights & (1 << (2 * turn + 1))) {
+  if(board.castleRights & (1 << (2 * turn + 1))) {
     int rankTo = rank, fileTo = file + 2, posTo = getSq(rankTo, fileTo);
     if(!((all >> (pos + 1)) & 3)) {
       if(!isSqAttacked(board, 1 ^ turn, pos) && !isSqAttacked(board, 1 ^ turn, pos + 1))
@@ -145,14 +145,14 @@ vector <uint16_t> genCastles(Board *board) {
   return moves;
 }
 
-vector <uint16_t> genMovesWhitePawns(Board *board) {
-  uint64_t pawns = board->bb[WP], all = board->pieces[WHITE] | board->pieces[BLACK];
+vector <uint16_t> genMovesWhitePawns(Board &board) {
+  uint64_t pawns = board.bb[WP], all = board.pieces[WHITE] | board.pieces[BLACK];
   vector <uint16_t> moves;
   while(pawns) {
     uint64_t b = lsb(pawns);
     int pos = Sq(b), rank = pos / 8, file = pos % 8, rankTo, fileTo, posTo;
     rankTo = rank + 1, posTo = pos + 8;
-    if(board->board[posTo] == '.') {
+    if(board.board[posTo] == '.') {
       if(rankTo < 7)
         moves.push_back(getMove(pos, posTo, 0, NEUT));
       else { // promotion
@@ -161,21 +161,21 @@ vector <uint16_t> genMovesWhitePawns(Board *board) {
       }
       if(rank == 1) {
         posTo = pos + 16;
-        if(board->board[posTo] == '.')
+        if(board.board[posTo] == '.')
           moves.push_back(getMove(pos, posTo, 0, NEUT));
       }
     }
     for(int i = 0; i < 2; i++) {
       rankTo = rank + pawnCapDirWhite[i].first, fileTo = file + pawnCapDirWhite[i].second, posTo = getSq(rankTo, fileTo);
       if(inTable(rankTo, fileTo)) {
-        if((board->pieces[BLACK] >> posTo) & 1) {
+        if((board.pieces[BLACK] >> posTo) & 1) {
           if(rankTo < 7) { /// capture
             moves.push_back(getMove(pos, posTo, 0, NEUT));
           } else { /// capture + promotion
             for(int i = 0; i < 4; i++)
               moves.push_back(getMove(pos, posTo, i, PROMOTION));
           }
-        } else if(posTo == board->enPas) { /// maybe we have an en passant
+        } else if(posTo == board.enPas) { /// maybe we have an en passant
           moves.push_back(getMove(pos, posTo, 0, ENPASSANT));
         }
       }
@@ -185,14 +185,14 @@ vector <uint16_t> genMovesWhitePawns(Board *board) {
   return moves;
 }
 
-vector <uint16_t> genMovesBlackPawns(Board *board) {
-  uint64_t pawns = board->bb[BP], all = board->pieces[WHITE] | board->pieces[BLACK];
+vector <uint16_t> genMovesBlackPawns(Board &board) {
+  uint64_t pawns = board.bb[BP], all = board.pieces[WHITE] | board.pieces[BLACK];
   vector <uint16_t> moves;
   while(pawns) {
     uint64_t b = lsb(pawns);
     int pos = Sq(b), rank = pos / 8, file = pos % 8, rankTo, fileTo, posTo;
     rankTo = rank - 1, fileTo = file, posTo = pos - 8;
-    if(board->board[posTo] == '.') {
+    if(board.board[posTo] == '.') {
       if(rankTo > 0)
         moves.push_back(getMove(pos, posTo, 0, NEUT));
       else { // promotion
@@ -201,21 +201,21 @@ vector <uint16_t> genMovesBlackPawns(Board *board) {
       }
       if(rank == 6) {
         posTo = pos - 16;
-        if(board->board[posTo] == '.')
+        if(board.board[posTo] == '.')
           moves.push_back(getMove(pos, posTo, 0, NEUT));
       }
     }
     for(int i = 0; i < 2; i++) {
       rankTo = rank + pawnCapDirBlack[i].first, fileTo = file + pawnCapDirBlack[i].second, posTo = getSq(rankTo, fileTo);
       if(inTable(rankTo, fileTo)) {
-        if((board->pieces[WHITE] >> posTo) & 1) {
+        if((board.pieces[WHITE] >> posTo) & 1) {
           if(rankTo > 0) { /// capture
             moves.push_back(getMove(pos, posTo, 0, NEUT));
           } else { /// capture + promotion
             for(int i = 0; i < 4; i++)
               moves.push_back(getMove(pos, posTo, i, PROMOTION));
           }
-        } else if(posTo == board->enPas) { /// maybe we have an en passant
+        } else if(posTo == board.enPas) { /// maybe we have an en passant
           moves.push_back(getMove(pos, posTo, 0, ENPASSANT));
         }
       }
@@ -225,15 +225,15 @@ vector <uint16_t> genMovesBlackPawns(Board *board) {
   return moves;
 }
 
-vector <uint16_t> genPawnMoves(Board *board) {
+vector <uint16_t> genPawnMoves(Board &board) {
   vector <uint16_t> moves;
 
-  bool color = board->turn;
-  uint64_t capMask = board->pieces[1 ^ color], all = board->pieces[WHITE] | board->pieces[BLACK], quietMask = ~all;
+  bool color = board.turn;
+  uint64_t capMask = board.pieces[1 ^ color], all = board.pieces[WHITE] | board.pieces[BLACK], quietMask = ~all;
   uint64_t b, b1, b2, b3;
   int rank7 = (color == WHITE ? 6 : 1), rank3 = (color == WHITE ? 2 : 5);
   int fileA = (color == WHITE ? 0 : 7), fileH = 7 - fileA;
-  b1 = board->bb[getType(PAWN, color)] & ~rankMask[rank7];
+  b1 = board.bb[getType(PAWN, color)] & ~rankMask[rank7];
 
   b2 = shift(color, NORTH, b1) & ~all; /// single push
   b3 = shift(color, NORTH, b2 & rankMask[rank3]) & quietMask; /// double push
@@ -269,7 +269,7 @@ vector <uint16_t> genPawnMoves(Board *board) {
     b3 ^= b;
   }
 
-  b1 = board->bb[getType(PAWN, color)] & rankMask[rank7];
+  b1 = board.bb[getType(PAWN, color)] & rankMask[rank7];
   if(b1) {
     /// quiet promotions
     b2 = shift(color, NORTH, b1) & quietMask;
@@ -301,13 +301,13 @@ vector <uint16_t> genPawnMoves(Board *board) {
     }
   }
 
-  if(board->enPas >= 0) {
-    b1 = board->bb[getType(PAWN, color)] & pawnAttacksMask[1 ^ color][board->enPas];
+  if(board.enPas >= 0) {
+    b1 = board.bb[getType(PAWN, color)] & pawnAttacksMask[1 ^ color][board.enPas];
 
     while(b1) {
       b = lsb(b1);
       int sq = Sq(b);
-      moves.push_back(getMove(sq, board->enPas, 0, ENPASSANT));
+      moves.push_back(getMove(sq, board.enPas, 0, ENPASSANT));
       b1 ^= b;
     }
   }
@@ -315,12 +315,12 @@ vector <uint16_t> genPawnMoves(Board *board) {
   return moves;
 }
 
-vector <uint16_t> genPseudoLegalMoves(Board *board) {
+vector <uint16_t> genPseudoLegalMoves(Board &board) {
   vector <uint16_t> moves;
-  bool color = board->turn;
+  bool color = board.turn;
 
   moves = genPawnMoves(board);
-  uint64_t pieces = board->bb[getType(KNIGHT, color)], notOwn = ~board->pieces[color], all = board->pieces[WHITE] | board->pieces[BLACK];
+  uint64_t pieces = board.bb[getType(KNIGHT, color)], notOwn = ~board.pieces[color], all = board.pieces[WHITE] | board.pieces[BLACK];
   while(pieces) {
     uint64_t b = lsb(pieces);
     int pos = Sq(b);
@@ -329,7 +329,7 @@ vector <uint16_t> genPseudoLegalMoves(Board *board) {
     pieces ^= b;
   }
 
-  pieces = board->bb[getType(BISHOP, color)];
+  pieces = board.bb[getType(BISHOP, color)];
   while(pieces) {
     uint64_t b = lsb(pieces);
     int pos = Sq(b);
@@ -338,7 +338,7 @@ vector <uint16_t> genPseudoLegalMoves(Board *board) {
     pieces ^= b;
   }
 
-  pieces = board->bb[getType(ROOK, color)];
+  pieces = board.bb[getType(ROOK, color)];
   while(pieces) {
     uint64_t b = lsb(pieces);
     int pos = Sq(b);
@@ -347,7 +347,7 @@ vector <uint16_t> genPseudoLegalMoves(Board *board) {
     pieces ^= b;
   }
 
-  pieces = board->bb[getType(QUEEN, color)];
+  pieces = board.bb[getType(QUEEN, color)];
   while(pieces) {
     uint64_t b = lsb(pieces);
     int pos = Sq(b);
@@ -356,7 +356,7 @@ vector <uint16_t> genPseudoLegalMoves(Board *board) {
     pieces ^= b;
   }
 
-  int sq = board->king(color);
+  int sq = board.king(color);
   addMoves(moves, board, sq, kingBBAttacks[sq] & notOwn);
 
   join(moves, genCastles(board));

@@ -12,7 +12,7 @@ enum {
   STAGE_QUIETS, STAGE_BAD_NOISY, STAGE_DONE
 }; /// move picker stages
 
-bool see(Board *board, uint16_t move, int threshold);
+bool see(Board &board, uint16_t move, int threshold);
 
 const int seeVal[] = {0, 100, 310, 330, 500, 1000, 0};
 
@@ -70,7 +70,7 @@ public:
 
       for(int i = 0; i < nrNoisy; i++) {
         uint16_t move = noisy[i];
-        int p = searcher->board->piece_type_at(sqFrom(move)), cap = searcher->board->piece_type_at(sqTo(move)), score;
+        int p = searcher->board.piece_type_at(sqFrom(move)), cap = searcher->board.piece_type_at(sqTo(move)), score;
         if(type(move) == ENPASSANT)
           cap = PAWN;
         score = captureValue[p][cap];
@@ -123,7 +123,7 @@ public:
 
       nrQuiets = genLegalQuiets(searcher->board, quiets);
 
-      int ply = searcher->board->ply;
+      int ply = searcher->board.ply;
 
       uint16_t counterMove = searcher->Stack[ply - 1].move, followMove = (ply >= 2 ? searcher->Stack[ply - 2].move : NULLMOVE);
       int counterPiece = searcher->Stack[ply - 1].piece, followPiece = (ply >= 2 ? searcher->Stack[ply - 2].piece : 0);
@@ -148,9 +148,9 @@ public:
           /*History :: Heuristics H{};
           History :: getHistory(searcher, move, ply, H);*/
 
-          int from = sqFrom(move), to = sqTo(move), piece = searcher->board->board[from];
+          int from = sqFrom(move), to = sqTo(move), piece = searcher->board.board[from];
 
-          score = searcher->hist[searcher->board->turn][from][to];
+          score = searcher->hist[searcher->board.turn][from][to];
 
           if(counterMove)
             score += searcher->follow[0][counterPiece][counterTo][piece][to];
@@ -236,13 +236,13 @@ public:
 
 
 
-bool see(Board *board, uint16_t move, int threshold) {
+bool see(Board &board, uint16_t move, int threshold) {
   int from = sqFrom(move), to = sqTo(move), t = type(move), col, nextVictim, score = -threshold;
   uint64_t diag, orth, occ, att, myAtt;
 
-  nextVictim = (t != PROMOTION ? piece_type(board->board[from]) : promoted(move) + KNIGHT);
+  nextVictim = (t != PROMOTION ? piece_type(board.board[from]) : promoted(move) + KNIGHT);
 
-  score += seeVal[piece_type(board->board[to])];
+  score += seeVal[piece_type(board.board[to])];
 
   if(t == PROMOTION)
     score += seeVal[promoted(move) + KNIGHT] - seeVal[PAWN];
@@ -257,31 +257,31 @@ bool see(Board *board, uint16_t move, int threshold) {
   if(score >= 0)
     return 1;
 
-  diag = board->diagSliders(WHITE) | board->diagSliders(BLACK);
-  orth = board->orthSliders(WHITE) | board->orthSliders(BLACK);
+  diag = board.diagSliders(WHITE) | board.diagSliders(BLACK);
+  orth = board.orthSliders(WHITE) | board.orthSliders(BLACK);
 
-  occ = board->pieces[WHITE] | board->pieces[BLACK];
+  occ = board.pieces[WHITE] | board.pieces[BLACK];
   occ = (occ ^ (1ULL << from)) | (1ULL << to);
 
   if(t == ENPASSANT)
-    occ ^= (1ULL << board->enPas);
+    occ ^= (1ULL << board.enPas);
 
   att = (getAttackers(board, WHITE, occ, to) | getAttackers(board, BLACK, occ, to)) & occ;
 
-  col = 1 ^ board->turn;
+  col = 1 ^ board.turn;
 
   while(true) {
-    myAtt = att & board->pieces[col];
+    myAtt = att & board.pieces[col];
 
     if(!myAtt)
       break;
 
     for(nextVictim = PAWN; nextVictim <= QUEEN; nextVictim++) {
-      if(myAtt & board->bb[getType(nextVictim, col)])
+      if(myAtt & board.bb[getType(nextVictim, col)])
         break;
     }
 
-    occ ^= (1ULL << Sq(lsb(myAtt & board->bb[getType(nextVictim, col)])));
+    occ ^= (1ULL << Sq(lsb(myAtt & board.bb[getType(nextVictim, col)])));
 
     if(nextVictim == PAWN || nextVictim == BISHOP || nextVictim == QUEEN)
       att |= genAttacksBishop(occ, to) & diag;
@@ -295,12 +295,12 @@ bool see(Board *board, uint16_t move, int threshold) {
     score = -score - 1 - seeVal[nextVictim];
 
     if(score >= 0) {
-      if(nextVictim == KING && (att & board->pieces[col]))
+      if(nextVictim == KING && (att & board.pieces[col]))
         col ^= 1;
 
       break;
     }
   }
 
-  return board->turn != col;
+  return board.turn != col;
 }

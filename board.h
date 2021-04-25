@@ -117,8 +117,6 @@ public:
 
     //checkers = 0;
 
-    //cout << "XD?\n";
-
     for(int i = 0; i <= 12; i++)
       bb[i] = 0;
 

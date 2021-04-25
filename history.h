@@ -44,7 +44,7 @@ void History :: updateHistory(Search *searcher, uint16_t *quiets, int nrQuiets, 
   int counterTo = sqTo(counterMove), followTo = sqTo(followMove);
 
   uint16_t best = quiets[nrQuiets - 1];
-  bool turn = searcher->board->turn;
+  bool turn = searcher->board.turn;
 
   if(counterMove)
     searcher->cmTable[1 ^ turn][counterPiece][counterTo] = best; /// update counter move table
@@ -54,7 +54,7 @@ void History :: updateHistory(Search *searcher, uint16_t *quiets, int nrQuiets, 
   for(int i = 0; i < nrQuiets; i++) {
     int move = quiets[i];
     int score = (move == best ? bonus : -bonus);
-    int from = sqFrom(move), to = sqTo(move), piece = searcher->board->board[from];
+    int from = sqFrom(move), to = sqTo(move), piece = searcher->board.board[from];
 
     updateHist(searcher->hist[turn][from][to], score);
 
@@ -67,9 +67,9 @@ void History :: updateHistory(Search *searcher, uint16_t *quiets, int nrQuiets, 
 }
 
 void History :: getHistory(Search *searcher, uint16_t move, int ply, Heuristics &H) {
-  int from = sqFrom(move), to = sqTo(move), piece = searcher->board->board[from];
+  int from = sqFrom(move), to = sqTo(move), piece = searcher->board.board[from];
 
-  H.h = searcher->hist[searcher->board->turn][from][to];
+  H.h = searcher->hist[searcher->board.turn][from][to];
 
   uint16_t counterMove = searcher->Stack[ply - 1].move, followMove = (ply >= 2 ? searcher->Stack[ply - 2].move : NULLMOVE);
   int counterPiece = searcher->Stack[ply - 1].piece, followPiece = (ply >= 2 ? searcher->Stack[ply - 2].piece : 0);

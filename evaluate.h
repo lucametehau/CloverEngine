@@ -246,12 +246,12 @@ int bonusTable[7][2][64] = {
 
 
 
-void matEval(Board *board, int color, EvalTools &tools) {
-  uint64_t pieces = board->pieces[color] ^ board->bb[getType(KING, color)];
+void matEval(Board &board, int color, EvalTools &tools) {
+  uint64_t pieces = board.pieces[color] ^ board.bb[getType(KING, color)];
 
   while(pieces) {
     uint64_t b = lsb(pieces);
-    int sq = Sq(b), sq2 = mirror(1 - color, sq), piece = board->piece_type_at(sq);
+    int sq = Sq(b), sq2 = mirror(1 - color, sq), piece = board.piece_type_at(sq);
 
     /// piece values and psqt
 
@@ -272,26 +272,26 @@ bool isHalfOpenFile(int color, int file, EvalTools &tools) { /// is file half-op
   return !(tools.pawns[color] & fileMask[file]);
 }
 
-void rookEval(Board *board, int color, EvalTools &tools) {
+void rookEval(Board &board, int color, EvalTools &tools) {
   uint64_t pieces = 0;
 
   /// evaluation pattern: apply a penaly if rook is trapped by king
 
   if(color == WHITE) {
-    pieces = board->bb[WR];
-    if((pieces & (1ULL << A1)) && (board->bb[getType(KING, color)] & between[A1][E1])) {
+    pieces = board.bb[WR];
+    if((pieces & (1ULL << A1)) && (board.bb[getType(KING, color)] & between[A1][E1])) {
       tools.score[color][MG] -= trappedRook;
       tools.score[color][EG] -= trappedRook;
-    } else if((pieces & (1ULL << H1)) && (board->bb[getType(KING, color)] & between[H1][E1])) {
+    } else if((pieces & (1ULL << H1)) && (board.bb[getType(KING, color)] & between[H1][E1])) {
       tools.score[color][MG] -= trappedRook;
       tools.score[color][EG] -= trappedRook;
     }
   } else {
-    pieces = board->bb[BR];
-    if((pieces & (1ULL << A8)) && (board->bb[getType(KING, color)] & between[A8][E8])) {
+    pieces = board.bb[BR];
+    if((pieces & (1ULL << A8)) && (board.bb[getType(KING, color)] & between[A8][E8])) {
       tools.score[color][MG] -= trappedRook;
       tools.score[color][EG] -= trappedRook;
-    } else if((pieces & (1ULL << H8)) && (board->bb[getType(KING, color)] & between[H8][E8])) {
+    } else if((pieces & (1ULL << H8)) && (board.bb[getType(KING, color)] & between[H8][E8])) {
       tools.score[color][MG] -= trappedRook;
       tools.score[color][EG] -= trappedRook;
     }
@@ -312,7 +312,7 @@ void rookEval(Board *board, int color, EvalTools &tools) {
   }
 }
 
-void pawnEval(Board *board, int color, EvalTools &tools) {
+void pawnEval(Board &board, int color, EvalTools &tools) {
   uint64_t pieces = tools.pawns[color], passers = 0, blockedPassers = 0;
 
   while(pieces) {
@@ -376,7 +376,7 @@ void pawnEval(Board *board, int color, EvalTools &tools) {
 
   /// blocked passers aren't given any passed bonus - to change?
 
-  blockedPassers = passers & shift(color, SOUTH, board->pieces[color ^ 1]);
+  blockedPassers = passers & shift(color, SOUTH, board.pieces[color ^ 1]);
   passers ^= blockedPassers;
   while(passers) {
     uint64_t b = lsb(passers);
@@ -387,18 +387,18 @@ void pawnEval(Board *board, int color, EvalTools &tools) {
   }
 }
 
-void pieceEval(Board *board, int color, EvalTools &tools) {
+void pieceEval(Board &board, int color, EvalTools &tools) {
   bool enemy = 1 ^ color;
   uint64_t b, att, mob, pieces = 0, mobilityArea;
-  uint64_t all = board->pieces[WHITE] | board->pieces[BLACK];
+  uint64_t all = board.pieces[WHITE] | board.pieces[BLACK];
   uint64_t outpostRanks = (color == WHITE ? rankMask[3] | rankMask[4] | rankMask[5] : rankMask[2] | rankMask[3] | rankMask[4]);
   int outpostScore = 0;
 
   /// mobility area is all squares without our king, squares attacked by enemy pawns and our blocked pawns
 
-  mobilityArea = ~(board->bb[getType(KING, color)] | tools.defendedByPawn[enemy] | (tools.pawns[color] & shift(color, SOUTH, all)));
+  mobilityArea = ~(board.bb[getType(KING, color)] | tools.defendedByPawn[enemy] | (tools.pawns[color] & shift(color, SOUTH, all)));
 
-  pieces = board->bb[getType(KNIGHT, color)];
+  pieces = board.bb[getType(KNIGHT, color)];
 
   while(pieces) {
     b = lsb(pieces);
@@ -435,7 +435,7 @@ void pieceEval(Board *board, int color, EvalTools &tools) {
     pieces ^= b;
   }
 
-  pieces = board->bb[getType(BISHOP, color)];
+  pieces = board.bb[getType(BISHOP, color)];
 
   /// assign bonus for bishop pair
 
@@ -487,7 +487,7 @@ void pieceEval(Board *board, int color, EvalTools &tools) {
     pieces ^= b;
   }
 
-  pieces = board->bb[getType(ROOK, color)];
+  pieces = board.bb[getType(ROOK, color)];
   while(pieces) {
     b = lsb(pieces);
     int sq = Sq(b);
@@ -515,12 +515,12 @@ void pieceEval(Board *board, int color, EvalTools &tools) {
     pieces ^= b;
   }
 
-  pieces = board->bb[getType(QUEEN, color)];
+  pieces = board.bb[getType(QUEEN, color)];
   while(pieces) {
     b = lsb(pieces);
     int sq = Sq(b);
-    att = genAttacksBishop(all ^ board->bb[getType(BISHOP, color)], sq) |
-          genAttacksRook(all ^ board->bb[getType(ROOK, color)], sq);
+    att = genAttacksBishop(all ^ board.bb[getType(BISHOP, color)], sq) |
+          genAttacksRook(all ^ board.bb[getType(ROOK, color)], sq);
     mob = att & mobilityArea;
 
     tools.score[color][MG] += mobilityBonus[QUEEN][MG][count(mob)];
@@ -549,8 +549,8 @@ void pieceEval(Board *board, int color, EvalTools &tools) {
   //cout << "piece score for " << (color == WHITE ? "white " : "black ") << " : " << score << "\n";
 }
 
-void kingEval(Board *board, int color, EvalTools &tools) {
-  int king = board->king(color);
+void kingEval(Board &board, int color, EvalTools &tools) {
+  int king = board.king(color);
   //int rank = king / 8, file = king % 8;
   //uint64_t camp = (color == WHITE ? ALL ^ rankMask[5] ^ rankMask[6] ^ rankMask[7] : ALL ^ rankMask[0] ^ rankMask[1] ^ rankMask[2]), weak;
   bool enemy = 1 ^ color;
@@ -570,10 +570,10 @@ void kingEval(Board *board, int color, EvalTools &tools) {
 
     //cout << weight << "\n";
 
-    if(!board->bb[getType(QUEEN, enemy)])
+    if(!board.bb[getType(QUEEN, enemy)])
       weight /= 2;
 
-    if(!board->bb[getType(ROOK, enemy)])
+    if(!board.bb[getType(ROOK, enemy)])
       weight *= 0.75;
 
     tools.kingDanger[color] = SafetyTable[weight];
@@ -603,7 +603,7 @@ void initEval() {
 }
 
 
-void eval(Board *board, int color, EvalTools &tools) {
+void eval(Board &board, int color, EvalTools &tools) {
   //cout << color << "\n";
   //cout << "initially: " << score[color][MG] << "\n";
   matEval(board, color, tools);
@@ -612,15 +612,15 @@ void eval(Board *board, int color, EvalTools &tools) {
   kingEval(board, color, tools);
 }
 
-int evaluate(Board *board) {
+int evaluate(Board &board) {
   EvalTools tools;
 
   tools.init();
 
   for(int col = BLACK; col <= WHITE; col++) {
-    int king = board->king(col); /// board->king(color)
+    int king = board.king(col); /// board.king(color)
 
-    tools.pawns[col] = board->bb[getType(PAWN, col)];
+    tools.pawns[col] = board.bb[getType(PAWN, col)];
     tools.allPawns |= tools.pawns[col];
 
     tools.kingRing[col] = kingRingMask[king];
@@ -630,14 +630,13 @@ int evaluate(Board *board) {
 
     //printBB(pawnShield[col]);
 
-    int fileA = (col == WHITE ? 0 : 7), fileH = 7 - fileA;
     //uint64_t doubleAttacked = shift(col, NORTHEAST, tools.pawns[col] & ~fileMask[fileH]) & shift(col, NORTHWEST, tools.pawns[col] & ~fileMask[fileA]);
 
     //kingRing[col] &= ~doubleAttacked;
 
-    //tools.attackedBy[col] = kingBBAttacks[board->king(col)] | pawnAttacks(board, col);
+    //tools.attackedBy[col] = kingBBAttacks[board.king(col)] | pawnAttacks(board, col);
     tools.defendedByPawn[col] = pawnAttacks(board, col);
-    //tools.attackedBy2[col] = doubleAttacked | (tools.defendedByPawn[col] & kingBBAttacks[board->king(col)]);
+    //tools.attackedBy2[col] = doubleAttacked | (tools.defendedByPawn[col] & kingBBAttacks[board.king(col)]);
   }
 
   pieceEval(board, WHITE, tools);
@@ -655,7 +654,7 @@ int evaluate(Board *board) {
 
   //cout << mg << " " << eg << "\n";
 
-  //board->print();
+  //board.print();
 
   //cout << "mg = " << mg << ", eg = " << eg << ", weight = " << weight << ", score = " << (mg * weight + eg * (maxWeight - weight)) / maxWeight << "\n";
 
@@ -663,5 +662,5 @@ int evaluate(Board *board) {
 
   int score = (mg * tools.phase + eg * (maxWeight - tools.phase)) / maxWeight; /// interpolate mg and eg score
 
-  return TEMPO + score * (board->turn == WHITE ? 1 : -1);
+  return TEMPO + score * (board.turn == WHITE ? 1 : -1);
 }
