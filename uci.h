@@ -21,7 +21,7 @@
 /// is this working?
 /// i guess so?
 
-const std::string VERSION = "2.1.1.3"; /// 2.0 was "FM"
+const std::string VERSION = "2.1.2"; /// 2.0 was "FM"
 
 char line[INPUTBUFFER];
 
