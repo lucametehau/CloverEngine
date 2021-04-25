@@ -4,16 +4,10 @@
 #include <iostream>
 #include "defs.h"
 
-using namespace std;
-
 struct StackEntry { /// info to keep in the stack
   uint16_t move, piece;
   int eval;
 };
-
-inline void join(vector <uint16_t> &a, vector <uint16_t> b) {
-  a.insert(a.end(), b.begin(), b.end());
-}
 
 class Undo {
 public:
@@ -109,12 +103,12 @@ public:
   void print() {
     for(int i = 7; i >= 0; i--) {
       for(int j = 0; j <= 7; j++)
-        cout << piece[board[8 * i + j]] << " ";
-      cout << "\n";
+        std::cout << piece[board[8 * i + j]] << " ";
+      std::cout << "\n";
     }
   }
 
-  void setFen(const string fen) {
+  void setFen(const std::string fen) {
     int ind = 0;
     key = 0;
 
@@ -202,8 +196,8 @@ public:
     moveIndex = nr;
   }
 
-  string fen() {
-    string fen = "";
+  std::string fen() {
+    std::string fen = "";
     for(int i = 7; i >= 0; i--) {
       int cnt = 0;
       for(int j = 0, sq = i * 8; j < 8; j++, sq++) {
@@ -241,11 +235,11 @@ public:
     } else
       fen += "-";
     fen += " ";
-    string s = "";
+    std::string s = "";
     int nr = halfMoves;
     while(nr)
       s += char('0' + nr % 10), nr /= 10;
-    reverse(s.begin(), s.end());
+    std::reverse(s.begin(), s.end());
     if(halfMoves)
       fen += s;
     else
@@ -254,7 +248,7 @@ public:
     s = "", nr = moveIndex;
     while(nr)
       s += char('0' + nr % 10), nr /= 10;
-    reverse(s.begin(), s.end());
+    std::reverse(s.begin(), s.end());
     fen += s;
     return fen;
   }

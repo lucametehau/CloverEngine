@@ -1,9 +1,6 @@
-#include <windows.h>
 #include "move.h"
 #include "search.h"
 #pragma once
-
-using namespace std;
 
 /*void playHuman(Board *board) {
   while(!isGameOver(board)) {

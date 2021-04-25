@@ -6,8 +6,6 @@
 #include <cassert>
 #pragma once
 
-using namespace std;
-
 enum {
   STAGE_NONE = 0, STAGE_HASHMOVE, STAGE_GEN_NOISY, STAGE_GOOD_NOISY,
   STAGE_GEN_QUIETS, STAGE_KILLER_1, STAGE_KILLER_2, STAGE_COUNTER,

@@ -3,8 +3,6 @@
 #include "board.h"
 #pragma once
 
-using namespace std;
-
 struct EvalTools { /// to avoid data races, kinda dirty tho
 
     uint64_t kingRing[2], kingSquare[2], pawnShield[2], defendedByPawn[2], pawns[2], allPawns;
@@ -563,12 +561,12 @@ void kingEval(Board *board, int color, EvalTools &tools) {
   tools.score[color][EG] += bonusTable[KING][EG][mirror(1 - color, king)];
 
   uint64_t shield = tools.pawnShield[color] & tools.pawns[color];
-  int shieldCount = min(3, count(shield));
+  int shieldCount = std::min(3, count(shield));
 
-  /// as one cpw (https://www.chessprogramming.org/King_Safety)
+  /// as on cpw (https://www.chessprogramming.org/King_Safety)
 
   if(tools.kingAttackersCount[enemy] >= 2) {
-    int weight = min(99, tools.kingAttackersWeight[enemy]);
+    int weight = std::min(99, tools.kingAttackersWeight[enemy]);
 
     //cout << weight << "\n";
 
@@ -661,7 +659,7 @@ int evaluate(Board *board) {
 
   //cout << "mg = " << mg << ", eg = " << eg << ", weight = " << weight << ", score = " << (mg * weight + eg * (maxWeight - weight)) / maxWeight << "\n";
 
-  tools.phase = min(tools.phase, maxWeight);
+  tools.phase = std::min(tools.phase, maxWeight);
 
   int score = (mg * tools.phase + eg * (maxWeight - tools.phase)) / maxWeight; /// interpolate mg and eg score
 

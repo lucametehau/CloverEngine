@@ -11,8 +11,6 @@
 
 #define INPUTBUFFER 6000
 
-using namespace std;
-
 /// 2.1 seems to be 85 elo stronger than 2.0
 /// TO DO - (fix multithreading scaling) -> 8 threads ... 4.5 (for now)
 ///       - tune on lichess-quiet.txt
@@ -23,7 +21,7 @@ using namespace std;
 /// is this working?
 /// i guess so?
 
-const string VERSION = "2.1.1.3"; /// 2.0 was "FM"
+const std::string VERSION = "2.1.1.3"; /// 2.0 was "FM"
 
 char line[INPUTBUFFER];
 
@@ -51,37 +49,46 @@ class UCI {
     Search &searcher;
 };
 
+Info info[1];
+
 void UCI :: Uci_Loop() {
 
     int ttSize = 128;
 
-    cout << "Clover " << VERSION << " by Luca Metehau" << endl;
+    for(int i = 0; i < 100; i++)
+        std::cout << i << "\n";
 
-    Info info[1];
+    std::cout << "Clover " << VERSION << " by Luca Metehau" << std::endl;
+
+    std::cout << "0\n";
+
+    std::cout << "1\n";
 
     TT = new tt :: HashTable();
+
+    std::cout << "2\n";
+
+    init(info);
 
     //pvMove.clear();
     //table.clear();
 
-    init_defs();
-    initAttacks();
-    init(info);
+    std::cout << "3\n";
 
     //searcher.setThreadCount(1); /// 2 threads for debugging data races
     UciNewGame();
 
 	while (1) {
-      string input;
+      std::string input;
       getline(std::cin, input);
 
-      istringstream iss(input);
+      std::istringstream iss(input);
 
       {
 
-          string cmd;
+          std::string cmd;
 
-          iss >> skipws >> cmd;
+          iss >> std::skipws >> cmd;
 
           if (cmd == "isready") {
 
@@ -89,7 +96,7 @@ void UCI :: Uci_Loop() {
 
           } else if (cmd == "position") {
 
-            string type;
+            std::string type;
 
             while(iss >> type) {
 
@@ -99,10 +106,10 @@ void UCI :: Uci_Loop() {
 
               } else if(type == "fen") {
 
-                string fen;
+                std::string fen;
 
                 for(int i = 0; i < 6; i++) {
-                  string component;
+                  std::string component;
                   iss >> component;
                   fen += component + " ";
                 }
@@ -111,7 +118,7 @@ void UCI :: Uci_Loop() {
 
               } else if(type == "moves") {
 
-                string movestr;
+                std::string movestr;
 
                 while(iss >> movestr) {
 
@@ -140,7 +147,7 @@ void UCI :: Uci_Loop() {
                 bool turn = searcher.board->turn;
                 info->timeset = FALSE;
 
-                string param;
+                std::string param;
 
                 ///
 
@@ -193,10 +200,10 @@ void UCI :: Uci_Loop() {
                 if(time != -1) {
 
                     goodTimeLim = time / (movestogo + 1) + inc;
-                    hardTimeLim = min(goodTimeLim * 8, time / min(4, movestogo));
+                    hardTimeLim = std::min(goodTimeLim * 8, time / std::min(4, movestogo));
 
-                    hardTimeLim = max(10, min(hardTimeLim, time));
-                    goodTimeLim = max(1, min(hardTimeLim, goodTimeLim));
+                    hardTimeLim = std::max(10, std::min(hardTimeLim, time));
+                    goodTimeLim = std::max(1, std::min(hardTimeLim, goodTimeLim));
                     info->timeset = 1;
                     info->stopTime = info->startTime + goodTimeLim;
                 }
@@ -223,7 +230,7 @@ void UCI :: Uci_Loop() {
 
           } else if(cmd == "setoption") {
 
-            string name;
+            std::string name;
 
             iss >> name;
 
@@ -231,7 +238,7 @@ void UCI :: Uci_Loop() {
               iss >> name;
 
             if(name == "Hash") {
-              string value;
+              std::string value;
 
               iss >> value;
 
@@ -240,7 +247,7 @@ void UCI :: Uci_Loop() {
               TT->initTable(ttSize * MB);
 
             } else if(name == "Threads") {
-              string value;
+              std::string value;
               int nrThreads;
 
               iss >> value;
@@ -251,7 +258,7 @@ void UCI :: Uci_Loop() {
               UciNewGame();
 
             } else if(name == "SyzygyPath") {
-              string value, path;
+              std::string value, path;
 
               iss >> value;
 
@@ -289,12 +296,12 @@ void UCI :: Uci_Loop() {
 }
 
 void UCI :: Uci() {
-  cout << "id name Clover " << VERSION << endl;
-  cout << "id author Luca Metehau" << endl;
-  cout << "option name Hash type spin default 128 min 2 max 131072" << endl;
-  cout << "option name Threads type spin default 1 min 1 max 256" << endl;
-  cout << "option name SyzygyPath type string default <empty>" << endl;
-  cout << "uciok" << endl;
+  std::cout << "id name Clover " << VERSION << std::endl;
+  std::cout << "id author Luca Metehau" << std::endl;
+  std::cout << "option name Hash type spin default 128 min 2 max 131072" << std::endl;
+  std::cout << "option name Threads type spin default 1 min 1 max 256" << std::endl;
+  std::cout << "option name SyzygyPath type string default <empty>" << std::endl;
+  std::cout << "uciok" << std::endl;
 }
 
 void UCI :: UciNewGame() {
@@ -316,7 +323,7 @@ void UCI :: Stop() {
 }
 
 void UCI :: Eval() {
-  cout << evaluate(searcher.board) << endl;
+  std::cout << evaluate(searcher.board) << std::endl;
 }
 
 void UCI :: Tune(Search &searcher) {
@@ -334,8 +341,8 @@ void UCI :: Perft(int depth) {
   long double t = (t2 - t1) / 1000.0;
   uint64_t nps = nodes / t;
 
-  cout << "nodes: " << nodes << endl;
-  cout << "time : " << t << endl;
-  cout << "nps  : " << nps << endl;
+  std::cout << "nodes: " << nodes << std::endl;
+  std::cout << "time : " << t << std::endl;
+  std::cout << "nps  : " << nps << std::endl;
 }
 

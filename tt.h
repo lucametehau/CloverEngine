@@ -1,8 +1,6 @@
 #include "defs.h"
 #pragma once
 
-using namespace std;
-
 const int MB = (1 << 20);
 const int BUCKET = 4;
 

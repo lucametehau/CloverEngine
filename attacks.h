@@ -3,8 +3,6 @@
 #include "board.h"
 #pragma once
 
-using namespace std;
-
 uint64_t rookAttacksMask[64], bishopAttacksMask[64];
 uint64_t pawnAttacksMask[2][64];
 uint64_t rookTable[64][4096], bishopTable[64][1024];

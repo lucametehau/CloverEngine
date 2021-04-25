@@ -1,6 +1,5 @@
 //#include <filesystem>
 #include <thread>
-#include <windows.h>
 #include <memory>
 #include <vector>
 #include <thread>
@@ -13,12 +12,10 @@
 #include "search.h"
 #pragma once
 
-using namespace std;
-
 const int PRECISION = 5;
 
 struct Position {
-  string fen;
+  std::string fen;
   double result;
 };
 
@@ -26,21 +23,20 @@ double sigmoid(double k, int s) {
   return 1.0 / (1.0 + pow(10.0, -k * s / 400.0));
 }
 
-Info info[1]; /// only for quiesce
 std::mutex M;
 
 /// TEXEL tuning method
 
-bool openFile(ifstream &stream) {
+bool openFile(std::ifstream &stream) {
   if(stream.is_open())
     stream.close();
-  stream.open("C:\\Users\\LMM\\Desktop\\lichess-quiet.txt", ifstream :: in);
+  stream.open("C:\\Users\\LMM\\Desktop\\lichess-quiet.txt", std::ifstream::in);
   return stream.is_open();
 }
 
-void load(vector <Position> &texelPos, ifstream &stream, Search &searcher) {
+void load(std::vector <Position> &texelPos, std::ifstream &stream, Search &searcher) {
 
-  string line;
+  std::string line;
   int ind = 0;
   Info info[1];
 
@@ -53,11 +49,11 @@ void load(vector <Position> &texelPos, ifstream &stream, Search &searcher) {
     ind++;
 
     if(ind % 100000 == 0)
-      cout << ind << "\n";
+      std::cout << ind << "\n";
 
-    auto fenEnd = line.find_last_of(' ', string::npos) + 1;
+    auto fenEnd = line.find_last_of(' ', std::string::npos) + 1;
 
-    string result = "";
+    std::string result = "";
     int i = fenEnd + 1;
     while(i < (int)line.size() && line[i] != '"')
       result += line[i++];
@@ -82,7 +78,7 @@ void load(vector <Position> &texelPos, ifstream &stream, Search &searcher) {
     while(line[fenEnd] != ' ')
       fenEnd--;
 
-    string fenString = line.substr(0, fenEnd);
+    std::string fenString = line.substr(0, fenEnd);
     fenString += " 0 0";
 
 
@@ -109,7 +105,7 @@ void load(vector <Position> &texelPos, ifstream &stream, Search &searcher) {
   }
 }
 
-void loadWeights(vector <int> &weights) {
+void loadWeights(std::vector <int> &weights) {
   for(int i = MG; i <= EG; i++)
     weights.push_back(doubledPawnsPenalty[i]);
   for(int i = MG; i <= EG; i++)
@@ -167,7 +163,7 @@ void loadWeights(vector <int> &weights) {
   }
 }
 
-void saveWeights(vector <int> &weights) {
+void saveWeights(std::vector <int> &weights) {
   int ind = 0;
   for(int i = MG; i <= EG; i++)
     doubledPawnsPenalty[i] = weights[ind++];
@@ -226,138 +222,138 @@ void saveWeights(vector <int> &weights) {
   }
 }
 
-void printWeights(vector <int> weights) {
+void printWeights(std::vector <int> weights) {
   int ind = 0;
 
-  cout << "int doubledPawnsPenalty[2] = {";
+  std::cout << "int doubledPawnsPenalty[2] = {";
   for(int i = MG; i <= EG; i++)
-    cout << weights[ind++] << ", ";
-  cout << "};\n";
+    std::cout << weights[ind++] << ", ";
+  std::cout << "};\n";
 
-  cout << "int isolatedPenalty[2] = {";
+  std::cout << "int isolatedPenalty[2] = {";
   for(int i = MG; i <= EG; i++)
-    cout << weights[ind++] << ", ";
-  cout << "};\n";
+    std::cout << weights[ind++] << ", ";
+  std::cout << "};\n";
 
-  cout << "int backwardPenalty[2] = {";
+  std::cout << "int backwardPenalty[2] = {";
   for(int i = MG; i <= EG; i++)
-    cout << weights[ind++] << ", ";
-  cout << "};\n";
+    std::cout << weights[ind++] << ", ";
+  std::cout << "};\n";
 
-  cout << "int mat[2][7] = {\n";
+  std::cout << "int mat[2][7] = {\n";
   for(int s = MG; s <= EG; s++) {
-    cout << "    {0, ";
+    std::cout << "    {0, ";
     for(int i = PAWN; i <= QUEEN; i++)
-      cout << weights[ind++] << ", ";
-    cout << "0},\n";
+      std::cout << weights[ind++] << ", ";
+    std::cout << "0},\n";
   }
-  cout << "};\n";
-  cout << "int phaseVal[] = {0, 0, 1, 1, 2, 4};\n";
-  cout << "const int maxWeight = 16 * phaseVal[PAWN] + 4 * phaseVal[KNIGHT] + 4 * phaseVal[BISHOP] + 4 * phaseVal[ROOK] + 2 * phaseVal[QUEEN];\n";
-  cout << "int passedBonus[] = {0";
+  std::cout << "};\n";
+  std::cout << "int phaseVal[] = {0, 0, 1, 1, 2, 4};\n";
+  std::cout << "const int maxWeight = 16 * phaseVal[PAWN] + 4 * phaseVal[KNIGHT] + 4 * phaseVal[BISHOP] + 4 * phaseVal[ROOK] + 2 * phaseVal[QUEEN];\n";
+  std::cout << "int passedBonus[] = {0";
   for(int i = 1; i <= 6; i++)
-    cout << ", " << weights[ind++];
-  cout << "};\n";
-  cout << "int connectedBonus[] = {0";
+    std::cout << ", " << weights[ind++];
+  std::cout << "};\n";
+  std::cout << "int connectedBonus[] = {0";
   for(int i = 1; i <= 6; i++)
-    cout << ", " << weights[ind++];
-  cout << "};\n";
-  cout << "int kingAttackWeight[] = {0, 0";
+    std::cout << ", " << weights[ind++];
+  std::cout << "};\n";
+  std::cout << "int kingAttackWeight[] = {0, 0";
   for(int i = KNIGHT; i <= QUEEN; i++)
-    cout << ", " << kingAttackWeight[i];
-  cout << "};\n";
-  cout << "int SafetyTable[100] = {\n";
+    std::cout << ", " << kingAttackWeight[i];
+  std::cout << "};\n";
+  std::cout << "int SafetyTable[100] = {\n";
   for(int i = 0; i < 10; i++) {
-    cout << "  ";
+    std::cout << "  ";
     for(int j = 0; j < 10; j++) {
-      cout << SafetyTable[i * 10 + j] << ", ";
+      std::cout << SafetyTable[i * 10 + j] << ", ";
     }
-    cout << "\n";
+    std::cout << "\n";
   }
-  cout << "};\n";
-  cout << "int outpostBonus[] = {0, 0";
+  std::cout << "};\n";
+  std::cout << "int outpostBonus[] = {0, 0";
   for(int i = KNIGHT; i <= BISHOP; i++)
-    cout << ", " << weights[ind++];
-  cout << "};\n";
-  cout << "int outpostHoleBonus[] = {0, 0";
+    std::cout << ", " << weights[ind++];
+  std::cout << "};\n";
+  std::cout << "int outpostHoleBonus[] = {0, 0";
   for(int i = KNIGHT; i <= BISHOP; i++)
-    cout << ", " << weights[ind++];
-  cout << "};\n";
-  cout << "int rookOpenFile[2] = {";
+    std::cout << ", " << weights[ind++];
+  std::cout << "};\n";
+  std::cout << "int rookOpenFile[2] = {";
   for(int i = MG; i <= EG; i++)
-    cout << weights[ind++] << ", ";
-  cout << "};\n";
-  cout << "int rookSemiOpenFile[2] = {";
+    std::cout << weights[ind++] << ", ";
+  std::cout << "};\n";
+  std::cout << "int rookSemiOpenFile[2] = {";
   for(int i = MG; i <= EG; i++)
-    cout << weights[ind++] << ", ";
-  cout << "};\n";
-  cout << "int bishopPair[2] = {";
+    std::cout << weights[ind++] << ", ";
+  std::cout << "};\n";
+  std::cout << "int bishopPair[2] = {";
   for(int i = MG; i <= EG; i++)
-    cout << weights[ind++] << ", ";
-  cout << "};\n";
-  cout << "int longDiagonalBishop[2] = {";
+    std::cout << weights[ind++] << ", ";
+  std::cout << "};\n";
+  std::cout << "int longDiagonalBishop[2] = {";
   for(int i = MG; i <= EG; i++)
-    cout << weights[ind++] << ", ";
-  cout << "};\n";
+    std::cout << weights[ind++] << ", ";
+  std::cout << "};\n";
 
-  cout << "int trappedRook = " << weights[ind++] << ";\n";
+  std::cout << "int trappedRook = " << weights[ind++] << ";\n";
 
-  cout << "int mobilityBonus[7][2][30] = {\n";
-  cout << "    {},\n";
-  cout << "    {},\n";
-  cout << "    {\n";
+  std::cout << "int mobilityBonus[7][2][30] = {\n";
+  std::cout << "    {},\n";
+  std::cout << "    {},\n";
+  std::cout << "    {\n";
   for(int s = MG; s <= EG; s++) {
-    cout << "        {";
+    std::cout << "        {";
     for(int i = 0; i < 9; i++)
-      cout << weights[ind++] << ", ";
-    cout << "},\n";
+      std::cout << weights[ind++] << ", ";
+    std::cout << "},\n";
   }
-  cout << "    },\n";
-  cout << "    {\n";
+  std::cout << "    },\n";
+  std::cout << "    {\n";
   for(int s = MG; s <= EG; s++) {
-    cout << "        {";
+    std::cout << "        {";
     for(int i = 0; i < 14; i++)
-      cout << weights[ind++] << ", ";
-    cout << "},\n";
+      std::cout << weights[ind++] << ", ";
+    std::cout << "},\n";
   }
-  cout << "    },\n";
-  cout << "    {\n";
+  std::cout << "    },\n";
+  std::cout << "    {\n";
   for(int s = MG; s <= EG; s++) {
-    cout << "        {";
+    std::cout << "        {";
     for(int i = 0; i < 15; i++)
-      cout << weights[ind++] << ", ";
-    cout << "},\n";
+      std::cout << weights[ind++] << ", ";
+    std::cout << "},\n";
   }
-  cout << "    },\n";
-  cout << "    {\n";
+  std::cout << "    },\n";
+  std::cout << "    {\n";
   for(int s = MG; s <= EG; s++) {
-    cout << "        {";
+    std::cout << "        {";
     for(int i = 0; i < 28; i++)
-      cout << weights[ind++] << ", ";
-    cout << "},\n";
+      std::cout << weights[ind++] << ", ";
+    std::cout << "},\n";
   }
-  cout << "    }\n";
-  cout << "};\n";
+  std::cout << "    }\n";
+  std::cout << "};\n";
 
-  cout << "int bonusTable[7][2][64] = {\n";
-  cout << "    {},\n";
+  std::cout << "int bonusTable[7][2][64] = {\n";
+  std::cout << "    {},\n";
   for(int i = PAWN; i <= KING; i++) {
-    cout << "    {\n";
+    std::cout << "    {\n";
     for(int s = MG; s <= EG; s++) {
-      cout << "        {\n            ";
+      std::cout << "        {\n            ";
       for(int j = A1; j <= H8; j++) {
-        cout << weights[ind++] << ", ";
+        std::cout << weights[ind++] << ", ";
         if(j % 8 == 7)
-          cout << "\n            ";
+          std::cout << "\n            ";
       }
-      cout << "\n        },\n";
+      std::cout << "\n        },\n";
     }
-    cout << "    },\n";
+    std::cout << "    },\n";
   }
-  cout << "};\n";
+  std::cout << "};\n";
 }
 
-void rangeEvalError(vector <Position> &texelPos, atomic <double> & error, double k, int l, int r) {
+void rangeEvalError(std::vector <Position> &texelPos, std::atomic <double> & error, double k, int l, int r) {
 
   double errorRange = 0;
   Board board[1];
@@ -377,8 +373,8 @@ void rangeEvalError(vector <Position> &texelPos, atomic <double> & error, double
   M.unlock();
 }
 
-double evalError(vector <Position> &texelPos, double k, int nrThreads) {
-  atomic <double> error{};
+double evalError(std::vector <Position> &texelPos, double k, int nrThreads) {
+  std::atomic <double> error{};
   double share = 1.0 * texelPos.size() / nrThreads;
   double ind = 0;
 
@@ -397,21 +393,21 @@ double evalError(vector <Position> &texelPos, double k, int nrThreads) {
   return error / texelPos.size();
 }
 
-double bestK(vector <Position> &texelPos, int nrThreads) {
+double bestK(std::vector <Position> &texelPos, int nrThreads) {
   double k = 0;
-  double mn = numeric_limits <double> :: max();
+  double mn = std::numeric_limits <double> :: max();
 
-  cout.precision(PRECISION + 2);
+  std::cout.precision(PRECISION + 2);
 
   for(int i = 0; i <= PRECISION; i++) {
-    cout << "iteration " << i + 1 << " ...\n";
+    std::cout << "iteration " << i + 1 << " ...\n";
 
     double unit = pow(10.0, -i), range = 10.0 * unit, r = k + range;
 
-    for(double curr = max(k - range, 0.0); curr <= r; curr += unit) {
+    for(double curr = std::max(k - range, 0.0); curr <= r; curr += unit) {
       double error = evalError(texelPos, curr, nrThreads);
 
-      cout << "current K = " << curr << ", current error = " << error << "\n";
+      std::cout << "current K = " << curr << ", current error = " << error << "\n";
 
       if(error < mn) {
         mn = error;
@@ -419,13 +415,13 @@ double bestK(vector <Position> &texelPos, int nrThreads) {
       }
     }
 
-    cout << "K = " << k << ", error = " << mn << endl;
+    std::cout << "K = " << k << ", error = " << mn << std::endl;
   }
 
   return k;
 }
 
-bool isBetter(vector <int> &weights, vector <Position> &texelPos, double &mn, double k, int nrThreads, int ind = 0) {
+bool isBetter(std::vector <int> &weights, std::vector <Position> &texelPos, double &mn, double k, int nrThreads, int ind = 0) {
   saveWeights(weights);
 
   double error = evalError(texelPos, k, nrThreads);
@@ -444,24 +440,24 @@ bool isBetter(vector <int> &weights, vector <Position> &texelPos, double &mn, do
 void tune(Search &searcher) {
   int nrThreads = 8;
 
-  ifstream stream;
+  std::ifstream stream;
   if(openFile(stream))
-    cout << "opening file.." << endl;
+    std::cout << "opening file.." << std::endl;
 
   //cout << sizeof(Board) << endl;
 
-  vector <Position> texelPos;
+  std::vector <Position> texelPos;
   load(texelPos, stream, searcher);
 
   //cout << texelPos.size() << " positions stored" << endl;
 
   /*for(auto &pos : texelPos) {
-    cout << pos.board->fen() << " " << pos.result << "\n";
+    std::cout << pos.board->fen() << " " << pos.result << "\n";
   }*/
 
   //cout << "memory allocated: " << (sizeof(Position) * texelPos.size() >> 20) << " MB" << endl;
 
-  vector <int> weights;
+  std::vector <int> weights;
   loadWeights(weights);
 
   saveWeights(weights);
@@ -491,15 +487,15 @@ void tune(Search &searcher) {
   double otherTime = getTime();
   int i = 1;
 
-  cout << "best K = " << k << "\n";
+  std::cout << "best K = " << k << "\n";
 
-  cout << "start evaluation error: " << errorStart << endl;
-  cout << "expected iteration time: " << (otherTime - startTime) * weights.size() * 2 / 1000 << "s" << endl;
+  std::cout << "start evaluation error: " << errorStart << std::endl;
+  std::cout << "expected iteration time: " << (otherTime - startTime) * weights.size() * 2 / 1000 << "s" << std::endl;
 
   //cout << evaluate(texelPos[0].board) << endl;
 
   while(true) {
-    cout << "epoch " << i << " starting..." << endl;
+    std::cout << "epoch " << i << " starting..." << std::endl;
 
     double ST = getTime();
     double lst = errorMin;
@@ -528,12 +524,12 @@ void tune(Search &searcher) {
 
     double ET = getTime();
 
-    cout << "time taken for iteration: " << (ET - ST) / 1000 << " s\n";
+    std::cout << "time taken for iteration: " << (ET - ST) / 1000 << " s\n";
     i++;
     printWeights(weights);
     saveWeights(weights);
 
-    cout << "evaluation error: " << errorMin << "\n";
+    std::cout << "evaluation error: " << errorMin << "\n";
 
     if(errorMin == lst)
       break;
@@ -543,7 +539,7 @@ void tune(Search &searcher) {
 
   //errorMin = evalError(texelPos, k);
 
-  cout << "evaluation error: " << errorStart << " -> " << errorMin << endl;
+  std::cout << "evaluation error: " << errorStart << " -> " << errorMin << std::endl;
 
-  cout << "Time taken: " << (clock() - startTime) / 1000.0 << " s" << endl;
+  std::cout << "Time taken: " << (clock() - startTime) / 1000.0 << " s" << std::endl;
 }

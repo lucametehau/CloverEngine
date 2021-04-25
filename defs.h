@@ -5,10 +5,8 @@
 #include <random>
 #pragma once
 
-using namespace std;
-
-mt19937_64 gen(0xBEEF);
-uniform_int_distribution <uint64_t> rng;
+std::mt19937_64 gen(0xBEEF);
+std::uniform_int_distribution <uint64_t> rng;
 
 enum {
   A1 = 0, B1, C1, D1, E1, F1, G1, H1,
@@ -60,7 +58,7 @@ const int DEPTH = 255;
 const uint64_t CENTER = 103481868288ULL;
 const uint64_t ALL = 18446744073709551615ULL;
 const uint64_t LONG_DIAGONALS =  9314046665258451585ULL;
-const string START_POS_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+const std::string START_POS_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 int cod[256];
 uint64_t hashKey[13][64], castleKey[2][2], enPasKey[64];
@@ -75,12 +73,12 @@ uint64_t between[64][64], Line[64][64];
 uint64_t flankMask[8];
 int mirrorSq[2][64];
 
-const pair <int, int> knightDir[] = {{-1, -2}, {-2, -1}, {-2, 1}, {-1, 2}, {1, 2}, {2, 1}, {2, -1}, {1, -2}};
-const pair <int, int> rookDir[] = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
-const pair <int, int> bishopDir[] = {{-1, 1}, {-1, -1}, {1, -1}, {1, 1}};
-const pair <int, int> kingDir[] = {{-1, 0}, {0, 1}, {1, 0}, {0, -1}, {1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
-const pair <int, int> pawnCapDirWhite[] = {{1, -1}, {1, 1}};
-const pair <int, int> pawnCapDirBlack[] = {{-1, -1}, {-1, 1}};
+const std::pair <int, int> knightDir[] = {{-1, -2}, {-2, -1}, {-2, 1}, {-1, 2}, {1, 2}, {2, 1}, {2, -1}, {1, -2}};
+const std::pair <int, int> rookDir[] = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+const std::pair <int, int> bishopDir[] = {{-1, 1}, {-1, -1}, {1, -1}, {1, 1}};
+const std::pair <int, int> kingDir[] = {{-1, 0}, {0, 1}, {1, 0}, {0, -1}, {1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
+const std::pair <int, int> pawnCapDirWhite[] = {{1, -1}, {1, 1}};
+const std::pair <int, int> pawnCapDirBlack[] = {{-1, -1}, {-1, 1}};
 
 int deltaPos[8]; /// how does my position change when moving in direction D
 
@@ -214,9 +212,9 @@ inline uint16_t inv(uint16_t move) { ///
   return ((move << 6) & 4095) | (move >> 6);
 }
 
-inline string toString(uint16_t move) {
+inline std::string toString(uint16_t move) {
   int sq1 = sqFrom(move), sq2 = sqTo(move);
-  string ans = "";
+  std::string ans = "";
   ans += char((sq1 & 7) + 'a');
   ans += char((sq1 >> 3) + '1');
   ans += char((sq2 & 7) + 'a');
@@ -229,10 +227,10 @@ inline string toString(uint16_t move) {
 inline void printBB(uint64_t mask) {
   while(mask) {
     uint64_t b = lsb(mask);
-    cout << Sq(b) << " ";
+    std::cout << Sq(b) << " ";
     mask ^= b;
   }
-  cout << " mask\n";
+  std::cout << " mask\n";
 }
 
 inline void init_defs() {
@@ -336,7 +334,7 @@ inline void init_defs() {
       neighFileDownMask[sq] = neighFilesMask[sq] = neighFileUpMask[sq] = 0;
       fileUpMask[sq] = fileDownMask[sq] = 0;
       for(int r = 0; r < 8; r++) {
-        for(int f = max(0, file - 1); f <= min(7, file + 1); f++) {
+        for(int f = std::max(0, file - 1); f <= std::min(7, file + 1); f++) {
           int sq2 = getSq(r, f);
           if(r > rank)
             neighFileUpMask[sq] |= (1ULL << sq2);

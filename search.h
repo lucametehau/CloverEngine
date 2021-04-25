@@ -7,13 +7,10 @@
 #include <cmath>
 #pragma once
 
-using namespace std;
-
-Search :: Search() :
-  nodes(0), tbHits(0), t0(0), tDepth(0), selDepth(0), lazyDepth(0), threadCount(0), flag(0),
-  principalSearcher(false), threads(nullptr), params(nullptr),
-  SMPThreadExit(false), terminateSMP(false)
+Search :: Search() : threads(nullptr), params(nullptr)
 {
+  nodes = tbHits = t0 = tDepth = selDepth = lazyDepth = threadCount = flag = checkCount = 0;
+  principalSearcher = terminateSMP = SMPThreadExit = false;
   memset(&lmrRed, 0, sizeof(lmrRed));
   memset(&lmrCnt, 0, sizeof(lmrCnt));
 
@@ -59,7 +56,7 @@ int Search :: quiesce(int alpha, int beta) {
 
   pvTableLen[ply] = 0;
 
-  selDepth = max(selDepth, ply);
+  selDepth = std::max(selDepth, ply);
   nodes++;
 
   if((isRepetition(board, ply) || board->halfMoves >= 100 || board->isMaterialDraw()) && ply) /// check for draw
@@ -96,10 +93,10 @@ int Search :: quiesce(int alpha, int beta) {
   if(eval >= beta)
     return eval;
 
-  alpha = max(alpha, eval);
+  alpha = std::max(alpha, eval);
   best = eval;
 
-  Movepick noisyPicker(NULLMOVE, NULLMOVE, max(1, alpha - eval - 110)); /// delta pruning -> TO DO: find better constant
+  Movepick noisyPicker(NULLMOVE, NULLMOVE, std::max(1, alpha - eval - 110)); /// delta pruning -> TO DO: find better constant
 
   uint16_t move;
 
@@ -152,7 +149,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
     return quiesce(alpha, beta);
 
   nodes++;
-  selDepth = max(selDepth, ply);
+  selDepth = std::max(selDepth, ply);
 
   TT->prefetch(key);
   pvTableLen[ply] = 0;
@@ -160,7 +157,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
   if(!rootNode) {
     if(isRepetition(board, ply) || board->halfMoves >= 100 || board->isMaterialDraw())
       return 0;
-    int rAlpha = max(alpha, -INF + ply), rBeta = min(beta, INF - ply - 1);
+    int rAlpha = std::max(alpha, -INF + ply), rBeta = std::min(beta, INF - ply - 1);
     if(rAlpha >= rBeta)
       return rAlpha;
   }
@@ -253,7 +250,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
      Stack[ply - 1].move != NULLMOVE &&
      (board->pieces[board->turn] ^ board->bb[getType(PAWN, board->turn)] ^ board->bb[getType(KING, board->turn)]) &&
      (!ttHit || !(bound & UPPER) || ttValue >= beta)) {
-    int R = 4 + depth / 6 + min(3, (eval - beta) / 200);
+    int R = 4 + depth / 6 + std::min(3, (eval - beta) / 200);
 
     Stack[ply].move = NULLMOVE;
     Stack[ply].piece = 0;
@@ -380,7 +377,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
     /// current root move info
 
     if(rootNode && principalSearcher && getTime() > info->startTime + 2500) {
-      cout << "info depth " << depth << " currmove " << toString(move) << " currmovenumber " << played << "\n";
+      std::cout << "info depth " << depth << " currmove " << toString(move) << " currmovenumber " << played << std::endl;
     }
 
     /// store quiets for history
@@ -393,7 +390,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
     /// quiet late move reduction
 
     if(isQuiet && depth >= 3 && played > 1 + 2 * rootNode) { /// first few moves we don't reduce
-      R = lmrRed[min(63, depth)][min(63, played)];
+      R = lmrRed[std::min(63, depth)][std::min(63, played)];
 
       R += !pvNode + !improving; /// not on pv or not improving
 
@@ -401,9 +398,9 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
       R -= picker.stage < STAGE_QUIETS; /// refutation moves
 
-      R -= max(-2, min(2, (H.h + H.ch + H.fh) / 5000));
+      R -= std::max(-2, std::min(2, (H.h + H.ch + H.fh) / 5000));
 
-      R = min(depth - 1, max(R, 1));
+      R = std::min(depth - 1, std::max(R, 1));
     }
 
     int score = -INF;
@@ -493,7 +490,7 @@ void Search :: startSearch(Info *_info) {
 
       if(PROBE_ROOT && nrMoves == 1) {
         waitUntilDone();
-        cout << "bestmove " << toString(moves[0]) << endl;
+        std::cout << "bestmove " << toString(moves[0]) << std::endl;
         return;
       }
 
@@ -543,7 +540,7 @@ void Search :: startSearch(Info *_info) {
         for(auto &mv : moves) {
           if(mv == move) {
             waitUntilDone();
-            cout << "bestmove " << toString(move) << endl;
+            std::cout << "bestmove " << toString(move) << std::endl;
             return;
           }
         }
@@ -565,8 +562,8 @@ void Search :: startSearch(Info *_info) {
     int window = 10;
 
     if(tDepth >= 6) {
-      alpha = max(-INF, score - window);
-      beta = min(INF, score + window);
+      alpha = std::max(-INF, score - window);
+      beta = std::min(INF, score + window);
     } else {
       alpha = -INF;
       beta = INF;
@@ -582,9 +579,9 @@ void Search :: startSearch(Info *_info) {
 
       if(-INF < score && score <= alpha) {
         beta = (beta + alpha) / 2;
-        alpha = max(-INF, alpha - window);
+        alpha = std::max(-INF, alpha - window);
       } else if(beta <= score && score < INF) {
-        beta = min(INF, beta + window);
+        beta = std::min(INF, beta + window);
       } else {
         bestMove = pvTable[0][0];
         break;
@@ -612,19 +609,19 @@ void Search :: startSearch(Info *_info) {
 
       long double t = getTime() - t0;
 
-      cout << "info score ";
+      std::cout << "info score ";
       if(score > MATE)
-        cout << "mate " << (INF - score + 1) / 2;
+        std::cout << "mate " << (INF - score + 1) / 2;
       else if(score < -MATE)
-        cout << "mate -" << (INF + score + 1) / 2;
+        std::cout << "mate -" << (INF + score + 1) / 2;
       else
-        cout << "cp " << score;
-      cout << " depth " << initDepth << " seldepth " << selDepth << " nodes " << totalNodes;
-      cout << " nps " << int(totalNodes / t * 1000) <<  " time " << t << " ";
-      cout << "tbhits " << totalHits << " hashfull " << TT->tableFull() << " ";
-      cout << "pv ";
+        std::cout << "cp " << score;
+      std::cout << " depth " << initDepth << " seldepth " << selDepth << " nodes " << totalNodes;
+      std::cout << " nps " << int(totalNodes / t * 1000) <<  " time " << t << " ";
+      std::cout << "tbhits " << totalHits << " hashfull " << TT->tableFull() << " ";
+      std::cout << "pv ";
       printPv();
-      cout << endl;
+      std::cout << std::endl;
     }
 
     if(info->timeset && getTime() > info->stopTime) {
@@ -644,7 +641,7 @@ void Search :: startSearch(Info *_info) {
   waitUntilDone();
 
   if(principalSearcher)
-    cout << "bestmove " << toString(bestMove) << endl;
+    std::cout << "bestmove " << toString(bestMove) << std::endl;
 
   //TT->age();
 }
@@ -680,7 +677,7 @@ void Search :: clearStack() {
 
 void Search :: printPv() {
   for(int i = 0; i < pvTableLen[0]; i++) {
-    cout << toString(pvTable[0][i]) << " ";
+    std::cout << toString(pvTable[0][i]) << " ";
   }
 }
 
@@ -735,8 +732,8 @@ void Search :: waitUntilDone() {
 void Search :: isReady() {
   flagWorkersStop();
   flag |= TERMINATED_BY_USER;
-  unique_lock <mutex> lk(readyMutex);
-  cout << "readyok" << endl;
+  std::unique_lock <std::mutex> lk(readyMutex);
+  std::cout << "readyok" << std::endl;
 }
 
 void Search :: startPrincipalSearch(Info *info) {
@@ -749,7 +746,7 @@ void Search :: startPrincipalSearch(Info *info) {
   lazyCV.notify_one();
 
   if(!principalThread)
-    principalThread.reset(new thread(&Search :: lazySMPSearcher, this));
+    principalThread.reset(new std::thread(&Search :: lazySMPSearcher, this));
 }
 
 void Search :: stopPrincipalSearch() {
@@ -763,20 +760,24 @@ void Search :: setThreadCount(int nrThreads) {
   releaseThreads();
 
   threadCount = nrThreads;
-  threads.reset(new thread[nrThreads]);
+  threads.reset(new std::thread[nrThreads]);
   params.reset(new Search[nrThreads]);
 
   for(int i = 0; i < nrThreads; i++)
-    threads[i] = thread(&Search :: lazySMPSearcher, &params[i]);
+    threads[i] = std::thread(&Search :: lazySMPSearcher, &params[i]);
+}
+
+int Search :: getThreadCount() { /// for debugging (i got a crash related to threadCount)
+  return threadCount + 1;
 }
 
 void Search :: lazySMPSearcher() {
   while(!terminateSMP) {
 
     {
-      unique_lock <mutex> lk(readyMutex);
+      std::unique_lock <std::mutex> lk(readyMutex);
 
-      lazyCV.wait(lk, bind(&Search :: isLazySMP, this));
+      lazyCV.wait(lk, std::bind(&Search :: isLazySMP, this));
 
       if(terminateSMP)
         return;
@@ -795,7 +796,7 @@ void Search :: releaseThreads() {
       params[i].terminateSMP = true;
 
       {
-        unique_lock <mutex> lk(params[i].readyMutex);
+        std::unique_lock <std::mutex> lk(params[i].readyMutex);
         params[i].lazyDepth = 1;
       }
 
@@ -805,12 +806,16 @@ void Search :: releaseThreads() {
   }
 }
 
-void Search :: _setFen(string fen) {
+void Search :: _setFen(std::string fen) {
   for(int i = 0; i < threadCount; i++) {
     params[i].board->setFen(fen);
   }
 
+  std::cout << "setting fen... " << threadCount << std::endl;
+
   board->setFen(fen);
+
+  board->print();
 }
 
 void Search :: _makeMove(uint16_t move) {

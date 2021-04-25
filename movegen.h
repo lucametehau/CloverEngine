@@ -3,8 +3,6 @@
 #include "attacks.h"
 #pragma once
 
-using namespace std;
-
 inline bool isSqAttacked(Board *board, int color, int sq) {
   /*
   /// pawn attacks

@@ -33,11 +33,13 @@ class Search {
     void startPrincipalSearch(Info *info);
     void stopPrincipalSearch();
     void isReady();
+    int getThreadCount();
 
-    void _setFen(string fen);
+    void _setFen(std::string fen);
     void _makeMove(uint16_t move);
 
-    int quiesce(int alpha, int beta);
+    void startSearch(Info *info);
+    int quiesce(int alpha, int beta); /// for quiet position check (tuning)
 
     void setTime(Info *tInfo) {
       info = tInfo;
@@ -50,8 +52,6 @@ class Search {
     void lazySMPSearcher();
     void releaseThreads();
     void waitUntilDone();
-
-    void startSearch(Info *info);
     int search(int alpha, int beta, int depth, uint16_t excluded = NULLMOVE);
 
     void printPv();
@@ -82,17 +82,17 @@ class Search {
     int threadCount;
     int tDepth, selDepth;
 
-    unique_ptr <thread> principalThread;
-    mutex readyMutex;
+    std::unique_ptr <std::thread> principalThread;
+    std::mutex readyMutex;
 
   public:
     bool principalSearcher;
     Board board[1];
 
   private:
-    unique_ptr <thread[]> threads;
-    unique_ptr <Search[]> params;
-    condition_variable lazyCV;
+    std::unique_ptr <std::thread[]> threads;
+    std::unique_ptr <Search[]> params;
+    std::condition_variable lazyCV;
     volatile int lazyDepth;
     volatile bool SMPThreadExit;
 

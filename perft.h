@@ -1,8 +1,6 @@
 #include "move.h"
 #pragma once
 
-using namespace std;
-
 uint64_t perft(Board *board, int depth) {
   uint16_t moves[256];
   //uint16_t quiets[256], noisy[256];

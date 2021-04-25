@@ -5,8 +5,6 @@
 #include "move.h"
 #include "attacks.h"
 
-using namespace std;
-
 const char initBoard[] = {
   'R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R',
   'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P',
@@ -24,7 +22,7 @@ void init(Info *info) {
   info->multipv = 1;
 }
 
-void init(Board *board, string fen = START_POS_FEN) {
+void init(Board *board, std::string fen = START_POS_FEN) {
 
   //init_defs();
 

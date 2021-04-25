@@ -4,8 +4,6 @@
 #include "thread.h"
 #pragma once
 
-using namespace std;
-
 class Search;
 
 class History {
@@ -51,7 +49,7 @@ void History :: updateHistory(Search *searcher, uint16_t *quiets, int nrQuiets, 
   if(counterMove)
     searcher->cmTable[1 ^ turn][counterPiece][counterTo] = best; /// update counter move table
 
-  bonus = min(bonus, histMax);
+  bonus = std::min(bonus, histMax);
 
   for(int i = 0; i < nrQuiets; i++) {
     int move = quiets[i];

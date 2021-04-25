@@ -4,8 +4,6 @@
 #include "attacks.h"
 #pragma once
 
-using namespace std;
-
 inline void makeMove(Board *board, uint16_t mv) { /// assuming move is at least pseudo-legal
   int posFrom = sqFrom(mv), posTo = sqTo(mv);
   int pieceFrom = board->board[posFrom], pieceTo = board->board[posTo];
@@ -1141,7 +1139,7 @@ bool isLegalMove(Board *board, uint16_t move) { /// lazy way to check (for debug
   return 0;
 }
 
-inline uint16_t ParseMove(Board *board, string movestr) {
+inline uint16_t ParseMove(Board *board, std::string movestr) {
 
 	if(movestr[1] > '8' || movestr[1] < '1') return NULLMOVE;
     if(movestr[3] > '8' || movestr[3] < '1') return NULLMOVE;
