@@ -18,6 +18,8 @@ If you want to compile locally, I recommend you to use:
 
 without ```-flto```, because it crashes for some strange reason.
 
+If you are compiling on Linux, you need to add ```-pthread``` to your command line.
+
 In the future, I will add a makefile too.
 
 # UCI
