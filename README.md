@@ -10,6 +10,16 @@ Currently, Clover supports Endgame Tablebases, thanks to [Fathom](https://github
 
 Clover is UCI compatible, but doesn't have a GUI, so, in order to play with it, you need a GUI like Arena, Cute chess etc.
 
+# Compiling locally
+
+If you want to compile locally, I recommend you to use:
+
+```g++ *.cpp *.c -march=native -Wall -O3 -o output.exe```
+
+without ```-flto```, because it crashes for some strange reason.
+
+In the future, I will add a makefile too.
+
 # UCI
 
 Setting thread count, Syzygy Path and Hash size is now available.
