@@ -51,7 +51,7 @@ class UCI {
 
 void UCI :: Uci_Loop() {
 
-    int ttSize = 128;
+    uint64_t ttSize = 128;
 
     std::cout << "Clover " << VERSION << " by Luca Metehau" << std::endl;
 
