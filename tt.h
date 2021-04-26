@@ -84,7 +84,7 @@ inline uint64_t pow2(uint64_t size) {
 
 inline tt :: HashTable :: HashTable() {
   entries = 0;
-  initTable(128 * MB);
+  initTable(128LL * MB);
 }
 
 inline tt :: HashTable :: ~HashTable() {
@@ -118,19 +118,19 @@ inline void tt :: HashTable :: initTable(uint64_t size) {
 
   //cout << sizeof(table) << "\n";
 
-  memset(table, 0, BUCKET * (entries + 1));
+  memset(table, 0, entries * BUCKET + BUCKET);
 
   //cout << "Passed\n";
 }
 
 inline void tt :: HashTable :: prefetch(uint64_t hash) {
-  int ind = (hash & entries) * BUCKET;
+  uint64_t ind = (hash & entries) * BUCKET;
   Entry *bucket = table + ind;
   __builtin_prefetch(bucket);
 }
 
 inline bool tt :: HashTable :: probe(uint64_t hash, tt :: Entry &entry) {
-  int ind = (hash & entries) * BUCKET;
+  uint64_t ind = (hash & entries) * BUCKET;
   Entry *bucket = table + ind;
 
   for(int i = 0; i < BUCKET; i++) {
@@ -145,7 +145,7 @@ inline bool tt :: HashTable :: probe(uint64_t hash, tt :: Entry &entry) {
 }
 
 inline void tt :: HashTable :: save(uint64_t hash, int score, int depth, int ply, int bound, uint16_t move, int eval) {
-  int ind = (hash & entries) * BUCKET;
+  uint64_t ind = (hash & entries) * BUCKET;
   Entry *bucket = table + ind;
 
   if(score >= MATE)
