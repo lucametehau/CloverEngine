@@ -608,7 +608,7 @@ void Search :: startSearch(Info *_info) {
 
     if(principalSearcher && pvTableLen[0] && printStats && score != ABORT) {
 
-      long double t = getTime() - t0;
+      uint64_t t = (uint64_t)getTime() - t0;
 
       std::cout << "info score ";
       if(score > MATE)
@@ -618,7 +618,9 @@ void Search :: startSearch(Info *_info) {
       else
         std::cout << "cp " << score;
       std::cout << " depth " << initDepth << " seldepth " << selDepth << " nodes " << totalNodes;
-      std::cout << " nps " << (uint64_t)totalNodes / t * 1000 <<  " time " << (uint64_t)t << " ";
+      if(t)
+        std::cout << " nps " << totalNodes * 1000 / t;
+      std::cout << " time " << t << " ";
       std::cout << "tbhits " << totalHits << " hashfull " << TT->tableFull() << " ";
       std::cout << "pv ";
       printPv();
