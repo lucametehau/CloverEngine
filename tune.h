@@ -490,7 +490,7 @@ void tune(Search &searcher) {
   std::cout << "best K = " << k << "\n";
 
   std::cout << "start evaluation error: " << errorStart << std::endl;
-  std::cout << "expected iteration time: " << (otherTime - startTime) * weights.size() * 2 / 1000 << "s" << std::endl;
+  std::cout << "expected iteration time: " << (uint64_t)(otherTime - startTime) * weights.size() * 2 / 1000 << "s" << std::endl;
 
   //cout << evaluate(texelPos[0].board) << endl;
 
@@ -524,7 +524,7 @@ void tune(Search &searcher) {
 
     double ET = getTime();
 
-    std::cout << "time taken for iteration: " << (ET - ST) / 1000 << " s\n";
+    std::cout << "time taken for iteration: " << (uint64_t)(ET - ST) / 1000 << " s\n";
     i++;
     printWeights(weights);
     saveWeights(weights);

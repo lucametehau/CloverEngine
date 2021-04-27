@@ -618,7 +618,7 @@ void Search :: startSearch(Info *_info) {
       else
         std::cout << "cp " << score;
       std::cout << " depth " << initDepth << " seldepth " << selDepth << " nodes " << totalNodes;
-      std::cout << " nps " << int(totalNodes / t * 1000) <<  " time " << t << " ";
+      std::cout << " nps " << (uint64_t)totalNodes / t * 1000 <<  " time " << (uint64_t)t << " ";
       std::cout << "tbhits " << totalHits << " hashfull " << TT->tableFull() << " ";
       std::cout << "pv ";
       printPv();
