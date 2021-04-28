@@ -22,6 +22,14 @@ If you are compiling on Linux, you need to add ```-pthread``` to your command li
 
 In the future, I will add a makefile too.
 
+# Testing
+
+These are the versions sorted by speed, the ones at the top being the fastest:
+
+- -bmi2, supported on any bmi2 CPU
+- -popcnt, supported by most non-ancient CPUs
+- normal version, no aditional compile flags
+
 # UCI
 
 Setting thread count, Syzygy Path and Hash size is now available.
