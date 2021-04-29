@@ -2,6 +2,10 @@
 
 Clover is a chess engine, written in C++, inspired by my favorite plant. Since the 2020 lockdown, I got bored and decided to combine the 2 things I love the most: chess and programing, into making a program that can beat me.
 
+# Features
+
+Clover now has a page with all the features: https://www.chessprogramming.org/Clover .
+
 # Fathom
 
 Currently, Clover supports Endgame Tablebases, thanks to [Fathom](https://github.com/jdart1/Fathom).
@@ -14,13 +18,21 @@ Clover is UCI compatible, but doesn't have a GUI, so, in order to play with it, 
 
 If you want to compile locally, I recommend you to use:
 
-```g++ *.cpp *.c -march=native -Wall -O3 -o output.exe```
+```g++ *.cpp *.c -march=native -Wall -O3 -o output.exe -std=c++11```
 
 without ```-flto```, because it crashes for some strange reason.
 
 If you are compiling on Linux, you need to add ```-pthread``` to your command line.
 
 In the future, I will add a makefile too.
+
+# Testing
+
+These are the versions sorted by speed, the ones at the top being the fastest:
+
+- -bmi2, supported on any bmi2 CPU
+- -popcnt, supported by most non-ancient CPUs
+- normal version, no additional compile flags
 
 # UCI
 
