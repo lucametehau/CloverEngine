@@ -52,9 +52,6 @@ void load(std::ifstream &stream, Search &searcher) {
     if(nrPos % 100000 == 0)
       std::cout << nrPos << "\n";
 
-    if(nrPos == 200000)
-      break;
-
     auto fenEnd = line.find_last_of(' ', std::string::npos) + 1;
 
     std::string result = "";
