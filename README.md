@@ -28,7 +28,7 @@ These are the versions sorted by speed, the ones at the top being the fastest:
 
 - -bmi2, supported on any bmi2 CPU
 - -popcnt, supported by most non-ancient CPUs
-- normal version, no aditional compile flags
+- normal version, no additional compile flags
 
 # UCI
 
