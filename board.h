@@ -26,7 +26,7 @@ public:
   uint64_t pieces[2];
   //uint64_t checkers;
   int castleRights; /// 1 - bq, 2 - bk, 4 - wq, 8 - wk
-  Undo history[400];
+  Undo history[512];
 
   bool turn;
   int captured; /// keeping track of last captured piece so i reduce the size of move

@@ -1,8 +1,9 @@
+#pragma once
 #include "board.h"
 #include "defs.h"
 #include "movegen.h"
 #include "attacks.h"
-#pragma once
+#include "evaluate.h"
 
 inline void makeMove(Board &board, uint16_t mv) { /// assuming move is at least pseudo-legal
   int posFrom = sqFrom(mv), posTo = sqTo(mv);
@@ -200,14 +201,14 @@ inline void undoMove(Board &board, uint16_t move) {
   switch(type(move)) {
   case NEUT:
     board.pieces[board.turn] ^= (1ULL << posFrom) ^ (1ULL << posTo);
-    board.bb[piece]           ^= (1ULL << posFrom) ^ (1ULL << posTo);
+    board.bb[piece]          ^= (1ULL << posFrom) ^ (1ULL << posTo);
 
     board.board[posFrom] = piece;
     board.board[posTo]   = pieceCap;
 
     if(pieceCap) {
       board.pieces[1 ^ board.turn] ^= (1ULL << posTo);
-      board.bb[pieceCap]            ^= (1ULL << posTo);
+      board.bb[pieceCap]           ^= (1ULL << posTo);
     }
     break;
   case CASTLE:
@@ -223,8 +224,8 @@ inline void undoMove(Board &board, uint16_t move) {
         }
 
         board.pieces[board.turn] ^= (1ULL << posFrom) ^ (1ULL << posTo) ^ (1ULL << rFrom) ^ (1ULL << rTo);
-        board.bb[piece]           ^= (1ULL << posFrom) ^ (1ULL << posTo);
-        board.bb[rPiece]          ^= (1ULL << rFrom) ^ (1ULL << rTo);
+        board.bb[piece]          ^= (1ULL << posFrom) ^ (1ULL << posTo);
+        board.bb[rPiece]         ^= (1ULL << rFrom) ^ (1ULL << rTo);
 
         board.board[posTo] = board.board[rTo] = 0;
         board.board[posFrom] = piece;
@@ -238,10 +239,10 @@ inline void undoMove(Board &board, uint16_t move) {
         pieceCap = getType(PAWN, 1 ^ board.turn);
 
         board.pieces[board.turn] ^= (1ULL << posFrom) ^ (1ULL << posTo);
-        board.bb[piece]           ^= (1ULL << posFrom) ^ (1ULL << posTo);
+        board.bb[piece]          ^= (1ULL << posFrom) ^ (1ULL << posTo);
 
         board.pieces[1 ^ board.turn] ^= (1ULL << pos);
-        board.bb[pieceCap]            ^= (1ULL << pos);
+        board.bb[pieceCap]           ^= (1ULL << pos);
 
         board.board[posTo]   = 0;
         board.board[posFrom] = piece;
@@ -255,15 +256,15 @@ inline void undoMove(Board &board, uint16_t move) {
         piece = getType(PAWN, board.turn);
 
         board.pieces[board.turn] ^= (1ULL << posFrom) ^ (1ULL << posTo);
-        board.bb[piece]           ^= (1ULL << posFrom);
-        board.bb[promPiece]       ^= (1ULL << posTo);
+        board.bb[piece]          ^= (1ULL << posFrom);
+        board.bb[promPiece]      ^= (1ULL << posTo);
 
         board.board[posTo]   = pieceCap;
         board.board[posFrom] = piece;
 
         if(pieceCap) {
           board.pieces[1 ^ board.turn] ^= (1ULL << posTo);
-          board.bb[pieceCap]            ^= (1ULL << posTo);
+          board.bb[pieceCap]           ^= (1ULL << posTo);
         }
     }
     break;

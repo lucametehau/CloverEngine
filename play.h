@@ -1,6 +1,6 @@
+#pragma once
 #include "move.h"
 #include "search.h"
-#pragma once
 
 /*void playHuman(Board &board) {
   while(!isGameOver(board)) {

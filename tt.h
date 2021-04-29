@@ -1,5 +1,5 @@
-#include "defs.h"
 #pragma once
+#include "defs.h"
 
 const int MB = (1 << 20);
 const int BUCKET = 4;
@@ -70,7 +70,7 @@ namespace tt {
     };
 }
 
-tt :: HashTable *TT;
+tt :: HashTable *TT; /// shared hash table
 
 inline uint64_t pow2(uint64_t size) {
   if(size & (size - 1)) {

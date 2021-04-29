@@ -1,7 +1,8 @@
-#include <cstring>
-#include "move.h"
-#include "board.h"
 #pragma once
+#include <cstring>
+#include "attacks.h"
+#include "defs.h"
+#include "board.h"
 
 struct EvalTools { /// to avoid data races, kinda dirty tho
 
@@ -243,8 +244,6 @@ int bonusTable[7][2][64] = {
         },
     },
 };
-
-
 
 void matEval(Board &board, int color, EvalTools &tools) {
   uint64_t pieces = board.pieces[color] ^ board.bb[getType(KING, color)];

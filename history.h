@@ -1,8 +1,8 @@
+#pragma once
 #include <vector>
 #include "board.h"
 #include "defs.h"
 #include "thread.h"
-#pragma once
 
 class Search;
 

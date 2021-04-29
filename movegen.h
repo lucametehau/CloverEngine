@@ -1,7 +1,7 @@
+#pragma once
 #include "board.h"
 #include "defs.h"
 #include "attacks.h"
-#pragma once
 
 inline bool isSqAttacked(Board &board, int color, int sq) {
   /*

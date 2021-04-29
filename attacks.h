@@ -1,7 +1,7 @@
+#pragma once
 #include "magic.h"
 #include "defs.h"
 #include "board.h"
-#pragma once
 
 uint64_t rookAttacksMask[64], bishopAttacksMask[64];
 uint64_t pawnAttacksMask[2][64];

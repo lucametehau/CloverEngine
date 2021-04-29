@@ -1,10 +1,10 @@
+#pragma once
 #include "defs.h"
 #include "board.h"
 #include "move.h"
 #include "evaluate.h"
 #include "history.h"
 #include <cassert>
-#pragma once
 
 enum {
   STAGE_NONE = 0, STAGE_HASHMOVE, STAGE_GEN_NOISY, STAGE_GOOD_NOISY,

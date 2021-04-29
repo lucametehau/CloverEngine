@@ -1,5 +1,5 @@
-#include "move.h"
 #pragma once
+#include "move.h"
 
 uint64_t perft(Board &board, int depth) {
   uint16_t moves[256];

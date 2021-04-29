@@ -1,9 +1,9 @@
+#pragma once
 #include <string>
 #include <chrono>
 #include <ctime>
 #include <ratio>
 #include <random>
-#pragma once
 
 std::mt19937_64 gen(0xBEEF);
 std::uniform_int_distribution <uint64_t> rng;

@@ -1,6 +1,6 @@
+#pragma once
 #include <stdio.h>
 #include <stdlib.h>
-#pragma once
 
 #define USE_32_BIT_MULTIPLICATIONS
 

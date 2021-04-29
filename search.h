@@ -1,3 +1,4 @@
+#pragma once
 #include <algorithm>
 #include "evaluate.h"
 #include "movepick.h"
@@ -5,7 +6,6 @@
 #include "tbprobe.h"
 #include "thread.h"
 #include <cmath>
-#pragma once
 
 Search::Search() : threads(nullptr), params(nullptr), principalThread(nullptr)
 {
