@@ -1,4 +1,5 @@
 //#include <filesystem>
+#pragma once
 #include <thread>
 #include <memory>
 #include <vector>
@@ -10,7 +11,6 @@
 #include "search.h"
 #include "evaluate.h"
 #include "search.h"
-#pragma once
 
 const int PRECISION = 5;
 
@@ -19,11 +19,14 @@ struct Position {
   double result;
 };
 
+int nrPos;
+Position texelPos[2500005];
+
 double sigmoid(double k, int s) {
   return 1.0 / (1.0 + pow(10.0, -k * s / 400.0));
 }
 
-std::mutex M;
+std::mutex M; /// for debugging data races
 
 /// TEXEL tuning method
 
@@ -34,7 +37,7 @@ bool openFile(std::ifstream &stream) {
   return stream.is_open();
 }
 
-void load(std::vector <Position> &texelPos, std::ifstream &stream, Search &searcher) {
+void load(std::ifstream &stream, Search &searcher) {
 
   std::string line;
   int ind = 0;
@@ -46,10 +49,11 @@ void load(std::vector <Position> &texelPos, std::ifstream &stream, Search &searc
   while(getline(stream, line)) {
     Position pos;
 
-    ind++;
+    if(nrPos % 100000 == 0)
+      std::cout << nrPos << "\n";
 
-    if(ind % 100000 == 0)
-      std::cout << ind << "\n";
+    if(nrPos == 200000)
+      break;
 
     auto fenEnd = line.find_last_of(' ', std::string::npos) + 1;
 
@@ -100,8 +104,7 @@ void load(std::vector <Position> &texelPos, std::ifstream &stream, Search &searc
     //board.setFen(pos.fen);
     //board.print();
 
-
-    texelPos.push_back(pos);
+    texelPos[nrPos++] = pos;
   }
 }
 
@@ -353,7 +356,7 @@ void printWeights(std::vector <int> weights) {
   std::cout << "};\n";
 }
 
-void rangeEvalError(std::vector <Position> &texelPos, std::atomic <double> & error, double k, int l, int r) {
+void rangeEvalError(std::atomic <double> & error, double k, int l, int r) {
 
   double errorRange = 0;
   Board board;
@@ -373,27 +376,27 @@ void rangeEvalError(std::vector <Position> &texelPos, std::atomic <double> & err
   M.unlock();
 }
 
-double evalError(std::vector <Position> &texelPos, double k, int nrThreads) {
+double evalError(double k, int nrThreads) {
   std::atomic <double> error{};
-  double share = 1.0 * texelPos.size() / nrThreads;
+  double share = 1.0 * nrPos / nrThreads;
   double ind = 0;
 
   std::vector <std::thread> threads(nrThreads);
 
   for(auto &t : threads) {
-    t = std::thread{ rangeEvalError, ref(texelPos), ref(error), k, int(floor(ind)), int(floor(ind + share) - 1) };
+    t = std::thread{ rangeEvalError, ref(error), k, int(floor(ind)), int(floor(ind + share) - 1) };
     ind += share;
   }
 
   for(auto &t : threads)
     t.join();
 
-  assert(floor(ind) == texelPos.size());
+  assert(floor(ind) == nrPos);
 
-  return error / texelPos.size();
+  return error / nrPos;
 }
 
-double bestK(std::vector <Position> &texelPos, int nrThreads) {
+double bestK(int nrThreads) {
   double k = 0;
   double mn = std::numeric_limits <double> :: max();
 
@@ -405,7 +408,7 @@ double bestK(std::vector <Position> &texelPos, int nrThreads) {
     double unit = pow(10.0, -i), range = 10.0 * unit, r = k + range;
 
     for(double curr = std::max(k - range, 0.0); curr <= r; curr += unit) {
-      double error = evalError(texelPos, curr, nrThreads);
+      double error = evalError(curr, nrThreads);
 
       std::cout << "current K = " << curr << ", current error = " << error << "\n";
 
@@ -421,10 +424,10 @@ double bestK(std::vector <Position> &texelPos, int nrThreads) {
   return k;
 }
 
-bool isBetter(std::vector <int> &weights, std::vector <Position> &texelPos, double &mn, double k, int nrThreads, int ind = 0) {
+bool isBetter(std::vector <int> &weights, double &mn, double k, int nrThreads, int ind = 0) {
   saveWeights(weights);
 
-  double error = evalError(texelPos, k, nrThreads);
+  double error = evalError(k, nrThreads);
 
   if(error < mn) {
     if(mn - error > mn / nrThreads / 2) {
@@ -445,9 +448,7 @@ void tune(Search &searcher) {
     std::cout << "opening file.." << std::endl;
 
   //cout << sizeof(Board) << endl;
-
-  std::vector <Position> texelPos;
-  load(texelPos, stream, searcher);
+  load(stream, searcher);
 
   //cout << texelPos.size() << " positions stored" << endl;
 
@@ -479,11 +480,11 @@ void tune(Search &searcher) {
 
   return;*/
 
-  double k = bestK(texelPos, nrThreads);
+  double k = bestK(nrThreads);
 
   double startTime = getTime();
 
-  double errorStart = evalError(texelPos, k, nrThreads), errorMin = errorStart;
+  double errorStart = evalError(k, nrThreads), errorMin = errorStart;
   double otherTime = getTime();
   int i = 1;
 
@@ -509,11 +510,11 @@ void tune(Search &searcher) {
 
       w += 1;
 
-      if(isBetter(weights, texelPos, errorMin, k, nrThreads, ind))
+      if(isBetter(weights, errorMin, k, nrThreads, ind))
         improve = 1;
       else {
         w -= 2;
-        improve = isBetter(weights, texelPos, errorMin, k, nrThreads, ind);
+        improve = isBetter(weights, errorMin, k, nrThreads, ind);
       }
 
       if(!improve)
