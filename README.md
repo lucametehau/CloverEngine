@@ -2,6 +2,10 @@
 
 Clover is a chess engine, written in C++, inspired by my favorite plant. Since the 2020 lockdown, I got bored and decided to combine the 2 things I love the most: chess and programing, into making a program that can beat me.
 
+# Features
+
+Clover now has a page with all the features: https://www.chessprogramming.org/Clover .
+
 # Fathom
 
 Currently, Clover supports Endgame Tablebases, thanks to [Fathom](https://github.com/jdart1/Fathom).
