@@ -30,7 +30,8 @@ In the future, I will add a makefile too.
 
 These are the versions sorted by speed, the ones at the top being the fastest:
 
-- -bmi2, supported on any bmi2 CPU
+- -bmi2, supported on any CPU that supports bmi2
+- -popcnt-avx2, supported on any CPU that supports avx2
 - -popcnt, supported by most non-ancient CPUs
 - normal version, no additional compile flags
 
