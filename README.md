@@ -18,7 +18,7 @@ Clover is UCI compatible, but doesn't have a GUI, so, in order to play with it, 
 
 If you want to compile locally, I recommend you to use:
 
-```g++ *.cpp *.c -march=native -Wall -O3 -o output.exe -std=c++11```
+```g++ *.cpp *.c -march=native -Wall -O3 -o output.exe -std=c++17```
 
 without ```-flto```, because it crashes for some strange reason.
 
