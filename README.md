@@ -54,7 +54,7 @@ eval
 
 - Tune command
 ```
-tune
+tune <nrThreads> <path for positions>
 ```
 
 # Contributing
