@@ -89,7 +89,7 @@ public:
   }*/
 
   int king(int color) {
-    return 63 - __builtin_clzll(bb[BK + color * 6]);
+    return Sq(bb[getType(KING, color)]);
   }
 
   bool isCapture(int move) {

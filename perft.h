@@ -32,7 +32,9 @@ uint64_t perft(Board &board, int depth) {
 
   for(int i = 0; i < nrMoves; i++) {
     uint16_t move = moves[i];
+
     makeMove(board, move);
+
     uint64_t x = perft(board, depth - 1);
     //std::cout << "depth = " << depth << ", move = " << toString(move) << "\n";
     /*if(board.ply == 1) {

@@ -8,7 +8,7 @@
 
 enum {
   STAGE_NONE = 0, STAGE_HASHMOVE, STAGE_GEN_NOISY, STAGE_GOOD_NOISY,
-  STAGE_GEN_QUIETS, STAGE_KILLER_1, STAGE_KILLER_2, STAGE_COUNTER,
+  STAGE_KILLER_1, STAGE_KILLER_2, STAGE_COUNTER, STAGE_GEN_QUIETS,
   STAGE_QUIETS, STAGE_BAD_NOISY, STAGE_DONE
 }; /// move picker stages
 
@@ -28,17 +28,20 @@ public:
   uint16_t noisy[256], quiets[256], badNoisy[256];
   int scores[256];
 
-  Movepick(const uint16_t HashMove, const uint16_t Counter, const int Threshold) {
-    hashMove = HashMove;
+  Movepick(const uint16_t HashMove, const uint16_t Killer1, const uint16_t Killer2, const uint16_t Counter, const int Threshold) {
     stage = STAGE_HASHMOVE;
-    killer1 = killer2 = counter = NULLMOVE;
-    possibleCounter = Counter;
+
+    hashMove = HashMove;
+    killer1 = Killer1;
+    killer2 = Killer2;
+    counter = Counter;
+
     nrNoisy = nrQuiets = nrBadNoisy = 0;
     threshold = Threshold;
     /*memset(noisy, 0, sizeof(noisy));
     memset(quiets, 0, sizeof(quiets));
     memset(badNoisy, 0, sizeof(badNoisy));*/
-    memset(scores, 0, sizeof(scores));
+    //memset(scores, 0, sizeof(scores));
   }
 
   int getBestMoveInd(int nrMoves, int start) {
@@ -58,7 +61,7 @@ public:
 
     if(stage == STAGE_HASHMOVE) {
       stage++;
-      if(hashMove != NULLMOVE && !skip) {
+      if(hashMove) {
         return hashMove;
       }
     }
@@ -117,6 +120,30 @@ public:
       stage++;
     }
 
+    if(stage == STAGE_KILLER_1) {
+
+      stage++;
+
+      if(!skip && killer1 && isLegalMove(searcher->board, killer1) && killer1 != hashMove)
+        return killer1;
+    }
+
+    if(stage == STAGE_KILLER_2) {
+
+      stage++;
+
+      if(!skip && killer2 && isLegalMove(searcher->board, killer2) && killer2 != hashMove)
+        return killer2;
+    }
+
+    if(stage == STAGE_COUNTER) {
+
+      stage++;
+
+      if(!skip && counter && isLegalMove(searcher->board, counter) && counter != hashMove && counter != killer1 && counter != killer2)
+        return counter;
+    }
+
     if(stage == STAGE_GEN_QUIETS) {
       /// quiet moves
       /// TO DO: don't generate all quiets to validate refutation moves, add fast isLegal(move) function ?
@@ -133,21 +160,12 @@ public:
       for(int i = 0; i < nrQuiets; i++) {
         uint16_t move = quiets[i];
         int score = 0;
-        if(move == hashMove) {
-          score = -100000000;
-        } else if(move == searcher->killers[ply][0]) {
-          killer1 = move;
-          score = -100000000;
-        } else if(move == searcher->killers[ply][1]) {
-          killer2 = move;
-          score = -100000000;
-        } else if(move == possibleCounter) {
-          counter = move;
-          score = -100000000;
-        } else {
-          /*History :: Heuristics H{};
-          History :: getHistory(searcher, move, ply, H);*/
+        /*History :: Heuristics H{};
+        History :: getHistory(searcher, move, ply, H);*/
 
+        if(move == hashMove || move == killer1 || move == killer2 || move == counter)
+          score = -1000000000;
+        else {
           int from = sqFrom(move), to = sqTo(move), piece = searcher->board.board[from];
 
           score = searcher->hist[searcher->board.turn][from][to];
@@ -162,30 +180,6 @@ public:
       }
 
       stage++;
-    }
-
-    if(stage == STAGE_KILLER_1) {
-
-      stage++;
-
-      if(!skip && killer1/* && killer1 != hashMove*/)
-        return killer1;
-    }
-
-    if(stage == STAGE_KILLER_2) {
-
-      stage++;
-
-      if(!skip && killer2/* && killer2 != hashMove*/)
-        return killer2;
-    }
-
-    if(stage == STAGE_COUNTER) {
-
-      stage++;
-
-      if(!skip && counter/* && counter != hashMove && counter != killer1 && counter != killer2*/)
-        return counter;
     }
 
     if(stage == STAGE_QUIETS) {

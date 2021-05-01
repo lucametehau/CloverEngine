@@ -1,4 +1,5 @@
 #pragma once
+#include <cassert>
 #include "board.h"
 #include "defs.h"
 #include "movegen.h"
@@ -404,6 +405,7 @@ inline int genLegal(Board &board, uint16_t *moves) {
           mask ^= b;
         }
       }
+      /// intentional fall through
     case KNIGHT:
       capMask = checkers;
       quietMask = 0;
@@ -726,6 +728,7 @@ inline int genLegalNoisy(Board &board, uint16_t *moves) {
           mask ^= b;
         }
       }
+      /// intentional fall through
     case KNIGHT:
       /*mask = getAttackers(board, color, all, sq) & notPinned;
       while(mask) {
@@ -1128,9 +1131,91 @@ inline bool isRepetition(Board &board, int ply) {
   return 0;
 }
 
-bool isLegalMove(Board &board, uint16_t move) { /// lazy way to check (for debugging only, for now)
+bool isPseudoLegalMove(Board &board, uint16_t move) {
+  if(!move)
+    return 0;
+
+  int from = sqFrom(move), to = sqTo(move), t = type(move), pt = board.piece_type_at(from), color = board.turn;
+  uint64_t own = board.pieces[color], enemy = board.pieces[1 ^ color], occ = board.pieces[WHITE] | board.pieces[BLACK];
+
+  if(color != board.board[from] / 7) /// different color
+    return 0;
+
+  if(!board.board[from]) /// there isn't a piece
+    return 0;
+
+  if(own & (1ULL << to)) /// can't move piece on the same square as one of our pieces
+    return 0;
+
+  /// check for normal moves
+
+  if(pt == KNIGHT)
+    return t == NEUT && (knightBBAttacks[from] & (1ULL << to));
+
+  if(pt == BISHOP)
+    return t == NEUT && (genAttacksBishop(occ, from) & (1ULL << to));
+
+  if(pt == ROOK)
+    return t == NEUT && (genAttacksRook(occ, from) & (1ULL << to));
+
+  if(pt == QUEEN)
+    return t == NEUT && (genAttacksQueen(occ, from) & (1ULL << to));
+
+  /// pawn moves
+
+  if(pt == PAWN) {
+
+    uint64_t att = pawnAttacksMask[color][from];
+
+    /// enpassant
+
+    if(t == ENPASSANT)
+      return to == board.enPas && (att & (1ULL << to));
+
+    uint64_t push = shift(color, NORTH, (1ULL << from)) & ~occ;
+
+    /// promotion
+
+    if(t == PROMOTION)
+      return (to / 8 == 0 || to / 8 == 7) && (((att & enemy) | push) & (1ULL << to));
+
+    /// add double push to mask
+
+    if(from / 8 == 1 || from / 8 == 6)
+      push |= shift(color, NORTH, push) & ~occ;
+
+    return (to / 8 && to / 8 != 7) && t == NEUT && (((att & enemy) | push) & (1ULL << to));
+  }
+
+  /// king moves (normal or castle)
+
+  if(t == NEUT)
+    return kingBBAttacks[from] & (1ULL << to);
+
+  int side = (to % 8 == 6); /// queen side or king side
+
+  if(board.castleRights & (1 << (2 * color + side))) { /// can i castle
+    if(isSqAttacked(board, color ^ 1, from) || isSqAttacked(board, color ^ 1, to))
+      return 0;
+
+    /// castle queen side
+
+    if(!side) {
+      return !(occ & (7ULL << (from - 3))) && !isSqAttacked(board, color ^ 1, Sq(between[from][to]));
+    } else {
+      return !(occ & (3ULL << (from + 1))) && !isSqAttacked(board, color ^ 1, Sq(between[from][to]));
+    }
+  }
+
+  return 0;
+
+}
+
+bool isLegalMoveSlow(Board &board, int move) {
   uint16_t moves[256];
-  int nrMoves = genLegal(board, moves);
+  int nrMoves = 0;
+
+  nrMoves = genLegal(board, moves);
 
   for(int i = 0; i < nrMoves; i++) {
     if(move == moves[i])
@@ -1140,39 +1225,59 @@ bool isLegalMove(Board &board, uint16_t move) { /// lazy way to check (for debug
   return 0;
 }
 
+bool isLegalMove(Board &board, int move) {
+  if(!isPseudoLegalMove(board, move)) {
+    return 0;
+  }
+
+  if(type(move) == CASTLE) {
+    return 1;
+  }
+
+  makeMove(board, move);
+  bool legal = !isSqAttacked(board, board.turn, board.king(board.turn ^ 1));
+  undoMove(board, move);
+
+  //std::cout << legal << "\n";
+
+  //assert(legal == isLegalMoveSlow(board, move));
+
+  return legal;
+}
+
 inline uint16_t ParseMove(Board &board, std::string movestr) {
 
-	if(movestr[1] > '8' || movestr[1] < '1') return NULLMOVE;
-    if(movestr[3] > '8' || movestr[3] < '1') return NULLMOVE;
-    if(movestr[0] > 'h' || movestr[0] < 'a') return NULLMOVE;
-    if(movestr[2] > 'h' || movestr[2] < 'a') return NULLMOVE;
+  if(movestr[1] > '8' || movestr[1] < '1') return NULLMOVE;
+  if(movestr[3] > '8' || movestr[3] < '1') return NULLMOVE;
+  if(movestr[0] > 'h' || movestr[0] < 'a') return NULLMOVE;
+  if(movestr[2] > 'h' || movestr[2] < 'a') return NULLMOVE;
 
-    int from = getSq(movestr[1] - '1', movestr[0] - 'a');
-    int to = getSq(movestr[3] - '1', movestr[2] - 'a');
+  int from = getSq(movestr[1] - '1', movestr[0] - 'a');
+  int to = getSq(movestr[3] - '1', movestr[2] - 'a');
 
-    uint16_t moves[256];
-    int nrMoves = genLegal(board, moves);
+  uint16_t moves[256];
+  int nrMoves = genLegal(board, moves);
 
 	for(int i = 0; i < nrMoves; i++) {
-        int move = moves[i];
+    int move = moves[i];
 		if(sqFrom(move) == from && sqTo(move) == to) {
-          int PromPce = promoted(move) + KNIGHT;
-          if(type(move) == PROMOTION) {
-            if(PromPce == ROOK && movestr[4] == 'r') {
-              return move;
-            } else if(PromPce == BISHOP && movestr[4] == 'b') {
-              return move;
-            } else if(PromPce == QUEEN && movestr[4] == 'q') {
-              return move;
-            } else if(PromPce == KNIGHT && movestr[4] == 'n') {
-              return move;
-            }
-            continue;
-          }
+      int PromPce = promoted(move) + KNIGHT;
+      if(type(move) == PROMOTION) {
+        if(PromPce == ROOK && movestr[4] == 'r') {
           return move;
+        } else if(PromPce == BISHOP && movestr[4] == 'b') {
+          return move;
+        } else if(PromPce == QUEEN && movestr[4] == 'q') {
+          return move;
+        } else if(PromPce == KNIGHT && movestr[4] == 'n') {
+          return move;
+        }
+        continue;
+      }
+      return move;
 		}
-    }
+  }
 
-    return NULLMOVE;
+  return NULLMOVE;
 }
 

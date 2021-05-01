@@ -42,7 +42,7 @@ class UCI {
     void Position();
     void SetOption();
     void Eval();
-    void Tune(Search &searcher);
+    void Tune(int nrThreads, std::string path);
     void Perft(int depth);
 
   private:
@@ -67,7 +67,7 @@ void UCI :: Uci_Loop() {
     //searcher.setThreadCount(1); /// 2 threads for debugging data races
     UciNewGame();
 
-	while (1) {
+	  while (1) {
       std::string input;
       getline(std::cin, input);
 
@@ -259,7 +259,14 @@ void UCI :: Uci_Loop() {
 
           } else if(cmd == "tune") {
 
-            Tune(searcher);
+            int nrThreads;
+            std::string path;
+
+            iss >> nrThreads;
+
+            iss >> path;
+
+            Tune(nrThreads, path);
 
           } else if(cmd == "eval") {
 
@@ -314,8 +321,9 @@ void UCI :: Eval() {
   std::cout << evaluate(searcher.board) << std::endl;
 }
 
-void UCI :: Tune(Search &searcher) {
-  tune(searcher);
+void UCI :: Tune(int nrThreads, std::string path) {
+  TUNE = true;
+  tune(nrThreads, path);
 }
 
 void UCI :: IsReady() {

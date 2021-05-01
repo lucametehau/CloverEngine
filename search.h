@@ -7,7 +7,7 @@
 #include "thread.h"
 #include <cmath>
 
-Search::Search() : threads(nullptr), params(nullptr), principalThread(nullptr)
+Search::Search() : threads(nullptr), params(nullptr)
 {
   nodes = tbHits = t0 = tDepth = selDepth = lazyDepth = threadCount = flag = checkCount = 0;
   principalSearcher = terminateSMP = SMPThreadExit = false;
@@ -66,7 +66,7 @@ int Search :: quiesce(int alpha, int beta) {
   if(checkForStop())
     return ABORT;
 
-    /// check if in transposition table
+  /// check if in transposition table
 
   uint64_t key = board.key;
   int score = 0, best = -INF;
@@ -97,7 +97,7 @@ int Search :: quiesce(int alpha, int beta) {
   alpha = std::max(alpha, eval);
   best = eval;
 
-  Movepick noisyPicker(NULLMOVE, NULLMOVE, std::max(1, alpha - eval - 110)); /// delta pruning -> TO DO: find better constant
+  Movepick noisyPicker(NULLMOVE, NULLMOVE, NULLMOVE, NULLMOVE, std::max(1, alpha - eval - 110)); /// delta pruning -> TO DO: find better constant
 
   uint16_t move;
 
@@ -270,7 +270,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
   if(!pvNode && !isCheck && depth >= 5 && abs(beta) < MATE) {
     int cutBeta = beta + 100;
-    Movepick noisyPicker(NULLMOVE, NULLMOVE, cutBeta - eval);
+    Movepick noisyPicker(NULLMOVE, NULLMOVE, NULLMOVE, NULLMOVE, cutBeta - eval);
 
     uint16_t move;
 
@@ -301,7 +301,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
   uint16_t counter = (ply == 0 || Stack[ply - 1].move == NULLMOVE ? NULLMOVE :
                                                                     cmTable[1 ^ board.turn][Stack[ply - 1].piece][sqTo(Stack[ply - 1].move)]);
 
-  Movepick picker(hashMove, counter, 0);
+  Movepick picker(hashMove, killers[ply][0], killers[ply][1], counter, 0);
 
   uint16_t move;
 
@@ -379,6 +379,16 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
     if(rootNode && principalSearcher && getTime() > info->startTime + 2500) {
       std::cout << "info depth " << depth << " currmove " << toString(move) << " currmovenumber " << played << std::endl;
+      /*if(move == hashMove)
+        std::cout << "hashMove\n";
+      else if(move == killers[ply][0])
+        std::cout << "killer1\n";
+      else if(move == killers[ply][1])
+        std::cout << "killer2\n";
+      else if(move == counter)
+        std::cout << "counter\n";
+      else
+        std::cout << "normal\n";*/
     }
 
     /// store quiets for history

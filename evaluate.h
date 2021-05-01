@@ -4,40 +4,108 @@
 #include "defs.h"
 #include "board.h"
 
+bool TUNE = false; /// false by default
+
 struct EvalTools { /// to avoid data races, kinda dirty tho
+  uint64_t kingRing[2], kingSquare[2], pawnShield[2], defendedByPawn[2], pawns[2], allPawns;
+  //uint64_t attackedBy[2], attackedBy2[2], attackedByPiece[2][7];
 
-    uint64_t kingRing[2], kingSquare[2], pawnShield[2], defendedByPawn[2], pawns[2], allPawns;
-    //uint64_t attackedBy[2], attackedBy2[2], attackedByPiece[2][7];
+  int phase;
 
-    int phase;
+  int kingAttackersCount[2], kingAttackersWeight[2];
+  int kingDanger[2];
+  int score[2][2];
 
-    int kingAttackersCount[2], kingAttackersWeight[2];
-    int kingDanger[2];
-    int score[2][2];
+  void init() {
+    phase = 0;
 
-    void init() {
-      phase = 0;
+    memset(score, 0, sizeof(score));
+    //memset(kingRing, 0, sizeof(kingRing));
+    //memset(kingSquare, 0, sizeof(kingSquare));
+    //memset(pawnShield, 0, sizeof(pawnShield));
+    //memset(defendedByPawn, 0, sizeof(defendedByPawn));
+    //memset(pawns, 0, sizeof(pawns));
+    //memset(attackedByPiece, 0, sizeof(attackedByPiece));
+    memset(kingAttackersCount, 0, sizeof(kingAttackersCount));
+    memset(kingAttackersWeight, 0, sizeof(kingAttackersWeight));
+    memset(kingDanger, 0, sizeof(kingDanger));
+    allPawns = 0;
+  }
+};
 
-      memset(score, 0, sizeof(score));
-      //memset(kingRing, 0, sizeof(kingRing));
-      //memset(kingSquare, 0, sizeof(kingSquare));
-      //memset(pawnShield, 0, sizeof(pawnShield));
-      //memset(defendedByPawn, 0, sizeof(defendedByPawn));
-      //memset(pawns, 0, sizeof(pawns));
-      //memset(attackedByPiece, 0, sizeof(attackedByPiece));
-      memset(kingAttackersCount, 0, sizeof(kingAttackersCount));
-      memset(kingAttackersWeight, 0, sizeof(kingAttackersWeight));
-      memset(kingDanger, 0, sizeof(kingDanger));
-      allPawns = 0;
-    }
+struct EvalTraceEntry {
+  uint16_t ind;
+  uint16_t val;
+  bool phase, color;
+};
 
+class EvalTrace { /// when tuning, we can keep the count of every evaluation term used for speed up
+public:
+  int phase;
+
+  int doubledPawnsPenalty[2][2];
+  int isolatedPenalty[2][2];
+  int backwardPenalty[2][2];
+
+  int mat[2][2][7];
+
+  int passedBonus[2][2][7];
+  int connectedBonus[2][2][7];
+
+  int pawnShield[2][2][4];
+
+  int outpostBonus[2][2][4];
+  int outpostHoleBonus[2][2][4];
+
+  int rookOpenFile[2][2];
+  int rookSemiOpenFile[2][2];
+
+  int bishopPair[2][2];
+  int longDiagonalBishop[2][2];
+
+  int trappedRook[2][2];
+
+  int mobilityBonus[2][7][2][30];
+
+  int bonusTable[2][7][2][64];
+
+  int kingDanger[2];
+
+  int others[2];
+
+  EvalTraceEntry entries[1700];
+  int nrEntries;
+
+  void add(int ind, bool phase, bool color, int val) {
+    if(!val)
+      return;
+    entries[nrEntries].val = val;
+    entries[nrEntries].color = color;
+    entries[nrEntries].phase = phase;
+    entries[nrEntries].ind = ind;
+    nrEntries++;
+  }
+
+} trace;
+
+class TunePos {
+public:
+  EvalTraceEntry *entries;
+
+  int nrEntries;
+
+  int others[2], kingDanger[2];
+
+  int phase;
+
+  bool turn;
 };
 
 const int TEMPO = 20;
 
-int doubledPawnsPenalty[2] = {-10, 19, };
-int isolatedPenalty[2] = {17, -1, };
-int backwardPenalty[2] = {17, 23, };
+int doubledPawnsPenalty[2] = {10, -19, };
+int isolatedPenalty[2] = {-17, 1, };
+int backwardPenalty[2] = {-17, -23, };
 
 int mat[2][7] = {
     {0, 82, 355, 369, 522, 1075, 0},
@@ -48,8 +116,14 @@ int phaseVal[] = {0, 0, 1, 1, 2, 4};
 
 const int maxWeight = 16 * phaseVal[PAWN] + 4 * phaseVal[KNIGHT] + 4 * phaseVal[BISHOP] + 4 * phaseVal[ROOK] + 2 * phaseVal[QUEEN];
 
-int passedBonus[] = {0, 9, 12, 30, 56, 114, 195};
-int connectedBonus[] = {0, 2, 3, 5, 9, 21, 26};
+int passedBonus[2][7] = {
+  {0, 9, 12, 30, 56, 114, 195},
+  {0, 9, 12, 30, 56, 114, 195},
+};
+int connectedBonus[2][7] = {
+  {0, 2, 3, 5, 9, 21, 26},
+  {0, 2, 3, 5, 9, 21, 26},
+};
 
 int kingAttackWeight[] = {0, 0, 2, 2, 3, 5};
 int SafetyTable[100] = {
@@ -65,8 +139,19 @@ int SafetyTable[100] = {
   500, 500, 500, 500, 500, 500, 500, 500, 500, 500,
 };
 
-int outpostBonus[] = {0, 0, 23, 18};
-int outpostHoleBonus[] = {0, 0, 28, 25};
+int pawnShield[2][4] = {
+  {0, 10, 20, 30},
+  {0, 10, 20, 30},
+};
+
+int outpostBonus[2][4] = {
+  {0, 0, 23, 18},
+  {0, 0, 23, 18},
+};
+int outpostHoleBonus[2][4] = {
+  {0, 0, 28, 25},
+  {0, 0, 28, 25},
+};
 
 int rookOpenFile[2] = {50, 1, };
 int rookSemiOpenFile[2] = {14, 9, };
@@ -74,7 +159,7 @@ int rookSemiOpenFile[2] = {14, 9, };
 int bishopPair[2] = {49, 64, };
 int longDiagonalBishop[2] = {16, 6, };
 
-int trappedRook = 28;
+int trappedRook[2] = {-28, -28};
 
 int mobilityBonus[7][2][30] = {
     {},
@@ -257,8 +342,15 @@ void matEval(Board &board, int color, EvalTools &tools) {
     tools.score[color][MG] += mat[MG][piece];
     tools.score[color][EG] += mat[EG][piece];
 
+    if(TUNE)
+      trace.mat[color][MG][piece]++, trace.mat[color][EG][piece]++;
+
     tools.score[color][MG] += bonusTable[piece][MG][sq2];
     tools.score[color][EG] += bonusTable[piece][EG][sq2];
+
+    if(TUNE)
+      trace.bonusTable[color][piece][MG][sq2]++, trace.bonusTable[color][piece][EG][sq2]++;
+
     pieces &= pieces - 1;
   }
 }
@@ -279,20 +371,32 @@ void rookEval(Board &board, int color, EvalTools &tools) {
   if(color == WHITE) {
     pieces = board.bb[WR];
     if((pieces & (1ULL << A1)) && (board.bb[getType(KING, color)] & between[A1][E1])) {
-      tools.score[color][MG] -= trappedRook;
-      tools.score[color][EG] -= trappedRook;
+      tools.score[color][MG] += trappedRook[MG];
+      tools.score[color][EG] += trappedRook[EG];
+
+      if(TUNE)
+        trace.trappedRook[color][MG]++, trace.trappedRook[color][EG]++;
     } else if((pieces & (1ULL << H1)) && (board.bb[getType(KING, color)] & between[H1][E1])) {
-      tools.score[color][MG] -= trappedRook;
-      tools.score[color][EG] -= trappedRook;
+      tools.score[color][MG] += trappedRook[MG];
+      tools.score[color][EG] += trappedRook[EG];
+
+      if(TUNE)
+        trace.trappedRook[color][MG]++, trace.trappedRook[color][EG]++;
     }
   } else {
     pieces = board.bb[BR];
     if((pieces & (1ULL << A8)) && (board.bb[getType(KING, color)] & between[A8][E8])) {
-      tools.score[color][MG] -= trappedRook;
-      tools.score[color][EG] -= trappedRook;
+      tools.score[color][MG] += trappedRook[MG];
+      tools.score[color][EG] += trappedRook[EG];
+
+      if(TUNE)
+        trace.trappedRook[color][MG]++, trace.trappedRook[color][EG]++;
     } else if((pieces & (1ULL << H8)) && (board.bb[getType(KING, color)] & between[H8][E8])) {
-      tools.score[color][MG] -= trappedRook;
-      tools.score[color][EG] -= trappedRook;
+      tools.score[color][MG] += trappedRook[MG];
+      tools.score[color][EG] += trappedRook[EG];
+
+      if(TUNE)
+        trace.trappedRook[color][MG]++, trace.trappedRook[color][EG]++;
     }
   }
 
@@ -303,9 +407,15 @@ void rookEval(Board &board, int color, EvalTools &tools) {
     if(isOpenFile(file, tools)) {
       tools.score[color][MG] += rookOpenFile[MG];
       tools.score[color][EG] += rookOpenFile[EG];
+
+      if(TUNE)
+        trace.rookOpenFile[color][MG]++, trace.rookOpenFile[color][EG]++;
     } else if(isHalfOpenFile(color, file, tools)) {
       tools.score[color][MG] += rookSemiOpenFile[MG];
       tools.score[color][EG] += rookSemiOpenFile[EG];
+
+      if(TUNE)
+        trace.rookSemiOpenFile[color][MG]++, trace.rookSemiOpenFile[color][EG]++;
     }
     pieces ^= b;
   }
@@ -332,12 +442,18 @@ void pawnEval(Board &board, int color, EvalTools &tools) {
       }
 
       if(neigh && !((neighFileDownMask[frontSq] ^ b) & tools.pawns[WHITE]) && ((1ULL << frontSq) & tools.defendedByPawn[BLACK])) {
-        tools.score[color][MG] -= backwardPenalty[MG];
-        tools.score[color][EG] -= backwardPenalty[EG];
+        tools.score[color][MG] += backwardPenalty[MG];
+        tools.score[color][EG] += backwardPenalty[EG];
+
+        if(TUNE)
+          trace.backwardPenalty[color][MG]++, trace.backwardPenalty[color][EG]++;
       }
       if(fileUpMask[sq] & tools.pawns[WHITE]) {
-        tools.score[color][MG] -= doubledPawnsPenalty[MG];
-        tools.score[color][EG] -= doubledPawnsPenalty[EG];
+        tools.score[color][MG] += doubledPawnsPenalty[MG];
+        tools.score[color][EG] += doubledPawnsPenalty[EG];
+
+        if(TUNE)
+          trace.doubledPawnsPenalty[color][MG]++, trace.doubledPawnsPenalty[color][EG]++;
       }
     } else {
       if(!(neighFileDownMask[sq] & tools.pawns[WHITE])) { /// no enemy pawns on the neighbour files on all ranks in front of it
@@ -346,27 +462,49 @@ void pawnEval(Board &board, int color, EvalTools &tools) {
       }
 
       if(neigh && !((neighFileUpMask[frontSq] ^ b) & tools.pawns[BLACK]) && ((1ULL << frontSq) & tools.defendedByPawn[WHITE])) {
-        tools.score[color][MG] -= backwardPenalty[MG];
-        tools.score[color][EG] -= backwardPenalty[EG];
+        tools.score[color][MG] += backwardPenalty[MG];
+        tools.score[color][EG] += backwardPenalty[EG];
+
+        if(TUNE)
+          trace.backwardPenalty[color][MG]++, trace.backwardPenalty[color][EG]++;
       }
       if(fileDownMask[sq] & tools.pawns[BLACK]) {
-        tools.score[color][MG] -= doubledPawnsPenalty[MG];
-        tools.score[color][EG] -= doubledPawnsPenalty[EG];
+        tools.score[color][MG] += doubledPawnsPenalty[MG];
+        tools.score[color][EG] += doubledPawnsPenalty[EG];
+
+        if(TUNE)
+          trace.doubledPawnsPenalty[color][MG]++, trace.doubledPawnsPenalty[color][EG]++;
       }
     }
     /// check for isolated pawn / connected pawns
 
     if(phalanx | defenders) {
       /// give bonus if pawn is connected, increase it if pawn makes a phalanx, decrease it if pawn is blocked
-      int bonus = connectedBonus[(color == WHITE ? rank : 7 - rank)] * (phalanx ? 3 : 2) / (opposed ? 2 : 1) + 10 * count(defenders);
-      tools.score[color][MG] += bonus;
-      tools.score[color][EG] += bonus;
+
+      int f = (phalanx ? 4 : 2) / (opposed ? 2 : 1);
+
+      if(TUNE) {
+        trace.connectedBonus[color][MG][(color == WHITE ? rank : 7 - rank)] += f;
+        trace.connectedBonus[color][EG][(color == WHITE ? rank : 7 - rank)] += f;
+        //std::cout << trace.connectedBonus[color][EG][(color == WHITE ? rank : 7 - rank)] << " " << phalanx << " " << opposed << "\n";
+        trace.others[color] += 10 * count(defenders);
+      }
+
+      //std::cout << f << " " << connectedBonus[MG][(color == WHITE ? rank : 7 - rank)] << "\n";
+
+      tools.score[color][MG] += f * connectedBonus[MG][(color == WHITE ? rank : 7 - rank)] +
+                                10 * count(defenders);
+      tools.score[color][EG] += f * connectedBonus[EG][(color == WHITE ? rank : 7 - rank)] +
+                                10 * count(defenders);
     }
 
     /// no supporting pawns
     if(!neigh) {
-      tools.score[color][MG] -= isolatedPenalty[MG];
-      tools.score[color][EG] -= isolatedPenalty[EG];
+      tools.score[color][MG] += isolatedPenalty[MG];
+      tools.score[color][EG] += isolatedPenalty[EG];
+
+      if(TUNE)
+        trace.isolatedPenalty[color][MG]++, trace.isolatedPenalty[color][EG]++;
     }
 
 
@@ -380,8 +518,11 @@ void pawnEval(Board &board, int color, EvalTools &tools) {
   while(passers) {
     uint64_t b = lsb(passers);
     int rank = (color == WHITE ? Sq(b) / 8 : 7 - Sq(b) / 8);
-    tools.score[color][MG] += passedBonus[rank];
-    tools.score[color][EG] += passedBonus[rank];
+    tools.score[color][MG] += passedBonus[MG][rank];
+    tools.score[color][EG] += passedBonus[EG][rank];
+
+    if(TUNE)
+      trace.passedBonus[color][MG][rank]++, trace.passedBonus[color][EG][rank]++;
     passers ^= b;
   }
 }
@@ -391,7 +532,6 @@ void pieceEval(Board &board, int color, EvalTools &tools) {
   uint64_t b, att, mob, pieces = 0, mobilityArea;
   uint64_t all = board.pieces[WHITE] | board.pieces[BLACK];
   uint64_t outpostRanks = (color == WHITE ? rankMask[3] | rankMask[4] | rankMask[5] : rankMask[2] | rankMask[3] | rankMask[4]);
-  int outpostScore = 0;
 
   /// mobility area is all squares without our king, squares attacked by enemy pawns and our blocked pawns
 
@@ -405,18 +545,32 @@ void pieceEval(Board &board, int color, EvalTools &tools) {
     att = knightBBAttacks[sq];
     mob = att & mobilityArea;
 
-    tools.score[color][MG] += mobilityBonus[KNIGHT][MG][count(mob)];
-    tools.score[color][EG] += mobilityBonus[KNIGHT][EG][count(mob)];
+    int cnt = count(mob);
+
+    tools.score[color][MG] += mobilityBonus[KNIGHT][MG][cnt];
+    tools.score[color][EG] += mobilityBonus[KNIGHT][EG][cnt];
+
+    if(TUNE)
+      trace.mobilityBonus[color][KNIGHT][MG][cnt]++, trace.mobilityBonus[color][KNIGHT][EG][cnt]++;
 
     tools.phase += phaseVal[KNIGHT];
 
     if(b & (outpostRanks | tools.defendedByPawn[color])) {
       /// assign bonus if on outpost or outpost hole (black: f5, d5, e6 then e5 is a hole)
       if((color == WHITE && !(tools.pawns[enemy] & (neighFileUpMask[sq] ^ fileUpMask[sq]))) || (color == BLACK && !(tools.pawns[enemy] & (neighFileDownMask[sq] ^ fileDownMask[sq])))) {
-        if(isHalfOpenFile(color, file, tools))
-          outpostScore += outpostBonus[KNIGHT];
-        else
-          outpostScore += outpostHoleBonus[KNIGHT];
+        if(isHalfOpenFile(color, file, tools)) {
+          tools.score[color][MG] += outpostBonus[MG][KNIGHT];
+          tools.score[color][EG] += outpostBonus[EG][KNIGHT];
+
+          if(TUNE)
+            trace.outpostBonus[color][MG][KNIGHT]++, trace.outpostBonus[color][EG][KNIGHT]++;
+        } else {
+          tools.score[color][MG] += outpostHoleBonus[MG][KNIGHT];
+          tools.score[color][EG] += outpostHoleBonus[EG][KNIGHT];
+
+          if(TUNE)
+            trace.outpostHoleBonus[color][MG][KNIGHT]++, trace.outpostHoleBonus[color][EG][KNIGHT]++;
+        }
       }
     }
 
@@ -424,7 +578,6 @@ void pieceEval(Board &board, int color, EvalTools &tools) {
     tools.attackedBy[color] |= att;
     tools.attackedByPiece[color][KNIGHT] |= att;*/
 
-    //kingDanger[color] -= defenseBonus[KNIGHT] * count(att & kingRing[color]);
     /// update king safety terms
     if(att & tools.kingRing[enemy]) {
       tools.kingAttackersWeight[color] += kingAttackWeight[KNIGHT] * count(att & tools.kingRing[enemy]);
@@ -438,9 +591,12 @@ void pieceEval(Board &board, int color, EvalTools &tools) {
 
   /// assign bonus for bishop pair
 
-  if(count(pieces) >= 2) {
+  if(smallPopCount(pieces) >= 2) {
     tools.score[color][MG] += bishopPair[MG];
     tools.score[color][EG] += bishopPair[EG];
+
+    if(TUNE)
+      trace.bishopPair[color][MG]++, trace.bishopPair[color][EG]++;
   }
 
   while(pieces) {
@@ -449,33 +605,48 @@ void pieceEval(Board &board, int color, EvalTools &tools) {
     att = genAttacksBishop(all, sq);
     mob = att & mobilityArea;
 
-    tools.score[color][MG] += mobilityBonus[BISHOP][MG][count(mob)];
-    tools.score[color][EG] += mobilityBonus[BISHOP][EG][count(mob)];
+    int cnt = count(mob);
+
+    tools.score[color][MG] += mobilityBonus[BISHOP][MG][cnt];
+    tools.score[color][EG] += mobilityBonus[BISHOP][EG][cnt];
+
+    if(TUNE)
+      trace.mobilityBonus[color][BISHOP][MG][cnt]++, trace.mobilityBonus[color][BISHOP][EG][cnt]++;
 
     tools.phase += phaseVal[BISHOP];
 
     if(b & (outpostRanks | tools.defendedByPawn[color])) {
       /// same as knight outposts
       if((color == WHITE && !(tools.pawns[enemy] & (neighFileUpMask[sq] ^ fileUpMask[sq]))) || (color == BLACK && !(tools.pawns[enemy] & (neighFileDownMask[sq] ^ fileDownMask[sq])))) {
-        if(isHalfOpenFile(color, file, tools))
-          outpostScore += outpostBonus[BISHOP];
-        else
-          outpostScore += outpostHoleBonus[BISHOP];
+        if(isHalfOpenFile(color, file, tools)) {
+          tools.score[color][MG] += outpostBonus[MG][BISHOP];
+          tools.score[color][EG] += outpostBonus[EG][BISHOP];
+
+          if(TUNE)
+            trace.outpostBonus[color][MG][BISHOP]++, trace.outpostBonus[color][EG][BISHOP]++;
+        } else {
+          tools.score[color][MG] += outpostHoleBonus[MG][BISHOP];
+          tools.score[color][EG] += outpostHoleBonus[EG][BISHOP];
+
+          if(TUNE)
+            trace.outpostHoleBonus[color][MG][BISHOP]++, trace.outpostHoleBonus[color][EG][BISHOP]++;
+        }
       }
     }
 
     /// assign bonus if bishop is on a long diagonal (controls 2 squares in the center)
 
-    if(count(att & CENTER) >= 2 && ((1ULL << sq) & (LONG_DIAGONALS & ~CENTER))) {
+    if(smallPopCount(att & CENTER) >= 2 && ((1ULL << sq) & (LONG_DIAGONALS & ~CENTER))) {
       tools.score[color][MG] += longDiagonalBishop[MG];
       tools.score[color][EG] += longDiagonalBishop[EG];
+
+      if(TUNE)
+        trace.longDiagonalBishop[color][MG]++, trace.longDiagonalBishop[color][EG]++;
     }
 
     /*tools.attackedBy2[color] |= tools.attackedBy[color] & att;
     tools.attackedBy[color] |= att;
     tools.attackedByPiece[color][BISHOP] |= att;*/
-
-    //kingDanger[color] -= defenseBonus[BISHOP] * count(att & kingRing[color]);
 
     /// update king safety terms
     if(att & tools.kingRing[enemy]) {
@@ -493,17 +664,19 @@ void pieceEval(Board &board, int color, EvalTools &tools) {
     att = genAttacksRook(all, sq);
     mob = att & mobilityArea;
 
-    tools.score[color][MG] += mobilityBonus[ROOK][MG][count(mob)];
-    tools.score[color][EG] += mobilityBonus[ROOK][EG][count(mob)];
+    int cnt = count(mob);
+
+    tools.score[color][MG] += mobilityBonus[ROOK][MG][cnt];
+    tools.score[color][EG] += mobilityBonus[ROOK][EG][cnt];
+
+    if(TUNE)
+      trace.mobilityBonus[color][ROOK][MG][cnt]++, trace.mobilityBonus[color][ROOK][EG][cnt]++;
 
     tools.phase += phaseVal[ROOK];
 
     /*tools.attackedBy2[color] |= tools.attackedBy[color] & att;
     tools.attackedBy[color] |= att;
     tools.attackedByPiece[color][ROOK] |= att;*/
-
-
-    //kingDanger[color] -= defenseBonus[ROOK] * count(att & kingRing[color]);
 
     /// update king safety terms
     if(att & tools.kingRing[enemy]) {
@@ -522,16 +695,19 @@ void pieceEval(Board &board, int color, EvalTools &tools) {
           genAttacksRook(all ^ board.bb[getType(ROOK, color)], sq);
     mob = att & mobilityArea;
 
-    tools.score[color][MG] += mobilityBonus[QUEEN][MG][count(mob)];
-    tools.score[color][EG] += mobilityBonus[QUEEN][EG][count(mob)];
+    int cnt = count(mob);
+
+    tools.score[color][MG] += mobilityBonus[QUEEN][MG][cnt];
+    tools.score[color][EG] += mobilityBonus[QUEEN][EG][cnt];
+
+    if(TUNE)
+      trace.mobilityBonus[color][QUEEN][MG][cnt]++, trace.mobilityBonus[color][QUEEN][EG][cnt]++;
 
     tools.phase += phaseVal[QUEEN];
 
     /*tools.attackedBy2[color] |= tools.attackedBy[color] & att;
     tools.attackedBy[color] |= att;
     tools.attackedByPiece[color][QUEEN] |= att;*/
-
-    //kingDanger[color] -= defenseBonus[QUEEN] * count(att & kingRing[color]);
 
     /// update king safety terms
     if(att & tools.kingRing[enemy]) {
@@ -542,22 +718,22 @@ void pieceEval(Board &board, int color, EvalTools &tools) {
     pieces ^= b;
   }
 
-  tools.score[color][MG] += outpostScore;
-  tools.score[color][EG] += outpostScore;
-
   //cout << "piece score for " << (color == WHITE ? "white " : "black ") << " : " << score << "\n";
 }
 
 void kingEval(Board &board, int color, EvalTools &tools) {
-  int king = board.king(color);
+  int king = board.king(color), pos = mirror(1 ^ color, king);
   //int rank = king / 8, file = king % 8;
   //uint64_t camp = (color == WHITE ? ALL ^ rankMask[5] ^ rankMask[6] ^ rankMask[7] : ALL ^ rankMask[0] ^ rankMask[1] ^ rankMask[2]), weak;
   bool enemy = 1 ^ color;
 
   /// king psqt
 
-  tools.score[color][MG] += bonusTable[KING][MG][mirror(1 - color, king)];
-  tools.score[color][EG] += bonusTable[KING][EG][mirror(1 - color, king)];
+  tools.score[color][MG] += bonusTable[KING][MG][pos];
+  tools.score[color][EG] += bonusTable[KING][EG][pos];
+
+  if(TUNE)
+    trace.bonusTable[color][KING][MG][pos]++, trace.bonusTable[color][KING][EG][pos]++;
 
   uint64_t shield = tools.pawnShield[color] & tools.pawns[color];
   int shieldCount = std::min(3, count(shield));
@@ -580,8 +756,12 @@ void kingEval(Board &board, int color, EvalTools &tools) {
 
   /// assign bonus for pawns in king ring
 
-  tools.score[color][MG] += 10 * shieldCount;
-  tools.score[color][EG] += 10 * shieldCount;
+  tools.score[color][MG] += pawnShield[MG][shieldCount];
+  tools.score[color][EG] += pawnShield[EG][shieldCount];
+
+  if(TUNE)
+    trace.pawnShield[color][MG][shieldCount]++, trace.pawnShield[color][EG][shieldCount]++;
+
   tools.score[color][MG] -= tools.kingDanger[color];
   tools.score[color][EG] -= tools.kingDanger[color];
 }
@@ -605,10 +785,176 @@ void initEval() {
 void eval(Board &board, int color, EvalTools &tools) {
   //cout << color << "\n";
   //cout << "initially: " << score[color][MG] << "\n";
-  matEval(board, color, tools);
+   matEval(board, color, tools);
   rookEval(board, color, tools);
   pawnEval(board, color, tools);
   kingEval(board, color, tools);
+}
+
+void getTraceEntries(EvalTrace &trace) {
+  int ind = 0;
+  for(int i = MG; i <= EG; i++) {
+    for(int col = 0; col < 2; col++)
+      trace.add(ind, i, col, trace.doubledPawnsPenalty[col][i]);
+    ind++;
+  }
+  for(int i = MG; i <= EG; i++) {
+    for(int col = 0; col < 2; col++)
+      trace.add(ind, i, col, trace.isolatedPenalty[col][i]);
+    ind++;
+  }
+  for(int i = MG; i <= EG; i++) {
+    for(int col = 0; col < 2; col++)
+      trace.add(ind, i, col, trace.backwardPenalty[col][i]);
+    ind++;
+  }
+  for(int s = MG; s <= EG; s++) {
+    for(int i = PAWN; i <= QUEEN; i++) {
+      for(int col = 0; col < 2; col++)
+        trace.add(ind, s, col, trace.mat[col][s][i]);
+      ind++;
+    }
+  }
+  for(int s = MG; s <= EG; s++) {
+    for(int i = 1; i < 7; i++) {
+      for(int col = 0; col < 2; col++)
+        trace.add(ind, s, col, trace.passedBonus[col][s][i]);
+      ind++;
+    }
+  }
+  for(int s = MG; s <= EG; s++) {
+    for(int i = 1; i < 7; i++) {
+      for(int col = 0; col < 2; col++)
+        trace.add(ind, s, col, trace.connectedBonus[col][s][i]);
+      ind++;
+    }
+  }
+  for(int s = MG; s <= EG; s++) {
+    for(int i = 1; i < 4; i++) {
+      for(int col = 0; col < 2; col++)
+        trace.add(ind, s, col, trace.pawnShield[col][s][i]);
+      ind++;
+    }
+  }
+
+
+  for(int s = MG; s <= EG; s++) {
+    for(int i = KNIGHT; i <= BISHOP; i++) {
+      for(int col = 0; col < 2; col++)
+        trace.add(ind, s, col, trace.outpostBonus[col][s][i]);
+      ind++;
+    }
+  }
+  for(int s = MG; s <= EG; s++) {
+    for(int i = KNIGHT; i <= BISHOP; i++) {
+      for(int col = 0; col < 2; col++)
+        trace.add(ind, s, col, trace.outpostHoleBonus[col][s][i]);
+      ind++;
+    }
+  }
+
+  for(int i = MG; i <= EG; i++) {
+    for(int col = 0; col < 2; col++)
+      trace.add(ind, i, col, trace.rookOpenFile[col][i]);
+    ind++;
+  }
+  for(int i = MG; i <= EG; i++) {
+    for(int col = 0; col < 2; col++)
+      trace.add(ind, i, col, trace.rookSemiOpenFile[col][i]);
+    ind++;
+  }
+  for(int i = MG; i <= EG; i++) {
+    for(int col = 0; col < 2; col++)
+      trace.add(ind, i, col, trace.bishopPair[col][i]);
+    ind++;
+  }
+  for(int i = MG; i <= EG; i++) {
+    for(int col = 0; col < 2; col++)
+      trace.add(ind, i, col, trace.longDiagonalBishop[col][i]);
+    ind++;
+  }
+  for(int i = MG; i <= EG; i++) {
+    for(int col = 0; col < 2; col++)
+      trace.add(ind, i, col, trace.trappedRook[col][i]);
+    ind++;
+  }
+
+  for(int s = MG; s <= EG; s++) {
+    for(int i = 0; i < 9; i++) {
+      for(int col = 0; col < 2; col++)
+        trace.add(ind, s, col, trace.mobilityBonus[col][KNIGHT][s][i]);
+      ind++;
+    }
+  }
+  for(int s = MG; s <= EG; s++) {
+    for(int i = 0; i < 14; i++) {
+      for(int col = 0; col < 2; col++)
+        trace.add(ind, s, col, trace.mobilityBonus[col][BISHOP][s][i]);
+      ind++;
+    }
+  }
+  for(int s = MG; s <= EG; s++) {
+    for(int i = 0; i < 15; i++) {
+      for(int col = 0; col < 2; col++)
+        trace.add(ind, s, col, trace.mobilityBonus[col][ROOK][s][i]);
+      ind++;
+    }
+  }
+  for(int s = MG; s <= EG; s++) {
+    for(int i = 0; i < 28; i++) {
+      for(int col = 0; col < 2; col++)
+        trace.add(ind, s, col, trace.mobilityBonus[col][QUEEN][s][i]);
+      ind++;
+    }
+  }
+
+  //cout << ind << "\n";
+
+  for(int i = PAWN; i <= KING; i++) {
+    for(int s = MG; s <= EG; s++) {
+      for(int j = A1; j <= H8; j++) {
+        for(int col = 0; col < 2; col++) {
+          trace.add(ind, s, col, trace.bonusTable[col][i][s][j]);
+        }
+        ind++;
+      }
+    }
+  }
+}
+
+int evaluateTrace(TunePos &pos, int weights[]) {
+
+  int score[2][2] = {
+    {0, 0},
+    {0, 0}
+  };
+
+  int phase = pos.phase;
+
+  //std::cout << weights.size() << "\n";
+
+  for(int i = 0; i < pos.nrEntries; i++) {
+    //std::cout << weights[trace.entries[i].ind] << " " << trace.entries[i].ind << " " << trace.entries[i].val << " " << trace.entries[i].color << " " << trace.entries[i].phase << "\n";
+    score[pos.entries[i].color][pos.entries[i].phase] += weights[pos.entries[i].ind] * pos.entries[i].val;
+  }
+
+  score[WHITE][MG] += pos.others[WHITE];
+  score[WHITE][EG] += pos.others[WHITE];
+  score[BLACK][MG] += pos.others[BLACK];
+  score[BLACK][EG] += pos.others[BLACK];
+
+  score[WHITE][MG] -= pos.kingDanger[WHITE];
+  score[WHITE][EG] -= pos.kingDanger[WHITE];
+  score[BLACK][MG] -= pos.kingDanger[BLACK];
+  score[BLACK][EG] -= pos.kingDanger[BLACK];
+
+  int mg = score[WHITE][MG] - score[BLACK][MG], eg = score[WHITE][EG] - score[BLACK][EG];
+
+  //std::cout << mg << " " << eg << "\n";
+
+  int eval = (mg * phase + eg * (maxWeight - phase)) / maxWeight;
+
+  return TEMPO + eval * (pos.turn == WHITE ? 1 : -1);
 }
 
 int evaluate(Board &board) {
@@ -647,17 +993,23 @@ int evaluate(Board &board) {
   eval(board, WHITE, tools);
   eval(board, BLACK, tools);
 
+  if(TUNE)
+    trace.kingDanger[WHITE] = tools.kingDanger[WHITE], trace.kingDanger[BLACK] = tools.kingDanger[BLACK];
+
   /// mg and eg score
 
   int mg = tools.score[WHITE][MG] - tools.score[BLACK][MG], eg = tools.score[WHITE][EG] - tools.score[BLACK][EG];
-
-  //cout << mg << " " << eg << "\n";
 
   //board.print();
 
   //cout << "mg = " << mg << ", eg = " << eg << ", weight = " << weight << ", score = " << (mg * weight + eg * (maxWeight - weight)) / maxWeight << "\n";
 
   tools.phase = std::min(tools.phase, maxWeight);
+
+  //std::cout << mg << " " << eg << "\n";
+
+  if(TUNE)
+    trace.phase = tools.phase;
 
   int score = (mg * tools.phase + eg * (maxWeight - tools.phase)) / maxWeight; /// interpolate mg and eg score
 

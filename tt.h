@@ -188,7 +188,7 @@ inline void tt :: HashTable :: age() {
   if(generation == 63) {
     generation = 1;
 
-    for(int i = 0; i < (uint64_t)entries * BUCKET; i++)
+    for(uint64_t i = 0; i < (uint64_t)entries * BUCKET; i++)
       table[i].refresh(0);
   }
 }
