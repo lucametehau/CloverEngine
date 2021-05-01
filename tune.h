@@ -317,172 +317,177 @@ void saveWeights() {
   }
 }
 
-void printWeights() {
+void printWeights(int iteration = 0) {
   int ind = 0;
 
-  std::cout << "int doubledPawnsPenalty[2] = {";
-  for(int i = MG; i <= EG; i++)
-    std::cout << weights[ind++] << ", ";
-  std::cout << "};\n";
+  std::string path = "weights";
+  path += char(iteration + '0');
+  path += ".txt";
+  std::ofstream out (path);
 
-  std::cout << "int isolatedPenalty[2] = {";
+  out << "int doubledPawnsPenalty[2] = {";
   for(int i = MG; i <= EG; i++)
-    std::cout << weights[ind++] << ", ";
-  std::cout << "};\n";
+    out << weights[ind++] << ", ";
+  out << "};\n";
 
-  std::cout << "int backwardPenalty[2] = {";
+  out << "int isolatedPenalty[2] = {";
   for(int i = MG; i <= EG; i++)
-    std::cout << weights[ind++] << ", ";
-  std::cout << "};\n";
+    out << weights[ind++] << ", ";
+  out << "};\n";
 
-  std::cout << "int mat[2][7] = {\n";
+  out << "int backwardPenalty[2] = {";
+  for(int i = MG; i <= EG; i++)
+    out << weights[ind++] << ", ";
+  out << "};\n";
+
+  out << "int mat[2][7] = {\n";
   for(int s = MG; s <= EG; s++) {
-    std::cout << "    {0, ";
+    out << "    {0, ";
     for(int i = PAWN; i <= QUEEN; i++)
-      std::cout << weights[ind++] << ", ";
-    std::cout << "0},\n";
+      out << weights[ind++] << ", ";
+    out << "0},\n";
   }
-  std::cout << "};\n";
-  std::cout << "const int phaseVal[] = {0, 0, 1, 1, 2, 4};\n";
-  std::cout << "const int maxWeight = 16 * phaseVal[PAWN] + 4 * phaseVal[KNIGHT] + 4 * phaseVal[BISHOP] + 4 * phaseVal[ROOK] + 2 * phaseVal[QUEEN];\n";
+  out << "};\n";
+  out << "const int phaseVal[] = {0, 0, 1, 1, 2, 4};\n";
+  out << "const int maxWeight = 16 * phaseVal[PAWN] + 4 * phaseVal[KNIGHT] + 4 * phaseVal[BISHOP] + 4 * phaseVal[ROOK] + 2 * phaseVal[QUEEN];\n";
 
-  std::cout << "int passedBonus[2][7] = {\n";
+  out << "int passedBonus[2][7] = {\n";
   for(int s = MG; s <= EG; s++) {
-    std::cout << "  {0";
+    out << "  {0";
     for(int i = 1; i < 7; i++)
-      std::cout << ", " << weights[ind++];
-    std::cout << "},\n";
+      out << ", " << weights[ind++];
+    out << "},\n";
   }
-  std::cout << "};\n";
+  out << "};\n";
 
-  std::cout << "int connectedBonus[2][7] = {\n";
+  out << "int connectedBonus[2][7] = {\n";
   for(int s = MG; s <= EG; s++) {
-    std::cout << "  {0";
+    out << "  {0";
     for(int i = 1; i < 7; i++)
-      std::cout << ", " << weights[ind++];
-    std::cout << "},\n";
+      out << ", " << weights[ind++];
+    out << "},\n";
   }
-  std::cout << "};\n";
+  out << "};\n";
 
-  std::cout << "int kingAttackWeight[] = {0, 0";
+  out << "int kingAttackWeight[] = {0, 0";
   for(int i = KNIGHT; i <= QUEEN; i++)
-    std::cout << ", " << kingAttackWeight[i];
-  std::cout << "};\n";
-  std::cout << "int SafetyTable[100] = {\n";
+    out << ", " << kingAttackWeight[i];
+  out << "};\n";
+  out << "int SafetyTable[100] = {\n";
   for(int i = 0; i < 10; i++) {
-    std::cout << "  ";
+    out << "  ";
     for(int j = 0; j < 10; j++) {
-      std::cout << SafetyTable[i * 10 + j] << ", ";
+      out << SafetyTable[i * 10 + j] << ", ";
     }
-    std::cout << "\n";
+    out << "\n";
   }
-  std::cout << "};\n";
+  out << "};\n";
 
-  std::cout << "int pawnShield[2][4] = {\n";
+  out << "int pawnShield[2][4] = {\n";
   for(int s = MG; s <= EG; s++) {
-    std::cout << "  {0";
+    out << "  {0";
     for(int i = 1; i < 4; i++)
-      std::cout << ", " << weights[ind++];
-    std::cout << "},\n";
+      out << ", " << weights[ind++];
+    out << "},\n";
   }
-  std::cout << "};\n";
+  out << "};\n";
 
-  std::cout << "int outpostBonus[2][4] = {\n";
+  out << "int outpostBonus[2][4] = {\n";
   for(int s = MG; s <= EG; s++) {
-    std::cout << "  {0, 0";
+    out << "  {0, 0";
     for(int i = KNIGHT; i <= BISHOP; i++)
-      std::cout << ", " << weights[ind++];
-    std::cout << "},\n";
+      out << ", " << weights[ind++];
+    out << "},\n";
   }
-  std::cout << "};\n";
+  out << "};\n";
 
-  std::cout << "int outpostHoleBonus[2][4] = {\n";
+  out << "int outpostHoleBonus[2][4] = {\n";
   for(int s = MG; s <= EG; s++) {
-    std::cout << "  {0, 0";
+    out << "  {0, 0";
     for(int i = KNIGHT; i <= BISHOP; i++)
-      std::cout << ", " << weights[ind++];
-    std::cout << "},\n";
+      out << ", " << weights[ind++];
+    out << "},\n";
   }
-  std::cout << "};\n";
+  out << "};\n";
 
-  std::cout << "int rookOpenFile[2] = {";
+  out << "int rookOpenFile[2] = {";
   for(int i = MG; i <= EG; i++)
-    std::cout << weights[ind++] << ", ";
-  std::cout << "};\n";
+    out << weights[ind++] << ", ";
+  out << "};\n";
 
-  std::cout << "int rookSemiOpenFile[2] = {";
+  out << "int rookSemiOpenFile[2] = {";
   for(int i = MG; i <= EG; i++)
-    std::cout << weights[ind++] << ", ";
-  std::cout << "};\n";
+    out << weights[ind++] << ", ";
+  out << "};\n";
 
-  std::cout << "int bishopPair[2] = {";
+  out << "int bishopPair[2] = {";
   for(int i = MG; i <= EG; i++)
-    std::cout << weights[ind++] << ", ";
-  std::cout << "};\n";
+    out << weights[ind++] << ", ";
+  out << "};\n";
 
-  std::cout << "int longDiagonalBishop[2] = {";
+  out << "int longDiagonalBishop[2] = {";
   for(int i = MG; i <= EG; i++)
-    std::cout << weights[ind++] << ", ";
-  std::cout << "};\n";
+    out << weights[ind++] << ", ";
+  out << "};\n";
 
-  std::cout << "int trappedRook[2] = {";
+  out << "int trappedRook[2] = {";
   for(int i = MG; i <= EG; i++)
-    std::cout << weights[ind++] << ", ";
-  std::cout << "};\n";
+    out << weights[ind++] << ", ";
+  out << "};\n";
 
-  std::cout << "int mobilityBonus[7][2][30] = {\n";
-  std::cout << "    {},\n";
-  std::cout << "    {},\n";
-  std::cout << "    {\n";
+  out << "int mobilityBonus[7][2][30] = {\n";
+  out << "    {},\n";
+  out << "    {},\n";
+  out << "    {\n";
   for(int s = MG; s <= EG; s++) {
-    std::cout << "        {";
+    out << "        {";
     for(int i = 0; i < 9; i++)
-      std::cout << weights[ind++] << ", ";
-    std::cout << "},\n";
+      out << weights[ind++] << ", ";
+    out << "},\n";
   }
-  std::cout << "    },\n";
-  std::cout << "    {\n";
+  out << "    },\n";
+  out << "    {\n";
   for(int s = MG; s <= EG; s++) {
-    std::cout << "        {";
+    out << "        {";
     for(int i = 0; i < 14; i++)
-      std::cout << weights[ind++] << ", ";
-    std::cout << "},\n";
+      out << weights[ind++] << ", ";
+    out << "},\n";
   }
-  std::cout << "    },\n";
-  std::cout << "    {\n";
+  out << "    },\n";
+  out << "    {\n";
   for(int s = MG; s <= EG; s++) {
-    std::cout << "        {";
+    out << "        {";
     for(int i = 0; i < 15; i++)
-      std::cout << weights[ind++] << ", ";
-    std::cout << "},\n";
+      out << weights[ind++] << ", ";
+    out << "},\n";
   }
-  std::cout << "    },\n";
-  std::cout << "    {\n";
+  out << "    },\n";
+  out << "    {\n";
   for(int s = MG; s <= EG; s++) {
-    std::cout << "        {";
+    out << "        {";
     for(int i = 0; i < 28; i++)
-      std::cout << weights[ind++] << ", ";
-    std::cout << "},\n";
+      out << weights[ind++] << ", ";
+    out << "},\n";
   }
-  std::cout << "    }\n";
-  std::cout << "};\n";
+  out << "    }\n";
+  out << "};\n";
 
-  std::cout << "int bonusTable[7][2][64] = {\n";
-  std::cout << "    {},\n";
+  out << "int bonusTable[7][2][64] = {\n";
+  out << "    {},\n";
   for(int i = PAWN; i <= KING; i++) {
-    std::cout << "    {\n";
+    out << "    {\n";
     for(int s = MG; s <= EG; s++) {
-      std::cout << "        {\n            ";
+      out << "        {\n            ";
       for(int j = A1; j <= H8; j++) {
-        std::cout << weights[ind++] << ", ";
+        out << weights[ind++] << ", ";
         if(j % 8 == 7)
-          std::cout << "\n            ";
+          out << "\n            ";
       }
-      std::cout << "\n        },\n";
+      out << "\n        },\n";
     }
-    std::cout << "    },\n";
+    out << "    },\n";
   }
-  std::cout << "};\n";
+  out << "};\n";
 }
 
 void rangeEvalError(std::atomic <double> & error, double k, int l, int r) {
@@ -623,8 +628,8 @@ void tune(int nrThreads, std::string path) {
     double lst = errorMin;
     int ind = 0;
 
-    for(int i = 0; i < TERMS; i++) {
-      int temp = weights[i];
+    for(int j = 0; j < TERMS; j++) {
+      int temp = weights[j];
       bool improve = 0;
 
       //cout << "parameter " << ind << "..\n";
@@ -647,8 +652,8 @@ void tune(int nrThreads, std::string path) {
     double ET = getTime();
 
     std::cout << "time taken for iteration: " << (uint64_t)(ET - ST) / 1000 << " s\n";
+    printWeights(i);
     i++;
-    printWeights();
     saveWeights();
 
     std::cout << "evaluation error: " << errorMin << "\n";
