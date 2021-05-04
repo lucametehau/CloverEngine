@@ -12,20 +12,20 @@
 #include "evaluate.h"
 #include "search.h"
 
-const int PRECISION = 5;
-const int NPOS = 2500000;
-const int TERMS = 964;
+const int PRECISION = 8;
+const int NPOS = 9999740;
+const int TERMS = 972;
 const int BUCKET_SIZE = 1LL * NPOS * TERMS / 64;
 
 struct Position {
   std::string fen;
-  double result;
+  float result;
 };
 
-TunePos position[NPOS + 5];
+TunePos *position;
 
 int nrPos;
-Position texelPos[NPOS + 5];
+Position *texelPos;
 EvalTraceEntry *stack;
 int stackSize = BUCKET_SIZE;
 
@@ -48,6 +48,9 @@ bool openFile(std::ifstream &stream, std::string path) {
 
 void load(std::ifstream &stream) {
 
+  position = (TunePos*) calloc(NPOS + 5, sizeof(TunePos));
+  texelPos = (Position*) calloc(NPOS + 5, sizeof(Position));
+
   std::string line;
   Info info[1];
   Board board;
@@ -55,18 +58,23 @@ void load(std::ifstream &stream) {
   info->timeset = 0;
   info->startTime = 0;
 
+  uint64_t totalEntries = 0, kek = 0;
+  int kc = 0;
+
+  std::cout << sizeof(EvalTraceEntry) << " " << sizeof(TunePos) << "\n";
+
 
   while(getline(stream, line)) {
     Position pos;
 
     if(nrPos % 100000 == 0)
-      std::cout << nrPos << "\n";
+      std::cout << nrPos << ", entries = " << totalEntries << ", kek = " << kek << ", kc = " << kc << "\n";
 
     auto fenEnd = line.find_last_of(' ', std::string::npos) + 1;
 
     std::string result = "";
     int i = fenEnd + 1;
-    while(i < (int)line.size() && line[i] != '"')
+    while(i < (int)line.size() && line[i] != '"' && line[i] != ']')
       result += line[i++];
 
     if(result == "1/2-1/2") /// for zurichess positions
@@ -81,6 +89,12 @@ void load(std::ifstream &stream) {
       pos.result = 1.0;
     else if(result == "Black")
       pos.result = 0.0;
+    else if(result == "0.0") /// for ethereal positions
+      pos.result = 0.0;
+    else if(result == "0.5")
+      pos.result = 0.5;
+    else if(result == "1.0")
+      pos.result = 1.0;
 
     //cout << pos.result << "\n";
 
@@ -122,6 +136,7 @@ void load(std::ifstream &stream) {
     getTraceEntries(trace);
 
     int num = trace.nrEntries;
+    totalEntries += num;
 
     if(num > stackSize) {
       stackSize = BUCKET_SIZE;
@@ -142,6 +157,10 @@ void load(std::ifstream &stream) {
       position[nrPos].kingDanger[i] = trace.kingDanger[i];
       position[nrPos].others[i] = trace.others[i];
     }
+
+    kek += sizeof(position[nrPos]);
+
+    kc += trace.safeCheck[WHITE][MG][KNIGHT] + trace.safeCheck[BLACK][MG][KNIGHT];
 
     int traceScore = evaluateTrace(position[nrPos], weights);
 
@@ -190,6 +209,10 @@ void loadWeights() {
   for(int s = MG; s <= EG; s++) {
     for(int i = 1; i < 7; i++)
       weights[ind++] = (connectedBonus[s][i]);
+  }
+  for(int s = MG; s <= EG; s++) {
+    for(int i = KNIGHT; i <= QUEEN; i++)
+      weights[ind++] = (safeCheck[s][i]);
   }
   for(int s = MG; s <= EG; s++) {
     for(int i = 1; i < 4; i++)
@@ -243,6 +266,7 @@ void loadWeights() {
         weights[ind++] = (bonusTable[i][s][j]);
     }
   }
+  std::cout << ind << " terms\n";
 }
 
 void saveWeights() {
@@ -264,6 +288,10 @@ void saveWeights() {
   for(int s = MG; s <= EG; s++) {
     for(int i = 1; i < 7; i++)
       connectedBonus[s][i] = weights[ind++];
+  }
+  for(int s = MG; s <= EG; s++) {
+    for(int i = KNIGHT; i <= QUEEN; i++)
+      safeCheck[s][i] = weights[ind++];
   }
   for(int s = MG; s <= EG; s++) {
     for(int i = 1; i < 4; i++)
@@ -320,10 +348,9 @@ void saveWeights() {
 void printWeights(int iteration = 0) {
   int ind = 0;
 
-  std::string path = "weights";
-  path += char(iteration + '0');
-  path += ".txt";
-  std::ofstream out (path);
+  std::ofstream out ("Weights.txt");
+
+  out << "Iteration: " << iteration << "\n";
 
   out << "int doubledPawnsPenalty[2] = {";
   for(int i = MG; i <= EG; i++)
@@ -380,6 +407,15 @@ void printWeights(int iteration = 0) {
       out << SafetyTable[i * 10 + j] << ", ";
     }
     out << "\n";
+  }
+  out << "};\n";
+
+  out << "int safeCheck[2][6] = {\n";
+  for(int s = MG; s <= EG; s++) {
+    out << "  {0, 0";
+    for(int i = KNIGHT; i <= QUEEN; i++)
+      out << ", " << weights[ind++];
+    out << "},\n";
   }
   out << "};\n";
 
@@ -499,7 +535,8 @@ void rangeEvalError(std::atomic <double> & error, double k, int l, int r) {
     //board.setFen(texelPos[i].fen);
     //board.print();
     int eval = evaluateTrace(position[i], weights);
-    //int eval = evaluate(board);
+    //int evalInit = evaluate(board);
+    //assert(evalInit == eval);
     /*
     if(evalInit != evaltr) {
       M.lock();
@@ -547,7 +584,7 @@ double bestK(int nrThreads, long double ST) {
   double k = 0;
   double mn = std::numeric_limits <double> :: max();
 
-  std::cout.precision(PRECISION + 2);
+  std::cout.precision(15);
 
   for(int i = 0; i <= PRECISION; i++) {
     std::cout << "iteration " << i + 1 << " ...\n";
@@ -634,17 +671,17 @@ void tune(int nrThreads, std::string path) {
 
       //cout << "parameter " << ind << "..\n";
 
-      weights[i] += 1;
+      weights[j] += 1;
 
       if(isBetter(errorMin, k, nrThreads))
         improve = 1;
       else {
-        weights[i] -= 2;
+        weights[j] -= 2;
         improve = isBetter(errorMin, k, nrThreads);
       }
 
       if(!improve)
-        weights[i] = temp;
+        weights[j] = temp;
 
       ind++;
     }

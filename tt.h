@@ -24,9 +24,9 @@ namespace tt {
       }
 
       int value(int ply) {
-        if(info.score >= MATE)
+        if(info.score >= TB_BASE_SCORE)
           return info.score - ply;
-        else if(info.score <= -MATE)
+        else if(info.score <= -TB_BASE_SCORE)
           return info.score + ply;
         return info.score;
       }
@@ -63,6 +63,8 @@ namespace tt {
       bool probe(uint64_t hash, Entry &entry);
 
       void save(uint64_t hash, int score, int depth, int ply, int bound, uint16_t move, int eval);
+
+      void resetAge();
 
       void age();
 
@@ -148,9 +150,9 @@ inline void tt :: HashTable :: save(uint64_t hash, int score, int depth, int ply
   uint64_t ind = (hash & entries) * BUCKET;
   Entry *bucket = table + ind;
 
-  if(score >= MATE)
+  if(score >= TB_BASE_SCORE)
     score += ply;
-  else if(score <= -MATE)
+  else if(score <= -TB_BASE_SCORE)
     score -= ply;
 
   tt :: Entry temp = {};
@@ -180,6 +182,11 @@ inline void tt :: HashTable :: save(uint64_t hash, int score, int depth, int ply
   }
 
   *replace = temp;
+}
+
+inline void tt :: HashTable :: resetAge() {
+  for(uint64_t i = 0; i < (uint64_t)entries * BUCKET; i++)
+    table[i].refresh(0);
 }
 
 inline void tt :: HashTable :: age() {

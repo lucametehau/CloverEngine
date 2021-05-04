@@ -49,18 +49,21 @@ bool Search :: checkForStop() {
   return (flag & TERMINATED_SEARCH);
 }
 
-const bool printStats = 1;
-const bool PROBE_ROOT = false; /// default true
+bool printStats = true; /// default true
+bool PROBE_ROOT = true; /// default true
 
 int Search :: quiesce(int alpha, int beta) {
   int ply = board.ply;
+
+  //std::cout << "quiesce " << alpha << " " << beta << "\n";
+  //board.print();
 
   pvTableLen[ply] = 0;
 
   selDepth = std::max(selDepth, ply);
   nodes++;
 
-  if((isRepetition(board, ply) || board.halfMoves >= 100 || board.isMaterialDraw()) && ply) /// check for draw
+  if(isRepetition(board, ply) || board.halfMoves >= 100 || board.isMaterialDraw()) /// check for draw
     return 0;
 
   if(checkForStop())
@@ -85,9 +88,15 @@ int Search :: quiesce(int alpha, int beta) {
   }
 
   if(eval == INF)
-    eval = (ply && Stack[ply - 1].move == NULLMOVE ? -Stack[ply - 1].eval + 2 * TEMPO : evaluate(board));
+    eval = (Stack[ply - 1].move == NULLMOVE ? -Stack[ply - 1].eval + 2 * TEMPO : evaluate(board));
 
   Stack[ply].eval = eval;
+
+  //std::cout << "eval = " << eval << "\n";
+
+  //uint16_t mv = getMove(C5, D4, 0, NEUT);
+
+  //std::cout << see(board, mv, 0) << " " << see(board, mv, 1) << "\n";
 
   /// stand-pat
 
@@ -97,7 +106,7 @@ int Search :: quiesce(int alpha, int beta) {
   alpha = std::max(alpha, eval);
   best = eval;
 
-  Movepick noisyPicker(NULLMOVE, NULLMOVE, NULLMOVE, NULLMOVE, std::max(1, alpha - eval - 110)); /// delta pruning -> TO DO: find better constant
+  Movepick noisyPicker(NULLMOVE, NULLMOVE, NULLMOVE, NULLMOVE, 0); /// delta pruning -> TO DO: find better constant (edit: removed)
 
   uint16_t move;
 
@@ -227,6 +236,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
     }
   }
 
+  /// no need to evaluate if last move was null
   if(eval == INF)
     eval = (ply >= 1 && Stack[ply - 1].move == NULLMOVE ? -Stack[ply - 1].eval + 2 * TEMPO : evaluate(board));
 
@@ -237,18 +247,18 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
   /// razoring
 
-  if(!pvNode && !isCheck && depth <= 1 && eval + 325 < alpha)
+  if(!pvNode && !isCheck && depth <= 1 && eval + RazorCoef < alpha)
     return quiesce(alpha, beta);
 
   /// static null move pruning
 
-  if(!pvNode && !isCheck && depth <= 8 && eval - 85 * depth > beta)
+  if(!pvNode && !isCheck && depth <= 8 && eval - StaticNullCoef * depth > beta)
     return eval;
 
   /// null move pruning
 
   if(!pvNode && !isCheck && eval >= beta && depth >= 2 &&
-     Stack[ply - 1].move != NULLMOVE &&
+     Stack[ply - 1].move &&
      (board.pieces[board.turn] ^ board.bb[getType(PAWN, board.turn)] ^ board.bb[getType(KING, board.turn)]) &&
      (!ttHit || !(bound & UPPER) || ttValue >= beta)) {
     int R = 4 + depth / 6 + std::min(3, (eval - beta) / 200);
@@ -352,7 +362,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
     bool ex = 0;
 
-    /// singular extension
+    /// singular extension (we look for other moves, for move diversity)
 
     if(!rootNode && !excluded && move == hashMove && abs(ttValue) < MATE && depth >= 8 && entry.depth() >= depth - 3 && (bound & LOWER)) { /// had best instead of ttValue lol
       int rBeta = ttValue - depth;
@@ -409,7 +419,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
       R -= picker.stage < STAGE_QUIETS; /// refutation moves
 
-      R -= std::max(-2, std::min(2, (H.h + H.ch + H.fh) / 5000));
+      R -= std::max(-2, std::min(2, (H.h + H.ch + H.fh) / 5000)); /// reduce based on move history
 
       R = std::min(depth - 1, std::max(R, 1));
     }
@@ -564,6 +574,7 @@ void Search :: startSearch(Info *_info) {
   //cout << params[0].nodes << "\n";
 
   uint64_t totalNodes = 0, totalHits = 0;
+  int lastScore = 0;
 
   //cout << info->depth << endl;
 
@@ -573,8 +584,8 @@ void Search :: startSearch(Info *_info) {
     int window = 10;
 
     if(tDepth >= 6) {
-      alpha = std::max(-INF, score - window);
-      beta = std::min(INF, score + window);
+      alpha = std::max(-INF, lastScore - window);
+      beta = std::min(INF, lastScore + window);
     } else {
       alpha = -INF;
       beta = INF;
@@ -584,6 +595,39 @@ void Search :: startSearch(Info *_info) {
     while(true) {
 
       score = search(alpha, beta, tDepth);
+
+      if(principalSearcher && printStats && ((alpha < score && score < beta) || getTime() > t0 + 3000)) {
+        if(principalSearcher) {
+          totalNodes = nodes;
+          totalHits = tbHits;
+          //cout << "principal thread has analyzed " << nodes << " nodes" << endl;
+          for(int i = 0; i < threadCount; i++) {
+            totalNodes += params[i].nodes;
+            //cout << "thread " << i << " has analyzed " << params[i].nodes << " nodes" << endl;
+            totalHits += params[i].tbHits;
+          }
+        }
+        uint64_t t = (uint64_t)getTime() - t0;
+        std::cout << "info score ";
+        if(score > MATE)
+          std::cout << "mate " << (INF - score + 1) / 2;
+        else if(score < -MATE)
+          std::cout << "mate -" << (INF + score + 1) / 2;
+        else
+          std::cout << "cp " << score;
+        if(score >= beta)
+          std::cout << " lowerbound";
+        else if(score <= alpha)
+          std::cout << " upperbound";
+        std::cout << " depth " << initDepth << " seldepth " << selDepth << " nodes " << totalNodes;
+        if(t)
+          std::cout << " nps " << totalNodes * 1000 / t;
+        std::cout << " time " << t << " ";
+        std::cout << "tbhits " << totalHits << " hashfull " << TT->tableFull() << " ";
+        std::cout << "pv ";
+        printPv();
+        std::cout << std::endl;
+      }
 
       if(flag & TERMINATED_SEARCH)
         break;
@@ -595,6 +639,7 @@ void Search :: startSearch(Info *_info) {
         beta = std::min(INF, beta + window);
       } else {
         bestMove = pvTable[0][0];
+        lastScore = score;
         break;
       }
 
@@ -604,38 +649,6 @@ void Search :: startSearch(Info *_info) {
 
     if(flag & TERMINATED_SEARCH)
       break;
-
-    if(principalSearcher) {
-      totalNodes = nodes;
-      totalHits = tbHits;
-      //cout << "principal thread has analyzed " << nodes << " nodes" << endl;
-      for(int i = 0; i < threadCount; i++) {
-        totalNodes += params[i].nodes;
-        //cout << "thread " << i << " has analyzed " << params[i].nodes << " nodes" << endl;
-        totalHits += params[i].tbHits;
-      }
-    }
-
-    if(principalSearcher && pvTableLen[0] && printStats && score != ABORT) {
-
-      uint64_t t = (uint64_t)getTime() - t0;
-
-      std::cout << "info score ";
-      if(score > MATE)
-        std::cout << "mate " << (INF - score + 1) / 2;
-      else if(score < -MATE)
-        std::cout << "mate -" << (INF + score + 1) / 2;
-      else
-        std::cout << "cp " << score;
-      std::cout << " depth " << initDepth << " seldepth " << selDepth << " nodes " << totalNodes;
-      if(t)
-        std::cout << " nps " << totalNodes * 1000 / t;
-      std::cout << " time " << t << " ";
-      std::cout << "tbhits " << totalHits << " hashfull " << TT->tableFull() << " ";
-      std::cout << "pv ";
-      printPv();
-      std::cout << std::endl;
-    }
 
     if(info->timeset && getTime() > info->stopTime) {
       flag |= TERMINATED_BY_TIME;
@@ -653,7 +666,7 @@ void Search :: startSearch(Info *_info) {
 
   waitUntilDone();
 
-  if(principalSearcher)
+  if(principalSearcher && printStats)
     std::cout << "bestmove " << toString(bestMove) << std::endl;
 
   //TT->age();

@@ -7,6 +7,11 @@
 #include <condition_variable>
 #include <functional>
 
+/// search params
+
+int RazorCoef = 325;
+int StaticNullCoef = 85;
+
 const int TERMINATED_BY_USER = 1;
 const int TERMINATED_BY_TIME = 2;
 const int TERMINATED_SEARCH  = 3; /// 1 | 2
@@ -72,7 +77,7 @@ class Search {
     StackEntry Stack[DEPTH + 5];
 
   private:
-    uint64_t nodes, tbHits;
+    uint64_t tbHits;
     uint32_t t0;
     Info *info;
 
@@ -86,6 +91,7 @@ class Search {
     std::mutex readyMutex;
 
   public:
+    int nodes;
     bool principalSearcher;
     Board board;
 

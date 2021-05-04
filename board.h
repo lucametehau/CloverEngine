@@ -269,17 +269,10 @@ public:
   }
 
   bool isMaterialDraw() {
-    if(count(pieces[WHITE]) == 1 && count(pieces[BLACK]) == 1)
-      return 1;
-    if(count(pieces[WHITE]) == 2 && count(pieces[BLACK]) == 1) {
-      if(bb[WN] || bb[WB])
-        return 1;
-    }
-    if(count(pieces[BLACK]) == 2 && count(pieces[WHITE]) == 1) {
-      if(bb[BN] || bb[BB])
-        return 1;
-    }
-    return 0;
+    /// KvK, KBvK, KNvK, KNNvK
+    int num = count(pieces[WHITE]) + count(pieces[BLACK]);
+    return (num == 2 || (num == 3 && (bb[WN] || bb[BN] || bb[WB] || bb[BB])) ||
+           (num == 4 && (count(bb[WN]) == 2 || count(bb[BN]) == 2)));
   }
 };
 

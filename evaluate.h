@@ -4,11 +4,11 @@
 #include "defs.h"
 #include "board.h"
 
-bool TUNE = false; /// false by default
+bool TUNE = false; /// false by default, automatically set to true when tuning
 
 struct EvalTools { /// to avoid data races, kinda dirty tho
   uint64_t kingRing[2], kingSquare[2], pawnShield[2], defendedByPawn[2], pawns[2], allPawns;
-  //uint64_t attackedBy[2], attackedBy2[2], attackedByPiece[2][7];
+  uint64_t attackedBy[2], attackedBy2[2], attackedByPiece[2][7];
 
   int phase;
 
@@ -25,7 +25,7 @@ struct EvalTools { /// to avoid data races, kinda dirty tho
     //memset(pawnShield, 0, sizeof(pawnShield));
     //memset(defendedByPawn, 0, sizeof(defendedByPawn));
     //memset(pawns, 0, sizeof(pawns));
-    //memset(attackedByPiece, 0, sizeof(attackedByPiece));
+    memset(attackedByPiece, 0, sizeof(attackedByPiece));
     memset(kingAttackersCount, 0, sizeof(kingAttackersCount));
     memset(kingAttackersWeight, 0, sizeof(kingAttackersWeight));
     memset(kingDanger, 0, sizeof(kingDanger));
@@ -43,37 +43,39 @@ class EvalTrace { /// when tuning, we can keep the count of every evaluation ter
 public:
   int phase;
 
-  int doubledPawnsPenalty[2][2];
-  int isolatedPenalty[2][2];
-  int backwardPenalty[2][2];
+  uint8_t doubledPawnsPenalty[2][2];
+  uint8_t isolatedPenalty[2][2];
+  uint8_t backwardPenalty[2][2];
 
-  int mat[2][2][7];
+  uint8_t mat[2][2][7];
 
-  int passedBonus[2][2][7];
-  int connectedBonus[2][2][7];
+  uint8_t passedBonus[2][2][7];
+  uint8_t connectedBonus[2][2][7];
 
-  int pawnShield[2][2][4];
+  uint8_t safeCheck[2][2][6];
 
-  int outpostBonus[2][2][4];
-  int outpostHoleBonus[2][2][4];
+  uint8_t pawnShield[2][2][4];
 
-  int rookOpenFile[2][2];
-  int rookSemiOpenFile[2][2];
+  uint8_t outpostBonus[2][2][4];
+  uint8_t outpostHoleBonus[2][2][4];
 
-  int bishopPair[2][2];
-  int longDiagonalBishop[2][2];
+  uint8_t rookOpenFile[2][2];
+  uint8_t rookSemiOpenFile[2][2];
 
-  int trappedRook[2][2];
+  uint8_t bishopPair[2][2];
+  uint8_t longDiagonalBishop[2][2];
 
-  int mobilityBonus[2][7][2][30];
+  uint8_t trappedRook[2][2];
 
-  int bonusTable[2][7][2][64];
+  uint8_t mobilityBonus[2][7][2][30];
+
+  uint8_t bonusTable[2][7][2][64];
 
   int kingDanger[2];
 
   int others[2];
 
-  EvalTraceEntry entries[1700];
+  EvalTraceEntry entries[1000];
   int nrEntries;
 
   void add(int ind, bool phase, bool color, int val) {
@@ -92,39 +94,34 @@ class TunePos {
 public:
   EvalTraceEntry *entries;
 
-  int nrEntries;
+  uint16_t nrEntries;
 
-  int others[2], kingDanger[2];
+  uint16_t others[2], kingDanger[2];
 
-  int phase;
+  uint8_t phase;
 
   bool turn;
 };
 
 const int TEMPO = 20;
 
-int doubledPawnsPenalty[2] = {10, -19, };
-int isolatedPenalty[2] = {-17, 1, };
-int backwardPenalty[2] = {-17, -23, };
-
+int doubledPawnsPenalty[2] = {0, -25, };
+int isolatedPenalty[2] = {-11, -1, };
+int backwardPenalty[2] = {-10, -13, };
 int mat[2][7] = {
-    {0, 82, 355, 369, 522, 1075, 0},
-    {0, 90, 307, 341, 605, 1125, 0},
+    {0, 71, 340, 366, 529, 1115, 0},
+    {0, 99, 331, 366, 651, 1228, 0},
 };
-
-int phaseVal[] = {0, 0, 1, 1, 2, 4};
-
+const int phaseVal[] = {0, 0, 1, 1, 2, 4};
 const int maxWeight = 16 * phaseVal[PAWN] + 4 * phaseVal[KNIGHT] + 4 * phaseVal[BISHOP] + 4 * phaseVal[ROOK] + 2 * phaseVal[QUEEN];
-
 int passedBonus[2][7] = {
-  {0, 9, 12, 30, 56, 114, 195},
-  {0, 9, 12, 30, 56, 114, 195},
+  {0, -1, -10, -1, 20, 27, 96},
+  {0, 1, 13, 41, 71, 126, 146},
 };
 int connectedBonus[2][7] = {
-  {0, 2, 3, 5, 9, 21, 26},
-  {0, 2, 3, 5, 9, 21, 26},
+  {0, 1, 2, 4, 9, 25, 80},
+  {0, 1, 3, 3, 9, 22, 28},
 };
-
 int kingAttackWeight[] = {0, 0, 2, 2, 3, 5};
 int SafetyTable[100] = {
   0, 0, 1, 2, 3, 5, 7, 9, 12, 15,
@@ -138,197 +135,195 @@ int SafetyTable[100] = {
   500, 500, 500, 500, 500, 500, 500, 500, 500, 500,
   500, 500, 500, 500, 500, 500, 500, 500, 500, 500,
 };
-
-int pawnShield[2][4] = {
-  {0, 10, 20, 30},
-  {0, 10, 20, 30},
+int safeCheck[2][7] = {
+  {0, 0, -91, -23, -110, -33},
+  {0, 0, 18, -29, 15, -19},
 };
-
+int pawnShield[2][4] = {
+  {0, 6, 37, 65},
+  {0, 15, 5, -4},
+};
 int outpostBonus[2][4] = {
-  {0, 0, 23, 18},
-  {0, 0, 23, 18},
+  {0, 0, 33, 32},
+  {0, 0, 9, 9},
 };
 int outpostHoleBonus[2][4] = {
-  {0, 0, 28, 25},
-  {0, 0, 28, 25},
+  {0, 0, 20, 26},
+  {0, 0, 22, 8},
 };
-
-int rookOpenFile[2] = {50, 1, };
-int rookSemiOpenFile[2] = {14, 9, };
-
-int bishopPair[2] = {49, 64, };
-int longDiagonalBishop[2] = {16, 6, };
-
-int trappedRook[2] = {-28, -28};
-
+int rookOpenFile[2] = {41, 3, };
+int rookSemiOpenFile[2] = {16, 7, };
+int bishopPair[2] = {32, 66, };
+int longDiagonalBishop[2] = {21, 15, };
+int trappedRook[2] = {-19, -21, };
 int mobilityBonus[7][2][30] = {
     {},
     {},
     {
-        {-21, 28, 8, 25, 37, 53, 54, 58, 60, },
-        {19, -26, 22, 23, 23, 31, 29, 38, 33, },
+        {-60, -5, 14, 24, 37, 42, 50, 61, 73, },
+        {-31, -15, 24, 36, 41, 51, 53, 50, 42, },
     },
     {
-        {-75, -39, 0, 16, 27, 36, 38, 45, 47, 54, 57, 57, 71, 67, },
-        {-71, -26, -31, -8, 9, 16, 26, 32, 37, 34, 40, 36, 34, 37, },
+        {-60, -15, 0, 14, 26, 34, 40, 44, 46, 45, 49, 57, 58, 67, },
+        {-54, -47, -12, 11, 20, 31, 37, 41, 46, 49, 44, 38, 45, 35, },
     },
     {
-        {-88, -47, -11, -7, -3, -1, 4, 11, 18, 15, 27, 29, 34, 41, 23, },
-        {-31, -57, -11, 6, 28, 33, 42, 48, 50, 60, 65, 69, 72, 75, 73, },
+        {-70, -21, -5, 3, 6, 6, 8, 11, 15, 16, 17, 20, 20, 22, 18, },
+        {-87, -39, 3, 21, 27, 35, 42, 49, 54, 62, 68, 70, 72, 68, 67, },
     },
     {
-        {-47, -38, -79, 20, 19, 16, 22, 23, 23, 29, 31, 34, 31, 36, 35, 36, 37, 45, 39, 45, 58, 56, 76, 84, 93, 96, 99, 85, },
-        {-44, -34, -8, 1, -13, -41, -39, -16, -16, -8, 4, 14, 43, 42, 58, 69, 76, 89, 91, 103, 107, 109, 113, 117, 116, 117, 118, 113, },
+        {-216, -146, -77, -10, 4, 15, 28, 31, 37, 39, 42, 45, 46, 48, 50, 52, 49, 50, 42, 45, 49, 58, 55, 58, 64, 120, 63, 126, },
+        {-153, -93, -10, -81, -35, 3, -33, 5, 12, 27, 36, 47, 66, 69, 78, 88, 99, 104, 112, 119, 114, 113, 115, 113, 115, 73, 94, 142, },
     }
 };
-
 int bonusTable[7][2][64] = {
     {},
     {
         {
-            11, 1, 1, -1, 1, 1, 3, 1,
-            104, 62, 50, 68, 55, 75, 71, 35,
-            5, -5, 15, 21, 61, 81, 40, -3,
-            -1, 13, 11, 35, 36, 30, 21, -10,
-            -14, -14, 3, 23, 33, 16, 0, -19,
-            -12, -23, -4, -10, 4, 2, 14, -9,
-            -18, -4, -15, -4, 3, 31, 35, -12,
-            14, 9, -4, 2, 2, 0, 0, 0,
+            37, 5, 2, 6, 1, 0, 3, 0,
+            142, 53, 105, 130, 123, 75, 33, 5,
+            17, 8, 40, 52, 59, 89, 57, 26,
+            -7, -3, 1, 6, 29, 33, 11, 8,
+            -7, -18, -1, 15, 22, 18, 0, 2,
+            -14, -16, -5, -3, 11, -3, 8, -8,
+            -10, -8, -1, -7, 6, 22, 26, -7,
+            28, 16, -3, 6, 4, 2, -2, 2,
 
         },
         {
-            0, -3, 0, 1, 0, 0, 0, -1,
-            107, 97, 77, 50, 63, 47, 81, 108,
-            86, 84, 57, 26, 10, 23, 57, 70,
-            46, 30, 17, -5, 2, 9, 24, 31,
-            27, 22, 5, -5, -3, -2, 10, 12,
-            15, 19, 5, 11, 10, 7, 0, 2,
-            28, 19, 23, 13, 22, 10, 6, 3,
-            12, 0, 4, 0, 4, 0, 0, 0,
-
-        },
-    },
-    {
-        {
-            -114, -73, -32, -13, 29, -71, -16, -79,
-            -78, -53, 62, 19, 6, 61, 10, -10,
-            -66, 21, 15, 28, 57, 79, 54, 15,
-            -9, 16, 4, 49, 30, 70, 20, 26,
-            -7, 11, 13, 7, 32, 19, 30, 5,
-            -9, -1, 18, 24, 38, 32, 39, 4,
-            -1, -27, -4, 17, 22, 29, 14, 20,
-            -68, 8, -36, -19, 16, -4, 10, 5,
-
-        },
-        {
-            -48, -19, 17, -8, 1, -16, -50, -83,
-            1, 25, -3, 28, 17, -8, -2, -36,
-            -28, -15, 10, 10, -6, -7, -26, -47,
-            -14, 4, 26, 20, 27, 11, 11, -22,
-            -13, -4, 20, 32, 24, 26, 12, -14,
-            0, 21, 17, 32, 28, 13, -3, 3,
-            -28, -1, 11, 9, 16, 1, -3, -30,
-            -21, -29, 4, 14, 2, 6, -30, -51,
+            1, -4, 2, 3, -1, 1, 1, 0,
+            123, 139, 109, 70, 66, 92, 114, 122,
+            77, 73, 35, 0, -3, 21, 50, 59,
+            44, 30, 14, -2, -5, 2, 22, 23,
+            27, 25, 8, 1, 1, 4, 19, 9,
+            22, 19, 10, 8, 12, 11, 9, 8,
+            28, 25, 18, 19, 26, 18, 13, 11,
+            14, 4, -1, -1, 2, 0, 1, 2,
 
         },
     },
     {
         {
-            -29, -14, -74, -59, -30, -32, -3, 1,
-            -48, -6, -34, -37, 21, 33, -5, -70,
-            -43, 4, 5, 1, 4, 16, 8, -18,
-            -18, -2, -9, 31, 16, 17, 1, -12,
-            -12, 9, 0, 15, 26, -2, 9, 13,
-            9, 22, 4, 11, 15, 23, 27, 18,
-            21, 15, 15, 5, 9, 36, 38, 18,
-            -23, 17, 3, 0, 12, -3, -21, -17,
+            -160, -57, -48, -61, 5, -82, -50, -105,
+            -19, -4, 25, 50, -1, 91, 3, -6,
+            -19, 16, 4, 22, 66, 61, 33, 2,
+            8, 14, 30, 39, 27, 56, 28, 36,
+            5, 9, 16, 20, 27, 25, 22, 17,
+            -15, 3, 6, 7, 21, 23, 31, 13,
+            -8, -3, 0, 16, 17, 16, 21, 14,
+            -28, -11, -20, 5, 5, 6, -8, -13,
 
         },
         {
-            -4, -4, 4, 6, 12, 4, 6, -15,
-            23, 3, 18, 2, 6, 5, -1, 7,
-            1, -12, -14, -12, -10, -14, -7, -6,
-            -8, 1, 8, 3, 7, -2, -6, -5,
-            -13, -4, 8, 15, 3, 12, -7, -12,
-            -1, 5, 10, 14, 20, 2, 6, 2,
-            -4, -12, -1, 4, 10, 0, -9, -15,
-            -7, 0, -1, 7, 4, 6, 12, -5,
-
-        },
-    },
-    {
-        {
-            19, 17, 0, 21, 25, -5, 10, 12,
-            10, 22, 32, 37, 41, 34, 1, 18,
-            -24, 0, -9, -9, -26, 9, 30, -8,
-            -30, -23, -4, 10, -3, 9, -15, -19,
-            -37, -29, -26, -17, -4, -24, 11, -18,
-            -34, -19, -16, -20, 0, 0, 3, -17,
-            -32, -8, -16, -1, 10, 12, 8, -50,
-            2, 1, 10, 19, 21, 22, -13, 15,
-
-        },
-        {
-            26, 24, 32, 28, 26, 27, 23, 22,
-            28, 24, 25, 20, 9, 19, 26, 22,
-            26, 22, 20, 22, 19, 10, 11, 12,
-            25, 19, 26, 10, 14, 17, 12, 21,
-            20, 21, 23, 14, 7, 10, 0, 5,
-            8, 9, 0, 5, -3, -3, 1, -3,
-            8, 3, 7, 7, -5, -3, -5, 15,
-            9, 11, 10, 5, 3, 4, 12, -6,
+            -16, 3, 18, 16, 1, -25, -22, -58,
+            1, 26, 22, 15, 14, -13, 10, -16,
+            -3, 7, 35, 25, -2, 3, -7, -20,
+            10, 16, 29, 28, 33, 26, 16, -13,
+            3, 18, 33, 39, 35, 27, 16, 3,
+            12, 21, 18, 41, 34, 15, 8, 7,
+            12, 9, 18, 14, 12, 8, 17, 24,
+            7, -7, 15, 10, 14, 8, -1, -2,
 
         },
     },
     {
         {
-            -10, 11, 22, 21, 62, 39, 48, 58,
-            -15, -43, 1, 28, -13, 12, 23, 56,
-            -9, -9, 5, -17, 19, 47, 25, 43,
-            -20, -23, -21, -27, -12, -3, 3, -4,
-            3, -28, -9, -20, -6, -10, 7, 3,
-            -5, 27, -3, 9, 9, 13, 27, 28,
-            -8, 6, 27, 30, 39, 45, 15, 36,
-            2, 7, 14, 37, 20, -3, -3, -31,
+            -55, -67, -37, -103, -76, -54, -44, -76,
+            -11, -19, -12, -4, -8, -30, -46, -25,
+            -18, -10, -19, 3, -14, 18, -8, 7,
+            -26, 6, 4, 14, 21, -1, 9, -32,
+            -3, -6, 3, 20, 16, 3, 2, 25,
+            12, 26, 0, 11, 16, 10, 27, 23,
+            29, 6, 23, 2, 9, 30, 31, 42,
+            17, 31, 3, 3, 15, -6, 17, 33,
 
         },
         {
-            24, 56, 51, 54, 60, 51, 52, 68,
-            19, 42, 46, 55, 69, 59, 45, 60,
-            15, 21, 19, 73, 64, 58, 50, 57,
-            46, 47, 44, 66, 73, 60, 75, 69,
-            23, 61, 47, 70, 57, 55, 63, 62,
-            37, -16, 36, 17, 30, 39, 44, 48,
-            14, 6, -6, 1, 1, -8, 4, 11,
-            13, -1, 11, -3, 26, 12, 20, -4,
+            0, 37, 23, 27, 24, 14, 7, -2,
+            8, -1, 20, 22, 11, 13, -3, 5,
+            12, 12, -3, -2, 1, -5, 8, -2,
+            16, 14, 7, 14, 6, 11, 6, 13,
+            10, 9, 20, 16, 12, 14, 9, -15,
+            -2, 17, 7, 19, 24, 3, 3, 10,
+            13, -13, -3, 7, 12, 3, -7, -6,
+            2, -3, -2, 10, 12, 19, 7, -5,
 
         },
     },
     {
         {
-            -68, 16, 20, -16, -44, -25, 2, 1,
-            17, 1, -5, 9, -11, 6, -16, -47,
-            18, 9, 12, -39, -14, 11, 24, 5,
-            -1, -4, -22, -56, -42, -31, 0, -28,
-            -37, 0, -30, -68, -64, -41, -40, -51,
-            8, 7, -22, -46, -52, -32, -2, -7,
-            9, 8, -38, -75, -59, -42, 8, 20,
-            -6, 44, 21, -47, -2, -19, 47, 36,
+            21, -10, 10, -8, -9, 3, 19, 38,
+            -2, -12, 5, 11, 1, 9, 18, 61,
+            -22, 2, -8, -11, 18, 26, 70, 41,
+            -9, -9, 2, 1, 2, 2, 23, 5,
+            -14, -23, -15, -9, -7, -26, 14, 3,
+            -21, -15, -18, -13, 0, 0, 28, 14,
+            -14, -17, -3, -3, 7, 11, 25, 1,
+            -5, -2, -1, 10, 15, 13, 27, 7,
 
         },
         {
-            -107, -53, -37, -34, -17, 13, -6, -26,
-            -24, 12, 12, 13, 19, 36, 18, 8,
-            7, 22, 24, 24, 25, 58, 54, 5,
-            -19, 23, 34, 42, 38, 44, 32, 0,
-            -27, -4, 30, 39, 43, 34, 15, -15,
-            -33, -6, 17, 30, 35, 26, 10, -16,
-            -53, -32, 3, 14, 13, 2, -23, -41,
-            -89, -69, -40, -17, -36, -25, -59, -83,
+            20, 31, 32, 39, 27, 36, 22, 18,
+            30, 45, 50, 40, 39, 34, 29, 4,
+            37, 34, 41, 32, 15, 16, 1, -4,
+            35, 36, 34, 27, 18, 16, 15, 16,
+            25, 21, 21, 23, 18, 23, -4, 3,
+            13, 5, 12, 6, -3, -6, -22, -20,
+            -1, 4, 3, 1, -2, -14, -18, -8,
+            4, 4, 11, -1, -4, -3, -9, -13,
+
+        },
+    },
+    {
+        {
+            1, -17, 7, 23, 5, 32, 22, -8,
+            2, -20, -25, -13, -37, -35, -20, 45,
+            9, 5, -3, -5, -19, 14, -2, 37,
+            -3, 12, -4, 0, -12, -5, -1, -6,
+            15, -4, 9, 4, 10, 2, 16, 15,
+            14, 28, 15, 12, 21, 22, 37, 32,
+            18, 19, 24, 30, 33, 38, 40, 60,
+            12, 10, 12, 25, 29, 5, 24, 16,
+
+        },
+        {
+            24, 33, 45, 41, 64, 50, 55, 33,
+            26, 71, 94, 83, 120, 91, 98, 61,
+            35, 42, 79, 80, 103, 107, 87, 46,
+            67, 63, 80, 91, 102, 82, 101, 77,
+            47, 80, 57, 83, 69, 66, 69, 70,
+            36, 12, 47, 31, 38, 49, 36, 19,
+            19, 10, 5, 10, 9, -7, -8, -24,
+            0, 5, 22, 0, 9, 10, 30, 29,
+
+        },
+    },
+    {
+        {
+            -64, 76, 85, 1, 1, -50, 39, -42,
+            30, 51, 49, 40, -17, 24, 7, -47,
+            -74, 23, 16, -30, -17, -1, 14, -31,
+            -77, -25, -72, -91, -65, -66, -84, -101,
+            -52, -74, -48, -81, -89, -89, -105, -129,
+            -2, -21, -53, -63, -62, -47, -27, -24,
+            38, -20, -32, -57, -62, -43, -4, 28,
+            44, 54, 37, -36, 7, -16, 38, 58,
+
+        },
+        {
+            -209, -89, -48, -16, 10, 1, -40, -133,
+            -18, 32, 54, 33, 59, 63, 65, 4,
+            13, 55, 62, 71, 68, 66, 64, 12,
+            4, 42, 62, 74, 72, 67, 55, 14,
+            -6, 31, 48, 60, 56, 46, 36, 2,
+            -30, 6, 27, 37, 36, 22, 4, -15,
+            -52, -13, 0, 6, 8, -2, -26, -53,
+            -86, -76, -49, -19, -48, -31, -69, -103,
 
         },
     },
 };
+
 
 void matEval(Board &board, int color, EvalTools &tools) {
   uint64_t pieces = board.pieces[color] ^ board.bb[getType(KING, color)];
@@ -364,19 +359,18 @@ bool isHalfOpenFile(int color, int file, EvalTools &tools) { /// is file half-op
 }
 
 void rookEval(Board &board, int color, EvalTools &tools) {
-  uint64_t pieces = 0;
+  uint64_t pieces = board.bb[getType(ROOK, color)];
 
   /// evaluation pattern: apply a penaly if rook is trapped by king
 
   if(color == WHITE) {
-    pieces = board.bb[WR];
-    if((pieces & (1ULL << A1)) && (board.bb[getType(KING, color)] & between[A1][E1])) {
+    if(board.board[A1] == WR && (board.bb[getType(KING, color)] & between[A1][E1])) {
       tools.score[color][MG] += trappedRook[MG];
       tools.score[color][EG] += trappedRook[EG];
 
       if(TUNE)
         trace.trappedRook[color][MG]++, trace.trappedRook[color][EG]++;
-    } else if((pieces & (1ULL << H1)) && (board.bb[getType(KING, color)] & between[H1][E1])) {
+    } else if(board.board[H1] == WR && (board.bb[getType(KING, color)] & between[H1][E1])) {
       tools.score[color][MG] += trappedRook[MG];
       tools.score[color][EG] += trappedRook[EG];
 
@@ -384,14 +378,13 @@ void rookEval(Board &board, int color, EvalTools &tools) {
         trace.trappedRook[color][MG]++, trace.trappedRook[color][EG]++;
     }
   } else {
-    pieces = board.bb[BR];
-    if((pieces & (1ULL << A8)) && (board.bb[getType(KING, color)] & between[A8][E8])) {
+    if(board.board[A8] == BR && (board.bb[getType(KING, color)] & between[A8][E8])) {
       tools.score[color][MG] += trappedRook[MG];
       tools.score[color][EG] += trappedRook[EG];
 
       if(TUNE)
         trace.trappedRook[color][MG]++, trace.trappedRook[color][EG]++;
-    } else if((pieces & (1ULL << H8)) && (board.bb[getType(KING, color)] & between[H8][E8])) {
+    } else if(board.board[H8] == BR && (board.bb[getType(KING, color)] & between[H8][E8])) {
       tools.score[color][MG] += trappedRook[MG];
       tools.score[color][EG] += trappedRook[EG];
 
@@ -574,9 +567,9 @@ void pieceEval(Board &board, int color, EvalTools &tools) {
       }
     }
 
-    /*tools.attackedBy2[color] |= tools.attackedBy[color] & att;
+    tools.attackedBy2[color] |= tools.attackedBy[color] & att;
     tools.attackedBy[color] |= att;
-    tools.attackedByPiece[color][KNIGHT] |= att;*/
+    tools.attackedByPiece[color][KNIGHT] |= att;
 
     /// update king safety terms
     if(att & tools.kingRing[enemy]) {
@@ -644,9 +637,9 @@ void pieceEval(Board &board, int color, EvalTools &tools) {
         trace.longDiagonalBishop[color][MG]++, trace.longDiagonalBishop[color][EG]++;
     }
 
-    /*tools.attackedBy2[color] |= tools.attackedBy[color] & att;
+    tools.attackedBy2[color] |= tools.attackedBy[color] & att;
     tools.attackedBy[color] |= att;
-    tools.attackedByPiece[color][BISHOP] |= att;*/
+    tools.attackedByPiece[color][BISHOP] |= att;
 
     /// update king safety terms
     if(att & tools.kingRing[enemy]) {
@@ -674,9 +667,9 @@ void pieceEval(Board &board, int color, EvalTools &tools) {
 
     tools.phase += phaseVal[ROOK];
 
-    /*tools.attackedBy2[color] |= tools.attackedBy[color] & att;
+    tools.attackedBy2[color] |= tools.attackedBy[color] & att;
     tools.attackedBy[color] |= att;
-    tools.attackedByPiece[color][ROOK] |= att;*/
+    tools.attackedByPiece[color][ROOK] |= att;
 
     /// update king safety terms
     if(att & tools.kingRing[enemy]) {
@@ -705,9 +698,9 @@ void pieceEval(Board &board, int color, EvalTools &tools) {
 
     tools.phase += phaseVal[QUEEN];
 
-    /*tools.attackedBy2[color] |= tools.attackedBy[color] & att;
+    tools.attackedBy2[color] |= tools.attackedBy[color] & att;
     tools.attackedBy[color] |= att;
-    tools.attackedByPiece[color][QUEEN] |= att;*/
+    tools.attackedByPiece[color][QUEEN] |= att;
 
     /// update king safety terms
     if(att & tools.kingRing[enemy]) {
@@ -752,6 +745,43 @@ void kingEval(Board &board, int color, EvalTools &tools) {
       weight *= 0.75;
 
     tools.kingDanger[color] = SafetyTable[weight];
+
+    /// apply penalty if enemy can give safe checks
+
+    /// weak squares are those attacked by the enemy, undefended or defended once by our king or queen
+
+    uint64_t weak = tools.attackedBy[enemy] & ~tools.attackedBy2[color] &
+                    (~tools.attackedBy[color] | tools.attackedByPiece[color][QUEEN] | tools.attackedByPiece[color][KING]);
+
+    /// safe squares are those which are not attacked by us or weak squares attacked twice by the enemy
+
+    uint64_t safe = ~board.pieces[enemy] & (~tools.attackedBy[color] | (weak & tools.attackedBy2[enemy])),
+             occ = board.pieces[WHITE] | board.pieces[BLACK];
+    int knightChecksCount = count(knightBBAttacks[king] & tools.attackedByPiece[enemy][KNIGHT] & safe);
+    int bishopChecksCount = count(genAttacksBishop(occ, king) & tools.attackedByPiece[enemy][BISHOP] & safe);
+    int rookChecksCount = count(genAttacksRook(occ, king) & tools.attackedByPiece[enemy][ROOK] & safe);
+    int queenChecksCount = count(genAttacksQueen(occ, king) & tools.attackedByPiece[enemy][QUEEN] & safe);
+
+    tools.score[color][MG] += safeCheck[MG][KNIGHT] * knightChecksCount;
+    tools.score[color][EG] += safeCheck[EG][KNIGHT] * knightChecksCount;
+
+    tools.score[color][MG] += safeCheck[MG][BISHOP] * bishopChecksCount;
+    tools.score[color][EG] += safeCheck[EG][BISHOP] * bishopChecksCount;
+
+    tools.score[color][MG] += safeCheck[MG][ROOK] * rookChecksCount;
+    tools.score[color][EG] += safeCheck[EG][ROOK] * rookChecksCount;
+
+    tools.score[color][MG] += safeCheck[MG][QUEEN] * queenChecksCount;
+    tools.score[color][EG] += safeCheck[EG][QUEEN] * queenChecksCount;
+
+    //std::cout << knightChecksCount << " " << bishopChecksCount << " " << rookChecksCount << " " << queenChecksCount << "\n";
+
+    if(TUNE) {
+      trace.safeCheck[color][MG][KNIGHT] += knightChecksCount, trace.safeCheck[color][EG][KNIGHT] += knightChecksCount;
+      trace.safeCheck[color][MG][BISHOP] += bishopChecksCount, trace.safeCheck[color][EG][BISHOP] += bishopChecksCount;
+      trace.safeCheck[color][MG][ROOK] += rookChecksCount, trace.safeCheck[color][EG][ROOK] += rookChecksCount;
+      trace.safeCheck[color][MG][QUEEN] += queenChecksCount, trace.safeCheck[color][EG][QUEEN] += queenChecksCount;
+    }
   }
 
   /// assign bonus for pawns in king ring
@@ -826,6 +856,13 @@ void getTraceEntries(EvalTrace &trace) {
     for(int i = 1; i < 7; i++) {
       for(int col = 0; col < 2; col++)
         trace.add(ind, s, col, trace.connectedBonus[col][s][i]);
+      ind++;
+    }
+  }
+  for(int s = MG; s <= EG; s++) {
+    for(int i = KNIGHT; i <= QUEEN; i++) {
+      for(int col = 0; col < 2; col++)
+        trace.add(ind, s, col, trace.safeCheck[col][s][i]);
       ind++;
     }
   }
@@ -975,13 +1012,18 @@ int evaluate(Board &board) {
 
     //printBB(pawnShield[col]);
 
-    //uint64_t doubleAttacked = shift(col, NORTHEAST, tools.pawns[col] & ~fileMask[fileH]) & shift(col, NORTHWEST, tools.pawns[col] & ~fileMask[fileA]);
+    /// squares which are defended by 2 of our pawns are safe
 
-    //kingRing[col] &= ~doubleAttacked;
+    uint64_t doubleAttacked = shift(col, NORTHEAST, tools.pawns[col] & ~fileMask[(col == WHITE ? 7 : 0)]) &
+                              shift(col, NORTHWEST, tools.pawns[col] & ~fileMask[(col == WHITE ? 0 : 7)]);
 
-    //tools.attackedBy[col] = kingBBAttacks[board.king(col)] | pawnAttacks(board, col);
+    tools.kingRing[col] &= ~doubleAttacked;
+
+    tools.attackedBy[col] = tools.attackedByPiece[col][KING] = kingBBAttacks[board.king(col)];
     tools.defendedByPawn[col] = pawnAttacks(board, col);
-    //tools.attackedBy2[col] = doubleAttacked | (tools.defendedByPawn[col] & kingBBAttacks[board.king(col)]);
+
+    tools.attackedBy2[col] = tools.attackedBy[col] & tools.defendedByPawn[col];
+    tools.attackedBy[col] |= tools.defendedByPawn[col];
   }
 
   pieceEval(board, WHITE, tools);

@@ -377,7 +377,7 @@ inline int genLegal(Board &board, uint16_t *moves) {
     b2 = us & between[pos][king];
     if(!b2)
       checkers ^= b;
-    else if(!(b2 & b2 - 1))
+    else if(!(b2 & (b2 - 1)))
       pinned ^= b2;
     mask ^= b;
   }
@@ -702,7 +702,7 @@ inline int genLegalNoisy(Board &board, uint16_t *moves) {
     uint64_t b2 = us & between[pos][king];
     if(!b2)
       checkers ^= b;
-    else if((b2 & b2 - 1) == 0)
+    else if(!(b2 & (b2 - 1)))
       pinned ^= b2;
     mask ^= b;
   }
@@ -963,7 +963,7 @@ inline int genLegalQuiets(Board &board, uint16_t *moves) {
     uint64_t b2 = us & between[pos][king];
     if(!b2)
       checkers ^= b;
-    else if((b2 & b2 - 1) == 0)
+    else if(!(b2 & (b2 - 1)))
       pinned ^= b2;
     mask ^= b;
   }

@@ -35,7 +35,7 @@ class UCI {
 
   private:
     void Uci();
-    void UciNewGame();
+    void UciNewGame(uint64_t ttSize);
     void IsReady();
     void Go(Info *info);
     void Stop();
@@ -44,6 +44,7 @@ class UCI {
     void Eval();
     void Tune(int nrThreads, std::string path);
     void Perft(int depth);
+    void Bench(std::string path);
 
   private:
     Search &searcher;
@@ -65,7 +66,7 @@ void UCI :: Uci_Loop() {
     //table.clear();
 
     //searcher.setThreadCount(1); /// 2 threads for debugging data races
-    UciNewGame();
+    UciNewGame(ttSize);
 
 	  while (1) {
       std::string input;
@@ -123,11 +124,7 @@ void UCI :: Uci_Loop() {
 
           } else if (cmd == "ucinewgame") {
 
-            searcher.clearHistory();
-            searcher.clearKillers();
-            searcher.clearStack();
-
-            TT->initTable(ttSize * MB);
+            UciNewGame(ttSize);
 
           } else if (cmd == "go") {
 
@@ -218,7 +215,7 @@ void UCI :: Uci_Loop() {
 
           } else if(cmd == "setoption") {
 
-            std::string name;
+            std::string name, value;
 
             iss >> name;
 
@@ -226,7 +223,6 @@ void UCI :: Uci_Loop() {
               iss >> name;
 
             if(name == "Hash") {
-              std::string value;
 
               iss >> value;
 
@@ -235,7 +231,6 @@ void UCI :: Uci_Loop() {
               TT->initTable(ttSize * MB);
 
             } else if(name == "Threads") {
-              std::string value;
               int nrThreads;
 
               iss >> value;
@@ -243,10 +238,10 @@ void UCI :: Uci_Loop() {
               iss >> nrThreads;
 
               searcher.setThreadCount(nrThreads - 1);
-              UciNewGame();
+              UciNewGame(ttSize);
 
             } else if(name == "SyzygyPath") {
-              std::string value, path;
+              std::string path;
 
               iss >> value;
 
@@ -255,6 +250,24 @@ void UCI :: Uci_Loop() {
               tb_init(path.c_str());
 
               //cout << "Set TB path to " << path << "\n";
+            }
+
+            /// search params
+
+            if(name == "RazorCoef") {
+              iss >> value;
+
+              int val;
+
+              iss >> val;
+              RazorCoef = val;
+            } else if(name == "StaticNullCoef") {
+              iss >> value;
+
+              int val;
+
+              iss >> val;
+              StaticNullCoef = val;
             }
 
           } else if(cmd == "tune") {
@@ -280,7 +293,13 @@ void UCI :: Uci_Loop() {
 
             Perft(depth);
 
+          } else if(cmd == "bench") {
 
+            std::string path;
+
+            iss >> path;
+
+            Bench(path);
           }
           if(info->quit)
             break;
@@ -299,12 +318,15 @@ void UCI :: Uci() {
   std::cout << "uciok" << std::endl;
 }
 
-void UCI :: UciNewGame() {
+void UCI :: UciNewGame(uint64_t ttSize) {
   searcher._setFen(START_POS_FEN);
 
   searcher.clearHistory();
   searcher.clearKillers();
   searcher.clearStack();
+
+  TT->initTable(ttSize * MB);
+  TT->resetAge();
 }
 
 void UCI :: Go(Info *info) {
@@ -340,5 +362,48 @@ void UCI :: Perft(int depth) {
   std::cout << "nodes: " << nodes << std::endl;
   std::cout << "time : " << t << std::endl;
   std::cout << "nps  : " << nps << std::endl;
+}
+
+void UCI :: Bench(std::string path) {
+  std::ifstream in (path);
+  std::string fen;
+  Info info[1];
+
+  init(info);
+
+  uint64_t ttSize = 16;
+
+  UciNewGame(ttSize);
+
+  printStats = false;
+
+  searcher.principalSearcher = 1;
+
+  /// do fixed depth searches for some positions
+
+  uint64_t start = getTime();
+  uint64_t totalNodes = 0;
+
+  while(getline(in, fen)) {
+    //std::cout << fen << "\n";
+    searcher._setFen(fen);
+    //searcher.board.print();
+    info->timeset = 0;
+    info->depth = 11;
+    info->startTime = getTime();
+    searcher.startSearch(info);
+    totalNodes += searcher.nodes;
+
+    UciNewGame(ttSize);
+  }
+
+  uint64_t end = getTime();
+  long double t = 1.0 * (end - start) / 1000.0;
+
+  printStats = true;
+
+  std::cout << "nodes: " << totalNodes << "\n";
+  std::cout << " time: " << t << "\n";
+  std::cout << "  nps: " << int(totalNodes / t) << "\n";
 }
 
