@@ -58,6 +58,11 @@ eval
 tune <nrThreads> <path for positions>
 ```
 
+- Bench command
+```
+bench <path for positions>
+```
+
 # Contributing
 
 If one spots a bug or finds an improvement, I'm open to any suggestion.
