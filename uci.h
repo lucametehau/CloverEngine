@@ -12,16 +12,16 @@
 #define INPUTBUFFER 6000
 
 /// 2.1 seems to be 85 elo stronger than 2.0
-/// TO DO - (fix multithreading scaling) -> 8 threads ... 4.5 (for now)
-///       - tune on lichess-quiet.txt
+/// TO DO - (fix multithreading scaling) -> 8 threads ... 4.5 (for now) -> done
+///       - tune on lichess-quiet.txt -> done
 ///       - add kp-hash
-///       - improve evaluation -> improve king safety, add more terms (idk)
+///       - improve evaluation -> improve king safety, add more terms (idk) -> partially done
 ///       - improve time management -> currently, it's something similar to vice :)
 
 /// is this working?
 /// i guess so?
 
-const std::string VERSION = "2.1.3"; /// 2.0 was "FM"
+const std::string VERSION = "2.2"; /// 2.0 was "FM"
 
 char line[INPUTBUFFER];
 
