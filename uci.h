@@ -21,7 +21,7 @@
 /// is this working?
 /// i guess so?
 
-const std::string VERSION = "2.2"; /// 2.0 was "FM"
+const std::string VERSION = "2.2-dev3"; /// 2.0 was "FM"
 
 char line[INPUTBUFFER];
 
@@ -190,6 +190,8 @@ void UCI :: Uci_Loop() {
 
                     hardTimeLim = std::max(10, std::min(hardTimeLim, time));
                     goodTimeLim = std::max(1, std::min(hardTimeLim, goodTimeLim));
+                    info->goodTimeLim = goodTimeLim;
+                    info->hardTimeLim = hardTimeLim;
                     info->timeset = 1;
                     info->stopTime = info->startTime + goodTimeLim;
                 }

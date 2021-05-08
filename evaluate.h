@@ -34,9 +34,8 @@ struct EvalTools { /// to avoid data races, kinda dirty tho
 };
 
 struct EvalTraceEntry {
-  uint16_t ind;
-  uint16_t val;
-  bool phase, color;
+  uint16_t mgind, egind;
+  uint8_t wval, bval;
 };
 
 class EvalTrace { /// when tuning, we can keep the count of every evaluation term used for speed up
@@ -71,21 +70,26 @@ public:
 
   uint8_t bonusTable[2][7][2][64];
 
-  int kingDanger[2];
+  uint8_t scale;
 
-  int others[2];
+  uint16_t kingDanger[2];
+
+  uint16_t others[2];
 
   EvalTraceEntry entries[1000];
   int nrEntries;
 
-  void add(int ind, bool phase, bool color, int val) {
-    if(!val)
+  void add(int mgind, int egind, bool phase, bool color, int val) {
+    if(!val && !entries[nrEntries].bval)
       return;
-    entries[nrEntries].val = val;
-    entries[nrEntries].color = color;
-    entries[nrEntries].phase = phase;
-    entries[nrEntries].ind = ind;
-    nrEntries++;
+    entries[nrEntries].mgind = mgind;
+    entries[nrEntries].egind = egind;
+    if(color == WHITE) {
+      entries[nrEntries].wval = val;
+      nrEntries++;
+    } else {
+      entries[nrEntries].bval = val;
+    }
   }
 
 } trace;
@@ -99,6 +103,7 @@ public:
   uint16_t others[2], kingDanger[2];
 
   uint8_t phase;
+  uint8_t scale;
 
   bool turn;
 };
@@ -811,6 +816,27 @@ void initEval() {
   }*/
 }
 
+/// scale score if we recognize some draw patterns
+
+int scaleFactor(Board &board, int eg) {
+  bool oppositeBishops = 0;
+  int color = (eg > 0 ? WHITE : BLACK);
+  int scale = 100;
+  if(count(board.bb[WB]) == 1 && count(board.bb[BB]) == 1) {
+    int sq1 = Sq(board.bb[WB]), sq2 = Sq(board.bb[BB]);
+    if(oppositeColor(sq1, sq2))
+      oppositeBishops = 1;
+  }
+
+  /// scale down score for opposite color bishops, increase scale factor if we have any more pieces
+
+  if(oppositeBishops)
+    scale = 50 + 10 * (count(board.pieces[color] ^ board.bb[getType(PAWN, color)]) - 2); /// without the king and the bishop
+
+  scale = std::min(scale, 100);
+
+  return scale;
+}
 
 void eval(Board &board, int color, EvalTools &tools) {
   //cout << color << "\n";
@@ -824,52 +850,52 @@ void eval(Board &board, int color, EvalTools &tools) {
 void getTraceEntries(EvalTrace &trace) {
   int ind = 0;
   for(int i = MG; i <= EG; i++) {
-    for(int col = 0; col < 2; col++)
-      trace.add(ind, i, col, trace.doubledPawnsPenalty[col][i]);
+    for(int col = 0; i == MG && col < 2; col++)
+      trace.add(ind, ind + 1, i, col, trace.doubledPawnsPenalty[col][i]);
     ind++;
   }
   for(int i = MG; i <= EG; i++) {
-    for(int col = 0; col < 2; col++)
-      trace.add(ind, i, col, trace.isolatedPenalty[col][i]);
+    for(int col = 0; i == MG && col < 2; col++)
+      trace.add(ind, ind + 1, i, col, trace.isolatedPenalty[col][i]);
     ind++;
   }
   for(int i = MG; i <= EG; i++) {
-    for(int col = 0; col < 2; col++)
-      trace.add(ind, i, col, trace.backwardPenalty[col][i]);
+    for(int col = 0; i == MG && col < 2; col++)
+      trace.add(ind, ind + 1, i, col, trace.backwardPenalty[col][i]);
     ind++;
   }
   for(int s = MG; s <= EG; s++) {
     for(int i = PAWN; i <= QUEEN; i++) {
-      for(int col = 0; col < 2; col++)
-        trace.add(ind, s, col, trace.mat[col][s][i]);
+      for(int col = 0; s == MG && col < 2; col++)
+        trace.add(ind, ind + 5, s, col, trace.mat[col][s][i]);
       ind++;
     }
   }
   for(int s = MG; s <= EG; s++) {
     for(int i = 1; i < 7; i++) {
-      for(int col = 0; col < 2; col++)
-        trace.add(ind, s, col, trace.passedBonus[col][s][i]);
+      for(int col = 0; s == MG && col < 2; col++)
+        trace.add(ind, ind + 6, s, col, trace.passedBonus[col][s][i]);
       ind++;
     }
   }
   for(int s = MG; s <= EG; s++) {
     for(int i = 1; i < 7; i++) {
-      for(int col = 0; col < 2; col++)
-        trace.add(ind, s, col, trace.connectedBonus[col][s][i]);
+      for(int col = 0; s == MG && col < 2; col++)
+        trace.add(ind, ind + 6, s, col, trace.connectedBonus[col][s][i]);
       ind++;
     }
   }
   for(int s = MG; s <= EG; s++) {
     for(int i = KNIGHT; i <= QUEEN; i++) {
-      for(int col = 0; col < 2; col++)
-        trace.add(ind, s, col, trace.safeCheck[col][s][i]);
+      for(int col = 0; s == MG && col < 2; col++)
+        trace.add(ind, ind + 4, s, col, trace.safeCheck[col][s][i]);
       ind++;
     }
   }
   for(int s = MG; s <= EG; s++) {
     for(int i = 1; i < 4; i++) {
-      for(int col = 0; col < 2; col++)
-        trace.add(ind, s, col, trace.pawnShield[col][s][i]);
+      for(int col = 0; s == MG && col < 2; col++)
+        trace.add(ind, ind + 3, s, col, trace.pawnShield[col][s][i]);
       ind++;
     }
   }
@@ -877,70 +903,70 @@ void getTraceEntries(EvalTrace &trace) {
 
   for(int s = MG; s <= EG; s++) {
     for(int i = KNIGHT; i <= BISHOP; i++) {
-      for(int col = 0; col < 2; col++)
-        trace.add(ind, s, col, trace.outpostBonus[col][s][i]);
+      for(int col = 0; s == MG && col < 2; col++)
+        trace.add(ind, ind + 2, s, col, trace.outpostBonus[col][s][i]);
       ind++;
     }
   }
   for(int s = MG; s <= EG; s++) {
     for(int i = KNIGHT; i <= BISHOP; i++) {
-      for(int col = 0; col < 2; col++)
-        trace.add(ind, s, col, trace.outpostHoleBonus[col][s][i]);
+      for(int col = 0; s == MG && col < 2; col++)
+        trace.add(ind, ind + 2, s, col, trace.outpostHoleBonus[col][s][i]);
       ind++;
     }
   }
 
   for(int i = MG; i <= EG; i++) {
-    for(int col = 0; col < 2; col++)
-      trace.add(ind, i, col, trace.rookOpenFile[col][i]);
+    for(int col = 0; i == MG && col < 2; col++)
+      trace.add(ind, ind + 1, i, col, trace.rookOpenFile[col][i]);
     ind++;
   }
   for(int i = MG; i <= EG; i++) {
-    for(int col = 0; col < 2; col++)
-      trace.add(ind, i, col, trace.rookSemiOpenFile[col][i]);
+    for(int col = 0; i == MG && col < 2; col++)
+      trace.add(ind, ind + 1, i, col, trace.rookSemiOpenFile[col][i]);
     ind++;
   }
   for(int i = MG; i <= EG; i++) {
-    for(int col = 0; col < 2; col++)
-      trace.add(ind, i, col, trace.bishopPair[col][i]);
+    for(int col = 0; i == MG && col < 2; col++)
+      trace.add(ind, ind + 1, i, col, trace.bishopPair[col][i]);
     ind++;
   }
   for(int i = MG; i <= EG; i++) {
-    for(int col = 0; col < 2; col++)
-      trace.add(ind, i, col, trace.longDiagonalBishop[col][i]);
+    for(int col = 0; i == MG && col < 2; col++)
+      trace.add(ind, ind + 1, i, col, trace.longDiagonalBishop[col][i]);
     ind++;
   }
   for(int i = MG; i <= EG; i++) {
-    for(int col = 0; col < 2; col++)
-      trace.add(ind, i, col, trace.trappedRook[col][i]);
+    for(int col = 0; i == MG && col < 2; col++)
+      trace.add(ind, ind + 1, i, col, trace.trappedRook[col][i]);
     ind++;
   }
 
   for(int s = MG; s <= EG; s++) {
     for(int i = 0; i < 9; i++) {
-      for(int col = 0; col < 2; col++)
-        trace.add(ind, s, col, trace.mobilityBonus[col][KNIGHT][s][i]);
+      for(int col = 0; s == MG && col < 2; col++)
+        trace.add(ind, ind + 9, s, col, trace.mobilityBonus[col][KNIGHT][s][i]);
       ind++;
     }
   }
   for(int s = MG; s <= EG; s++) {
     for(int i = 0; i < 14; i++) {
-      for(int col = 0; col < 2; col++)
-        trace.add(ind, s, col, trace.mobilityBonus[col][BISHOP][s][i]);
+      for(int col = 0; s == MG && col < 2; col++)
+        trace.add(ind, ind + 14, s, col, trace.mobilityBonus[col][BISHOP][s][i]);
       ind++;
     }
   }
   for(int s = MG; s <= EG; s++) {
     for(int i = 0; i < 15; i++) {
-      for(int col = 0; col < 2; col++)
-        trace.add(ind, s, col, trace.mobilityBonus[col][ROOK][s][i]);
+      for(int col = 0; s == MG && col < 2; col++)
+        trace.add(ind, ind + 15, s, col, trace.mobilityBonus[col][ROOK][s][i]);
       ind++;
     }
   }
   for(int s = MG; s <= EG; s++) {
     for(int i = 0; i < 28; i++) {
-      for(int col = 0; col < 2; col++)
-        trace.add(ind, s, col, trace.mobilityBonus[col][QUEEN][s][i]);
+      for(int col = 0; s == MG && col < 2; col++)
+        trace.add(ind, ind + 28, s, col, trace.mobilityBonus[col][QUEEN][s][i]);
       ind++;
     }
   }
@@ -950,8 +976,8 @@ void getTraceEntries(EvalTrace &trace) {
   for(int i = PAWN; i <= KING; i++) {
     for(int s = MG; s <= EG; s++) {
       for(int j = A1; j <= H8; j++) {
-        for(int col = 0; col < 2; col++) {
-          trace.add(ind, s, col, trace.bonusTable[col][i][s][j]);
+        for(int col = 0; s == MG && col < 2; col++) {
+          trace.add(ind, ind + 64, s, col, trace.bonusTable[col][i][s][j]);
         }
         ind++;
       }
@@ -972,7 +998,10 @@ int evaluateTrace(TunePos &pos, int weights[]) {
 
   for(int i = 0; i < pos.nrEntries; i++) {
     //std::cout << weights[trace.entries[i].ind] << " " << trace.entries[i].ind << " " << trace.entries[i].val << " " << trace.entries[i].color << " " << trace.entries[i].phase << "\n";
-    score[pos.entries[i].color][pos.entries[i].phase] += weights[pos.entries[i].ind] * pos.entries[i].val;
+    score[WHITE][MG] += weights[pos.entries[i].mgind] * pos.entries[i].wval;
+    score[BLACK][MG] += weights[pos.entries[i].mgind] * pos.entries[i].bval;
+    score[WHITE][EG] += weights[pos.entries[i].egind] * pos.entries[i].wval;
+    score[BLACK][EG] += weights[pos.entries[i].egind] * pos.entries[i].bval;
   }
 
   score[WHITE][MG] += pos.others[WHITE];
@@ -986,6 +1015,8 @@ int evaluateTrace(TunePos &pos, int weights[]) {
   score[BLACK][EG] -= pos.kingDanger[BLACK];
 
   int mg = score[WHITE][MG] - score[BLACK][MG], eg = score[WHITE][EG] - score[BLACK][EG];
+
+  eg = eg * pos.scale / 100;
 
   //std::cout << mg << " " << eg << "\n";
 
@@ -1038,10 +1069,20 @@ int evaluate(Board &board) {
   if(TUNE)
     trace.kingDanger[WHITE] = tools.kingDanger[WHITE], trace.kingDanger[BLACK] = tools.kingDanger[BLACK];
 
+  //std::cout << scaleW << " " << scaleB << "\n";
+
   /// mg and eg score
 
   int mg = tools.score[WHITE][MG] - tools.score[BLACK][MG], eg = tools.score[WHITE][EG] - tools.score[BLACK][EG];
 
+  /// scale down eg score for winning side
+
+  int scale = scaleFactor(board, eg);
+
+  eg = eg * scale / 100;
+
+  if(TUNE)
+    trace.scale = scale;
   //board.print();
 
   //cout << "mg = " << mg << ", eg = " << eg << ", weight = " << weight << ", score = " << (mg * weight + eg * (maxWeight - weight)) / maxWeight << "\n";

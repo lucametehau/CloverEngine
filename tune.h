@@ -13,7 +13,7 @@
 #include "search.h"
 
 const int PRECISION = 8;
-const int NPOS = 9999740;
+const int NPOS = 9999740; /// 9999740 2500000
 const int TERMS = 972;
 const int BUCKET_SIZE = 1LL * NPOS * TERMS / 64;
 
@@ -153,6 +153,7 @@ void load(std::ifstream &stream) {
 
     position[nrPos].phase = trace.phase;
     position[nrPos].turn = board.turn;
+    position[nrPos].scale = trace.scale;
     for(int i = 0; i < 2; i++) {
       position[nrPos].kingDanger[i] = trace.kingDanger[i];
       position[nrPos].others[i] = trace.others[i];

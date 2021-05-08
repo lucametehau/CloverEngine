@@ -11,10 +11,10 @@ struct StackEntry { /// info to keep in the stack
 
 class Undo {
 public:
-  int castleRights;
-  int halfMoves, moveIndex;
-  int enPas;
-  int captured;
+  uint16_t halfMoves, moveIndex;
+  int16_t enPas;
+  uint16_t castleRights;
+  uint16_t captured;
   //uint64_t checkers;
   uint64_t key;
 };
@@ -279,6 +279,7 @@ public:
 class Info {
 public:
   long double startTime, stopTime;
+  long double goodTimeLim, hardTimeLim;
   int depth, sel_depth, multipv;
   int timeset;
   int movestogo;

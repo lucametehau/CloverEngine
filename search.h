@@ -306,6 +306,11 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
     }
   }
 
+  /*/// IID
+
+  if(depth >= 4 && !hashMove)
+    depth--;*/
+
   /// get counter move for move picker
 
   uint16_t counter = (ply == 0 || Stack[ply - 1].move == NULLMOVE ? NULLMOVE :
@@ -638,7 +643,8 @@ void Search :: startSearch(Info *_info) {
       } else if(beta <= score && score < INF) {
         beta = std::min(INF, beta + window);
       } else {
-        bestMove = pvTable[0][0];
+        if(pvTableLen[0])
+          bestMove = pvTable[0][0];
         lastScore = score;
         break;
       }

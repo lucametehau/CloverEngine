@@ -2,6 +2,8 @@
 *.cbp
 *.depend
 *.layout
+*.exe
+*.pgn
 bin
 gmon.out
 search.cpp

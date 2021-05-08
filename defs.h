@@ -154,6 +154,10 @@ inline int Sq(uint64_t bb) {
   return 63 - __builtin_clzll(bb);
 }
 
+inline int oppositeColor(int sq1, int sq2) {
+  return (((sq1 >> 3) + (sq1 & 7)) & 1) != (((sq2 >> 3) + (sq2 & 7)) & 1);
+}
+
 inline int sqDir(int color, int dir, int sq) {
   if(color == BLACK) {
     if(dir < 4)
