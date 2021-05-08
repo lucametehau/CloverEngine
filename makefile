@@ -14,5 +14,5 @@ AVX2FLAGS   = -msse -msse3 -mpopcnt -mavx2 -msse4.1 -mssse3 -msse2
 run:
 	$(CC) $(SRC) $(RFLAGS) $(LIBS) -o $(EXE).exe
 	$(CC) $(SRC) $(RFLAGS) $(LIBS) $(POPCNTFLAGS) -o $(EXE)-popcnt.exe
-	$(CC) $(SRC) $(RFLAGS) $(LIBS) $(BMI2LAGS) -o $(EXE)-bmi2.exe
+	$(CC) $(SRC) $(RFLAGS) $(LIBS) $(BMI2FLAGS) -o $(EXE)-bmi2.exe
 	$(CC) $(SRC) $(RFLAGS) $(LIBS) $(POPCNTFLAGS) $(AVX2FLAGS) -o $(EXE)-avx2.exe
