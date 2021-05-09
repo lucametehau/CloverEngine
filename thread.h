@@ -91,7 +91,7 @@ class Search {
     std::mutex readyMutex;
 
   public:
-    int nodes;
+    uint64_t nodes;
     bool principalSearcher;
     Board board;
 
