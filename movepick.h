@@ -146,14 +146,14 @@ public:
 
     if(stage == STAGE_GEN_QUIETS) {
       /// quiet moves
-      /// TO DO: don't generate all quiets to validate refutation moves, add fast isLegal(move) function ?
+      /// TO DO: don't generate all quiets to validate refutation moves, add fast isLegal(move) function ? - done
 
       nrQuiets = genLegalQuiets(searcher->board, quiets);
 
       int ply = searcher->board.ply;
 
-      uint16_t counterMove = searcher->Stack[ply - 1].move, followMove = (ply >= 2 ? searcher->Stack[ply - 2].move : NULLMOVE);
-      int counterPiece = searcher->Stack[ply - 1].piece, followPiece = (ply >= 2 ? searcher->Stack[ply - 2].piece : 0);
+      uint16_t counterMove = (ply >= 1 ? searcher->Stack[ply - 1].move : NULLMOVE), followMove = (ply >= 2 ? searcher->Stack[ply - 2].move : NULLMOVE);
+      int counterPiece = (ply >= 1 ? searcher->Stack[ply - 1].piece : 0), followPiece = (ply >= 2 ? searcher->Stack[ply - 2].piece : 0);
       int counterTo = sqTo(counterMove), followTo = sqTo(followMove);
       //random_shuffle(allMoves.begin(), allMoves.end());
 

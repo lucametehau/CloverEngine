@@ -11,6 +11,7 @@
 
 int RazorCoef = 325;
 int StaticNullCoef = 85;
+int StaticNullImproveCoef = 0;
 
 const int TERMINATED_BY_USER = 1;
 const int TERMINATED_BY_TIME = 2;

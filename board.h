@@ -11,29 +11,31 @@ struct StackEntry { /// info to keep in the stack
 
 class Undo {
 public:
+  int8_t enPas;
+  uint8_t castleRights;
+  uint8_t captured;
   uint16_t halfMoves, moveIndex;
-  int16_t enPas;
-  uint16_t castleRights;
-  uint16_t captured;
   //uint64_t checkers;
   uint64_t key;
 };
 
 class Board {
 public:
+  bool turn;
+
+  uint8_t captured; /// keeping track of last captured piece so i reduce the size of move
+  uint8_t castleRights; /// 1 - bq, 2 - bk, 4 - wq, 8 - wk
+  int8_t enPas;
   uint8_t board[64];
+
+  uint16_t ply, gamePly;
+  uint16_t halfMoves, moveIndex;
+
   uint64_t bb[13];
   uint64_t pieces[2];
-  //uint64_t checkers;
-  int castleRights; /// 1 - bq, 2 - bk, 4 - wq, 8 - wk
-  Undo history[512];
-
-  bool turn;
-  int captured; /// keeping track of last captured piece so i reduce the size of move
-  int ply, gamePly;
-  int enPas;
-  int halfMoves, moveIndex;
   uint64_t key;
+  //uint64_t checkers;
+  Undo history[1000]; /// fuck it
 
   Board() {
     halfMoves = moveIndex = key = 0;

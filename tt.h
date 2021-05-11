@@ -95,7 +95,7 @@ inline tt :: HashTable :: ~HashTable() {
 
 inline void tt :: HashTable :: initTable(uint64_t size) {
   //cout << size << "\n";
-  size /= (sizeof(tt :: Entry) * BUCKET);
+  size /= (sizeof(Entry) * BUCKET);
   size = pow2(size);
 
   //cout << size / (1 << 20) << "\n";
@@ -106,7 +106,7 @@ inline void tt :: HashTable :: initTable(uint64_t size) {
 
   //cout << size << "\n";
 
-  if(size < sizeof(tt :: Entry)) {
+  if(size < sizeof(Entry)) {
     entries = 0;
     return;
   } else {
@@ -131,7 +131,7 @@ inline void tt :: HashTable :: prefetch(uint64_t hash) {
   __builtin_prefetch(bucket);
 }
 
-inline bool tt :: HashTable :: probe(uint64_t hash, tt :: Entry &entry) {
+inline bool tt :: HashTable :: probe(uint64_t hash, Entry &entry) {
   uint64_t ind = (hash & entries) * BUCKET;
   Entry *bucket = table + ind;
 
@@ -155,7 +155,7 @@ inline void tt :: HashTable :: save(uint64_t hash, int score, int depth, int ply
   else if(score <= -TB_BASE_SCORE)
     score -= ply;
 
-  tt :: Entry temp = {};
+  Entry temp = {};
 
   temp.info.move = move; temp.info.eval = short(eval); temp.info.score = short(score);
   temp.info.about = uint16_t(bound | (depth << 2u) | (generation << 10u));

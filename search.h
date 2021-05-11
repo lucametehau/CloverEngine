@@ -23,6 +23,14 @@ Search::Search() : threads(nullptr), params(nullptr)
     lmrCnt[0][i] = 2.5 + 2 * i * i / 4.5;
     lmrCnt[1][i] = 4.0 + 4 * i * i / 4.5;
   }
+  /*std::cout << "int lmrCnt[2][9] = {\n";
+  for(int i = 0; i < 2; i++) {
+    std::cout << "  {";
+    for(int j = 0; j < 9; j++)
+      std::cout << lmrCnt[i][j] << ", ";
+    std::cout << "},\n";
+  }
+  std::cout << "};\n";*/
 }
 
 Search::~Search() {
@@ -184,7 +192,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
     ttValue = score;
     bound = entry.bound(), hashMove = entry.info.move;
     eval = entry.info.eval;
-    if(entry.depth() >= depth && (depth == 0 || !pvNode)) {
+    if(entry.depth() >= depth && !pvNode) {
       if(bound == EXACT || (bound == LOWER && score >= beta) || (bound == UPPER && score <= alpha))
         return score;
     }
@@ -238,27 +246,33 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
   /// no need to evaluate if last move was null
   if(eval == INF)
-    eval = (ply >= 1 && Stack[ply - 1].move == NULLMOVE ? -Stack[ply - 1].eval + 2 * TEMPO : evaluate(board));
+    Stack[ply].eval = eval = (ply >= 1 && Stack[ply - 1].move == NULLMOVE ? -Stack[ply - 1].eval + 2 * TEMPO : evaluate(board));
+  else {
+    /// ttValue might be a better evaluation
+
+    Stack[ply].eval = eval;
+
+    if(bound == EXACT || (bound == LOWER && ttValue > eval) || (bound == UPPER && ttValue < eval))
+      eval = ttValue;
+  }
 
   bool isCheck = inCheck(board), improving = (ply >= 2 && eval > Stack[ply - 2].eval);
 
   killers[ply + 1][0] = killers[ply + 1][1] = NULLMOVE;
-  Stack[ply].eval = eval;
 
   /// razoring
 
-  if(!pvNode && !isCheck && depth <= 1 && eval + RazorCoef < alpha)
+  if(!pvNode && !isCheck && depth <= 1 && eval + 325 < alpha) /// ctt says this is the best
     return quiesce(alpha, beta);
 
   /// static null move pruning
 
-  if(!pvNode && !isCheck && depth <= 8 && eval - StaticNullCoef * depth > beta)
+  if(!pvNode && !isCheck && depth <= 8 && eval - (85 - StaticNullImproveCoef * improving) * depth > beta) /// same here
     return eval;
 
   /// null move pruning
 
-  if(!pvNode && !isCheck && eval >= beta && depth >= 2 &&
-     Stack[ply - 1].move &&
+  if(!pvNode && !isCheck && eval >= beta && depth >= 2 && Stack[ply - 1].move &&
      (board.pieces[board.turn] ^ board.bb[getType(PAWN, board.turn)] ^ board.bb[getType(KING, board.turn)]) &&
      (!ttHit || !(bound & UPPER) || ttValue >= beta)) {
     int R = 4 + depth / 6 + std::min(3, (eval - beta) / 200);
@@ -293,10 +307,11 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
       makeMove(board, move);
 
+      /// do we have a good sequence of captures that beats cutBeta ?
 
       int score = -quiesce(-cutBeta, -cutBeta + 1);
 
-      if(score >= cutBeta)
+      if(score >= cutBeta) /// then we should try searching this capture
         score = -search(-cutBeta, -cutBeta + 1, depth - 4);
 
       undoMove(board, move);
@@ -305,11 +320,6 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
         return score;
     }
   }
-
-  /*/// IID
-
-  if(depth >= 4 && !hashMove)
-    depth--;*/
 
   /// get counter move for move picker
 
@@ -335,7 +345,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
         //cout << h << " " << ch << " " << fh << "\n";
 
-        /// cm and fm pruning
+        /// counter move and follow move pruning
 
         if(depth <= cmpDepth[improving] && H.ch < cmpHistoryLimit[improving])
           continue;
@@ -352,7 +362,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
           skip = 1;
       }
 
-      /// see pruning
+      /// see pruning (to do: tune coefficients)
 
       if(depth <= 8 && !isCheck) {
         int seeMargin[2];
@@ -384,6 +394,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
       ex = isCheck | (isQuiet && pvNode && H.ch >= 10000 && H.fh >= 10000); /// in check extension and moves with good history
     }
 
+    /// update stack info
     Stack[ply].move = move;
     Stack[ply].piece = board.piece_at(sqFrom(move));
 
@@ -426,7 +437,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
       R -= std::max(-2, std::min(2, (H.h + H.ch + H.fh) / 5000)); /// reduce based on move history
 
-      R = std::min(depth - 1, std::max(R, 1));
+      R = std::min(depth - 1, std::max(R, 1)); /// clamp depth
     }
 
     int score = -INF;
@@ -645,12 +656,25 @@ void Search :: startSearch(Info *_info) {
       } else {
         if(pvTableLen[0])
           bestMove = pvTable[0][0];
-        lastScore = score;
         break;
       }
 
       window += window / 2;
 
+    }
+
+    if(principalSearcher) {
+      /// adjust time if score is dropping (and maybe if it's jumping)
+      if(tDepth >= 11) {
+        if(lastScore > score) {
+          info->goodTimeLim *= std::min(1.0 + (lastScore - score) / 100, 1.5);
+          info->goodTimeLim = std::min(info->goodTimeLim, info->hardTimeLim);
+        } else {
+          /// TO DO ?
+        }
+      }
+      info->stopTime = info->startTime + info->goodTimeLim;
+      lastScore = score;
     }
 
     if(flag & TERMINATED_SEARCH)
@@ -699,11 +723,13 @@ void Search :: clearStack() {
   memset(Stack, 0, sizeof(Stack));
   memset(follow, 0, sizeof(follow));
   memset(pvTableLen, 0, sizeof(pvTableLen));
+  memset(pvTable, 0, sizeof(pvTable));
 
   for(int i = 0; i < threadCount; i++) {
     memset(params[i].Stack, 0, sizeof(params[i].Stack));
     memset(params[i].follow, 0, sizeof(params[i].follow));
     memset(params[i].pvTableLen, 0, sizeof(params[i].pvTableLen));
+    memset(params[i].pvTable, 0, sizeof(params[i].pvTable));
   }
 }
 

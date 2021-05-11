@@ -30,7 +30,7 @@ inline void makeMove(Board &board, uint16_t mv) { /// assuming move is at least 
 
   switch(type(mv)) {
   case NEUT:
-    board.pieces[board.turn] ^= (1ULL << posFrom) ^ (1ULL << posTo);
+    board.pieces[board.turn]  ^= (1ULL << posFrom) ^ (1ULL << posTo);
     board.bb[pieceFrom]       ^= (1ULL << posFrom) ^ (1ULL << posTo);
 
     board.key ^= hashKey[pieceFrom][posFrom] ^ hashKey[pieceFrom][posTo];
@@ -45,7 +45,7 @@ inline void makeMove(Board &board, uint16_t mv) { /// assuming move is at least 
     if(pieceTo) {
       board.halfMoves = 0;
 
-      board.pieces[1 ^ board.turn] ^= (1ULL << posTo);
+      board.pieces[1 ^ board.turn]  ^= (1ULL << posTo);
       board.bb[pieceTo]             ^= (1ULL << posTo);
       board.key                     ^= hashKey[pieceTo][posTo];
 
@@ -84,12 +84,12 @@ inline void makeMove(Board &board, uint16_t mv) { /// assuming move is at least 
 
         board.halfMoves = 0;
 
-        board.pieces[board.turn] ^= (1ULL << posFrom) ^ (1ULL << posTo);
+        board.pieces[board.turn]  ^= (1ULL << posFrom) ^ (1ULL << posTo);
         board.bb[pieceFrom]       ^= (1ULL << posFrom) ^ (1ULL << posTo);
 
         board.key ^= hashKey[pieceFrom][posFrom] ^ hashKey[pieceFrom][posTo] ^ hashKey[pieceCap][pos];
 
-        board.pieces[1 ^ board.turn] ^= (1ULL << pos);
+        board.pieces[1 ^ board.turn]  ^= (1ULL << pos);
         board.bb[pieceCap]            ^= (1ULL << pos);
 
         board.board[posFrom] = 0;
@@ -111,7 +111,7 @@ inline void makeMove(Board &board, uint16_t mv) { /// assuming move is at least 
           rTo   = mirror(board.turn, F1);
         }
 
-        board.pieces[board.turn] ^= (1ULL << posFrom) ^ (1ULL << posTo) ^
+        board.pieces[board.turn]  ^= (1ULL << posFrom) ^ (1ULL << posTo) ^
                                       (1ULL << rFrom) ^ (1ULL << rTo);
         board.bb[pieceFrom]       ^= (1ULL << posFrom) ^ (1ULL << posTo);
         board.bb[rPiece]          ^= (1ULL << rFrom) ^ (1ULL << rTo);
@@ -135,13 +135,13 @@ inline void makeMove(Board &board, uint16_t mv) { /// assuming move is at least 
     {
         int promPiece = getType(promoted(mv) + KNIGHT, board.turn);
 
-        board.pieces[board.turn] ^= (1ULL << posFrom) ^ (1ULL << posTo);
+        board.pieces[board.turn]  ^= (1ULL << posFrom) ^ (1ULL << posTo);
         board.bb[pieceFrom]       ^= (1ULL << posFrom);
         board.bb[promPiece]       ^= (1ULL << posTo);
 
         if(pieceTo) {
           board.bb[pieceTo]             ^= (1ULL << posTo);
-          board.pieces[1 ^ board.turn] ^= (1ULL << posTo);
+          board.pieces[1 ^ board.turn]  ^= (1ULL << posTo);
           board.key                     ^= hashKey[pieceTo][posTo];
 
           /// special case: captured rook might have been a castle rook
@@ -515,21 +515,13 @@ inline int genLegal(Board &board, uint16_t *moves) {
 
   /// not pinned pieces (excluding pawns)
 
-  //cout << nrMoves << "\n";
-
-  //printBB(quietMask);
-  //printBB(knightBBAttacks[1]);
-
   uint64_t mobMask = capMask | quietMask;
 
   mask = board.bb[getType(KNIGHT, color)] & notPinned;
   while(mask) {
     uint64_t b = lsb(mask);
     int sq = Sq(b);
-    //cout << "generating moves for knight on position " << sq << "\n";
-    //printBB(knightBBAttacks[sq] & quietMask);
     moves = addMoves(moves, nrMoves, sq, knightBBAttacks[sq] & mobMask);
-    //cout << nrMoves << "\n";
     //moves = addCaps(moves, nrMoves, sq, knightBBAttacks[sq] & capMask);
     mask ^= b;
   }

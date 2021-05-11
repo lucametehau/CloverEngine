@@ -21,7 +21,7 @@
 /// is this working?
 /// i guess so?
 
-const std::string VERSION = "2.2-dev3"; /// 2.0 was "FM"
+const std::string VERSION = "2.2-dev6"; /// 2.0 was "FM"
 
 char line[INPUTBUFFER];
 
@@ -186,7 +186,7 @@ void UCI :: Uci_Loop() {
                 if(time != -1) {
 
                     goodTimeLim = time / (movestogo + 1) + inc;
-                    hardTimeLim = std::min(goodTimeLim * 8, time / std::min(4, movestogo));
+                    hardTimeLim = std::min(goodTimeLim * 5, time / std::min(4, movestogo));
 
                     hardTimeLim = std::max(10, std::min(hardTimeLim, time));
                     goodTimeLim = std::max(1, std::min(hardTimeLim, goodTimeLim));
@@ -194,6 +194,7 @@ void UCI :: Uci_Loop() {
                     info->hardTimeLim = hardTimeLim;
                     info->timeset = 1;
                     info->stopTime = info->startTime + goodTimeLim;
+                    //std::cout << info->goodTimeLim << " " << info->hardTimeLim << "\n";
                 }
 
                 if(depth == -1)
@@ -270,6 +271,13 @@ void UCI :: Uci_Loop() {
 
               iss >> val;
               StaticNullCoef = val;
+            } else if(name == "StaticNullImproveCoef") {
+              iss >> value;
+
+              int val;
+
+              iss >> val;
+              StaticNullImproveCoef = val;
             }
 
           } else if(cmd == "tune") {
@@ -327,8 +335,8 @@ void UCI :: UciNewGame(uint64_t ttSize) {
   searcher.clearKillers();
   searcher.clearStack();
 
-  TT->initTable(ttSize * MB);
   TT->resetAge();
+  TT->initTable(ttSize * MB);
 }
 
 void UCI :: Go(Info *info) {

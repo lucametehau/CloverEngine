@@ -163,6 +163,12 @@ void load(std::ifstream &stream) {
 
     kc += trace.safeCheck[WHITE][MG][KNIGHT] + trace.safeCheck[BLACK][MG][KNIGHT];
 
+    /*if(trace.scale) {
+      std::cout << "xd????????????\n";
+      std::cout << int(trace.scale) << "\n";
+      board.print();
+    }*/
+
     int traceScore = evaluateTrace(position[nrPos], weights);
 
     if(initScore != traceScore) {
