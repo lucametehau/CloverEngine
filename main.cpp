@@ -13,7 +13,7 @@ int main() {
 
   //std::cout << searcher->getThreadCount() << "\n";
 
-  std::cout << sizeof(Board) << "\n";
+  //std::cout << sizeof(Board) << "\n";
 
   searcher->_setFen(START_POS_FEN);
 
