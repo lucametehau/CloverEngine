@@ -43,8 +43,9 @@ Example:
 
 These are the versions sorted by speed, the ones at the top being the fastest:
 
-- -bmi2, supported on any CPU that supports bmi2
-- -popcnt-avx2, supported on any CPU that supports avx2
+- -native, use this if it doesn't crash and if you have at least the same CPU specs as my I5 8250U :)
+- -bmi2, supported on any CPU that supports bmi2 and popcnt
+- -avx2, supported on any CPU that supports avx2 and popcnt
 - -popcnt, supported by most non-ancient CPUs
 - normal version, no additional compile flags
 
