@@ -610,7 +610,9 @@ void Search :: startSearch(Info *_info) {
 
   //cout << info->depth << endl;
 
-  for(tDepth = 1; tDepth <= info->depth; tDepth++) {
+  int limitDepth = (principalSearcher ? info->depth : DEPTH);
+
+  for(tDepth = 1; tDepth <= limitDepth; tDepth++) {
 
     //cout << "depth = " << depth << "\n";
     int window = 10;
