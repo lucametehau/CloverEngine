@@ -3,8 +3,8 @@
 #include "attacks.h"
 #include "defs.h"
 #include "board.h"
-
-bool TUNE = false; /// false by default, automatically set to true when tuning
+#include "thread.h"
+#include "material.h"
 
 struct EvalTools { /// to avoid data races, kinda dirty tho
   uint64_t kingRing[2], kingSquare[2], pawnShield[2], defendedByPawn[2], pawns[2], allPawns;
@@ -115,10 +115,7 @@ const int TEMPO = 20;
 int doubledPawnsPenalty[2] = {0, -25, };
 int isolatedPenalty[2] = {-11, -1, };
 int backwardPenalty[2] = {-10, -13, };
-int mat[2][7] = {
-    {0, 71, 340, 366, 529, 1115, 0},
-    {0, 99, 331, 366, 651, 1228, 0},
-};
+
 const int phaseVal[] = {0, 0, 1, 1, 2, 4};
 const int maxWeight = 16 * phaseVal[PAWN] + 4 * phaseVal[KNIGHT] + 4 * phaseVal[BISHOP] + 4 * phaseVal[ROOK] + 2 * phaseVal[QUEEN];
 int passedBonus[2][7] = {
@@ -183,153 +180,7 @@ int mobilityBonus[7][2][30] = {
         {-153, -93, -10, -81, -35, 3, -33, 5, 12, 27, 36, 47, 66, 69, 78, 88, 99, 104, 112, 119, 114, 113, 115, 113, 115, 73, 94, 142, },
     }
 };
-int bonusTable[7][2][64] = {
-    {},
-    {
-        {
-            37, 5, 2, 6, 1, 0, 3, 0,
-            142, 53, 105, 130, 123, 75, 33, 5,
-            17, 8, 40, 52, 59, 89, 57, 26,
-            -7, -3, 1, 6, 29, 33, 11, 8,
-            -7, -18, -1, 15, 22, 18, 0, 2,
-            -14, -16, -5, -3, 11, -3, 8, -8,
-            -10, -8, -1, -7, 6, 22, 26, -7,
-            28, 16, -3, 6, 4, 2, -2, 2,
 
-        },
-        {
-            1, -4, 2, 3, -1, 1, 1, 0,
-            123, 139, 109, 70, 66, 92, 114, 122,
-            77, 73, 35, 0, -3, 21, 50, 59,
-            44, 30, 14, -2, -5, 2, 22, 23,
-            27, 25, 8, 1, 1, 4, 19, 9,
-            22, 19, 10, 8, 12, 11, 9, 8,
-            28, 25, 18, 19, 26, 18, 13, 11,
-            14, 4, -1, -1, 2, 0, 1, 2,
-
-        },
-    },
-    {
-        {
-            -160, -57, -48, -61, 5, -82, -50, -105,
-            -19, -4, 25, 50, -1, 91, 3, -6,
-            -19, 16, 4, 22, 66, 61, 33, 2,
-            8, 14, 30, 39, 27, 56, 28, 36,
-            5, 9, 16, 20, 27, 25, 22, 17,
-            -15, 3, 6, 7, 21, 23, 31, 13,
-            -8, -3, 0, 16, 17, 16, 21, 14,
-            -28, -11, -20, 5, 5, 6, -8, -13,
-
-        },
-        {
-            -16, 3, 18, 16, 1, -25, -22, -58,
-            1, 26, 22, 15, 14, -13, 10, -16,
-            -3, 7, 35, 25, -2, 3, -7, -20,
-            10, 16, 29, 28, 33, 26, 16, -13,
-            3, 18, 33, 39, 35, 27, 16, 3,
-            12, 21, 18, 41, 34, 15, 8, 7,
-            12, 9, 18, 14, 12, 8, 17, 24,
-            7, -7, 15, 10, 14, 8, -1, -2,
-
-        },
-    },
-    {
-        {
-            -55, -67, -37, -103, -76, -54, -44, -76,
-            -11, -19, -12, -4, -8, -30, -46, -25,
-            -18, -10, -19, 3, -14, 18, -8, 7,
-            -26, 6, 4, 14, 21, -1, 9, -32,
-            -3, -6, 3, 20, 16, 3, 2, 25,
-            12, 26, 0, 11, 16, 10, 27, 23,
-            29, 6, 23, 2, 9, 30, 31, 42,
-            17, 31, 3, 3, 15, -6, 17, 33,
-
-        },
-        {
-            0, 37, 23, 27, 24, 14, 7, -2,
-            8, -1, 20, 22, 11, 13, -3, 5,
-            12, 12, -3, -2, 1, -5, 8, -2,
-            16, 14, 7, 14, 6, 11, 6, 13,
-            10, 9, 20, 16, 12, 14, 9, -15,
-            -2, 17, 7, 19, 24, 3, 3, 10,
-            13, -13, -3, 7, 12, 3, -7, -6,
-            2, -3, -2, 10, 12, 19, 7, -5,
-
-        },
-    },
-    {
-        {
-            21, -10, 10, -8, -9, 3, 19, 38,
-            -2, -12, 5, 11, 1, 9, 18, 61,
-            -22, 2, -8, -11, 18, 26, 70, 41,
-            -9, -9, 2, 1, 2, 2, 23, 5,
-            -14, -23, -15, -9, -7, -26, 14, 3,
-            -21, -15, -18, -13, 0, 0, 28, 14,
-            -14, -17, -3, -3, 7, 11, 25, 1,
-            -5, -2, -1, 10, 15, 13, 27, 7,
-
-        },
-        {
-            20, 31, 32, 39, 27, 36, 22, 18,
-            30, 45, 50, 40, 39, 34, 29, 4,
-            37, 34, 41, 32, 15, 16, 1, -4,
-            35, 36, 34, 27, 18, 16, 15, 16,
-            25, 21, 21, 23, 18, 23, -4, 3,
-            13, 5, 12, 6, -3, -6, -22, -20,
-            -1, 4, 3, 1, -2, -14, -18, -8,
-            4, 4, 11, -1, -4, -3, -9, -13,
-
-        },
-    },
-    {
-        {
-            1, -17, 7, 23, 5, 32, 22, -8,
-            2, -20, -25, -13, -37, -35, -20, 45,
-            9, 5, -3, -5, -19, 14, -2, 37,
-            -3, 12, -4, 0, -12, -5, -1, -6,
-            15, -4, 9, 4, 10, 2, 16, 15,
-            14, 28, 15, 12, 21, 22, 37, 32,
-            18, 19, 24, 30, 33, 38, 40, 60,
-            12, 10, 12, 25, 29, 5, 24, 16,
-
-        },
-        {
-            24, 33, 45, 41, 64, 50, 55, 33,
-            26, 71, 94, 83, 120, 91, 98, 61,
-            35, 42, 79, 80, 103, 107, 87, 46,
-            67, 63, 80, 91, 102, 82, 101, 77,
-            47, 80, 57, 83, 69, 66, 69, 70,
-            36, 12, 47, 31, 38, 49, 36, 19,
-            19, 10, 5, 10, 9, -7, -8, -24,
-            0, 5, 22, 0, 9, 10, 30, 29,
-
-        },
-    },
-    {
-        {
-            -64, 76, 85, 1, 1, -50, 39, -42,
-            30, 51, 49, 40, -17, 24, 7, -47,
-            -74, 23, 16, -30, -17, -1, 14, -31,
-            -77, -25, -72, -91, -65, -66, -84, -101,
-            -52, -74, -48, -81, -89, -89, -105, -129,
-            -2, -21, -53, -63, -62, -47, -27, -24,
-            38, -20, -32, -57, -62, -43, -4, 28,
-            44, 54, 37, -36, 7, -16, 38, 58,
-
-        },
-        {
-            -209, -89, -48, -16, 10, 1, -40, -133,
-            -18, 32, 54, 33, 59, 63, 65, 4,
-            13, 55, 62, 71, 68, 66, 64, 12,
-            4, 42, 62, 74, 72, 67, 55, 14,
-            -6, 31, 48, 60, 56, 46, 36, 2,
-            -30, 6, 27, 37, 36, 22, 4, -15,
-            -52, -13, 0, 6, 8, -2, -26, -53,
-            -86, -76, -49, -19, -48, -31, -69, -103,
-
-        },
-    },
-};
 
 
 void matEval(Board &board, int color, EvalTools &tools) {
@@ -366,18 +217,32 @@ bool isHalfOpenFile(int color, int file, EvalTools &tools) { /// is file half-op
 }
 
 void rookEval(Board &board, int color, EvalTools &tools) {
-  uint64_t pieces = board.bb[getType(ROOK, color)];
+  int king = getType(KING, color);
 
   /// evaluation pattern: apply a penaly if rook is trapped by king
 
+  /*if(board.board[a1] == rook && ((1ULL << king) & between[a1][e1])) {
+    tools.score[color][MG] += trappedRook[MG];
+    tools.score[color][EG] += trappedRook[EG];
+
+    if(TUNE)
+      trace.trappedRook[color][MG]++, trace.trappedRook[color][EG]++;
+  } else if(board.board[h1] == rook && ((1ULL << king) & between[e1][h1])) {
+    tools.score[color][MG] += trappedRook[MG];
+    tools.score[color][EG] += trappedRook[EG];
+
+    if(TUNE)
+      trace.trappedRook[color][MG]++, trace.trappedRook[color][EG]++;
+  }*/
+
   if(color == WHITE) {
-    if(board.board[A1] == WR && (board.bb[getType(KING, color)] & between[A1][E1])) {
+    if(board.board[A1] == WR && (board.bb[king] & between[A1][E1])) {
       tools.score[color][MG] += trappedRook[MG];
       tools.score[color][EG] += trappedRook[EG];
 
       if(TUNE)
         trace.trappedRook[color][MG]++, trace.trappedRook[color][EG]++;
-    } else if(board.board[H1] == WR && (board.bb[getType(KING, color)] & between[H1][E1])) {
+    } else if(board.board[H1] == WR && (board.bb[king] & between[H1][E1])) {
       tools.score[color][MG] += trappedRook[MG];
       tools.score[color][EG] += trappedRook[EG];
 
@@ -385,44 +250,24 @@ void rookEval(Board &board, int color, EvalTools &tools) {
         trace.trappedRook[color][MG]++, trace.trappedRook[color][EG]++;
     }
   } else {
-    if(board.board[A8] == BR && (board.bb[getType(KING, color)] & between[A8][E8])) {
+    if(board.board[A8] == BR && (board.bb[king] & between[A8][E8])) {
       tools.score[color][MG] += trappedRook[MG];
       tools.score[color][EG] += trappedRook[EG];
 
       if(TUNE)
         trace.trappedRook[color][MG]++, trace.trappedRook[color][EG]++;
-    } else if(board.board[H8] == BR && (board.bb[getType(KING, color)] & between[H8][E8])) {
+    } else if(board.board[H8] == BR && (board.bb[king] & between[H8][E8])) {
       tools.score[color][MG] += trappedRook[MG];
       tools.score[color][EG] += trappedRook[EG];
 
       if(TUNE)
         trace.trappedRook[color][MG]++, trace.trappedRook[color][EG]++;
     }
-  }
-
-  while(pieces) {
-    uint64_t b = lsb(pieces);
-    int sq = Sq(b), file = sq % 8;
-    /// check if open file
-    if(isOpenFile(file, tools)) {
-      tools.score[color][MG] += rookOpenFile[MG];
-      tools.score[color][EG] += rookOpenFile[EG];
-
-      if(TUNE)
-        trace.rookOpenFile[color][MG]++, trace.rookOpenFile[color][EG]++;
-    } else if(isHalfOpenFile(color, file, tools)) {
-      tools.score[color][MG] += rookSemiOpenFile[MG];
-      tools.score[color][EG] += rookSemiOpenFile[EG];
-
-      if(TUNE)
-        trace.rookSemiOpenFile[color][MG]++, trace.rookSemiOpenFile[color][EG]++;
-    }
-    pieces ^= b;
   }
 }
 
-void pawnEval(Board &board, int color, EvalTools &tools) {
-  uint64_t pieces = tools.pawns[color], passers = 0, blockedPassers = 0;
+void pawnEval(Board &board, int color, EvalTools &tools, int pawnScore[], uint64_t &passedPawns) {
+  uint64_t pieces = tools.pawns[color], passers = 0;
 
   while(pieces) {
     uint64_t b = lsb(pieces);
@@ -442,15 +287,15 @@ void pawnEval(Board &board, int color, EvalTools &tools) {
       }
 
       if(neigh && !((neighFileDownMask[frontSq] ^ b) & tools.pawns[WHITE]) && ((1ULL << frontSq) & tools.defendedByPawn[BLACK])) {
-        tools.score[color][MG] += backwardPenalty[MG];
-        tools.score[color][EG] += backwardPenalty[EG];
+        pawnScore[MG] += backwardPenalty[MG];
+        pawnScore[EG] += backwardPenalty[EG];
 
         if(TUNE)
           trace.backwardPenalty[color][MG]++, trace.backwardPenalty[color][EG]++;
       }
       if(fileUpMask[sq] & tools.pawns[WHITE]) {
-        tools.score[color][MG] += doubledPawnsPenalty[MG];
-        tools.score[color][EG] += doubledPawnsPenalty[EG];
+        pawnScore[MG] += doubledPawnsPenalty[MG];
+        pawnScore[EG] += doubledPawnsPenalty[EG];
 
         if(TUNE)
           trace.doubledPawnsPenalty[color][MG]++, trace.doubledPawnsPenalty[color][EG]++;
@@ -462,15 +307,15 @@ void pawnEval(Board &board, int color, EvalTools &tools) {
       }
 
       if(neigh && !((neighFileUpMask[frontSq] ^ b) & tools.pawns[BLACK]) && ((1ULL << frontSq) & tools.defendedByPawn[WHITE])) {
-        tools.score[color][MG] += backwardPenalty[MG];
-        tools.score[color][EG] += backwardPenalty[EG];
+        pawnScore[MG] += backwardPenalty[MG];
+        pawnScore[EG] += backwardPenalty[EG];
 
         if(TUNE)
           trace.backwardPenalty[color][MG]++, trace.backwardPenalty[color][EG]++;
       }
       if(fileDownMask[sq] & tools.pawns[BLACK]) {
-        tools.score[color][MG] += doubledPawnsPenalty[MG];
-        tools.score[color][EG] += doubledPawnsPenalty[EG];
+        pawnScore[MG] += doubledPawnsPenalty[MG];
+        pawnScore[EG] += doubledPawnsPenalty[EG];
 
         if(TUNE)
           trace.doubledPawnsPenalty[color][MG]++, trace.doubledPawnsPenalty[color][EG]++;
@@ -492,16 +337,16 @@ void pawnEval(Board &board, int color, EvalTools &tools) {
 
       //std::cout << f << " " << connectedBonus[MG][(color == WHITE ? rank : 7 - rank)] << "\n";
 
-      tools.score[color][MG] += f * connectedBonus[MG][(color == WHITE ? rank : 7 - rank)] +
+      pawnScore[MG] += f * connectedBonus[MG][(color == WHITE ? rank : 7 - rank)] +
                                 10 * count(defenders);
-      tools.score[color][EG] += f * connectedBonus[EG][(color == WHITE ? rank : 7 - rank)] +
+      pawnScore[EG] += f * connectedBonus[EG][(color == WHITE ? rank : 7 - rank)] +
                                 10 * count(defenders);
     }
 
     /// no supporting pawns
     if(!neigh) {
-      tools.score[color][MG] += isolatedPenalty[MG];
-      tools.score[color][EG] += isolatedPenalty[EG];
+      pawnScore[MG] += isolatedPenalty[MG];
+      pawnScore[EG] += isolatedPenalty[EG];
 
       if(TUNE)
         trace.isolatedPenalty[color][MG]++, trace.isolatedPenalty[color][EG]++;
@@ -511,9 +356,13 @@ void pawnEval(Board &board, int color, EvalTools &tools) {
     pieces ^= b;
   }
 
-  /// blocked passers aren't given any passed bonus - to change?
 
-  blockedPassers = passers & shift(color, SOUTH, board.pieces[color ^ 1]);
+  passedPawns = passers;
+}
+
+void passersEval(Board &board, int color, EvalTools &tools, uint64_t passers) {
+  /// blocked passers aren't given any passed bonus - to change?
+  uint64_t blockedPassers = passers & shift(color, SOUTH, board.pieces[color ^ 1]);
   passers ^= blockedPassers;
   while(passers) {
     uint64_t b = lsb(passers);
@@ -660,7 +509,7 @@ void pieceEval(Board &board, int color, EvalTools &tools) {
   pieces = board.bb[getType(ROOK, color)];
   while(pieces) {
     b = lsb(pieces);
-    int sq = Sq(b);
+    int sq = Sq(b), file = sq % 8;
     att = genAttacksRook(all, sq);
     mob = att & mobilityArea;
 
@@ -671,6 +520,22 @@ void pieceEval(Board &board, int color, EvalTools &tools) {
 
     if(TUNE)
       trace.mobilityBonus[color][ROOK][MG][cnt]++, trace.mobilityBonus[color][ROOK][EG][cnt]++;
+
+    /// assign bonus for rooks on open/semi-open files
+
+    if(isOpenFile(file, tools)) {
+      tools.score[color][MG] += rookOpenFile[MG];
+      tools.score[color][EG] += rookOpenFile[EG];
+
+      if(TUNE)
+        trace.rookOpenFile[color][MG]++, trace.rookOpenFile[color][EG]++;
+    } else if(isHalfOpenFile(color, file, tools)) {
+      tools.score[color][MG] += rookSemiOpenFile[MG];
+      tools.score[color][EG] += rookSemiOpenFile[EG];
+
+      if(TUNE)
+        trace.rookSemiOpenFile[color][MG]++, trace.rookSemiOpenFile[color][EG]++;
+    }
 
     tools.phase += phaseVal[ROOK];
 
@@ -729,8 +594,10 @@ void kingEval(Board &board, int color, EvalTools &tools) {
 
   /// king psqt
 
-  tools.score[color][MG] += bonusTable[KING][MG][pos];
-  tools.score[color][EG] += bonusTable[KING][EG][pos];
+  if(TUNE) {
+    tools.score[color][MG] += bonusTable[KING][MG][pos];
+    tools.score[color][EG] += bonusTable[KING][EG][pos];
+  }
 
   if(TUNE)
     trace.bonusTable[color][KING][MG][pos]++, trace.bonusTable[color][KING][EG][pos]++;
@@ -803,21 +670,6 @@ void kingEval(Board &board, int color, EvalTools &tools) {
   tools.score[color][EG] -= tools.kingDanger[color];
 }
 
-void initEval() {
-  /*for(int color = BLACK; color <= WHITE; color++) {
-    for(int p = PAWN; p <= QUEEN; p++) {
-      for(int s = MG; s <= EG; s++) {
-        for(int sq = A1; sq <= H8; sq++) {
-          int r = sq / 8, f = sq % 8;
-          if(color == WHITE)
-            r = 7 - r;
-          psqtBonus[color][p][s][sq] = bonusTable[p][MG][getSq(r, f)];
-        }
-      }
-    }
-  }*/
-}
-
 /// scale score if we recognize some draw patterns
 
 int scaleFactor(Board &board, int eg) {
@@ -848,9 +700,7 @@ int scaleFactor(Board &board, int eg) {
 void eval(Board &board, int color, EvalTools &tools) {
   //cout << color << "\n";
   //cout << "initially: " << score[color][MG] << "\n";
-   matEval(board, color, tools);
   rookEval(board, color, tools);
-  pawnEval(board, color, tools);
   kingEval(board, color, tools);
 }
 
@@ -1045,14 +895,12 @@ int evaluateTrace(TunePos &pos, int weights[]) {
 
   eg = eg * pos.scale / 100;
 
-  //std::cout << mg << " " << eg << "\n";
-
   int eval = (mg * phase + eg * (maxWeight - phase)) / maxWeight;
 
   return TEMPO + eval * (pos.turn == WHITE ? 1 : -1);
 }
 
-int evaluate(Board &board) {
+int evaluate(Board &board, Search *searcher = nullptr) {
   EvalTools tools;
 
   tools.init();
@@ -1084,18 +932,80 @@ int evaluate(Board &board) {
     tools.attackedBy[col] |= tools.defendedByPawn[col];
   }
 
+  int mg = 0, eg = 0;
+
   pieceEval(board, WHITE, tools);
   pieceEval(board, BLACK, tools);
 
   eval(board, WHITE, tools);
   eval(board, BLACK, tools);
 
+  if(!TUNE) {
+    tools.score[WHITE][MG] += board.score[MG];
+    tools.score[WHITE][EG] += board.score[EG];
+  } else {
+    matEval(board, WHITE, tools);
+    matEval(board, BLACK, tools);
+  }
+
+
   if(TUNE)
     trace.kingDanger[WHITE] = tools.kingDanger[WHITE], trace.kingDanger[BLACK] = tools.kingDanger[BLACK];
 
   /// mg and eg score
 
-  int mg = tools.score[WHITE][MG] - tools.score[BLACK][MG], eg = tools.score[WHITE][EG] - tools.score[BLACK][EG];
+  ptEntry entry = {};
+
+  if(searcher && searcher->PT.probe(board.pawnKey, entry)) {
+    passersEval(board, WHITE, tools, entry.passers & board.bb[WP]);
+    passersEval(board, BLACK, tools, entry.passers & board.bb[BP]);
+
+    mg = tools.score[WHITE][MG] - tools.score[BLACK][MG], eg = tools.score[WHITE][EG] - tools.score[BLACK][EG];
+
+    mg += entry.eval[MG];
+    eg += entry.eval[EG];
+
+    /*int pawnScore[2][2] = {
+      {0, 0},
+      {0, 0},
+    };
+
+    uint64_t tmp = 0;
+
+    pawnEval(board, WHITE, tools, pawnScore[WHITE], tmp);
+    pawnEval(board, BLACK, tools, pawnScore[BLACK], tmp);
+
+    int pScore[2] = {pawnScore[WHITE][MG] - pawnScore[BLACK][MG], pawnScore[WHITE][EG] - pawnScore[BLACK][EG]};
+
+    if(entry.eval[MG] != pScore[MG] || entry.eval[EG] != pScore[EG]) {
+      std::cout << board.pawnKey << "\n";
+      board.print();
+      std::cout << entry.eval[MG] << " " << pScore[MG] << " " << entry.eval[EG] << " " << pScore[EG] << "\n";
+    }*/
+  } else {
+    int pawnScore[2][2] = {
+      {0, 0},
+      {0, 0},
+    };
+
+    uint64_t passers[2] = {0, 0};
+
+    pawnEval(board, WHITE, tools, pawnScore[WHITE], passers[WHITE]);
+    pawnEval(board, BLACK, tools, pawnScore[BLACK], passers[BLACK]);
+
+    passersEval(board, WHITE, tools, passers[WHITE]);
+    passersEval(board, BLACK, tools, passers[BLACK]);
+
+    mg = tools.score[WHITE][MG] - tools.score[BLACK][MG], eg = tools.score[WHITE][EG] - tools.score[BLACK][EG];
+
+    int pScore[2] = {pawnScore[WHITE][MG] - pawnScore[BLACK][MG], pawnScore[WHITE][EG] - pawnScore[BLACK][EG]};
+
+    mg += pScore[MG];
+    eg += pScore[EG];
+
+    if(searcher)
+      searcher->PT.save(board.pawnKey, pScore, passers[WHITE] | passers[BLACK]);
+  }
 
   /// scale down eg score for winning side
 

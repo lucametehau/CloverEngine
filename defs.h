@@ -60,6 +60,8 @@ const uint64_t ALL = 18446744073709551615ULL;
 const uint64_t LONG_DIAGONALS =  9314046665258451585ULL;
 const std::string START_POS_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
+bool TUNE = false; /// false by default, automatically set to true when tuning
+
 int cod[256];
 uint64_t hashKey[13][64], castleKey[2][2], enPasKey[64];
 uint64_t castleKeyModifier[16];

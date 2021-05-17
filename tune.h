@@ -23,6 +23,7 @@ struct Position {
 };
 
 TunePos *position;
+Search emptySearcher[1];
 
 int nrPos;
 Position *texelPos;
@@ -131,7 +132,7 @@ void load(std::ifstream &stream) {
 
     trace = empty;
     //std::cout << trace.phase << "\n";
-    int initScore = evaluate(board);
+    int initScore = evaluate(board, emptySearcher);
 
     getTraceEntries(trace);
 
@@ -633,6 +634,8 @@ bool isBetter(double &mn, double k, int nrThreads) {
 
 void tune(int nrThreads, std::string path) {
   //int nrThreads = 8;
+
+  emptySearcher->clearStack();
 
   stack = (EvalTraceEntry*)calloc(BUCKET_SIZE, sizeof(EvalTraceEntry));
 

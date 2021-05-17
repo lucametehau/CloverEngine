@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <iostream>
 #include "defs.h"
+#include "material.h"
 
 struct StackEntry { /// info to keep in the stack
   uint16_t move, piece;
@@ -14,9 +15,10 @@ public:
   int8_t enPas;
   uint8_t castleRights;
   uint8_t captured;
+  int16_t score[2];
   uint16_t halfMoves, moveIndex;
   //uint64_t checkers;
-  uint64_t key;
+  uint64_t pawnKey, key;
 };
 
 class Board {
@@ -28,20 +30,20 @@ public:
   int8_t enPas;
   uint8_t board[64];
 
+  int16_t score[2];
   uint16_t ply, gamePly;
   uint16_t halfMoves, moveIndex;
 
   uint64_t bb[13];
   uint64_t pieces[2];
-  uint64_t key;
-  //uint64_t checkers;
+  uint64_t pawnKey, key;
   Undo history[1000]; /// fuck it
 
   Board() {
-    halfMoves = moveIndex = key = 0;
+    halfMoves = moveIndex = key = pawnKey = 0;
     turn = 0;
     ply = gamePly = 0;
-    //checkers = 0;
+    score[MG] = score[EG] = 0;
     for(int i = 0; i <= 12; i++)
       bb[i] = 0;
     for(int i = 0; i < 64; i++)
@@ -55,8 +57,11 @@ public:
     moveIndex = other.moveIndex;
     turn = other.turn;
     key = other.key;
+    pawnKey = other.pawnKey;
     gamePly = other.gamePly;
     ply = other.ply;
+    for(int i = 0; i < 2; i++)
+      score[i] = other.score[i];
     //checkers = other.checkers;
     for(int i = 0; i <= 12; i++)
       bb[i] = other.bb[i];
@@ -112,12 +117,14 @@ public:
 
   void setFen(const std::string fen) {
     int ind = 0;
-    key = 0;
+    key = pawnKey = 0;
 
     ply = gamePly = 0;
     captured = 0;
 
     //checkers = 0;
+
+    score[MG] = score[EG] = 0;
 
     for(int i = 0; i <= 12; i++)
       bb[i] = 0;
@@ -131,7 +138,12 @@ public:
         if(fen[ind] < '0' || '9' < fen[ind]) {
           board[sq] = cod[int(fen[ind])];
           key ^= hashKey[board[sq]][sq];
-          //cout << "INIT " << fen[ind] << " " << sq << " " << cod[fen[ind]] << " " << hashKey[cod[fen[ind]]][sq] << "\n";
+
+          if(board[sq] == WP || board[sq] == BP)
+            pawnKey ^= hashKey[board[sq]][sq];
+
+          addPiece(score, board[sq], sq);
+
           pieces[(board[sq] > 6)] |= (1ULL << sq);
           bb[board[sq]] |= (1ULL << sq);
           j++;
@@ -268,6 +280,26 @@ public:
     h ^= (enPas >= 0 ? enPasKey[enPas] : 0);
     //cout << h << "\n";
     return h;
+  }
+
+  uint64_t pawnHash() {
+    uint64_t h = 0;
+    for(int i = 0; i < 64; i++) {
+      if(piece_type(board[i]) == PAWN)
+        h ^= hashKey[board[i]][i];
+    }
+
+    return h;
+  }
+
+  int16_t matScore() {
+    int16_t matS[2] = {0, 0};
+    for(int i = 0; i < 64; i++) {
+      if(board[i]) {
+        addPiece(matS, board[i], i);
+      }
+    }
+    return matS[MG];
   }
 
   bool isMaterialDraw() {

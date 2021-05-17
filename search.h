@@ -31,6 +31,18 @@ Search::Search() : threads(nullptr), params(nullptr)
     std::cout << "},\n";
   }
   std::cout << "};\n";*/
+  /*for(int i = 1; i < 9; i++) {
+    lmrCnt[0][i] = 2 + i * i / 2;
+    lmrCnt[1][i] = 5 + i * i;
+  }
+  std::cout << "int lmrCnt[2][9] = {\n";
+  for(int i = 0; i < 2; i++) {
+    std::cout << "  {";
+    for(int j = 0; j < 9; j++)
+      std::cout << lmrCnt[i][j] << ", ";
+    std::cout << "},\n";
+  }
+  std::cout << "};\n";*/
 }
 
 Search::~Search() {
@@ -78,14 +90,16 @@ int Search :: quiesce(int alpha, int beta) {
     return ABORT;
 
   /// check if in transposition table
-
   uint64_t key = board.key;
-  int score = 0, best = -INF;
+  int score = 0, best = -INF, alphaOrig = alpha;
   int bound = NONE;
+  uint16_t bestMove = NULLMOVE;
 
   tt :: Entry entry = {};
 
   int eval = INF;
+
+  /// probe transposition table
 
   if(TT->probe(key, entry)) {
     eval = entry.info.eval;
@@ -96,15 +110,9 @@ int Search :: quiesce(int alpha, int beta) {
   }
 
   if(eval == INF)
-    eval = (Stack[ply - 1].move == NULLMOVE ? -Stack[ply - 1].eval + 2 * TEMPO : evaluate(board));
+    eval = (Stack[ply - 1].move == NULLMOVE ? -Stack[ply - 1].eval + 2 * TEMPO : evaluate(board, this));
 
   Stack[ply].eval = eval;
-
-  //std::cout << "eval = " << eval << "\n";
-
-  //uint16_t mv = getMove(C5, D4, 0, NEUT);
-
-  //std::cout << see(board, mv, 0) << " " << see(board, mv, 1) << "\n";
 
   /// stand-pat
 
@@ -122,6 +130,8 @@ int Search :: quiesce(int alpha, int beta) {
 
     //cout << "in quiesce, ply = " << ply << ", move = " << toString(move) << "\n";
 
+    /// update stack info
+
     Stack[ply].move = move;
     Stack[ply].piece = board.piece_at(sqFrom(move));
 
@@ -131,6 +141,7 @@ int Search :: quiesce(int alpha, int beta) {
 
     if(score > best) {
       best = score;
+      bestMove = move;
 
       if(score > alpha) {
         alpha = score;
@@ -141,6 +152,11 @@ int Search :: quiesce(int alpha, int beta) {
       }
     }
   }
+
+  /// store info in transposition table (seems to work)
+
+  bound = (best >= beta ? LOWER : (best > alphaOrig ? EXACT : UPPER));
+  TT->save(key, best, 0, ply, bound, bestMove, eval);
 
   return best;
 }
@@ -246,7 +262,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
   /// no need to evaluate if last move was null
   if(eval == INF)
-    Stack[ply].eval = eval = (ply >= 1 && Stack[ply - 1].move == NULLMOVE ? -Stack[ply - 1].eval + 2 * TEMPO : evaluate(board));
+    Stack[ply].eval = eval = (ply >= 1 && Stack[ply - 1].move == NULLMOVE ? -Stack[ply - 1].eval + 2 * TEMPO : evaluate(board, this));
   else {
     /// ttValue might be a better evaluation
 
@@ -724,12 +740,14 @@ void Search :: clearStack() {
   memset(follow, 0, sizeof(follow));
   memset(pvTableLen, 0, sizeof(pvTableLen));
   memset(pvTable, 0, sizeof(pvTable));
+  PT.initpTable();
 
   for(int i = 0; i < threadCount; i++) {
     memset(params[i].Stack, 0, sizeof(params[i].Stack));
     memset(params[i].follow, 0, sizeof(params[i].follow));
     memset(params[i].pvTableLen, 0, sizeof(params[i].pvTableLen));
     memset(params[i].pvTable, 0, sizeof(params[i].pvTable));
+    params[i].PT.initpTable();
   }
 }
 

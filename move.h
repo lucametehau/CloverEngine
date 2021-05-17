@@ -15,8 +15,12 @@ inline void makeMove(Board &board, uint16_t mv) { /// assuming move is at least 
   board.history[ply].halfMoves = board.halfMoves;
   board.history[ply].moveIndex = board.moveIndex;
   board.history[ply].key = board.key;
+  board.history[ply].pawnKey = board.pawnKey;
   board.history[ply].castleRights = board.castleRights;
   board.history[ply].captured = board.captured;
+
+  for(int i = 0; i < 2; i++)
+    board.history[ply].score[i] = board.score[i];
 
   board.key ^= (board.enPas >= 0 ? enPasKey[board.enPas] : 0);
 
@@ -35,6 +39,12 @@ inline void makeMove(Board &board, uint16_t mv) { /// assuming move is at least 
 
     board.key ^= hashKey[pieceFrom][posFrom] ^ hashKey[pieceFrom][posTo];
 
+    remPiece(board.score, pieceFrom, posFrom);
+    addPiece(board.score, pieceFrom, posTo);
+
+    if(piece_type(pieceFrom) == PAWN)
+      board.pawnKey ^= hashKey[pieceFrom][posFrom] ^ hashKey[pieceFrom][posTo];
+
     /// i moved a castle rook
 
     if(pieceFrom == WR)
@@ -49,6 +59,8 @@ inline void makeMove(Board &board, uint16_t mv) { /// assuming move is at least 
       board.bb[pieceTo]             ^= (1ULL << posTo);
       board.key                     ^= hashKey[pieceTo][posTo];
 
+      remPiece(board.score, pieceTo, posTo);
+
 
 
       /// special case: captured rook might have been a castle rook
@@ -57,6 +69,9 @@ inline void makeMove(Board &board, uint16_t mv) { /// assuming move is at least 
         board.castleRights &= castleRightsDelta[WHITE][posTo];
       else if(pieceTo == BR)
         board.castleRights &= castleRightsDelta[BLACK][posTo];
+
+      if(piece_type(pieceTo) == PAWN)
+        board.pawnKey ^= hashKey[pieceTo][posTo];
     }
 
     board.board[posFrom] = 0;
@@ -87,7 +102,12 @@ inline void makeMove(Board &board, uint16_t mv) { /// assuming move is at least 
         board.pieces[board.turn]  ^= (1ULL << posFrom) ^ (1ULL << posTo);
         board.bb[pieceFrom]       ^= (1ULL << posFrom) ^ (1ULL << posTo);
 
-        board.key ^= hashKey[pieceFrom][posFrom] ^ hashKey[pieceFrom][posTo] ^ hashKey[pieceCap][pos];
+        board.key     ^= hashKey[pieceFrom][posFrom] ^ hashKey[pieceFrom][posTo] ^ hashKey[pieceCap][pos];
+        board.pawnKey ^= hashKey[pieceFrom][posFrom] ^ hashKey[pieceFrom][posTo] ^ hashKey[pieceCap][pos];
+
+        remPiece(board.score, pieceFrom, posFrom);
+        addPiece(board.score, pieceFrom, posTo);
+        remPiece(board.score, pieceCap , pos);
 
         board.pieces[1 ^ board.turn]  ^= (1ULL << pos);
         board.bb[pieceCap]            ^= (1ULL << pos);
@@ -116,6 +136,11 @@ inline void makeMove(Board &board, uint16_t mv) { /// assuming move is at least 
         board.bb[pieceFrom]       ^= (1ULL << posFrom) ^ (1ULL << posTo);
         board.bb[rPiece]          ^= (1ULL << rFrom) ^ (1ULL << rTo);
 
+        remPiece(board.score, pieceFrom, posFrom);
+        addPiece(board.score, pieceFrom, posTo);
+        remPiece(board.score, rPiece, rFrom);
+        addPiece(board.score, rPiece, rTo);
+
         board.key ^= hashKey[pieceFrom][posFrom] ^ hashKey[pieceFrom][posTo] ^
                       hashKey[rPiece][rFrom] ^ hashKey[rPiece][rTo];
 
@@ -139,10 +164,15 @@ inline void makeMove(Board &board, uint16_t mv) { /// assuming move is at least 
         board.bb[pieceFrom]       ^= (1ULL << posFrom);
         board.bb[promPiece]       ^= (1ULL << posTo);
 
+        remPiece(board.score, pieceFrom, posFrom);
+        addPiece(board.score, promPiece, posTo);
+
         if(pieceTo) {
           board.bb[pieceTo]             ^= (1ULL << posTo);
           board.pieces[1 ^ board.turn]  ^= (1ULL << posTo);
           board.key                     ^= hashKey[pieceTo][posTo];
+
+          remPiece(board.score, pieceTo, posTo);
 
           /// special case: captured rook might have been a castle rook
 
@@ -156,7 +186,8 @@ inline void makeMove(Board &board, uint16_t mv) { /// assuming move is at least 
         board.board[posTo] = promPiece;
         board.captured = pieceTo;
 
-        board.key ^= hashKey[pieceFrom][posFrom] ^ hashKey[promPiece][posTo];
+        board.key     ^= hashKey[pieceFrom][posFrom] ^ hashKey[promPiece][posTo];
+        board.pawnKey ^= hashKey[pieceFrom][posFrom];
     }
 
     break;
@@ -195,7 +226,11 @@ inline void undoMove(Board &board, uint16_t move) {
   board.enPas = board.history[ply].enPas;
   board.moveIndex = board.history[ply].moveIndex;
   board.key = board.history[ply].key;
+  board.pawnKey = board.history[ply].pawnKey;
   board.castleRights = board.history[ply].castleRights;
+
+  for(int i = 0; i < 2; i++)
+    board.score[i] = board.history[ply].score[i];
 
   int posFrom = sqFrom(move), posTo = sqTo(move), piece = board.board[posTo], pieceCap = board.captured;
 
@@ -281,8 +316,12 @@ inline void makeNullMove(Board &board) {
   board.history[ply].halfMoves = board.halfMoves;
   board.history[ply].moveIndex = board.moveIndex;
   board.history[ply].key = board.key;
+  board.history[ply].pawnKey = board.pawnKey;
   board.history[ply].castleRights = board.castleRights;
   board.history[ply].captured = board.captured;
+
+  for(int i = 0; i < 2; i++)
+    board.history[ply].score[i] = board.score[i];
 
   board.key ^= (board.enPas >= 0 ? enPasKey[board.enPas] : 0);
 
@@ -306,8 +345,12 @@ inline void undoNullMove(Board &board) {
   board.enPas = board.history[ply].enPas;
   board.moveIndex = board.history[ply].moveIndex;
   board.key = board.history[ply].key;
+  board.pawnKey = board.history[ply].pawnKey;
   board.castleRights = board.history[ply].castleRights;
   board.captured = board.history[ply].captured;
+
+  for(int i = 0; i < 2; i++)
+    board.score[i] = board.history[ply].score[i];
 }
 
 inline int genLegal(Board &board, uint16_t *moves) {

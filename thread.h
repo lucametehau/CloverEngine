@@ -1,6 +1,7 @@
 #pragma once
 #include "board.h"
 #include "tt.h"
+#include "pawns.h"
 
 #include <thread>
 #include <mutex>
@@ -76,6 +77,8 @@ class Search {
     int lmrCnt[2][9];
     int lmrRed[64][64];
     StackEntry Stack[DEPTH + 5];
+
+    pTable PT;
 
   private:
     uint64_t tbHits;

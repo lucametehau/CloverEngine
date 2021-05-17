@@ -1,6 +1,6 @@
 CC  = g++
 SRC = *.cpp *.c
-EXE = Clover.2.2
+EXE = Clover.2.3
 
 WFLAGS = -Wall
 RFLAGS = $(WFLAGS) -std=c++17 -O3 -static -static-libgcc -static-libstdc++
@@ -17,4 +17,6 @@ run:
 	$(CC) $(SRC) $(RFLAGS) $(LIBS) $(POPCNTFLAGS) -o $(EXE)-popcnt.exe
 	$(CC) $(SRC) $(RFLAGS) $(LIBS) $(BMI2FLAGS) -o $(EXE)-bmi2.exe
 	$(CC) $(SRC) $(RFLAGS) $(LIBS) $(POPCNTFLAGS) $(AVX2FLAGS) -o $(EXE)-avx2.exe
+	$(CC) $(SRC) $(RFLAGS) $(LIBS) $(NATIVEFLAGS) -o $(EXE)-native.exe
+native:
 	$(CC) $(SRC) $(RFLAGS) $(LIBS) $(NATIVEFLAGS) -o $(EXE)-native.exe
