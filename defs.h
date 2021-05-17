@@ -107,8 +107,10 @@ const int castleRightsDelta[2][64] = {
   }
 };
 
-inline long double getTime() {
-  return 1000.0 * clock() / CLOCKS_PER_SEC;
+inline long double getTime() { /// thanks Terje!
+  struct timespec time;
+  clock_gettime(CLOCK_MONOTONIC, &time);
+  return ((uint64_t)time.tv_sec * 1000 + time.tv_nsec / 1000000);
 }
 
 inline uint64_t lsb(uint64_t nr) {
