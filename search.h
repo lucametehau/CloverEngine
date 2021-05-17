@@ -703,7 +703,7 @@ void Search :: startSearch(Info *_info) {
       break;
     }
 
-    if(tDepth == info->depth) {
+    if(tDepth == limitDepth) {
       flag |= TERMINATED_BY_TIME;
       break;
     }
