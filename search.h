@@ -610,7 +610,7 @@ void Search :: startSearch(Info *_info) {
 
   //cout << info->depth << endl;
 
-  int limitDepth = (principalSearcher ? info->depth : DEPTH);
+  int limitDepth = (principalSearcher ? info->depth : DEPTH); /// when limited by depth, allow helper threads to pass the fixed depth
 
   for(tDepth = 1; tDepth <= limitDepth; tDepth++) {
 

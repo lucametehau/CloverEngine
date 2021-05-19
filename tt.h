@@ -185,6 +185,8 @@ inline void tt :: HashTable :: save(uint64_t hash, int score, int depth, int ply
 }
 
 inline void tt :: HashTable :: resetAge() {
+  generation = 1;
+
   for(uint64_t i = 0; i < (uint64_t)entries * BUCKET; i++)
     table[i].refresh(0);
 }
