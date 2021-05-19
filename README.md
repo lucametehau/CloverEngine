@@ -24,7 +24,7 @@ without ```-flto```, because it crashes for some strange reason.
 
 ***I also recommend you compile, on the master code or, if you want to compile a release, use the zip I provide (not the Source Code one), because there is a chance that they differ (releasing before updating master code, editing release etc).***
 
-If you are compiling on Linux, you need to add ```-pthread``` to your command line.
+***If you are compiling on Linux, you need to remove the static flags from the makefile (apparently, static + pthread on linux crashes).***
 
 In the future, I will add a makefile too.
 
