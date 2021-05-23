@@ -221,20 +221,6 @@ void rookEval(Board &board, int color, EvalTools &tools) {
 
   /// evaluation pattern: apply a penaly if rook is trapped by king
 
-  /*if(board.board[a1] == rook && ((1ULL << king) & between[a1][e1])) {
-    tools.score[color][MG] += trappedRook[MG];
-    tools.score[color][EG] += trappedRook[EG];
-
-    if(TUNE)
-      trace.trappedRook[color][MG]++, trace.trappedRook[color][EG]++;
-  } else if(board.board[h1] == rook && ((1ULL << king) & between[e1][h1])) {
-    tools.score[color][MG] += trappedRook[MG];
-    tools.score[color][EG] += trappedRook[EG];
-
-    if(TUNE)
-      trace.trappedRook[color][MG]++, trace.trappedRook[color][EG]++;
-  }*/
-
   if(color == WHITE) {
     if(board.board[A1] == WR && (board.bb[king] & between[A1][E1])) {
       tools.score[color][MG] += trappedRook[MG];

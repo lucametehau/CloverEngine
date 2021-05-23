@@ -52,6 +52,9 @@ void History :: updateHistory(Search *searcher, uint16_t *quiets, int nrQuiets, 
   bonus = std::min(bonus, histMax);
 
   for(int i = 0; i < nrQuiets; i++) {
+    /// increase value for best move, decrease value for the other moves
+    /// so we have an early cut-off
+
     int move = quiets[i];
     int score = (move == best ? bonus : -bonus);
     int from = sqFrom(move), to = sqTo(move), piece = searcher->board.board[from];

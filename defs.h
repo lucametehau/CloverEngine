@@ -52,7 +52,7 @@ const int NULLMOVE = 0;
 const int HALFMOVES = 100;
 const int INF = 32000;
 const int MATE = 31000;
-const int TB_BASE_SCORE = 22000;
+const int TB_WIN_SCORE = 22000;
 const int ABORT = 1000000;
 const int DEPTH = 255;
 const uint64_t CENTER = 103481868288ULL;
@@ -129,7 +129,7 @@ inline int hashVal(int value, int ply) {
   return value;
 }
 
-inline uint64_t smallPopCount(uint64_t b) { /// better than count when b has small number of bits
+inline int smallPopCount(uint64_t b) { /// better than count when b has small number of bits
   int count = 0;
   while(b) {
     count++;

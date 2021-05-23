@@ -33,6 +33,7 @@ pTable :: ~pTable() {
 }
 
 void pTable :: initpTable() {
+  delete[] table;
   table = new ptEntry[PT_SIZE + 1]();
   memset(table, 0, PT_SIZE + 1);
 }

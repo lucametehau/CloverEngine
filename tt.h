@@ -24,9 +24,9 @@ namespace tt {
       }
 
       int value(int ply) {
-        if(info.score >= TB_BASE_SCORE)
+        if(info.score >= TB_WIN_SCORE)
           return info.score - ply;
-        else if(info.score <= -TB_BASE_SCORE)
+        else if(info.score <= -TB_WIN_SCORE)
           return info.score + ply;
         return info.score;
       }
@@ -150,9 +150,9 @@ inline void tt :: HashTable :: save(uint64_t hash, int score, int depth, int ply
   uint64_t ind = (hash & entries) * BUCKET;
   Entry *bucket = table + ind;
 
-  if(score >= TB_BASE_SCORE)
+  if(score >= TB_WIN_SCORE)
     score += ply;
-  else if(score <= -TB_BASE_SCORE)
+  else if(score <= -TB_WIN_SCORE)
     score -= ply;
 
   Entry temp = {};

@@ -20,22 +20,10 @@ Search::Search() : threads(nullptr), params(nullptr)
       lmrRed[i][j] = 0.75 + log(i) * log(j) / 2.25;
   }
   for(int i = 1; i < 9; i++) {
-    lmrCnt[0][i] = 2.5 + 2 * i * i / 4.5;
-    lmrCnt[1][i] = 4.0 + 4 * i * i / 4.5;
+    lmrCnt[0][i] = (3 + i * i) / 2; /// 4 seems to be equal, but I doubt that
+    lmrCnt[1][i] = 3 + i * i;
   }
   /*std::cout << "int lmrCnt[2][9] = {\n";
-  for(int i = 0; i < 2; i++) {
-    std::cout << "  {";
-    for(int j = 0; j < 9; j++)
-      std::cout << lmrCnt[i][j] << ", ";
-    std::cout << "},\n";
-  }
-  std::cout << "};\n";*/
-  /*for(int i = 1; i < 9; i++) {
-    lmrCnt[0][i] = 2 + i * i / 2;
-    lmrCnt[1][i] = 5 + i * i;
-  }
-  std::cout << "int lmrCnt[2][9] = {\n";
   for(int i = 0; i < 2; i++) {
     std::cout << "  {";
     for(int j = 0; j < 9; j++)
@@ -93,26 +81,36 @@ int Search :: quiesce(int alpha, int beta) {
   uint64_t key = board.key;
   int score = 0, best = -INF, alphaOrig = alpha;
   int bound = NONE;
-  uint16_t bestMove = NULLMOVE;
+  uint16_t bestMove = NULLMOVE, hashMove = NULLMOVE;
 
   tt :: Entry entry = {};
 
-  int eval = INF;
+  int eval = INF, ttValue = 0;
 
   /// probe transposition table
 
   if(TT->probe(key, entry)) {
     eval = entry.info.eval;
-    score = entry.value(ply);
+    ttValue = score = entry.value(ply);
     bound = entry.bound();
+    hashMove = entry.info.move;
     if(bound == EXACT || (bound == LOWER && score >= beta) || (bound == UPPER && score <= alpha))
       return score;
   }
 
-  if(eval == INF)
-    eval = (Stack[ply - 1].move == NULLMOVE ? -Stack[ply - 1].eval + 2 * TEMPO : evaluate(board, this));
+  if(eval == INF) {
+    /// if last move was null, we already know the evaluation
+    Stack[ply].eval = eval = (Stack[ply - 1].move == NULLMOVE ? -Stack[ply - 1].eval + 2 * TEMPO : evaluate(board, this));
+  } else {
+    /// ttValue might be a better evaluation
 
-  Stack[ply].eval = eval;
+    Stack[ply].eval = eval;
+
+    if(bound == EXACT || (bound == LOWER && ttValue > eval) || (bound == UPPER && ttValue < eval))
+      eval = ttValue;
+  }
+
+  //Stack[ply].eval = eval;
 
   /// stand-pat
 
@@ -122,7 +120,8 @@ int Search :: quiesce(int alpha, int beta) {
   alpha = std::max(alpha, eval);
   best = eval;
 
-  Movepick noisyPicker(NULLMOVE, NULLMOVE, NULLMOVE, NULLMOVE, 0); /// delta pruning -> TO DO: find better constant (edit: removed)
+  Movepick noisyPicker(NULLMOVE,
+                       NULLMOVE, NULLMOVE, NULLMOVE, 0); /// delta pruning -> TO DO: find better constant (edit: removed)
 
   uint16_t move;
 
@@ -156,7 +155,7 @@ int Search :: quiesce(int alpha, int beta) {
   /// store info in transposition table (seems to work)
 
   bound = (best >= beta ? LOWER : (best > alphaOrig ? EXACT : UPPER));
-  TT->save(key, best, 0, ply, bound, bestMove, eval);
+  TT->save(key, best, 0, ply, bound, bestMove, Stack[ply].eval);
 
   return best;
 }
@@ -202,7 +201,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
   int eval = INF;
 
-  if(excluded == NULLMOVE && TT->probe(key, entry)) {
+  if(!excluded && TT->probe(key, entry)) {
     int score = entry.value(ply);
     ttHit = 1;
     ttValue = score;
@@ -237,11 +236,11 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
         tbHits++;
         switch(probe) {
           case TB_WIN:
-            score = TB_BASE_SCORE - DEPTH - board.ply;
+            score = TB_WIN_SCORE - DEPTH - board.ply;
             type = LOWER;
             break;
           case TB_LOSS:
-            score = -(TB_BASE_SCORE - DEPTH - board.ply);
+            score = -(TB_WIN_SCORE - DEPTH - board.ply);
             type = UPPER;
             break;
           default:
@@ -260,10 +259,15 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
     }
   }
 
-  /// no need to evaluate if last move was null
-  if(eval == INF)
-    Stack[ply].eval = eval = (ply >= 1 && Stack[ply - 1].move == NULLMOVE ? -Stack[ply - 1].eval + 2 * TEMPO : evaluate(board, this));
-  else {
+  bool isCheck = inCheck(board);
+
+  if(eval == INF) {
+    /// if last move was null, we already know the evaluation
+    if(excluded)
+      eval = Stack[ply].eval;
+    else
+      Stack[ply].eval = eval = (ply >= 1 && Stack[ply - 1].move == NULLMOVE ? -Stack[ply - 1].eval + 2 * TEMPO : evaluate(board, this));
+  } else {
     /// ttValue might be a better evaluation
 
     Stack[ply].eval = eval;
@@ -272,23 +276,24 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
       eval = ttValue;
   }
 
-  bool isCheck = inCheck(board), improving = (ply >= 2 && eval > Stack[ply - 2].eval);
+  bool improving = (ply >= 2 && Stack[ply].eval > Stack[ply - 2].eval); /// (TO DO: make all pruning dependent of this variable?)
 
   killers[ply + 1][0] = killers[ply + 1][1] = NULLMOVE;
 
-  /// razoring
+  /// razoring (searching 1 more ply can't change the score much, drop in quiesce)
 
-  if(!pvNode && !isCheck && depth <= 1 && eval + 325 < alpha) /// ctt says this is the best
+  if(!pvNode && !isCheck && depth <= 1 && Stack[ply].eval + 325 < alpha)
     return quiesce(alpha, beta);
 
-  /// static null move pruning
+  /// static null move pruning (don't prune when having a mate line, again stability)
 
-  if(!pvNode && !isCheck && depth <= 8 && eval - (85 - StaticNullImproveCoef * improving) * depth > beta) /// same here
+  if(!pvNode && !isCheck && depth <= 8 && eval - (85 * depth - 80 * improving) > beta && abs(eval) < TB_WIN_SCORE)
     return eval;
 
-  /// null move pruning
+  /// null move pruning (when last move wasn't null, we still have non pawn material,
+  ///                    we have a good position and we don't have any idea if it's likely to fail)
 
-  if(!pvNode && !isCheck && eval >= beta && depth >= 2 && Stack[ply - 1].move &&
+  if(!pvNode && !isCheck && eval >= beta && eval >= Stack[ply].eval && depth >= 2 && Stack[ply - 1].move &&
      (board.pieces[board.turn] ^ board.bb[getType(PAWN, board.turn)] ^ board.bb[getType(KING, board.turn)]) &&
      (!ttHit || !(bound & UPPER) || ttValue >= beta)) {
     int R = 4 + depth / 6 + std::min(3, (eval - beta) / 200);
@@ -300,6 +305,8 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
     int score = -search(-beta, -beta + 1, depth - R);
 
+    /// TO DO: (verification search?)
+
     undoNullMove(board);
 
     if(score >= beta)
@@ -310,7 +317,8 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
   if(!pvNode && !isCheck && depth >= 5 && abs(beta) < MATE) {
     int cutBeta = beta + 100;
-    Movepick noisyPicker(NULLMOVE, NULLMOVE, NULLMOVE, NULLMOVE, cutBeta - eval);
+    Movepick noisyPicker(NULLMOVE,
+                         NULLMOVE, NULLMOVE, NULLMOVE, cutBeta - Stack[ply].eval);
 
     uint16_t move;
 
@@ -370,7 +378,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
           continue;
 
         /// futility pruning
-        if(depth <= 8 && eval + 90 * depth <= alpha && H.h + H.ch + H.fh < fpHistoryLimit[improving])
+        if(depth <= 8 && Stack[ply].eval + 90 * depth <= alpha && H.h + H.ch + H.fh < fpHistoryLimit[improving])
           skip = 1;
 
         /// late move pruning
@@ -404,7 +412,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
       if(score < rBeta)
         ex = 1;
-      else if(rBeta >= beta)
+      else if(rBeta >= beta) /// multicut
         return rBeta;
     } else {
       ex = isCheck | (isQuiet && pvNode && H.ch >= 10000 && H.fh >= 10000); /// in check extension and moves with good history
@@ -449,7 +457,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
       R += isCheck && piece_type(board.board[sqTo(move)]) == KING; /// check evasions
 
-      R -= picker.stage < STAGE_QUIETS; /// refutation moves
+      R -= picker.stage < STAGE_QUIETS; /// reduce for refutation moves
 
       R -= std::max(-2, std::min(2, (H.h + H.ch + H.fh) / 5000)); /// reduce based on move history
 
@@ -505,9 +513,9 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
   /// update tt only if we aren't in a singular search
 
-  if(excluded == NULLMOVE) {
+  if(!excluded) {
     bound = (best >= beta ? LOWER : (best > alphaOrig ? EXACT : UPPER));
-    TT->save(key, best, depth, ply, bound, bestMove, eval);
+    TT->save(key, best, depth, ply, bound, bestMove, Stack[ply].eval);
   }
 
   return best;

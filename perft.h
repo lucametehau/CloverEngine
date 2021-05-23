@@ -21,14 +21,6 @@ uint64_t perft(Board &board, int depth) {
 
   }*/
 
-  int mg = board.matScore();
-
-  if(mg != board.score[MG]) {
-    std::cout << mg << "\n";
-    std::cout << board.score[MG] << '\n';
-    board.print();
-  }
-
   if(depth == 1) {
     /*if(board.ply == 0) {
       for(int i = 0; i < nrMoves; i++)
