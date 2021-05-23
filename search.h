@@ -20,7 +20,7 @@ Search::Search() : threads(nullptr), params(nullptr)
       lmrRed[i][j] = 0.75 + log(i) * log(j) / 2.25;
   }
   for(int i = 1; i < 9; i++) {
-    lmrCnt[0][i] = (3 + i * i) / 2; /// 4 seems to be equal, but I doubt that
+    lmrCnt[0][i] = (3 + i * i) / 2; /// 4 seems to be equal, but I doubt that -> nvm 4 seems to be weaker
     lmrCnt[1][i] = 3 + i * i;
   }
   /*std::cout << "int lmrCnt[2][9] = {\n";
@@ -401,7 +401,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
     bool ex = 0;
 
-    /// singular extension (we look for other moves, for move diversity)
+    /// singular extension (we look if the tt move is better than the rest)
 
     if(!rootNode && !excluded && move == hashMove && abs(ttValue) < MATE && depth >= 8 && entry.depth() >= depth - 3 && (bound & LOWER)) { /// had best instead of ttValue lol
       int rBeta = ttValue - depth;
