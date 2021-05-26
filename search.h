@@ -83,6 +83,8 @@ int Search :: quiesce(int alpha, int beta) {
   int bound = NONE;
   uint16_t bestMove = NULLMOVE, hashMove = NULLMOVE;
 
+  TT->prefetch(key);
+
   tt :: Entry entry = {};
 
   int eval = INF, ttValue = 0;
@@ -100,7 +102,7 @@ int Search :: quiesce(int alpha, int beta) {
 
   if(eval == INF) {
     /// if last move was null, we already know the evaluation
-    Stack[ply].eval = eval = (Stack[ply - 1].move == NULLMOVE ? -Stack[ply - 1].eval + 2 * TEMPO : evaluate(board, this));
+    Stack[ply].eval = eval = (!Stack[ply - 1].move ? -Stack[ply - 1].eval + 2 * TEMPO : evaluate(board, this));
   } else {
     /// ttValue might be a better evaluation
 
@@ -190,9 +192,9 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
   if(!rootNode) {
     if(isRepetition(board, ply) || board.halfMoves >= 100 || board.isMaterialDraw())
       return 0;
-    int rAlpha = std::max(alpha, -INF + ply), rBeta = std::min(beta, INF - ply - 1);
-    if(rAlpha >= rBeta)
-      return rAlpha;
+    alpha = std::max(alpha, -INF + ply), beta = std::min(beta, INF - ply - 1);
+    if(alpha >= beta)
+      return alpha;
   }
 
   tt :: Entry entry = {};
@@ -266,7 +268,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
     if(excluded)
       eval = Stack[ply].eval;
     else
-      Stack[ply].eval = eval = (ply >= 1 && Stack[ply - 1].move == NULLMOVE ? -Stack[ply - 1].eval + 2 * TEMPO : evaluate(board, this));
+      Stack[ply].eval = eval = (ply >= 1 && !Stack[ply - 1].move ? -Stack[ply - 1].eval + 2 * TEMPO : evaluate(board, this));
   } else {
     /// ttValue might be a better evaluation
 
@@ -287,11 +289,12 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
   /// static null move pruning (don't prune when having a mate line, again stability)
 
-  if(!pvNode && !isCheck && depth <= 8 && eval - (85 * depth - 80 * improving) > beta && abs(eval) < TB_WIN_SCORE)
+  if(!pvNode && !isCheck && depth <= 8 && eval - (85 * depth - 80 * improving) > beta && abs(eval) < MATE)
     return eval;
 
   /// null move pruning (when last move wasn't null, we still have non pawn material,
   ///                    we have a good position and we don't have any idea if it's likely to fail)
+  /// TO DO: tune nmp
 
   if(!pvNode && !isCheck && eval >= beta && eval >= Stack[ply].eval && depth >= 2 && Stack[ply - 1].move &&
      (board.pieces[board.turn] ^ board.bb[getType(PAWN, board.turn)] ^ board.bb[getType(KING, board.turn)]) &&
@@ -309,7 +312,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
     undoNullMove(board);
 
-    if(score >= beta)
+    if(score >= beta) /// don't trust mate scores
       return (abs(score) > MATE ? beta : score);
   }
 
@@ -345,9 +348,14 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
     }
   }
 
+  /// internal iterative deepening (search at reduced depth to find a hashMove) (Rebel like)
+
+  if(pvNode && !isCheck && depth >= 4 && !hashMove)
+    depth--;
+
   /// get counter move for move picker
 
-  uint16_t counter = (ply == 0 || Stack[ply - 1].move == NULLMOVE ? NULLMOVE :
+  uint16_t counter = (ply == 0 || !Stack[ply - 1].move ? NULLMOVE :
                                                                     cmTable[1 ^ board.turn][Stack[ply - 1].piece][sqTo(Stack[ply - 1].move)]);
 
   Movepick picker(hashMove, killers[ply][0], killers[ply][1], counter, 0);
@@ -386,13 +394,13 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
           skip = 1;
       }
 
-      /// see pruning (to do: tune coefficients)
+      /// see pruning (to do: tune coefficients -> tuned with ctt, but the tuned ones are worse)
 
       if(depth <= 8 && !isCheck) {
         int seeMargin[2];
 
-        seeMargin[1] = -80 * depth;
-        seeMargin[0] = -18 * depth * depth;
+        seeMargin[1] = -seeCoefQuiet * depth;
+        seeMargin[0] = -seeCoefNoisy * depth * depth;
 
         if(!see(board, move, seeMargin[isQuiet]))
           continue;
@@ -405,17 +413,14 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
     if(!rootNode && !excluded && move == hashMove && abs(ttValue) < MATE && depth >= 8 && entry.depth() >= depth - 3 && (bound & LOWER)) { /// had best instead of ttValue lol
       int rBeta = ttValue - depth;
-      //cout << "Entering singular extension with ";
-      //cout << "depth = " << depth << ", alpha = " << alpha << ", beta = " << beta << "\n";
-      //board.print();
       int score = search(rBeta - 1, rBeta, depth / 2, move);
 
       if(score < rBeta)
         ex = 1;
       else if(rBeta >= beta) /// multicut
         return rBeta;
-    } else {
-      ex = isCheck | (isQuiet && pvNode && H.ch >= 10000 && H.fh >= 10000); /// in check extension and moves with good history
+    } else if(!rootNode) {
+      ex |= isCheck | (isQuiet && pvNode && H.ch >= 10000 && H.fh >= 10000); /// in check extension and moves with good history
     }
 
     /// update stack info
@@ -498,8 +503,9 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
   TT->prefetch(key);
 
-  if(!played)
+  if(!played) {
     return (isCheck ? -INF + ply : 0);
+  }
 
   /// update killers and history heuristics
 
@@ -669,6 +675,17 @@ void Search :: startSearch(Info *_info) {
         std::cout << "pv ";
         printPv();
         std::cout << std::endl;
+        /*if(tDepth >= 20) {
+        //board.print();
+        for(int i = 0; i < pvTableLen[0]; i++) {
+          makeMove(board, pvTable[0][i]);
+        }
+        board.print();
+        std::cout << evaluate(board) << "\n";
+        for(int i = pvTableLen[0] - 1; i >= 0; i--) {
+          undoMove(board, pvTable[0][i]);
+        }
+        }*/
       }
 
       if(flag & TERMINATED_SEARCH)
@@ -700,8 +717,9 @@ void Search :: startSearch(Info *_info) {
         }
       }
       info->stopTime = info->startTime + info->goodTimeLim;
-      lastScore = score;
     }
+
+    lastScore = score;
 
     if(flag & TERMINATED_SEARCH)
       break;

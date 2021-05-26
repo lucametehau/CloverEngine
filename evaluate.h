@@ -50,6 +50,7 @@ public:
   uint8_t mat[2][2][7];
 
   uint8_t passedBonus[2][2][7];
+  uint8_t passedEnemyKingDistBonus[2][2][8];
   uint8_t connectedBonus[2][2][7];
 
   uint8_t safeCheck[2][2][6];
@@ -121,6 +122,10 @@ const int maxWeight = 16 * phaseVal[PAWN] + 4 * phaseVal[KNIGHT] + 4 * phaseVal[
 int passedBonus[2][7] = {
   {0, -1, -10, -1, 20, 27, 96},
   {0, 1, 13, 41, 71, 126, 146},
+};
+int passedEnemyKingDistBonus[2][8] = {
+  {0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0},
 };
 int connectedBonus[2][7] = {
   {0, 1, 2, 4, 9, 25, 80},
@@ -349,15 +354,25 @@ void pawnEval(Board &board, int color, EvalTools &tools, int pawnScore[], uint64
 void passersEval(Board &board, int color, EvalTools &tools, uint64_t passers) {
   /// blocked passers aren't given any passed bonus - to change?
   uint64_t blockedPassers = passers & shift(color, SOUTH, board.pieces[color ^ 1]);
+  int enemyKing = board.king(color ^ 1);
   passers ^= blockedPassers;
   while(passers) {
     uint64_t b = lsb(passers);
-    int rank = (color == WHITE ? Sq(b) / 8 : 7 - Sq(b) / 8);
+    int sq = Sq(b);
+    int rank = (color == WHITE ? sq / 8 : 7 - sq / 8);
     tools.score[color][MG] += passedBonus[MG][rank];
     tools.score[color][EG] += passedBonus[EG][rank];
 
     if(TUNE)
       trace.passedBonus[color][MG][rank]++, trace.passedBonus[color][EG][rank]++;
+
+    int dist = distance(enemyKing, sq);
+
+    tools.score[color][MG] += passedEnemyKingDistBonus[MG][dist];
+    tools.score[color][EG] += passedEnemyKingDistBonus[MG][dist];
+
+    if(TUNE)
+      trace.passedEnemyKingDistBonus[color][MG][dist]++, trace.passedEnemyKingDistBonus[color][EG][dist]++;
     passers ^= b;
   }
 }
@@ -718,6 +733,13 @@ void getTraceEntries(EvalTrace &trace) {
     for(int i = 1; i < 7; i++) {
       for(int col = 0; s == MG && col < 2; col++)
         trace.add(ind, ind + 6, col, trace.passedBonus[col][s][i]);
+      ind++;
+    }
+  }
+  for(int s = MG; s <= EG; s++) {
+    for(int i = 1; i <= 7; i++) {
+      for(int col = 0; s == MG && col < 2; col++)
+        trace.add(ind, ind + 7, col, trace.passedEnemyKingDistBonus[col][s][i]);
       ind++;
     }
   }

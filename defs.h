@@ -220,6 +220,10 @@ inline uint16_t inv(uint16_t move) { ///
   return ((move << 6) & 4095) | (move >> 6);
 }
 
+inline int distance(int a, int b) {
+  return std::max(abs(a / 8 - b / 8), abs(a % 8 - b % 8));
+}
+
 inline std::string toString(uint16_t move) {
   int sq1 = sqFrom(move), sq2 = sqTo(move);
   std::string ans = "";

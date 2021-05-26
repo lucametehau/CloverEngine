@@ -27,7 +27,7 @@
 /// is this working?
 /// i guess so?
 
-const std::string VERSION = "2.4-dev6"; /// 2.0 was "FM"
+const std::string VERSION = "2.4-dev8"; /// 2.0 was "FM"
 
 char line[INPUTBUFFER];
 
@@ -284,6 +284,20 @@ void UCI :: Uci_Loop() {
 
               iss >> val;
               StaticNullImproveCoef = val;
+            } else if(name == "seeCoefQuiet") {
+              iss >> value;
+
+              int val;
+
+              iss >> val;
+              seeCoefQuiet = val;
+            } else if(name == "seeCoefNoisy") {
+              iss >> value;
+
+              int val;
+
+              iss >> val;
+              seeCoefNoisy = val;
             }
 
           } else if(cmd == "tune") {
