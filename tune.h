@@ -14,7 +14,7 @@
 
 const int PRECISION = 8;
 const int NPOS = 9999740; /// 9999740 2500000
-const int TERMS = 986;
+const int TERMS = 972;
 const int BUCKET_SIZE = 1LL * NPOS * TERMS / 64;
 
 struct Position {
@@ -215,10 +215,6 @@ void loadWeights() {
       weights[ind++] = (passedBonus[s][i]);
   }
   for(int s = MG; s <= EG; s++) {
-    for(int i = 1; i <= 7; i++)
-      weights[ind++] = (passedEnemyKingDistBonus[s][i]);
-  }
-  for(int s = MG; s <= EG; s++) {
     for(int i = 1; i < 7; i++)
       weights[ind++] = (connectedBonus[s][i]);
   }
@@ -296,10 +292,6 @@ void saveWeights() {
   for(int s = MG; s <= EG; s++) {
     for(int i = 1; i < 7; i++)
       passedBonus[s][i] = weights[ind++];
-  }
-  for(int s = MG; s <= EG; s++) {
-    for(int i = 1; i <= 7; i++)
-      passedEnemyKingDistBonus[s][i] = weights[ind++];
   }
   for(int s = MG; s <= EG; s++) {
     for(int i = 1; i < 7; i++)
@@ -398,15 +390,6 @@ void printWeights(int iteration = 0) {
   for(int s = MG; s <= EG; s++) {
     out << "  {0";
     for(int i = 1; i < 7; i++)
-      out << ", " << weights[ind++];
-    out << "},\n";
-  }
-  out << "};\n";
-
-  out << "int passedEnemyKingDistBonus[2][8] = {\n";
-  for(int s = MG; s <= EG; s++) {
-    out << "  {0";
-    for(int i = 1; i <= 7; i++)
       out << ", " << weights[ind++];
     out << "},\n";
   }

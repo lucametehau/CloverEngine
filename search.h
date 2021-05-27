@@ -72,7 +72,7 @@ int Search :: quiesce(int alpha, int beta) {
   nodes++;
 
   if(isRepetition(board, ply) || board.halfMoves >= 100 || board.isMaterialDraw()) /// check for draw
-    return 0;
+    return 1 - (nodes & 2);
 
   if(checkForStop())
     return ABORT;
@@ -81,7 +81,7 @@ int Search :: quiesce(int alpha, int beta) {
   uint64_t key = board.key;
   int score = 0, best = -INF, alphaOrig = alpha;
   int bound = NONE;
-  uint16_t bestMove = NULLMOVE, hashMove = NULLMOVE;
+  uint16_t bestMove = NULLMOVE;
 
   TT->prefetch(key);
 
@@ -95,7 +95,7 @@ int Search :: quiesce(int alpha, int beta) {
     eval = entry.info.eval;
     ttValue = score = entry.value(ply);
     bound = entry.bound();
-    hashMove = entry.info.move;
+
     if(bound == EXACT || (bound == LOWER && score >= beta) || (bound == UPPER && score <= alpha))
       return score;
   }
@@ -191,7 +191,9 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
   if(!rootNode) {
     if(isRepetition(board, ply) || board.halfMoves >= 100 || board.isMaterialDraw())
-      return 0;
+      return 1 - (nodes & 2); /// beal effect apparently, credit to Ethereal for this
+
+    /// mate distance pruning
     alpha = std::max(alpha, -INF + ply), beta = std::min(beta, INF - ply - 1);
     if(alpha >= beta)
       return alpha;

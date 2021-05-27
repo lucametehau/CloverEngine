@@ -114,22 +114,18 @@ public:
 const int TEMPO = 20;
 
 int doubledPawnsPenalty[2] = {0, -25, };
-int isolatedPenalty[2] = {-11, -1, };
+int isolatedPenalty[2] = {-10, -2, };
 int backwardPenalty[2] = {-10, -13, };
 
 const int phaseVal[] = {0, 0, 1, 1, 2, 4};
 const int maxWeight = 16 * phaseVal[PAWN] + 4 * phaseVal[KNIGHT] + 4 * phaseVal[BISHOP] + 4 * phaseVal[ROOK] + 2 * phaseVal[QUEEN];
 int passedBonus[2][7] = {
-  {0, -1, -10, -1, 20, 27, 96},
-  {0, 1, 13, 41, 71, 126, 146},
-};
-int passedEnemyKingDistBonus[2][8] = {
-  {0, 0, 0, 0, 0, 0, 0, 0},
-  {0, 0, 0, 0, 0, 0, 0, 0},
+  {0, -6, -14, -1, 20, 23, 85},
+  {0, -4, 10, 41, 75, 133, 149},
 };
 int connectedBonus[2][7] = {
-  {0, 1, 2, 4, 9, 25, 80},
-  {0, 1, 3, 3, 9, 22, 28},
+  {0, 1, 2, 4, 9, 23, 71},
+  {0, 1, 3, 3, 9, 23, 32},
 };
 int kingAttackWeight[] = {0, 0, 2, 2, 3, 5};
 int SafetyTable[100] = {
@@ -144,45 +140,45 @@ int SafetyTable[100] = {
   500, 500, 500, 500, 500, 500, 500, 500, 500, 500,
   500, 500, 500, 500, 500, 500, 500, 500, 500, 500,
 };
-int safeCheck[2][7] = {
-  {0, 0, -91, -23, -110, -33},
-  {0, 0, 18, -29, 15, -19},
+int safeCheck[2][6] = {
+  {0, 0, -95, -24, -124, -34},
+  {0, 0, 19, -32, 19, -15},
 };
 int pawnShield[2][4] = {
-  {0, 6, 37, 65},
-  {0, 15, 5, -4},
+  {0, 7, 38, 65},
+  {0, 14, 4, -5},
 };
 int outpostBonus[2][4] = {
-  {0, 0, 33, 32},
-  {0, 0, 9, 9},
+  {0, 0, 32, 31},
+  {0, 0, 8, 8},
 };
 int outpostHoleBonus[2][4] = {
-  {0, 0, 20, 26},
-  {0, 0, 22, 8},
+  {0, 0, 19, 26},
+  {0, 0, 20, 9},
 };
-int rookOpenFile[2] = {41, 3, };
+int rookOpenFile[2] = {40, 4, };
 int rookSemiOpenFile[2] = {16, 7, };
-int bishopPair[2] = {32, 66, };
-int longDiagonalBishop[2] = {21, 15, };
-int trappedRook[2] = {-19, -21, };
+int bishopPair[2] = {31, 67, };
+int longDiagonalBishop[2] = {20, 14, };
+int trappedRook[2] = {-21, -20, };
 int mobilityBonus[7][2][30] = {
     {},
     {},
     {
-        {-60, -5, 14, 24, 37, 42, 50, 61, 73, },
-        {-31, -15, 24, 36, 41, 51, 53, 50, 42, },
+        {-58, -4, 14, 25, 37, 42, 50, 60, 72, },
+        {-29, -15, 24, 35, 42, 52, 53, 51, 43, },
     },
     {
-        {-60, -15, 0, 14, 26, 34, 40, 44, 46, 45, 49, 57, 58, 67, },
-        {-54, -47, -12, 11, 20, 31, 37, 41, 46, 49, 44, 38, 45, 35, },
+        {-57, -14, 1, 15, 26, 34, 40, 43, 45, 45, 50, 56, 55, 62, },
+        {-54, -47, -11, 12, 20, 31, 37, 42, 46, 48, 44, 38, 46, 35, },
     },
     {
-        {-70, -21, -5, 3, 6, 6, 8, 11, 15, 16, 17, 20, 20, 22, 18, },
-        {-87, -39, 3, 21, 27, 35, 42, 49, 54, 62, 68, 70, 72, 68, 67, },
+        {-66, -21, -5, 3, 6, 6, 8, 11, 15, 16, 17, 19, 19, 21, 16, },
+        {-91, -37, 4, 21, 27, 35, 43, 50, 55, 62, 68, 70, 72, 68, 66, },
     },
     {
-        {-216, -146, -77, -10, 4, 15, 28, 31, 37, 39, 42, 45, 46, 48, 50, 52, 49, 50, 42, 45, 49, 58, 55, 58, 64, 120, 63, 126, },
-        {-153, -93, -10, -81, -35, 3, -33, 5, 12, 27, 36, 47, 66, 69, 78, 88, 99, 104, 112, 119, 114, 113, 115, 113, 115, 73, 94, 142, },
+        {-310, -148, -74, -7, 5, 13, 29, 31, 37, 39, 42, 46, 46, 48, 50, 51, 48, 50, 44, 44, 50, 59, 54, 60, 62, 124, 64, 124, },
+        {-236, -90, -6, -85, -34, 9, -34, 7, 14, 28, 36, 48, 66, 69, 78, 88, 98, 102, 109, 118, 113, 113, 113, 113, 116, 70, 93, 132, },
     }
 };
 
@@ -354,7 +350,7 @@ void pawnEval(Board &board, int color, EvalTools &tools, int pawnScore[], uint64
 void passersEval(Board &board, int color, EvalTools &tools, uint64_t passers) {
   /// blocked passers aren't given any passed bonus - to change?
   uint64_t blockedPassers = passers & shift(color, SOUTH, board.pieces[color ^ 1]);
-  int enemyKing = board.king(color ^ 1);
+
   passers ^= blockedPassers;
   while(passers) {
     uint64_t b = lsb(passers);
@@ -366,13 +362,6 @@ void passersEval(Board &board, int color, EvalTools &tools, uint64_t passers) {
     if(TUNE)
       trace.passedBonus[color][MG][rank]++, trace.passedBonus[color][EG][rank]++;
 
-    int dist = distance(enemyKing, sq);
-
-    tools.score[color][MG] += passedEnemyKingDistBonus[MG][dist];
-    tools.score[color][EG] += passedEnemyKingDistBonus[MG][dist];
-
-    if(TUNE)
-      trace.passedEnemyKingDistBonus[color][MG][dist]++, trace.passedEnemyKingDistBonus[color][EG][dist]++;
     passers ^= b;
   }
 }
@@ -733,13 +722,6 @@ void getTraceEntries(EvalTrace &trace) {
     for(int i = 1; i < 7; i++) {
       for(int col = 0; s == MG && col < 2; col++)
         trace.add(ind, ind + 6, col, trace.passedBonus[col][s][i]);
-      ind++;
-    }
-  }
-  for(int s = MG; s <= EG; s++) {
-    for(int i = 1; i <= 7; i++) {
-      for(int col = 0; s == MG && col < 2; col++)
-        trace.add(ind, ind + 7, col, trace.passedEnemyKingDistBonus[col][s][i]);
       ind++;
     }
   }

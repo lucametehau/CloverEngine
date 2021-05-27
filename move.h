@@ -1003,7 +1003,7 @@ inline int genLegalQuiets(Board &board, uint16_t *moves) {
     mask ^= b;
   }
 
-  uint64_t notPinned = ~pinned, capMask = 0, quietMask = 0;
+  uint64_t notPinned = ~pinned, quietMask = 0;
 
   int cnt = smallPopCount(checkers);
 
@@ -1018,11 +1018,9 @@ inline int genLegalQuiets(Board &board, uint16_t *moves) {
     case KNIGHT:
       return nrMoves;
     default:
-      capMask = checkers;
       quietMask = between[king][sq];
     }
   } else {
-    capMask = them;
     quietMask = ~all;
 
     if(board.castleRights & (1 << (2 * color))) {
