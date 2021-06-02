@@ -37,7 +37,7 @@ int main(int argc, char **argv) {
 
   UCI uci(*searcher.get());
   if (argc > 1 && !strncmp(argv[1], "bench", 5)) {
-    uci.Bench("benchpos.txt");
+    uci.Bench();
     return 0;
   }
   uci.Uci_Loop();

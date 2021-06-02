@@ -7,4 +7,4 @@
 bin
 gmon.out
 search.cpp
-weights.txt
+*.txt
