@@ -4,6 +4,7 @@
 #include <ctime>
 #include <ratio>
 #include <random>
+#include <cassert>
 
 std::mt19937_64 gen(0xBEEF);
 std::uniform_int_distribution <uint64_t> rng;
@@ -54,7 +55,7 @@ const int INF = 32000;
 const int MATE = 31000;
 const int TB_WIN_SCORE = 22000;
 const int ABORT = 1000000;
-const int DEPTH = 255;
+const int DEPTH = 1000;
 const uint64_t CENTER = 103481868288ULL;
 const uint64_t ALL = 18446744073709551615ULL;
 const uint64_t LONG_DIAGONALS =  9314046665258451585ULL;
@@ -74,6 +75,7 @@ uint64_t neighFilesMask[64];
 uint64_t between[64][64], Line[64][64];
 uint64_t flankMask[8];
 int mirrorSq[2][64];
+int distance[64][64];
 
 const std::pair <int, int> knightDir[] = {{-1, -2}, {-2, -1}, {-2, 1}, {-1, 2}, {1, 2}, {2, 1}, {2, -1}, {1, -2}};
 const std::pair <int, int> rookDir[] = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
@@ -158,6 +160,13 @@ inline int Sq(uint64_t bb) {
   return 63 - __builtin_clzll(bb);
 }
 
+int getFirstBit(int color, uint64_t bb) {
+  if(!bb)
+    return 0;
+
+  return (color == WHITE ? Sq(lsb(bb)) : Sq(bb));
+}
+
 inline int oppositeColor(int sq1, int sq2) {
   return (((sq1 >> 3) + (sq1 & 7)) & 1) != (((sq2 >> 3) + (sq2 & 7)) & 1);
 }
@@ -218,10 +227,6 @@ inline uint16_t inv(uint16_t move) { ///
   if(move >= (1 << 12))
     return NULLMOVE;
   return ((move << 6) & 4095) | (move >> 6);
-}
-
-inline int distance(int a, int b) {
-  return std::max(abs(a / 8 - b / 8), abs(a % 8 - b % 8));
 }
 
 inline std::string toString(uint16_t move) {
@@ -286,6 +291,12 @@ inline void init_defs() {
   for(int i = 0; i < 2; i++) {
     for(int j = 0; j < 64; j++)
       mirrorSq[i][j] = mirror(i, j);
+  }
+
+  for(int i = 0; i < 64; i++) {
+    for(int j = 0; j < 64; j++) {
+      distance[i][j] = std::max(abs(i % 8 - j % 8), abs(i / 8 - j / 8));
+    }
   }
 
   for(int i = 0; i < 8; i++)

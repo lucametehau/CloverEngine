@@ -7,7 +7,7 @@
 
 //Search sr[1];
 
-int main() {
+int main(int argc, char **argv) {
   //sr->clearStack();
   init_defs();
   initAttacks();
@@ -36,6 +36,10 @@ int main() {
   searcher->_setFen(START_POS_FEN);
 
   UCI uci(*searcher.get());
+  if (argc > 1 && !strncmp(argv[1], "bench", 5)) {
+    uci.Bench("benchpos.txt");
+    return 0;
+  }
   uci.Uci_Loop();
   return 0;
 }

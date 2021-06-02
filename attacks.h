@@ -121,10 +121,18 @@ inline void initKnightAndKingAttacks() {
 inline void initPawnAttacks() {
   for(int i = 0; i < 64; i++) {
     int file = i % 8;
-    if(file > 0)
-      pawnAttacksMask[WHITE][i] |= (1ULL << (i + 7)), pawnAttacksMask[BLACK][i] |= (1ULL << (i - 9));
-    if(file < 7)
-      pawnAttacksMask[WHITE][i] |= (1ULL << (i + 9)), pawnAttacksMask[BLACK][i] |= (1ULL << (i - 7));
+    if(file > 0) {
+      if(i + 7 < 64)
+        pawnAttacksMask[WHITE][i] |= (1ULL << (i + 7));
+      if(i >= 9)
+        pawnAttacksMask[BLACK][i] |= (1ULL << (i - 9));
+    }
+    if(file < 7) {
+      if(i + 9 < 64)
+        pawnAttacksMask[WHITE][i] |= (1ULL << (i + 9));
+      if(i >= 7)
+        pawnAttacksMask[BLACK][i] |= (1ULL << (i - 7));
+    }
   }
 }
 

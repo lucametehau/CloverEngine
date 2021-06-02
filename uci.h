@@ -24,10 +24,15 @@
 ///       - tune search parameters (ctt)
 ///       - if I get stuck, last option is to add NNUE :)
 
+/// 2.4 log
+/// - so I added gradient descent and adagrad to my tuner and now I can easily tune any old/new param
+/// - added proper king shelter evaluation (king shelter, storm, blocked storm)
+/// - give blocked passers bonus score, bonus for distance to edge
+
 /// is this working?
 /// i guess so?
 
-const std::string VERSION = "2.4-dev9"; /// 2.0 was "FM"
+const std::string VERSION = "2.4-dev14"; /// 2.0 was "FM"
 
 char line[INPUTBUFFER];
 
@@ -38,6 +43,7 @@ class UCI {
 
   public:
     void Uci_Loop();
+    void Bench(std::string path);
 
   private:
     void Uci();
@@ -50,7 +56,6 @@ class UCI {
     void Eval();
     void Tune(int nrThreads, std::string path);
     void Perft(int depth);
-    void Bench(std::string path);
 
   private:
     Search &searcher;
@@ -205,8 +210,6 @@ void UCI :: Uci_Loop() {
 
                 if(depth == -1)
                   info->depth = DEPTH;
-
-                //printf("time:%lld start:%lf stop:%lf depth:%d timeset:%d\n",time,info->startTime,info->stopTime,info->depth,info->timeset);
 
                 Go(info);
 
@@ -394,10 +397,15 @@ void UCI :: Perft(int depth) {
   std::cout << "nps  : " << nps << std::endl;
 }
 
+/// IMPORTANT NOTICE: AFTER RUNNING bench, RUN ucinewgame AGAIN (to fix)
+/// why? because tt is initialized with 16MB when bench is run
+
 void UCI :: Bench(std::string path) {
   std::ifstream in (path);
   std::string fen;
   Info info[1];
+
+  TT = new tt :: HashTable();
 
   init(info);
 
@@ -405,9 +413,9 @@ void UCI :: Bench(std::string path) {
 
   UciNewGame(ttSize);
 
-  printStats = false;
+  searcher.principalSearcher = true;
 
-  searcher.principalSearcher = 1;
+  printStats = false;
 
   /// do fixed depth searches for some positions
 
@@ -432,8 +440,10 @@ void UCI :: Bench(std::string path) {
 
   printStats = true;
 
-  std::cout << "nodes: " << totalNodes << "\n";
+  std::cout << totalNodes << " nodes " << int(totalNodes / t) << " nps" << std::endl;
+
+  /*std::cout << "nodes: " << totalNodes << "\n";
   std::cout << " time: " << t << "\n";
-  std::cout << "  nps: " << int(totalNodes / t) << "\n";
+  std::cout << "  nps: " << int(totalNodes / t) << "\n";*/
 }
 

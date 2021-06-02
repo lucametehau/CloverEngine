@@ -170,6 +170,8 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
   uint64_t key = board.key;
   uint16_t quiets[256], nrQuiets = 0;
 
+  //board.print();
+
   //cout << alpha << " " << beta << " " << depth << "\n";
 
   if(checkForStop())
@@ -276,8 +278,10 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
     Stack[ply].eval = eval;
 
-    if(bound == EXACT || (bound == LOWER && ttValue > eval) || (bound == UPPER && ttValue < eval))
-      eval = ttValue;
+    if(!isCheck) {
+      if(bound == EXACT || (bound == LOWER && ttValue > eval) || (bound == UPPER && ttValue < eval))
+        eval = ttValue;
+    }
   }
 
   bool improving = (ply >= 2 && Stack[ply].eval > Stack[ply - 2].eval); /// (TO DO: make all pruning dependent of this variable?)
@@ -291,14 +295,14 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
   /// static null move pruning (don't prune when having a mate line, again stability)
 
-  if(!pvNode && !isCheck && depth <= 8 && eval - (85 * depth - 80 * improving) > beta && abs(eval) < MATE)
+  if(!pvNode && !isCheck && depth <= 8 && eval - (85 * depth - 0 * improving) > beta && eval < MATE)
     return eval;
 
   /// null move pruning (when last move wasn't null, we still have non pawn material,
   ///                    we have a good position and we don't have any idea if it's likely to fail)
   /// TO DO: tune nmp
 
-  if(!pvNode && !isCheck && eval >= beta && eval >= Stack[ply].eval && depth >= 2 && Stack[ply - 1].move &&
+  if(!pvNode && !isCheck && !excluded && eval >= beta && eval >= Stack[ply].eval && depth >= 2 && Stack[ply - 1].move &&
      (board.pieces[board.turn] ^ board.bb[getType(PAWN, board.turn)] ^ board.bb[getType(KING, board.turn)]) &&
      (!ttHit || !(bound & UPPER) || ttValue >= beta)) {
     int R = 4 + depth / 6 + std::min(3, (eval - beta) / 200);
@@ -706,6 +710,8 @@ void Search :: startSearch(Info *_info) {
 
       window += window / 2;
 
+      if(window > 700) /// idk (testing indicated that any window above this pretty much leads to mate)
+        window = INF;
     }
 
     if(principalSearcher) {
@@ -751,10 +757,12 @@ void Search :: startSearch(Info *_info) {
 void Search :: clearHistory() {
   memset(hist, 0, sizeof(hist));
   memset(cmTable, 0, sizeof(cmTable));
+  memset(follow, 0, sizeof(follow));
 
   for(int i = 0; i < threadCount; i++) {
     memset(params[i].hist, 0, sizeof(params[i].hist));
     memset(params[i].cmTable, 0, sizeof(params[i].cmTable));
+    memset(params[i].follow, 0, sizeof(params[i].follow));
   }
 }
 
@@ -767,14 +775,12 @@ void Search :: clearKillers() {
 
 void Search :: clearStack() {
   memset(Stack, 0, sizeof(Stack));
-  memset(follow, 0, sizeof(follow));
   memset(pvTableLen, 0, sizeof(pvTableLen));
   memset(pvTable, 0, sizeof(pvTable));
   PT.initpTable();
 
   for(int i = 0; i < threadCount; i++) {
     memset(params[i].Stack, 0, sizeof(params[i].Stack));
-    memset(params[i].follow, 0, sizeof(params[i].follow));
     memset(params[i].pvTableLen, 0, sizeof(params[i].pvTableLen));
     memset(params[i].pvTable, 0, sizeof(params[i].pvTable));
     params[i].PT.initpTable();

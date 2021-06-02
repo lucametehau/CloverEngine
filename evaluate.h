@@ -13,7 +13,6 @@ struct EvalTools { /// to avoid data races, kinda dirty tho
   int phase;
 
   int kingAttackersCount[2], kingAttackersWeight[2];
-  int kingDanger[2];
   int score[2][2];
 
   void init() {
@@ -28,7 +27,6 @@ struct EvalTools { /// to avoid data races, kinda dirty tho
     memset(attackedByPiece, 0, sizeof(attackedByPiece));
     memset(kingAttackersCount, 0, sizeof(kingAttackersCount));
     memset(kingAttackersWeight, 0, sizeof(kingAttackersWeight));
-    memset(kingDanger, 0, sizeof(kingDanger));
     allPawns = 0;
   }
 };
@@ -41,16 +39,18 @@ struct EvalTraceEntry {
 
 class EvalTrace { /// when tuning, we can keep the count of every evaluation term used for speed up
 public:
-  int phase;
 
+  uint8_t passerDistToEdge[2][2];
+  uint8_t passerDistToKings[2][2];
   uint8_t doubledPawnsPenalty[2][2];
   uint8_t isolatedPenalty[2][2];
   uint8_t backwardPenalty[2][2];
+  uint8_t pawnDefendedBonus[2][2];
 
   uint8_t mat[2][2][7];
 
   uint8_t passedBonus[2][2][7];
-  uint8_t passedEnemyKingDistBonus[2][2][8];
+  uint8_t blockedPassedBonus[2][2][7];
   uint8_t connectedBonus[2][2][7];
 
   uint8_t safeCheck[2][2][6];
@@ -74,12 +74,15 @@ public:
 
   uint8_t scale;
 
-  uint16_t kingDanger[2];
+  int8_t SafetyTable[2][2][100];
+  int8_t kingShelter[2][2][4][8];
+  int8_t kingStorm[2][2][4][8];
+  int8_t blockedStorm[2][2][8];
 
-  uint16_t others[2];
-
-  EvalTraceEntry entries[1000];
+  EvalTraceEntry entries[2000];
   int nrEntries;
+
+  int phase;
 
   void add(int mgind, int egind, bool color, int val) {
     if(!val && (color == BLACK || !entries[nrEntries].dval))
@@ -103,7 +106,7 @@ public:
 
   uint16_t nrEntries;
 
-  uint16_t others[2], kingDanger[2];
+  uint16_t kingDanger[2][2];
 
   uint8_t phase;
   uint8_t scale;
@@ -113,72 +116,120 @@ public:
 
 const int TEMPO = 20;
 
-int doubledPawnsPenalty[2] = {0, -25, };
-int isolatedPenalty[2] = {-10, -2, };
-int backwardPenalty[2] = {-10, -13, };
+int passerDistToEdge[2] = {-4, -4, };
+int doubledPawnsPenalty[2] = {0, -33, };
+int isolatedPenalty[2] = {-3, -11, };
+int backwardPenalty[2] = {-6, -19, };
+int pawnDefendedBonus[2] = {13, 5, };
 
 const int phaseVal[] = {0, 0, 1, 1, 2, 4};
 const int maxWeight = 16 * phaseVal[PAWN] + 4 * phaseVal[KNIGHT] + 4 * phaseVal[BISHOP] + 4 * phaseVal[ROOK] + 2 * phaseVal[QUEEN];
 int passedBonus[2][7] = {
-  {0, -6, -14, -1, 20, 23, 85},
-  {0, -4, 10, 41, 75, 133, 149},
+  {0, -6, -5, 2, 30, 33, 72},
+  {0, 21, 27, 53, 81, 143, 136},
+};
+int blockedPassedBonus[2][7] = {
+  {0, -3, 0, 10, 34, 37, 30},
+  {0, -3, 7, 18, 28, 47, 37},
 };
 int connectedBonus[2][7] = {
-  {0, 1, 2, 4, 9, 23, 71},
-  {0, 1, 3, 3, 9, 23, 32},
+  {0, 1, 3, 3, 7, 25, 70},
+  {0, -1, 1, 3, 11, 21, 23},
 };
 int kingAttackWeight[] = {0, 0, 2, 2, 3, 5};
-int SafetyTable[100] = {
-  0, 0, 1, 2, 3, 5, 7, 9, 12, 15,
-  18, 22, 26, 30, 35, 39, 44, 50, 56, 62,
-  68, 75, 82, 85, 89, 97, 105, 113, 122, 131,
-  140, 150, 169, 180, 191, 202, 213, 225, 237, 248,
-  260, 272, 283, 295, 307, 319, 330, 342, 354, 366,
-  377, 389, 401, 412, 424, 436, 448, 459, 471, 483,
-  494, 500, 500, 500, 500, 500, 500, 500, 500, 500,
-  500, 500, 500, 500, 500, 500, 500, 500, 500, 500,
-  500, 500, 500, 500, 500, 500, 500, 500, 500, 500,
-  500, 500, 500, 500, 500, 500, 500, 500, 500, 500,
+int SafetyTable[2][100] = {
+  {
+    0, -1, 3, 1, 1, 5, 8, 4, 17, 14,
+    36, 27, 14, 36, 28, 58, 46, 26, 53, 46,
+    74, 66, 55, 81, 65, 107, 98, 89, 113, 109,
+    144, 133, 167, 178, 179, 200, 210, 224, 238, 248,
+    260, 272, 284, 295, 307, 319, 330, 342, 354, 366,
+    377, 389, 401, 412, 424, 436, 448, 459, 471, 483,
+    494, 500, 500, 500, 500, 500, 500, 500, 500, 500,
+    500, 500, 500, 500, 500, 500, 500, 500, 500, 500,
+    500, 500, 500, 500, 500, 500, 500, 500, 500, 500,
+    500, 500, 500, 500, 500, 500, 500, 500, 500, 500,
+  },
+  {
+    0, -4, -4, -5, -1, -6, 0, 12, 9, 15,
+    23, 20, 24, 26, 34, 46, 34, 44, 48, 52,
+    67, 68, 74, 80, 77, 102, 100, 104, 116, 122,
+    141, 140, 169, 179, 183, 201, 212, 224, 237, 248,
+    260, 272, 283, 295, 307, 319, 330, 342, 354, 366,
+    377, 389, 401, 412, 424, 436, 448, 459, 471, 483,
+    494, 500, 500, 500, 500, 500, 500, 500, 500, 500,
+    500, 500, 500, 500, 500, 500, 500, 500, 500, 500,
+    500, 500, 500, 500, 500, 500, 500, 500, 500, 500,
+    500, 500, 500, 500, 500, 500, 500, 500, 500, 500,
+  },
+};
+int kingShelter[2][4][7] = {
+  {
+    {-23, 13, 18, 5, 3, 8, 2, },
+    {-26, 20, 17, -8, 3, 8, 1, },
+    {-19, 15, -1, -7, 2, 2, 5, },
+    {-13, 11, 2, -6, -9, -16, -1, },
+  },
+  {
+    {2, -33, -15, 0, 14, 18, 10, },
+    {0, -11, -11, 5, 12, 12, 11, },
+    {-11, -11, -3, 0, 8, 11, 9, },
+    {-20, -11, -15, 2, 13, 11, 6, },
+  },
+};
+int kingStorm[2][4][7] = {
+  {
+    {-11, 16, 17, -16, -9, 4, 1, },
+    {-21, 6, -1, -19, -5, 14, -1, },
+    {-13, 3, -5, -22, -1, 10, 6, },
+    {1, 7, 1, -16, 0, 17, 18, },
+  },
+  {
+    {-31, 32, 53, 29, -5, -23, -14, },
+    {-25, 25, 44, 26, 1, -22, -25, },
+    {-24, 24, 39, 22, -5, -20, -35, },
+    {-12, 30, 43, 17, -6, -14, -9, },
+  },
+};
+int blockedStorm[2][7] = {
+  {0, 0, -18, 10, 16, 13, -3, },
+  {0, 0, -3, -21, -34, -40, -21, },
 };
 int safeCheck[2][6] = {
-  {0, 0, -95, -24, -124, -34},
-  {0, 0, 19, -32, 19, -15},
-};
-int pawnShield[2][4] = {
-  {0, 7, 38, 65},
-  {0, 14, 4, -5},
+  {0, 0, -72, -31, -66, -66},
+  {0, 0, -4, -17, -5, -13},
 };
 int outpostBonus[2][4] = {
-  {0, 0, 32, 31},
-  {0, 0, 8, 8},
+  {0, 0, 29, 29},
+  {0, 0, 1, 5},
 };
 int outpostHoleBonus[2][4] = {
-  {0, 0, 19, 26},
-  {0, 0, 20, 9},
+  {0, 0, 22, 23},
+  {0, 0, 8, 11},
 };
-int rookOpenFile[2] = {40, 4, };
-int rookSemiOpenFile[2] = {16, 7, };
-int bishopPair[2] = {31, 67, };
-int longDiagonalBishop[2] = {20, 14, };
-int trappedRook[2] = {-21, -20, };
+int rookOpenFile[2] = {34, 4, };
+int rookSemiOpenFile[2] = {13, 11, };
+int bishopPair[2] = {18, 83, };
+int longDiagonalBishop[2] = {13, 17, };
+int trappedRook[2] = {-29, -18, };
 int mobilityBonus[7][2][30] = {
     {},
     {},
     {
-        {-58, -4, 14, 25, 37, 42, 50, 60, 72, },
-        {-29, -15, 24, 35, 42, 52, 53, 51, 43, },
+        {-58, -9, 14, 23, 33, 36, 43, 51, 62, },
+        {-30, -29, 6, 39, 50, 69, 71, 67, 46, },
     },
     {
-        {-57, -14, 1, 15, 26, 34, 40, 43, 45, 45, 50, 56, 55, 62, },
-        {-54, -47, -11, 12, 20, 31, 37, 42, 46, 48, 44, 38, 46, 35, },
+        {-56, -10, 8, 14, 23, 30, 33, 33, 33, 38, 41, 57, 58, 63, },
+        {-58, -59, -27, 5, 17, 38, 49, 54, 59, 59, 57, 43, 52, 33, },
     },
     {
-        {-66, -21, -5, 3, 6, 6, 8, 11, 15, 16, 17, 19, 19, 21, 16, },
-        {-91, -37, 4, 21, 27, 35, 43, 50, 55, 62, 68, 70, 72, 68, 66, },
+        {-67, -29, -15, -9, -6, -5, -4, 1, 6, 11, 13, 18, 22, 33, 52, },
+        {-92, -45, -14, 9, 26, 42, 56, 61, 68, 74, 80, 82, 84, 74, 55, },
     },
     {
-        {-310, -148, -74, -7, 5, 13, 29, 31, 37, 39, 42, 46, 46, 48, 50, 51, 48, 50, 44, 44, 50, 59, 54, 60, 62, 124, 64, 124, },
-        {-236, -90, -6, -85, -34, 9, -34, 7, 14, 28, 36, 48, 66, 69, 78, 88, 98, 102, 109, 118, 113, 113, 113, 113, 116, 70, 93, 132, },
+        {-310, -148, -74, -8, 3, 13, 27, 28, 34, 36, 42, 44, 48, 51, 52, 52, 53, 48, 47, 42, 48, 54, 51, 56, 60, 123, 64, 124, },
+        {-236, -90, -6, -85, -36, 5, -32, 8, 16, 40, 47, 67, 65, 78, 83, 92, 97, 101, 107, 112, 109, 105, 108, 108, 114, 69, 93, 132, },
     }
 };
 
@@ -319,15 +370,16 @@ void pawnEval(Board &board, int color, EvalTools &tools, int pawnScore[], uint64
         trace.connectedBonus[color][MG][(color == WHITE ? rank : 7 - rank)] += f;
         trace.connectedBonus[color][EG][(color == WHITE ? rank : 7 - rank)] += f;
         //std::cout << trace.connectedBonus[color][EG][(color == WHITE ? rank : 7 - rank)] << " " << phalanx << " " << opposed << "\n";
-        trace.others[color] += 10 * count(defenders);
+        trace.pawnDefendedBonus[color][MG] += count(defenders);
+        trace.pawnDefendedBonus[color][EG] += count(defenders);
       }
 
       //std::cout << f << " " << connectedBonus[MG][(color == WHITE ? rank : 7 - rank)] << "\n";
 
       pawnScore[MG] += f * connectedBonus[MG][(color == WHITE ? rank : 7 - rank)] +
-                                10 * count(defenders);
+                                pawnDefendedBonus[MG] * count(defenders);
       pawnScore[EG] += f * connectedBonus[EG][(color == WHITE ? rank : 7 - rank)] +
-                                10 * count(defenders);
+                                pawnDefendedBonus[EG] * count(defenders);
     }
 
     /// no supporting pawns
@@ -348,19 +400,52 @@ void pawnEval(Board &board, int color, EvalTools &tools, int pawnScore[], uint64
 }
 
 void passersEval(Board &board, int color, EvalTools &tools, uint64_t passers) {
-  /// blocked passers aren't given any passed bonus - to change?
-  uint64_t blockedPassers = passers & shift(color, SOUTH, board.pieces[color ^ 1]);
+  /// blocked passers aren't given any passed bonus - to change? EDIT: changed
 
-  passers ^= blockedPassers;
   while(passers) {
     uint64_t b = lsb(passers);
     int sq = Sq(b);
-    int rank = (color == WHITE ? sq / 8 : 7 - sq / 8);
-    tools.score[color][MG] += passedBonus[MG][rank];
-    tools.score[color][EG] += passedBonus[EG][rank];
+    //int frontSq = sqDir(color, NORTH, sq);
+    int rank = (color == WHITE ? sq / 8 : 7 - sq / 8), file = sq % 8;
+
+    if(!(b & shift(color, SOUTH, board.pieces[color ^ 1]))) {
+      tools.score[color][MG] += passedBonus[MG][rank];
+      tools.score[color][EG] += passedBonus[EG][rank];
+
+      if(TUNE)
+        trace.passedBonus[color][MG][rank]++, trace.passedBonus[color][EG][rank]++;
+    } else {
+      tools.score[color][MG] += blockedPassedBonus[MG][rank];
+      tools.score[color][EG] += blockedPassedBonus[EG][rank];
+
+      if(TUNE)
+        trace.blockedPassedBonus[color][MG][rank]++, trace.blockedPassedBonus[color][EG][rank]++;
+    }
+
+    /// in the endgame, the closer to the edge, the better
+
+    int distToEdge = (file > 3 ? 7 - file : file);
+
+    tools.score[color][MG] += passerDistToEdge[MG] * distToEdge;
+    tools.score[color][EG] += passerDistToEdge[EG] * distToEdge;
 
     if(TUNE)
-      trace.passedBonus[color][MG][rank]++, trace.passedBonus[color][EG][rank]++;
+      trace.passerDistToEdge[color][MG] += distToEdge, trace.passerDistToEdge[color][EG] += distToEdge;
+
+    /// the following code doesn't gain elo, but in the future it might...
+    /*/// distance to advancing square is better
+
+    int distToEnemyKing = distance[frontSq][board.king(color ^ 1)], distToOurKing = distance[frontSq][board.king(color)];
+    int deltaDist = distToEnemyKing - distToOurKing;
+
+    deltaDist = std::max(-5, std::min(deltaDist, 5)); /// clamp distance between [-5, 5]
+
+    tools.score[color][MG] += passerDistToKings[MG] * deltaDist;
+    tools.score[color][EG] += passerDistToKings[EG] * deltaDist;
+
+    if(TUNE)
+      trace.passerDistToKings[color][MG] += deltaDist, trace.passerDistToKings[color][EG] += deltaDist;
+    */
 
     passers ^= b;
   }
@@ -441,7 +526,7 @@ void pieceEval(Board &board, int color, EvalTools &tools) {
   while(pieces) {
     b = lsb(pieces);
     int sq = Sq(b), file = sq % 8;
-    att = genAttacksBishop(all, sq);
+    att = genAttacksBishop(all ^ board.bb[getType(BISHOP, color)], sq);
     mob = att & mobilityArea;
 
     int cnt = count(mob);
@@ -500,7 +585,7 @@ void pieceEval(Board &board, int color, EvalTools &tools) {
   while(pieces) {
     b = lsb(pieces);
     int sq = Sq(b), file = sq % 8;
-    att = genAttacksRook(all, sq);
+    att = genAttacksRook(all ^ board.bb[getType(ROOK, color)], sq);
     mob = att & mobilityArea;
 
     int cnt = count(mob);
@@ -546,8 +631,7 @@ void pieceEval(Board &board, int color, EvalTools &tools) {
   while(pieces) {
     b = lsb(pieces);
     int sq = Sq(b);
-    att = genAttacksBishop(all ^ board.bb[getType(BISHOP, color)], sq) |
-          genAttacksRook(all ^ board.bb[getType(ROOK, color)], sq);
+    att = genAttacksQueen(all, sq);
     mob = att & mobilityArea;
 
     int cnt = count(mob);
@@ -592,9 +676,6 @@ void kingEval(Board &board, int color, EvalTools &tools) {
   if(TUNE)
     trace.bonusTable[color][KING][MG][pos]++, trace.bonusTable[color][KING][EG][pos]++;
 
-  uint64_t shield = tools.pawnShield[color] & tools.pawns[color];
-  int shieldCount = std::min(3, count(shield));
-
   /// as on cpw (https://www.chessprogramming.org/King_Safety)
 
   if(tools.kingAttackersCount[enemy] >= 2) {
@@ -608,7 +689,13 @@ void kingEval(Board &board, int color, EvalTools &tools) {
     if(!board.bb[getType(ROOK, enemy)])
       weight *= 0.75;
 
-    tools.kingDanger[color] = SafetyTable[weight];
+    tools.score[color][MG] -= SafetyTable[MG][weight];
+    tools.score[color][EG] -= SafetyTable[EG][weight];
+
+    if(TUNE) {
+      trace.SafetyTable[color][MG][weight]--;
+      trace.SafetyTable[color][EG][weight]--;
+    }
 
     /// apply penalty if enemy can give safe checks
 
@@ -648,16 +735,53 @@ void kingEval(Board &board, int color, EvalTools &tools) {
     }
   }
 
-  /// assign bonus for pawns in king ring
+  /// evaluate king storm, shelter and blocked storms as on cpw
 
-  tools.score[color][MG] += pawnShield[MG][shieldCount];
-  tools.score[color][EG] += pawnShield[EG][shieldCount];
+  int f = king % 8;
 
-  if(TUNE)
-    trace.pawnShield[color][MG][shieldCount]++, trace.pawnShield[color][EG][shieldCount]++;
+  f = (f < 1 ? 1 : (f > 6 ? 6 : f)); /// clamp king file between B and G files
 
-  tools.score[color][MG] -= tools.kingDanger[color];
-  tools.score[color][EG] -= tools.kingDanger[color];
+  for(int file = std::max(0, f - 1); file <= std::min(7, f + 1); file++) {
+
+    uint64_t b = fileMask[file] & tools.pawns[color];
+    int ours = getFirstBit(enemy, b) / 8;
+    int rankOurs = (b ? (color == WHITE ? ours : 7 - ours) : 0); /// our first pawn on this file
+
+    b = fileMask[file] & tools.pawns[enemy];
+
+    int theirs = getFirstBit(enemy, b) / 8;
+    int rankTheirs = (b ? (color == WHITE ? theirs : 7 - theirs) : 0); /// their first pawn on this file
+
+    int distToEdge = (file > 3 ? 7 - file : file);
+
+    //std::cout << rankOurs << " " << rankTheirs << "\n";
+
+    tools.score[color][MG] += kingShelter[MG][distToEdge][rankOurs];
+    tools.score[color][EG] += kingShelter[EG][distToEdge][rankOurs];
+
+    if(TUNE) {
+      trace.kingShelter[color][MG][distToEdge][rankOurs]++;
+      trace.kingShelter[color][EG][distToEdge][rankOurs]++;
+    }
+
+    if(rankOurs && rankOurs == rankTheirs - 1) {
+      tools.score[color][MG] += blockedStorm[MG][rankTheirs];
+      tools.score[color][EG] += blockedStorm[EG][rankTheirs];
+
+      if(TUNE) {
+        trace.blockedStorm[color][MG][rankTheirs]++;
+        trace.blockedStorm[color][EG][rankTheirs]++;
+      }
+    } else {
+      tools.score[color][MG] += kingStorm[MG][distToEdge][rankTheirs];
+      tools.score[color][EG] += kingStorm[EG][distToEdge][rankTheirs];
+
+      if(TUNE) {
+        trace.kingStorm[color][MG][distToEdge][rankTheirs]++;
+        trace.kingStorm[color][EG][distToEdge][rankTheirs]++;
+      }
+    }
+  }
 }
 
 /// scale score if we recognize some draw patterns
@@ -698,6 +822,16 @@ void getTraceEntries(EvalTrace &trace) {
   int ind = 0;
   for(int i = MG; i <= EG; i++) {
     for(int col = 0; i == MG && col < 2; col++)
+      trace.add(ind, ind + 1, col, trace.passerDistToEdge[col][i]);
+    ind++;
+  }
+  /*for(int i = MG; i <= EG; i++) {
+    for(int col = 0; i == MG && col < 2; col++)
+      trace.add(ind, ind + 1, col, trace.passerDistToKings[col][i]);
+    ind++;
+  }*/
+  for(int i = MG; i <= EG; i++) {
+    for(int col = 0; i == MG && col < 2; col++)
       trace.add(ind, ind + 1, col, trace.doubledPawnsPenalty[col][i]);
     ind++;
   }
@@ -709,6 +843,11 @@ void getTraceEntries(EvalTrace &trace) {
   for(int i = MG; i <= EG; i++) {
     for(int col = 0; i == MG && col < 2; col++)
       trace.add(ind, ind + 1, col, trace.backwardPenalty[col][i]);
+    ind++;
+  }
+  for(int i = MG; i <= EG; i++) {
+    for(int col = 0; i == MG && col < 2; col++)
+      trace.add(ind, ind + 1, col, trace.pawnDefendedBonus[col][i]);
     ind++;
   }
   for(int s = MG; s <= EG; s++) {
@@ -728,7 +867,46 @@ void getTraceEntries(EvalTrace &trace) {
   for(int s = MG; s <= EG; s++) {
     for(int i = 1; i < 7; i++) {
       for(int col = 0; s == MG && col < 2; col++)
+        trace.add(ind, ind + 6, col, trace.blockedPassedBonus[col][s][i]);
+      ind++;
+    }
+  }
+  for(int s = MG; s <= EG; s++) {
+    for(int i = 1; i < 7; i++) {
+      for(int col = 0; s == MG && col < 2; col++)
         trace.add(ind, ind + 6, col, trace.connectedBonus[col][s][i]);
+      ind++;
+    }
+  }
+  for(int s = MG; s <= EG; s++) {
+    for(int i = 0; i < 100; i++) {
+      for(int col = 0; s == MG && col < 2; col++)
+        trace.add(ind, ind + 100, col, trace.SafetyTable[col][s][i]);
+      ind++;
+    }
+  }
+  for(int s = MG; s <= EG; s++) {
+    for(int i = 0; i < 4; i++) {
+      for(int j = 0; j < 7; j++) {
+        for(int col = 0; s == MG && col < 2; col++)
+          trace.add(ind, ind + 28, col, trace.kingShelter[col][s][i][j]);
+        ind++;
+      }
+    }
+  }
+  for(int s = MG; s <= EG; s++) {
+    for(int i = 0; i < 4; i++) {
+      for(int j = 0; j < 7; j++) {
+        for(int col = 0; s == MG && col < 2; col++)
+          trace.add(ind, ind + 28, col, trace.kingStorm[col][s][i][j]);
+        ind++;
+      }
+    }
+  }
+  for(int s = MG; s <= EG; s++) {
+    for(int i = 0; i < 7; i++) {
+      for(int col = 0; s == MG && col < 2; col++)
+        trace.add(ind, ind + 7, col, trace.blockedStorm[col][s][i]);
       ind++;
     }
   }
@@ -736,13 +914,6 @@ void getTraceEntries(EvalTrace &trace) {
     for(int i = KNIGHT; i <= QUEEN; i++) {
       for(int col = 0; s == MG && col < 2; col++)
         trace.add(ind, ind + 4, col, trace.safeCheck[col][s][i]);
-      ind++;
-    }
-  }
-  for(int s = MG; s <= EG; s++) {
-    for(int i = 1; i < 4; i++) {
-      for(int col = 0; s == MG && col < 2; col++)
-        trace.add(ind, ind + 3, col, trace.pawnShield[col][s][i]);
       ind++;
     }
   }
@@ -832,14 +1003,14 @@ void getTraceEntries(EvalTrace &trace) {
   }
 }
 
-int evaluateTrace(TunePos &pos, int weights[]) {
+double evaluateTrace(TunePos &pos, double weights[]) {
 
   /*int score[2][2] = {
     {0, 0},
     {0, 0}
   };*/
 
-  int sc[2] = {
+  double sc[2] = {
     0, 0
   };
 
@@ -858,22 +1029,6 @@ int evaluateTrace(TunePos &pos, int weights[]) {
     sc[EG] += weights[pos.entries[i].mgind + pos.entries[i].deltaind] * pos.entries[i].dval;
   }
 
-  /*score[WHITE][MG] += pos.others[WHITE];
-  score[WHITE][EG] += pos.others[WHITE];
-  score[BLACK][MG] += pos.others[BLACK];
-  score[BLACK][EG] += pos.others[BLACK];*/
-
-  sc[MG] += pos.others[WHITE] - pos.others[BLACK];
-  sc[EG] += pos.others[WHITE] - pos.others[BLACK];
-
-  /*score[WHITE][MG] -= pos.kingDanger[WHITE];
-  score[WHITE][EG] -= pos.kingDanger[WHITE];
-  score[BLACK][MG] -= pos.kingDanger[BLACK];
-  score[BLACK][EG] -= pos.kingDanger[BLACK];*/
-
-  sc[MG] -= pos.kingDanger[WHITE] - pos.kingDanger[BLACK];
-  sc[EG] -= pos.kingDanger[WHITE] - pos.kingDanger[BLACK];
-
   /*int mg = score[WHITE][MG] - score[BLACK][MG], eg = score[WHITE][EG] - score[BLACK][EG];
 
   if(mg != sc[MG] || eg != sc[EG]) {
@@ -881,11 +1036,11 @@ int evaluateTrace(TunePos &pos, int weights[]) {
     std::cout << "mg: " << mg << ", " << sc[MG] << "; eg: " << eg << ", " << sc[EG] << "\n";
   }*/
 
-  int mg = sc[MG], eg = sc[EG];
+  double mg = sc[MG], eg = sc[EG];
 
   eg = eg * pos.scale / 100;
 
-  int eval = (mg * phase + eg * (maxWeight - phase)) / maxWeight;
+  double eval = (mg * phase + eg * (maxWeight - phase)) / maxWeight;
 
   return TEMPO + eval * (pos.turn == WHITE ? 1 : -1);
 }
@@ -937,10 +1092,6 @@ int evaluate(Board &board, Search *searcher = nullptr) {
     matEval(board, WHITE, tools);
     matEval(board, BLACK, tools);
   }
-
-
-  if(TUNE)
-    trace.kingDanger[WHITE] = tools.kingDanger[WHITE], trace.kingDanger[BLACK] = tools.kingDanger[BLACK];
 
   /// mg and eg score
 

@@ -87,10 +87,11 @@ inline void makeMove(Board &board, uint16_t mv) { /// assuming move is at least 
 
     /// i moved the king
 
-    if(pieceFrom == WK)
+    if(pieceFrom == WK) {
       board.castleRights &= castleRightsDelta[WHITE][posFrom];
-    else if(pieceFrom == BK)
+    } else if(pieceFrom == BK) {
       board.castleRights &= castleRightsDelta[BLACK][posFrom];
+    }
 
     break;
   case ENPASSANT:
@@ -439,7 +440,7 @@ inline int genLegal(Board &board, uint16_t *moves) {
     switch(board.piece_type_at(sq)) {
     case PAWN:
       /// make en passant to cancel the check
-      if(checkers == (1ULL << (sqDir(enemy, NORTH, board.enPas)))) {
+      if(board.enPas != -1 && checkers == (1ULL << (sqDir(enemy, NORTH, board.enPas)))) {
         mask = pawnAttacksMask[enemy][board.enPas] & notPinned & board.bb[getType(PAWN, color)];
         while(mask) {
           b = lsb(mask);
@@ -543,13 +544,13 @@ inline int genLegal(Board &board, uint16_t *moves) {
         if(b2) {
           *(moves++) = (getMove(sq, Sq(b2), 0, NEUT));
           nrMoves++;
-        }
 
-        /// double pawn push
-        b3 = (1ULL << (sqDir(color, NORTH, Sq(b2)))) & emptySq & Line[king][sq];
-        if(b3 && Sq(b2) / 8 == rank3) {
-          *(moves++) = (getMove(sq, Sq(b3), 0, NEUT));
-          nrMoves++;
+          /// double pawn push
+          b3 = (1ULL << (sqDir(color, NORTH, Sq(b2)))) & emptySq & Line[king][sq];
+          if(b3 && Sq(b2) / 8 == rank3) {
+            *(moves++) = (getMove(sq, Sq(b3), 0, NEUT));
+            nrMoves++;
+          }
         }
       }
       b1 ^= b;
@@ -754,7 +755,7 @@ inline int genLegalNoisy(Board &board, uint16_t *moves) {
     switch(board.piece_type_at(sq)) {
     case PAWN:
       /// make en passant to cancel the check
-      if(checkers == (1ULL << (sqDir(enemy, NORTH, board.enPas)))) {
+      if(board.enPas != -1 && checkers == (1ULL << (sqDir(enemy, NORTH, board.enPas)))) {
         mask = pawnAttacksMask[enemy][board.enPas] & notPinned & board.bb[getType(PAWN, color)];
         while(mask) {
           b = lsb(mask);
@@ -1073,14 +1074,15 @@ inline int genLegalQuiets(Board &board, uint16_t *moves) {
         if(b2) {
           *(moves++) = (getMove(sq, Sq(b2), 0, NEUT));
           nrMoves++;
+
+          /// double pawn push
+          b3 = (1ULL << (sqDir(color, NORTH, Sq(b2)))) & emptySq & Line[king][sq];
+          if(b3 && Sq(b2) / 8 == rank3) {
+            *(moves++) = (getMove(sq, Sq(b3), 0, NEUT));
+            nrMoves++;
+          }
         }
 
-        /// double pawn push
-        b3 = (1ULL << (sqDir(color, NORTH, Sq(b2)))) & emptySq & Line[king][sq];
-        if(b3 && Sq(b2) / 8 == rank3) {
-          *(moves++) = (getMove(sq, Sq(b3), 0, NEUT));
-          nrMoves++;
-        }
       }
       b1 ^= b;
     }
