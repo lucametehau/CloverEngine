@@ -403,13 +403,14 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
       /// see pruning (to do: tune coefficients -> tuned with ctt, but the tuned ones are worse)
 
       if(depth <= 8 && !isCheck) {
-        int seeMargin[2];
-
-        seeMargin[1] = -seeCoefQuiet * depth;
-        seeMargin[0] = -seeCoefNoisy * depth * depth;
-
-        if(!see(board, move, seeMargin[isQuiet]))
-          continue;
+        if(isQuiet) {
+          if(!see(board, move, -seeCoefQuiet * depth))
+            continue;
+        } else if(picker.stage > STAGE_GOOD_NOISY) { /// no need to check good quiets
+          if(!see(board, move, -seeCoefNoisy * depth * depth)) {
+            continue;
+          }
+        }
       }
     }
 
