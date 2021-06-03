@@ -11,6 +11,8 @@ BMI2FLAGS   = $(POPCNTFLAGS) -mbmi2
 AVX2FLAGS   = -msse -msse3 -mpopcnt -mavx2 -msse4.1 -mssse3 -msse2
 NATIVEFLAGS = -march=native
 
+ob:
+	$(CC) $(SRC) $(RFLAGS) $(LIBS) $(NATIVEFLAGS) -o Clover.exe
 native:
 	$(CC) $(SRC) $(RFLAGS) $(LIBS) $(NATIVEFLAGS) -o $(EXE)-native.exe
 run:
