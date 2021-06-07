@@ -110,6 +110,13 @@ public:
           if(best == hashMove) /// don't play the same move
             return nextMove(searcher, skip, noisyPicker);
 
+          if(best == killer1)
+            killer1 = NULLMOVE;
+          if(best == killer2)
+            killer2 = NULLMOVE;
+          if(best == counter)
+            counter = NULLMOVE;
+
           return best;
         }
       }
@@ -209,7 +216,7 @@ public:
         nrBadNoisy--;
         uint16_t move = badNoisy[nrBadNoisy];
 
-        if(move == hashMove)
+        if(move == hashMove || move == killer1 || move == killer2 || move == counter)
           return nextMove(searcher, skip, noisyPicker);
 
         return move;

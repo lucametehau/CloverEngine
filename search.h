@@ -403,14 +403,10 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
       /// see pruning (to do: tune coefficients -> tuned with ctt, but the tuned ones are worse)
 
       if(depth <= 8 && !isCheck) {
-        if(isQuiet) {
-          if(!see(board, move, -seeCoefQuiet * depth))
-            continue;
-        } else if(picker.stage > STAGE_GOOD_NOISY) { /// no need to check good quiets
-          if(!see(board, move, -seeCoefNoisy * depth * depth)) {
-            continue;
-          }
-        }
+        if(isQuiet && !see(board, move, -seeCoefQuiet * depth))
+          continue;
+        else if(!isQuiet && picker.stage > STAGE_GOOD_NOISY && !see(board, move, -seeCoefNoisy * depth * depth))
+          continue;
       }
     }
 
@@ -426,7 +422,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
         ex = 1;
       else if(rBeta >= beta) /// multicut
         return rBeta;
-    } else if(!rootNode) {
+    } else {
       ex |= isCheck | (isQuiet && pvNode && H.ch >= 10000 && H.fh >= 10000); /// in check extension and moves with good history
     }
 
