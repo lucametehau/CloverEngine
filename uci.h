@@ -32,7 +32,7 @@
 /// is this working?
 /// i guess so?
 
-const std::string VERSION = "2.4-dev17"; /// 2.0 was "FM"
+const std::string VERSION = "2.4-dev18"; /// 2.0 was "FM"
 
 char line[INPUTBUFFER];
 
@@ -273,20 +273,20 @@ void UCI :: Uci_Loop() {
 
               iss >> val;
               RazorCoef = val;
-            } else if(name == "StaticNullCoef") {
+            } else if(name == "SNMPCoef1") {
               iss >> value;
 
               int val;
 
               iss >> val;
-              StaticNullCoef = val;
-            } else if(name == "StaticNullImproveCoef") {
+              SNMPCoef1 = val;
+            } else if(name == "SNMPCoef2") {
               iss >> value;
 
               int val;
 
               iss >> val;
-              StaticNullImproveCoef = val;
+              SNMPCoef2 = val;
             } else if(name == "seeCoefQuiet") {
               iss >> value;
 
