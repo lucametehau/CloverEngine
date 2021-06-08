@@ -1,6 +1,6 @@
 CC  = g++
 SRC = *.cpp *.c
-EXE = Clover.2.4-dev18
+EXE = Clover.2.4-dev19
 WFLAGS = -Wall
 RFLAGS = $(WFLAGS) -std=c++17 -O3 -static -static-libgcc -static-libstdc++
 LIBS   = -pthread
