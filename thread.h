@@ -8,11 +8,11 @@
 #include <condition_variable>
 #include <functional>
 
-/// search params
+/// search params (tuning all with ctt, but I didn't get any nice results)
 
 int RazorCoef = 325;
-int StaticNullCoef = 85;
-int StaticNullImproveCoef = 0; /// tuned with ctt
+int SNMPCoef1 = 85;
+int SNMPCoef2 = 0;
 int seeCoefQuiet = 80;
 int seeCoefNoisy = 18;
 

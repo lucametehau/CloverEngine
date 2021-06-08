@@ -47,6 +47,8 @@ public:
   uint8_t backwardPenalty[2][2];
   uint8_t pawnDefendedBonus[2][2];
 
+  uint8_t threatByPawnPush[2][2];
+
   uint8_t mat[2][2][7];
 
   uint8_t passedBonus[2][2][7];
@@ -117,31 +119,32 @@ public:
 const int TEMPO = 20;
 
 int passerDistToEdge[2] = {-4, -4, };
-int doubledPawnsPenalty[2] = {0, -33, };
+int doubledPawnsPenalty[2] = {1, -33, };
 int isolatedPenalty[2] = {-3, -11, };
-int backwardPenalty[2] = {-6, -19, };
+int backwardPenalty[2] = {-6, -20, };
 int pawnDefendedBonus[2] = {13, 5, };
+int threatByPawnPush[2] = {4, 7, };
 
 const int phaseVal[] = {0, 0, 1, 1, 2, 4};
 const int maxWeight = 16 * phaseVal[PAWN] + 4 * phaseVal[KNIGHT] + 4 * phaseVal[BISHOP] + 4 * phaseVal[ROOK] + 2 * phaseVal[QUEEN];
 int passedBonus[2][7] = {
-  {0, -6, -5, 2, 30, 33, 72},
-  {0, 21, 27, 53, 81, 143, 136},
+  {0, -6, -5, 2, 30, 34, 72},
+  {0, 21, 27, 53, 81, 144, 137},
 };
 int blockedPassedBonus[2][7] = {
-  {0, -3, 0, 10, 34, 37, 30},
-  {0, -3, 7, 18, 28, 47, 37},
+  {0, -3, 0, 11, 35, 38, 31},
+  {0, -3, 7, 19, 28, 49, 38},
 };
 int connectedBonus[2][7] = {
   {0, 1, 3, 3, 7, 25, 70},
-  {0, -1, 1, 3, 11, 21, 23},
+  {0, -1, 1, 3, 11, 20, 23},
 };
 int kingAttackWeight[] = {0, 0, 2, 2, 3, 5};
 int SafetyTable[2][100] = {
   {
-    0, -1, 3, 1, 1, 5, 8, 4, 17, 14,
-    36, 27, 14, 36, 28, 58, 46, 26, 53, 46,
-    74, 66, 55, 81, 65, 107, 98, 89, 113, 109,
+    0, -1, 3, 1, 1, 5, 9, 4, 17, 15,
+    36, 27, 15, 37, 29, 59, 47, 26, 54, 47,
+    75, 67, 55, 81, 65, 108, 98, 89, 113, 109,
     144, 133, 167, 178, 179, 200, 210, 224, 238, 248,
     260, 272, 284, 295, 307, 319, 330, 342, 354, 366,
     377, 389, 401, 412, 424, 436, 448, 459, 471, 483,
@@ -151,8 +154,8 @@ int SafetyTable[2][100] = {
     500, 500, 500, 500, 500, 500, 500, 500, 500, 500,
   },
   {
-    0, -4, -4, -5, -1, -6, 0, 12, 9, 15,
-    23, 20, 24, 26, 34, 46, 34, 44, 48, 52,
+    0, -4, -4, -5, -1, -6, 1, 12, 10, 15,
+    23, 20, 25, 26, 34, 46, 34, 44, 48, 52,
     67, 68, 74, 80, 77, 102, 100, 104, 116, 122,
     141, 140, 169, 179, 183, 201, 212, 224, 237, 248,
     260, 272, 283, 295, 307, 319, 330, 342, 354, 366,
@@ -168,46 +171,46 @@ int kingShelter[2][4][7] = {
     {-23, 13, 18, 5, 3, 8, 2, },
     {-26, 20, 17, -8, 3, 8, 1, },
     {-19, 15, -1, -7, 2, 2, 5, },
-    {-13, 11, 2, -6, -9, -16, -1, },
+    {-13, 11, 2, -7, -9, -17, -1, },
   },
   {
-    {2, -33, -15, 0, 14, 18, 10, },
-    {0, -11, -11, 5, 12, 12, 11, },
+    {2, -33, -15, 0, 14, 18, 11, },
+    {0, -11, -11, 5, 12, 13, 11, },
     {-11, -11, -3, 0, 8, 11, 9, },
-    {-20, -11, -15, 2, 13, 11, 6, },
+    {-20, -12, -15, 1, 13, 11, 6, },
   },
 };
 int kingStorm[2][4][7] = {
   {
-    {-11, 16, 17, -16, -9, 4, 1, },
-    {-21, 6, -1, -19, -5, 14, -1, },
-    {-13, 3, -5, -22, -1, 10, 6, },
-    {1, 7, 1, -16, 0, 17, 18, },
+    {-11, 17, 17, -17, -9, 4, 1, },
+    {-21, 6, -1, -20, -5, 14, -1, },
+    {-13, 3, -5, -23, -1, 10, 5, },
+    {1, 7, 1, -16, 1, 17, 18, },
   },
   {
-    {-31, 32, 53, 29, -5, -23, -14, },
-    {-25, 25, 44, 26, 1, -22, -25, },
-    {-24, 24, 39, 22, -5, -20, -35, },
-    {-12, 30, 43, 17, -6, -14, -9, },
+    {-32, 34, 55, 30, -5, -23, -14, },
+    {-26, 26, 46, 26, 1, -23, -25, },
+    {-25, 25, 40, 22, -6, -21, -35, },
+    {-13, 31, 45, 17, -6, -14, -10, },
   },
 };
 int blockedStorm[2][7] = {
-  {0, 0, -18, 10, 16, 13, -3, },
-  {0, 0, -3, -21, -34, -40, -21, },
+  {0, 0, -19, 10, 16, 14, -3, },
+  {0, 0, -4, -22, -35, -41, -22, },
 };
 int safeCheck[2][6] = {
-  {0, 0, -72, -31, -66, -66},
-  {0, 0, -4, -17, -5, -13},
+  {0, 0, -73, -31, -67, -67},
+  {0, 0, -4, -17, -4, -12},
 };
 int outpostBonus[2][4] = {
-  {0, 0, 29, 29},
-  {0, 0, 1, 5},
+  {0, 0, 26, 28},
+  {0, 0, -1, 4},
 };
 int outpostHoleBonus[2][4] = {
-  {0, 0, 22, 23},
-  {0, 0, 8, 11},
+  {0, 0, 19, 21},
+  {0, 0, 6, 10},
 };
-int rookOpenFile[2] = {34, 4, };
+int rookOpenFile[2] = {34, 5, };
 int rookSemiOpenFile[2] = {13, 11, };
 int bishopPair[2] = {18, 83, };
 int longDiagonalBishop[2] = {13, 17, };
@@ -216,24 +219,24 @@ int mobilityBonus[7][2][30] = {
     {},
     {},
     {
-        {-58, -9, 14, 23, 33, 36, 43, 51, 62, },
-        {-30, -29, 6, 39, 50, 69, 71, 67, 46, },
+        {-58, -9, 14, 23, 34, 36, 43, 51, 62, },
+        {-30, -30, 6, 40, 50, 70, 72, 68, 46, },
     },
     {
-        {-56, -10, 8, 14, 23, 30, 33, 33, 33, 38, 41, 57, 58, 63, },
-        {-58, -59, -27, 5, 17, 38, 49, 54, 59, 59, 57, 43, 52, 33, },
+        {-56, -10, 8, 13, 23, 30, 33, 33, 33, 38, 41, 57, 58, 63, },
+        {-58, -60, -27, 5, 17, 38, 50, 54, 60, 60, 58, 43, 53, 33, },
     },
     {
-        {-67, -29, -15, -9, -6, -5, -4, 1, 6, 11, 13, 18, 22, 33, 52, },
-        {-92, -45, -14, 9, 26, 42, 56, 61, 68, 74, 80, 82, 84, 74, 55, },
+        {-67, -29, -16, -9, -6, -6, -4, 1, 6, 11, 13, 18, 22, 33, 54, },
+        {-92, -46, -15, 9, 27, 43, 56, 62, 69, 74, 80, 82, 84, 74, 54, },
     },
     {
         {-310, -148, -74, -8, 3, 13, 27, 28, 34, 36, 42, 44, 48, 51, 52, 52, 53, 48, 47, 42, 48, 54, 51, 56, 60, 123, 64, 124, },
-        {-236, -90, -6, -85, -36, 5, -32, 8, 16, 40, 47, 67, 65, 78, 83, 92, 97, 101, 107, 112, 109, 105, 108, 108, 114, 69, 93, 132, },
+        {-236, -90, -6, -85, -36, 5, -32, 8, 16, 40, 47, 68, 65, 78, 83, 92, 97, 101, 107, 112, 109, 105, 108, 108, 114, 69, 93, 132, },
     }
 };
 
-
+/// evaluate material
 
 void matEval(Board &board, int color, EvalTools &tools) {
   uint64_t pieces = board.pieces[color] ^ board.bb[getType(KING, color)];
@@ -267,6 +270,8 @@ bool isOpenFile(int file, EvalTools &tools) {
 bool isHalfOpenFile(int color, int file, EvalTools &tools) { /// is file half-open for color
   return !(tools.pawns[color] & fileMask[file]);
 }
+
+/// evaluate trapped rooks (TO DO: make code shorter and faster?)
 
 void rookEval(Board &board, int color, EvalTools &tools) {
   int king = getType(KING, color);
@@ -303,6 +308,8 @@ void rookEval(Board &board, int color, EvalTools &tools) {
     }
   }
 }
+
+/// evaluate pawns and pawn structure
 
 void pawnEval(Board &board, int color, EvalTools &tools, int pawnScore[], uint64_t &passedPawns) {
   uint64_t pieces = tools.pawns[color], passers = 0;
@@ -399,6 +406,8 @@ void pawnEval(Board &board, int color, EvalTools &tools, int pawnScore[], uint64
   passedPawns = passers;
 }
 
+/// evaluate passers
+
 void passersEval(Board &board, int color, EvalTools &tools, uint64_t passers) {
   /// blocked passers aren't given any passed bonus - to change? EDIT: changed
 
@@ -450,6 +459,8 @@ void passersEval(Board &board, int color, EvalTools &tools, uint64_t passers) {
     passers ^= b;
   }
 }
+
+/// evaluate pieces and give specific bonuses for every piece
 
 void pieceEval(Board &board, int color, EvalTools &tools) {
   bool enemy = 1 ^ color;
@@ -660,6 +671,8 @@ void pieceEval(Board &board, int color, EvalTools &tools) {
   //cout << "piece score for " << (color == WHITE ? "white " : "black ") << " : " << score << "\n";
 }
 
+/// evaluate king safety
+
 void kingEval(Board &board, int color, EvalTools &tools) {
   int king = board.king(color), pos = mirror(1 ^ color, king);
   //int rank = king / 8, file = king % 8;
@@ -784,6 +797,30 @@ void kingEval(Board &board, int color, EvalTools &tools) {
   }
 }
 
+/// in testing phase:
+/// evaluate piece threats
+
+void threatsEval(Board &board, int color, EvalTools &tools) {
+  bool enemy = 1 ^ color;
+  uint64_t b = shift(color, NORTH, tools.pawns[color]) & ~(board.pieces[WHITE] | board.pieces[BLACK]); /// for pawn push threat
+
+  b |= shift(color, NORTH, b & rankMask[(color == WHITE ? 2 : 5)]) & ~(board.pieces[WHITE] | board.pieces[BLACK]); /// consider double pushes
+
+  b &= ~tools.attackedBy[enemy] | tools.attackedBy[color]; /// don't consider pawn pushes to unsafe squares
+
+  b = getPawnAttacks(board, color, b) & (board.pieces[enemy] ^ board.bb[getType(PAWN, enemy)]);
+
+  //std::cout << count(b) << "\n";
+
+  tools.score[color][MG] += threatByPawnPush[MG] * count(b);
+  tools.score[color][EG] += threatByPawnPush[EG] * count(b);
+
+  if(TUNE) {
+    trace.threatByPawnPush[color][MG] += count(b);
+    trace.threatByPawnPush[color][MG] += count(b);
+  }
+}
+
 /// scale score if we recognize some draw patterns
 
 int scaleFactor(Board &board, int eg) {
@@ -811,11 +848,14 @@ int scaleFactor(Board &board, int eg) {
   return scale;
 }
 
+/// evaluate for color
+
 void eval(Board &board, int color, EvalTools &tools) {
   //cout << color << "\n";
   //cout << "initially: " << score[color][MG] << "\n";
   rookEval(board, color, tools);
   kingEval(board, color, tools);
+  threatsEval(board, color, tools);
 }
 
 void getTraceEntries(EvalTrace &trace) {
@@ -848,6 +888,11 @@ void getTraceEntries(EvalTrace &trace) {
   for(int i = MG; i <= EG; i++) {
     for(int col = 0; i == MG && col < 2; col++)
       trace.add(ind, ind + 1, col, trace.pawnDefendedBonus[col][i]);
+    ind++;
+  }
+  for(int i = MG; i <= EG; i++) {
+    for(int col = 0; i == MG && col < 2; col++)
+      trace.add(ind, ind + 1, col, trace.threatByPawnPush[col][i]);
     ind++;
   }
   for(int s = MG; s <= EG; s++) {

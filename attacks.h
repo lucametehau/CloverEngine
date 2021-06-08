@@ -204,6 +204,16 @@ inline void initAttacks() {
   initRookMagic();
 }
 
+/// these 2 are not very useful, but I might use them for readability
+
+inline uint64_t genAttacksPawn(int color, int sq) {
+  return pawnAttacksMask[color][sq];
+}
+
+inline uint64_t genAttacksKnight(int sq) {
+  return knightBBAttacks[sq];
+}
+
 inline uint64_t genAttacksBishop(uint64_t blockers, int sq) {
   blockers &= bishopAttacksMask[sq];
   return bishopTable[sq][(blockers * bishopMagics[sq]) >> (64 - bishopIndexBits[sq])];
@@ -235,6 +245,13 @@ inline uint64_t getAttackers(Board &board, int color, uint64_t blockers, int sq)
   return (pawnAttacksMask[color ^ 1][sq] & board.bb[getType(PAWN, color)]) |
          (knightBBAttacks[sq] & board.bb[getType(KNIGHT, color)]) | (genAttacksBishop(blockers, sq) & board.diagSliders(color)) |
          (genAttacksRook(blockers, sq) & board.orthSliders(color)) | (kingBBAttacks[sq] & board.bb[getType(KING, color)]);
+}
+
+/// same as the below one, only difference is that b is known
+
+inline uint64_t getPawnAttacks(Board &board, int color, uint64_t b) {
+  int fileA = (color == WHITE ? 0 : 7), fileH = 7 - fileA;
+  return shift(color, NORTHWEST, b & ~fileMask[fileA]) | shift(color, NORTHEAST, b & ~fileMask[fileH]);
 }
 
 inline uint64_t pawnAttacks(Board &board, int color) {

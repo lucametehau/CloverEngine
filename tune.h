@@ -14,8 +14,9 @@
 
 const int PRECISION = 8;
 const int NPOS = 9999740; /// 9999740 2500002
-const int TERMS = 1308;
+const int TERMS = 1310;
 const int BUCKET_SIZE = 1LL * NPOS * TERMS / 64;
+const double TUNE_K = 2.67213609;
 
 struct Position {
   std::string fen;
@@ -212,6 +213,8 @@ void loadWeights() {
     weights[ind++] = (backwardPenalty[i]);
   for(int i = MG; i <= EG; i++)
     weights[ind++] = (pawnDefendedBonus[i]);
+  for(int i = MG; i <= EG; i++)
+    weights[ind++] = (threatByPawnPush[i]);
   for(int s = MG; s <= EG; s++) {
     for(int i = PAWN; i <= QUEEN; i++)
       weights[ind++] = (mat[s][i]);
@@ -316,6 +319,8 @@ void saveWeights() {
     backwardPenalty[i] = std::round(weights[ind++]);
   for(int i = MG; i <= EG; i++)
     pawnDefendedBonus[i] = std::round(weights[ind++]);
+  for(int i = MG; i <= EG; i++)
+    threatByPawnPush[i] = std::round(weights[ind++]);
   for(int s = MG; s <= EG; s++) {
     for(int i = PAWN; i <= QUEEN; i++)
       mat[s][i] = std::round(weights[ind++]);
@@ -444,6 +449,11 @@ void printWeights(int iteration) {
   out << "};\n";
 
   out << "int pawnDefendedBonus[2] = {";
+  for(int i = MG; i <= EG; i++)
+    out << newWeights[ind++] << ", ";
+  out << "};\n";
+
+  out << "int threatByPawnPush[2] = {";
   for(int i = MG; i <= EG; i++)
     out << newWeights[ind++] << ", ";
   out << "};\n";
@@ -826,7 +836,8 @@ void tune(int nrThreads, std::string path) {
 
   double start = getTime();
 
-  double k = bestK(nrThreads, start);
+  //double k = bestK(nrThreads, start);
+  double k  = TUNE_K;
 
   double startTime = getTime();
 
