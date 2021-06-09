@@ -28,11 +28,12 @@
 /// - so I added gradient descent and adagrad to my tuner and now I can easily tune any old/new param
 /// - added proper king shelter evaluation (king shelter, storm, blocked storm)
 /// - give blocked passers bonus score, bonus for distance to edge
+/// - added threats eval
 
 /// is this working?
 /// i guess so?
 
-const std::string VERSION = "2.4-dev19"; /// 2.0 was "FM"
+const std::string VERSION = "2.4-dev20"; /// 2.0 was "FM"
 
 char line[INPUTBUFFER];
 
