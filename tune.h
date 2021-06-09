@@ -14,7 +14,7 @@
 
 const int PRECISION = 8;
 const int NPOS = 9999740; /// 9999740 2500002
-const int TERMS = 1310;
+const int TERMS = 1312;
 const int BUCKET_SIZE = 1LL * NPOS * TERMS / 64;
 const double TUNE_K = 2.67213609;
 
@@ -213,8 +213,12 @@ void loadWeights() {
     weights[ind++] = (backwardPenalty[i]);
   for(int i = MG; i <= EG; i++)
     weights[ind++] = (pawnDefendedBonus[i]);
+
   for(int i = MG; i <= EG; i++)
     weights[ind++] = (threatByPawnPush[i]);
+  for(int i = MG; i <= EG; i++)
+    weights[ind++] = (threatMinorByMinor[i]);
+
   for(int s = MG; s <= EG; s++) {
     for(int i = PAWN; i <= QUEEN; i++)
       weights[ind++] = (mat[s][i]);
@@ -319,8 +323,12 @@ void saveWeights() {
     backwardPenalty[i] = std::round(weights[ind++]);
   for(int i = MG; i <= EG; i++)
     pawnDefendedBonus[i] = std::round(weights[ind++]);
+
   for(int i = MG; i <= EG; i++)
     threatByPawnPush[i] = std::round(weights[ind++]);
+  for(int i = MG; i <= EG; i++)
+    threatMinorByMinor[i] = std::round(weights[ind++]);
+
   for(int s = MG; s <= EG; s++) {
     for(int i = PAWN; i <= QUEEN; i++)
       mat[s][i] = std::round(weights[ind++]);
@@ -454,6 +462,11 @@ void printWeights(int iteration) {
   out << "};\n";
 
   out << "int threatByPawnPush[2] = {";
+  for(int i = MG; i <= EG; i++)
+    out << newWeights[ind++] << ", ";
+  out << "};\n";
+
+  out << "int threatMinorByMinor[2] = {";
   for(int i = MG; i <= EG; i++)
     out << newWeights[ind++] << ", ";
   out << "};\n";
@@ -792,22 +805,6 @@ void calcGradient(double k, double grad[], int nrThreads) {
   std::cout << std::endl;*/
 }
 
-bool isBetter(double &mn, double k, int nrThreads) {
-  saveWeights();
-
-  double error = evalError(k, nrThreads);
-
-  if(error < mn) {
-    if(mn - error > mn / nrThreads / 2) {
-      return 0;
-    }
-    mn = error;
-    return 1;
-  }
-
-  return 0;
-}
-
 void tune(int nrThreads, std::string path) {
   //int nrThreads = 8;
 
@@ -836,8 +833,8 @@ void tune(int nrThreads, std::string path) {
 
   double start = getTime();
 
-  //double k = bestK(nrThreads, start);
-  double k  = TUNE_K;
+  double k = bestK(nrThreads, start);
+  //double k  = TUNE_K;
 
   double startTime = getTime();
 
