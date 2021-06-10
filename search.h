@@ -295,7 +295,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
   /// static null move pruning (don't prune when having a mate line, again stability)
 
-  if(!pvNode && !isCheck && depth <= 8 && eval - (SNMPCoef1 * depth - SNMPCoef2 * improving) > beta && eval < MATE)
+  if(!pvNode && !isCheck && depth <= 8 && eval - (SNMPCoef1 - SNMPCoef2 * improving) * depth > beta && eval < MATE)
     return eval;
 
   /// null move pruning (when last move wasn't null, we still have non pawn material,
@@ -469,7 +469,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
       R -= std::max(-2, std::min(2, (H.h + H.ch + H.fh) / 5000)); /// reduce based on move history
 
-      R = std::min(depth - 1, std::max(R, 1)); /// clamp depth
+      R = std::min(depth - 1, std::max(R, 1)); /// clamp R
     }
 
     int score = -INF;

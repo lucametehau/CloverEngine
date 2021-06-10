@@ -1116,6 +1116,7 @@ double evaluateTrace(TunePos &pos, double weights[]) {
 }
 
 int evaluate(Board &board, Search *searcher = nullptr) {
+  //return 0; -> this gives some interesting results when searching for mates
   EvalTools tools;
 
   tools.init();
