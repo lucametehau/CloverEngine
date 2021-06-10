@@ -14,7 +14,7 @@
 
 const int PRECISION = 8;
 const int NPOS = 9999740; /// 9999740 2500002
-const int TERMS = 1312;
+const int TERMS = 1314;
 const int BUCKET_SIZE = 1LL * NPOS * TERMS / 64;
 const double TUNE_K = 2.67213609;
 
@@ -61,7 +61,7 @@ void load(std::ifstream &stream) {
   info->startTime = 0;
 
   uint64_t totalEntries = 0, kek = 0, d = 0;
-  int kc = 0, defp = 0;
+  int kc = 0, defp = 0, weak = 0;
   uint64_t kekw[28];
 
   memset(kekw, 0, sizeof(kekw));
@@ -73,7 +73,8 @@ void load(std::ifstream &stream) {
     Position pos;
 
     if(nrPos % 100000 == 0) {
-      std::cout << nrPos << ", entries = " << totalEntries << ", kek = " << kek << ", kc = " << kc << ", d = " << d << ", defp = " << defp << "\n";
+      std::cout << nrPos << ", entries = " << totalEntries << ", kek = " << kek << ", kc = " << kc << ", d = " << d << ", defp = " << defp
+                << ", weak = " << weak << "\n";
       /*for(int i = 0; i < 28; i++)
         std::cout << kekw[i] << " ";
       std::cout << "\n";*/
@@ -166,6 +167,8 @@ void load(std::ifstream &stream) {
 
     kek += sizeof(position[nrPos]);
 
+    weak += trace.weakKingSq[WHITE][MG] + trace.weakKingSq[BLACK][MG];
+
     kc += trace.safeCheck[WHITE][MG][KNIGHT] + trace.safeCheck[BLACK][MG][KNIGHT];
 
     defp += trace.pawnDefendedBonus[WHITE][MG] + trace.pawnDefendedBonus[BLACK][MG];
@@ -218,6 +221,9 @@ void loadWeights() {
     weights[ind++] = (threatByPawnPush[i]);
   for(int i = MG; i <= EG; i++)
     weights[ind++] = (threatMinorByMinor[i]);
+
+  for(int i = MG; i <= EG; i++)
+    weights[ind++] = (weakKingSq[i]);
 
   for(int s = MG; s <= EG; s++) {
     for(int i = PAWN; i <= QUEEN; i++)
@@ -328,6 +334,9 @@ void saveWeights() {
     threatByPawnPush[i] = std::round(weights[ind++]);
   for(int i = MG; i <= EG; i++)
     threatMinorByMinor[i] = std::round(weights[ind++]);
+
+  for(int i = MG; i <= EG; i++)
+    weakKingSq[i] = std::round(weights[ind++]);
 
   for(int s = MG; s <= EG; s++) {
     for(int i = PAWN; i <= QUEEN; i++)
@@ -467,6 +476,11 @@ void printWeights(int iteration) {
   out << "};\n";
 
   out << "int threatMinorByMinor[2] = {";
+  for(int i = MG; i <= EG; i++)
+    out << newWeights[ind++] << ", ";
+  out << "};\n\n";
+
+  out << "int weakKingSq[2] = {";
   for(int i = MG; i <= EG; i++)
     out << newWeights[ind++] << ", ";
   out << "};\n\n";

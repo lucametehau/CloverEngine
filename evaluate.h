@@ -50,6 +50,8 @@ public:
   uint8_t threatByPawnPush[2][2];
   uint8_t threatMinorByMinor[2][2];
 
+  uint8_t weakKingSq[2][2];
+
   uint8_t mat[2][2][7];
 
   uint8_t passedBonus[2][2][7];
@@ -125,19 +127,21 @@ int isolatedPenalty[2] = {-4, -11, };
 int backwardPenalty[2] = {-6, -20, };
 int pawnDefendedBonus[2] = {13, 5, };
 
-int threatByPawnPush[2] = {6, 8, };
-int threatMinorByMinor[2] = {-10, -19, };
+int threatByPawnPush[2] = {6, 9, };
+int threatMinorByMinor[2] = {-10, -22, };
+
+int weakKingSq[2] = {-14, 2, };
 
 const int phaseVal[] = {0, 0, 1, 1, 2, 4};
 const int maxWeight = 16 * phaseVal[PAWN] + 4 * phaseVal[KNIGHT] + 4 * phaseVal[BISHOP] + 4 * phaseVal[ROOK] + 2 * phaseVal[QUEEN];
 
 int passedBonus[2][7] = {
-  {0, -6, -5, 2, 30, 36, 72},
-  {0, 21, 27, 53, 81, 144, 138},
+  {0, -6, -5, 2, 31, 37, 72},
+  {0, 21, 27, 53, 81, 145, 139},
 };
 int blockedPassedBonus[2][7] = {
-  {0, -3, 0, 12, 37, 40, 33},
-  {0, -3, 8, 20, 28, 51, 40},
+  {0, -3, 0, 12, 37, 40, 34},
+  {0, -3, 8, 20, 28, 52, 40},
 };
 int connectedBonus[2][7] = {
   {0, 1, 3, 3, 7, 25, 70},
@@ -146,9 +150,9 @@ int connectedBonus[2][7] = {
 int kingAttackWeight[] = {0, 0, 2, 2, 3, 5};
 int SafetyTable[2][100] = {
   {
-    0, -1, 3, 1, 1, 5, 10, 4, 18, 15,
-    37, 28, 15, 37, 30, 61, 49, 26, 56, 48,
-    77, 69, 55, 81, 65, 110, 98, 89, 113, 109,
+    0, -1, 3, 0, -1, 4, 7, 2, 16, 13,
+    36, 27, 13, 37, 28, 61, 49, 25, 56, 47,
+    77, 69, 54, 81, 65, 110, 98, 88, 113, 109,
     144, 133, 167, 178, 179, 200, 210, 224, 238, 248,
     260, 272, 284, 295, 307, 319, 330, 342, 354, 366,
     377, 389, 401, 412, 424, 436, 448, 459, 471, 483,
@@ -158,8 +162,8 @@ int SafetyTable[2][100] = {
     500, 500, 500, 500, 500, 500, 500, 500, 500, 500,
   },
   {
-    0, -4, -4, -5, -1, -6, 1, 12, 12, 15,
-    23, 20, 25, 26, 34, 46, 34, 44, 48, 52,
+    0, -4, -5, -7, -2, -8, -2, 11, 11, 14,
+    23, 20, 25, 26, 33, 46, 34, 44, 48, 52,
     67, 68, 74, 80, 77, 102, 100, 104, 116, 122,
     141, 140, 169, 179, 183, 201, 212, 224, 237, 248,
     260, 272, 283, 295, 307, 319, 330, 342, 354, 366,
@@ -172,13 +176,13 @@ int SafetyTable[2][100] = {
 };
 int kingShelter[2][4][7] = {
   {
-    {-23, 13, 18, 5, 3, 8, 2, },
-    {-26, 21, 18, -8, 3, 8, 1, },
-    {-19, 15, -1, -8, 1, 2, 5, },
-    {-13, 11, 1, -7, -9, -19, -1, },
+    {-22, 13, 18, 5, 3, 8, 2, },
+    {-25, 21, 18, -8, 3, 8, 1, },
+    {-18, 15, -1, -8, 1, 2, 5, },
+    {-13, 11, 1, -7, -9, -20, -1, },
   },
   {
-    {2, -33, -15, 0, 14, 18, 13, },
+    {2, -34, -15, 0, 14, 18, 13, },
     {0, -12, -11, 5, 12, 13, 11, },
     {-11, -11, -3, 0, 8, 11, 9, },
     {-21, -14, -15, 1, 13, 11, 6, },
@@ -186,60 +190,60 @@ int kingShelter[2][4][7] = {
 };
 int kingStorm[2][4][7] = {
   {
-    {-11, 19, 17, -17, -9, 4, 1, },
-    {-21, 6, -1, -21, -5, 14, -1, },
+    {-11, 20, 17, -17, -9, 4, 1, },
+    {-21, 6, -1, -22, -5, 14, -1, },
     {-13, 3, -5, -24, -1, 10, 5, },
     {1, 7, 1, -16, 1, 17, 18, },
   },
   {
-    {-32, 37, 59, 30, -5, -24, -15, },
-    {-27, 28, 50, 26, 0, -24, -27, },
-    {-26, 27, 42, 22, -7, -22, -36, },
-    {-13, 33, 47, 17, -6, -14, -11, },
+    {-33, 38, 61, 30, -6, -24, -15, },
+    {-28, 29, 51, 26, 0, -24, -27, },
+    {-27, 28, 43, 22, -7, -22, -37, },
+    {-14, 34, 48, 17, -6, -14, -11, },
   },
 };
 int blockedStorm[2][7] = {
-  {0, 0, -20, 10, 16, 14, -3, },
-  {0, 0, -5, -23, -36, -43, -24, },
+  {0, 0, -20, 11, 16, 14, -3, },
+  {0, 0, -5, -23, -36, -43, -25, },
 };
 int safeCheck[2][6] = {
-  {0, 0, -75, -31, -69, -68},
-  {0, 0, -3, -16, -3, -10},
+  {0, 0, -75, -31, -68, -66},
+  {0, 0, -1, -15, 0, -8},
 };
 int outpostBonus[2][4] = {
-  {0, 0, 25, 26},
-  {0, 0, -2, 4},
+  {0, 0, 25, 25},
+  {0, 0, -3, 3},
 };
 int outpostHoleBonus[2][4] = {
-  {0, 0, 18, 20},
-  {0, 0, 5, 9},
+  {0, 0, 18, 19},
+  {0, 0, 4, 9},
 };
 
-int rookOpenFile[2] = {35, 5, };
+int rookOpenFile[2] = {35, 4, };
 int rookSemiOpenFile[2] = {14, 11, };
 
-int bishopPair[2] = {17, 81, };
-int longDiagonalBishop[2] = {10, 17, };
+int bishopPair[2] = {17, 79, };
+int longDiagonalBishop[2] = {9, 17, };
 int trappedRook[2] = {-29, -18, };
 
 int mobilityBonus[7][2][30] = {
     {},
     {},
     {
-        {-58, -9, 13, 22, 34, 37, 44, 52, 63, },
-        {-30, -32, 6, 41, 51, 72, 73, 69, 46, },
+        {-58, -9, 13, 23, 34, 37, 44, 52, 63, },
+        {-30, -33, 6, 42, 51, 72, 73, 69, 46, },
     },
     {
         {-56, -10, 7, 13, 23, 30, 32, 33, 33, 39, 41, 57, 58, 63, },
-        {-58, -62, -28, 5, 16, 38, 50, 55, 60, 61, 59, 45, 54, 33, },
+        {-58, -63, -28, 5, 16, 38, 50, 55, 60, 61, 59, 45, 54, 33, },
     },
     {
-        {-67, -29, -16, -10, -7, -6, -4, 1, 6, 11, 13, 18, 22, 33, 58, },
-        {-92, -48, -17, 9, 28, 44, 57, 63, 69, 74, 81, 83, 84, 74, 52, },
+        {-67, -29, -16, -9, -6, -6, -4, 1, 6, 11, 13, 18, 21, 33, 59, },
+        {-92, -49, -18, 10, 29, 45, 58, 63, 70, 75, 81, 83, 84, 74, 51, },
     },
     {
-        {-310, -148, -74, -8, 3, 13, 27, 28, 34, 36, 42, 44, 49, 52, 52, 52, 53, 48, 47, 42, 48, 54, 51, 56, 60, 123, 64, 124, },
-        {-236, -90, -6, -85, -36, 5, -32, 8, 16, 40, 47, 69, 65, 78, 83, 92, 97, 101, 107, 112, 109, 105, 108, 108, 114, 69, 93, 132, },
+        {-310, -148, -74, -8, 3, 13, 27, 28, 34, 36, 42, 45, 49, 52, 52, 52, 53, 48, 47, 42, 48, 54, 51, 56, 60, 123, 64, 124, },
+        {-236, -90, -6, -85, -36, 5, -32, 8, 16, 41, 47, 70, 65, 78, 83, 92, 97, 101, 107, 112, 109, 105, 108, 108, 114, 69, 93, 132, },
     }
 };
 
@@ -753,11 +757,22 @@ void kingEval(Board &board, int color, EvalTools &tools) {
       trace.safeCheck[color][MG][ROOK] += rookChecksCount, trace.safeCheck[color][EG][ROOK] += rookChecksCount;
       trace.safeCheck[color][MG][QUEEN] += queenChecksCount, trace.safeCheck[color][EG][QUEEN] += queenChecksCount;
     }
+
+    /// penalty for weak squares
+
+    int cntWeak = count(weak & tools.kingRing[color]);
+
+    tools.score[color][MG] += weakKingSq[MG] * cntWeak;
+    tools.score[color][EG] += weakKingSq[EG] * cntWeak;
+
+    if(TUNE) {
+      trace.weakKingSq[color][MG] += cntWeak, trace.weakKingSq[color][EG] += cntWeak;
+    }
   }
 
   /// evaluate king storm, shelter and blocked storms as on cpw
 
-  int f = king % 8;
+  int f = king & 7;
 
   f = (f < 1 ? 1 : (f > 6 ? 6 : f)); /// clamp king file between B and G files
 
@@ -921,6 +936,12 @@ void getTraceEntries(EvalTrace &trace) {
   for(int i = MG; i <= EG; i++) {
     for(int col = 0; i == MG && col < 2; col++)
       trace.add(ind, ind + 1, col, trace.threatMinorByMinor[col][i]);
+    ind++;
+  }
+
+  for(int i = MG; i <= EG; i++) {
+    for(int col = 0; i == MG && col < 2; col++)
+      trace.add(ind, ind + 1, col, trace.weakKingSq[col][i]);
     ind++;
   }
 
@@ -1124,6 +1145,8 @@ int evaluate(Board &board, Search *searcher = nullptr) {
   EvalTools tools;
 
   tools.init();
+
+  /// initialize evaluation tools
 
   for(int col = BLACK; col <= WHITE; col++) {
     int king = board.king(col); /// board.king(color)
