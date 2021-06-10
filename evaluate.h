@@ -130,6 +130,7 @@ int threatMinorByMinor[2] = {-10, -19, };
 
 const int phaseVal[] = {0, 0, 1, 1, 2, 4};
 const int maxWeight = 16 * phaseVal[PAWN] + 4 * phaseVal[KNIGHT] + 4 * phaseVal[BISHOP] + 4 * phaseVal[ROOK] + 2 * phaseVal[QUEEN];
+
 int passedBonus[2][7] = {
   {0, -6, -5, 2, 30, 36, 72},
   {0, 21, 27, 53, 81, 144, 138},
@@ -213,11 +214,14 @@ int outpostHoleBonus[2][4] = {
   {0, 0, 18, 20},
   {0, 0, 5, 9},
 };
+
 int rookOpenFile[2] = {35, 5, };
 int rookSemiOpenFile[2] = {14, 11, };
+
 int bishopPair[2] = {17, 81, };
 int longDiagonalBishop[2] = {10, 17, };
 int trappedRook[2] = {-29, -18, };
+
 int mobilityBonus[7][2][30] = {
     {},
     {},
@@ -757,7 +761,7 @@ void kingEval(Board &board, int color, EvalTools &tools) {
 
   f = (f < 1 ? 1 : (f > 6 ? 6 : f)); /// clamp king file between B and G files
 
-  for(int file = std::max(0, f - 1); file <= std::min(7, f + 1); file++) {
+  for(int file = f - 1; file <= f + 1; file++) {
 
     uint64_t b = fileMask[file] & tools.pawns[color];
     int ours = getFirstBit(enemy, b) / 8;
@@ -813,7 +817,7 @@ void threatsEval(Board &board, int color, EvalTools &tools) {
 
   b &= ~tools.defendedByPawn[enemy] & safe; /// don't consider pawn pushes to unsafe squares
 
-  b = getPawnAttacks(board, color, b) & (board.pieces[enemy] ^ board.bb[getType(PAWN, enemy)]); /// exclude pawn pushes that attack enemy pawns
+  b = getPawnAttacks(color, b) & (board.pieces[enemy] ^ board.bb[getType(PAWN, enemy)]); /// exclude pawn pushes that attack enemy pawns
 
   cnt = count(b);
 

@@ -140,7 +140,7 @@ void load(std::ifstream &stream) {
 
     trace = empty;
     //std::cout << trace.phase << "\n";
-    int initScore = evaluate(board, emptySearcher);
+    /*int initScore =*/ evaluate(board, emptySearcher);
 
     getTraceEntries(trace);
 
@@ -459,7 +459,7 @@ void printWeights(int iteration) {
   out << "int pawnDefendedBonus[2] = {";
   for(int i = MG; i <= EG; i++)
     out << newWeights[ind++] << ", ";
-  out << "};\n";
+  out << "};\n\n";
 
   out << "int threatByPawnPush[2] = {";
   for(int i = MG; i <= EG; i++)
@@ -469,7 +469,7 @@ void printWeights(int iteration) {
   out << "int threatMinorByMinor[2] = {";
   for(int i = MG; i <= EG; i++)
     out << newWeights[ind++] << ", ";
-  out << "};\n";
+  out << "};\n\n";
 
   out << "int mat[2][7] = {\n";
   for(int s = MG; s <= EG; s++) {
@@ -478,9 +478,9 @@ void printWeights(int iteration) {
       out << newWeights[ind++] << ", ";
     out << "0},\n";
   }
-  out << "};\n";
+  out << "};\n\n";
   out << "const int phaseVal[] = {0, 0, 1, 1, 2, 4};\n";
-  out << "const int maxWeight = 16 * phaseVal[PAWN] + 4 * phaseVal[KNIGHT] + 4 * phaseVal[BISHOP] + 4 * phaseVal[ROOK] + 2 * phaseVal[QUEEN];\n";
+  out << "const int maxWeight = 16 * phaseVal[PAWN] + 4 * phaseVal[KNIGHT] + 4 * phaseVal[BISHOP] + 4 * phaseVal[ROOK] + 2 * phaseVal[QUEEN];\n\n";
 
   out << "int passedBonus[2][7] = {\n";
   for(int s = MG; s <= EG; s++) {
@@ -587,7 +587,7 @@ void printWeights(int iteration) {
       out << ", " << newWeights[ind++];
     out << "},\n";
   }
-  out << "};\n";
+  out << "};\n\n";
 
   out << "int rookOpenFile[2] = {";
   for(int i = MG; i <= EG; i++)
@@ -597,7 +597,7 @@ void printWeights(int iteration) {
   out << "int rookSemiOpenFile[2] = {";
   for(int i = MG; i <= EG; i++)
     out << newWeights[ind++] << ", ";
-  out << "};\n";
+  out << "};\n\n";
 
   out << "int bishopPair[2] = {";
   for(int i = MG; i <= EG; i++)
@@ -612,7 +612,7 @@ void printWeights(int iteration) {
   out << "int trappedRook[2] = {";
   for(int i = MG; i <= EG; i++)
     out << newWeights[ind++] << ", ";
-  out << "};\n";
+  out << "};\n\n";
 
   out << "int mobilityBonus[7][2][30] = {\n";
   out << "    {},\n";
