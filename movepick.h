@@ -131,7 +131,7 @@ public:
 
       stage++;
 
-      if(!skip && killer1 && isLegalMove(searcher->board, killer1) && killer1 != hashMove)
+      if(!skip && killer1 && killer1 != hashMove && isLegalMove(searcher->board, killer1))
         return killer1;
     }
 
@@ -139,7 +139,7 @@ public:
 
       stage++;
 
-      if(!skip && killer2 && isLegalMove(searcher->board, killer2) && killer2 != hashMove)
+      if(!skip && killer2 && killer2 != hashMove && isLegalMove(searcher->board, killer2))
         return killer2;
     }
 
@@ -147,7 +147,7 @@ public:
 
       stage++;
 
-      if(!skip && counter && isLegalMove(searcher->board, counter) && counter != hashMove && counter != killer1 && counter != killer2)
+      if(!skip && counter && counter != hashMove && counter != killer1 && counter != killer2 && isLegalMove(searcher->board, counter))
         return counter;
     }
 
