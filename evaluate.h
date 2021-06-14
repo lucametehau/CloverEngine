@@ -50,6 +50,8 @@ public:
   uint8_t threatByPawnPush[2][2];
   uint8_t threatMinorByMinor[2][2];
 
+  uint8_t weakKingSq[2][2];
+
   uint8_t mat[2][2][7];
 
   uint8_t passedBonus[2][2][7];
@@ -120,34 +122,37 @@ public:
 const int TEMPO = 20;
 
 int passerDistToEdge[2] = {-5, -4, };
-int doubledPawnsPenalty[2] = {1, -34, };
-int isolatedPenalty[2] = {-4, -11, };
-int backwardPenalty[2] = {-6, -20, };
-int pawnDefendedBonus[2] = {13, 5, };
+int doubledPawnsPenalty[2] = {0, -35, };
+int isolatedPenalty[2] = {-3, -11, };
+int backwardPenalty[2] = {-6, -19, };
+int pawnDefendedBonus[2] = {14, 5, };
 
 int threatByPawnPush[2] = {6, 8, };
-int threatMinorByMinor[2] = {-10, -19, };
+int threatMinorByMinor[2] = {-11, -22, };
+
+int weakKingSq[2] = {-20, 3, };
 
 const int phaseVal[] = {0, 0, 1, 1, 2, 4};
 const int maxWeight = 16 * phaseVal[PAWN] + 4 * phaseVal[KNIGHT] + 4 * phaseVal[BISHOP] + 4 * phaseVal[ROOK] + 2 * phaseVal[QUEEN];
+
 int passedBonus[2][7] = {
-  {0, -6, -5, 2, 30, 36, 72},
-  {0, 21, 27, 53, 81, 144, 138},
+  {0, -7, -5, 2, 31, 38, 73},
+  {0, 21, 27, 53, 81, 146, 140},
 };
 int blockedPassedBonus[2][7] = {
-  {0, -3, 0, 12, 37, 40, 33},
-  {0, -3, 8, 20, 28, 51, 40},
+  {0, -3, 0, 12, 37, 41, 35},
+  {0, -3, 8, 20, 28, 53, 41},
 };
 int connectedBonus[2][7] = {
-  {0, 1, 3, 3, 7, 25, 70},
+  {0, 1, 3, 3, 7, 24, 70},
   {0, -1, 1, 3, 11, 20, 23},
 };
 int kingAttackWeight[] = {0, 0, 2, 2, 3, 5};
 int SafetyTable[2][100] = {
   {
-    0, -1, 3, 1, 1, 5, 10, 4, 18, 15,
-    37, 28, 15, 37, 30, 61, 49, 26, 56, 48,
-    77, 69, 55, 81, 65, 110, 98, 89, 113, 109,
+    0, -1, 4, 1, 0, 6, 9, 4, 17, 15,
+    37, 28, 13, 38, 28, 62, 50, 25, 57, 47,
+    78, 69, 54, 81, 65, 111, 98, 87, 113, 109,
     144, 133, 167, 178, 179, 200, 210, 224, 238, 248,
     260, 272, 284, 295, 307, 319, 330, 342, 354, 366,
     377, 389, 401, 412, 424, 436, 448, 459, 471, 483,
@@ -157,8 +162,8 @@ int SafetyTable[2][100] = {
     500, 500, 500, 500, 500, 500, 500, 500, 500, 500,
   },
   {
-    0, -4, -4, -5, -1, -6, 1, 12, 12, 15,
-    23, 20, 25, 26, 34, 46, 34, 44, 48, 52,
+    0, -4, -4, -5, -1, -5, 2, 12, 12, 16,
+    24, 20, 26, 26, 34, 46, 34, 44, 48, 52,
     67, 68, 74, 80, 77, 102, 100, 104, 116, 122,
     141, 140, 169, 179, 183, 201, 212, 224, 237, 248,
     260, 272, 283, 295, 307, 319, 330, 342, 354, 366,
@@ -171,71 +176,74 @@ int SafetyTable[2][100] = {
 };
 int kingShelter[2][4][7] = {
   {
-    {-23, 13, 18, 5, 3, 8, 2, },
-    {-26, 21, 18, -8, 3, 8, 1, },
-    {-19, 15, -1, -8, 1, 2, 5, },
-    {-13, 11, 1, -7, -9, -19, -1, },
+    {-21, 12, 17, 5, 3, 8, 2, },
+    {-22, 20, 19, -8, 2, 8, 1, },
+    {-17, 14, -1, -8, 1, 1, 5, },
+    {-12, 10, 0, -7, -8, -20, -1, },
   },
   {
-    {2, -33, -15, 0, 14, 18, 13, },
-    {0, -12, -11, 5, 12, 13, 11, },
-    {-11, -11, -3, 0, 8, 11, 9, },
-    {-21, -14, -15, 1, 13, 11, 6, },
+    {2, -35, -16, 0, 14, 18, 13, },
+    {0, -13, -11, 5, 12, 13, 11, },
+    {-11, -12, -3, 0, 8, 11, 9, },
+    {-21, -15, -15, 1, 14, 11, 6, },
   },
 };
 int kingStorm[2][4][7] = {
   {
-    {-11, 19, 17, -17, -9, 4, 1, },
-    {-21, 6, -1, -21, -5, 14, -1, },
-    {-13, 3, -5, -24, -1, 10, 5, },
-    {1, 7, 1, -16, 1, 17, 18, },
+    {-12, 21, 17, -18, -9, 3, 1, },
+    {-22, 6, -1, -22, -5, 14, 0, },
+    {-13, 3, -5, -25, -1, 10, 5, },
+    {2, 7, 1, -16, 1, 17, 18, },
   },
   {
-    {-32, 37, 59, 30, -5, -24, -15, },
-    {-27, 28, 50, 26, 0, -24, -27, },
-    {-26, 27, 42, 22, -7, -22, -36, },
-    {-13, 33, 47, 17, -6, -14, -11, },
+    {-33, 39, 63, 30, -6, -25, -16, },
+    {-28, 30, 52, 26, -1, -25, -27, },
+    {-27, 29, 44, 22, -8, -23, -37, },
+    {-14, 35, 49, 17, -6, -14, -11, },
   },
 };
 int blockedStorm[2][7] = {
-  {0, 0, -20, 10, 16, 14, -3, },
-  {0, 0, -5, -23, -36, -43, -24, },
+  {0, 0, -19, 13, 16, 13, -4, },
+  {0, 0, -5, -23, -37, -44, -26, },
 };
 int safeCheck[2][6] = {
-  {0, 0, -75, -31, -69, -68},
-  {0, 0, -3, -16, -3, -10},
+  {0, 0, -70, -24, -61, -48},
+  {0, 0, 7, -10, 8, -9},
 };
 int outpostBonus[2][4] = {
-  {0, 0, 25, 26},
-  {0, 0, -2, 4},
+  {0, 0, 26, 27},
+  {0, 0, -3, 5},
 };
 int outpostHoleBonus[2][4] = {
-  {0, 0, 18, 20},
-  {0, 0, 5, 9},
+  {0, 0, 19, 20},
+  {0, 0, 4, 10},
 };
-int rookOpenFile[2] = {35, 5, };
-int rookSemiOpenFile[2] = {14, 11, };
-int bishopPair[2] = {17, 81, };
-int longDiagonalBishop[2] = {10, 17, };
+
+int rookOpenFile[2] = {36, 4, };
+int rookSemiOpenFile[2] = {14, 12, };
+
+int bishopPair[2] = {17, 78, };
+int longDiagonalBishop[2] = {8, 17, };
 int trappedRook[2] = {-29, -18, };
+
 int mobilityBonus[7][2][30] = {
     {},
     {},
     {
-        {-58, -9, 13, 22, 34, 37, 44, 52, 63, },
-        {-30, -32, 6, 41, 51, 72, 73, 69, 46, },
+        {-58, -9, 13, 23, 34, 37, 44, 53, 63, },
+        {-30, -34, 6, 42, 52, 73, 73, 69, 46, },
     },
     {
-        {-56, -10, 7, 13, 23, 30, 32, 33, 33, 39, 41, 57, 58, 63, },
-        {-58, -62, -28, 5, 16, 38, 50, 55, 60, 61, 59, 45, 54, 33, },
+        {-56, -10, 7, 13, 24, 30, 32, 33, 33, 39, 41, 57, 58, 63, },
+        {-58, -64, -28, 5, 16, 38, 50, 55, 61, 62, 60, 46, 55, 33, },
     },
     {
-        {-67, -29, -16, -10, -7, -6, -4, 1, 6, 11, 13, 18, 22, 33, 58, },
-        {-92, -48, -17, 9, 28, 44, 57, 63, 69, 74, 81, 83, 84, 74, 52, },
+        {-67, -29, -15, -9, -6, -5, -4, 1, 6, 11, 13, 18, 21, 32, 60, },
+        {-92, -50, -18, 11, 30, 46, 58, 64, 71, 76, 82, 83, 84, 74, 50, },
     },
     {
-        {-310, -148, -74, -8, 3, 13, 27, 28, 34, 36, 42, 44, 49, 52, 52, 52, 53, 48, 47, 42, 48, 54, 51, 56, 60, 123, 64, 124, },
-        {-236, -90, -6, -85, -36, 5, -32, 8, 16, 40, 47, 69, 65, 78, 83, 92, 97, 101, 107, 112, 109, 105, 108, 108, 114, 69, 93, 132, },
+        {-310, -148, -74, -8, 3, 14, 28, 30, 35, 37, 43, 45, 49, 52, 52, 51, 52, 47, 46, 41, 47, 53, 50, 56, 60, 123, 64, 124, },
+        {-236, -90, -6, -85, -36, 5, -32, 9, 17, 42, 48, 71, 66, 79, 84, 92, 97, 101, 107, 111, 108, 104, 107, 107, 114, 69, 93, 132, },
     }
 };
 
@@ -314,7 +322,7 @@ void rookEval(Board &board, int color, EvalTools &tools) {
 
 /// evaluate pawns and pawn structure
 
-void pawnEval(Board &board, int color, EvalTools &tools, int pawnScore[], uint64_t &passedPawns) {
+void pawnEval(int color, EvalTools &tools, int pawnScore[], uint64_t &passedPawns) {
   uint64_t pieces = tools.pawns[color], passers = 0;
 
   while(pieces) {
@@ -335,6 +343,7 @@ void pawnEval(Board &board, int color, EvalTools &tools, int pawnScore[], uint64
       }
 
       if(neigh && !((neighFileDownMask[frontSq] ^ b) & tools.pawns[WHITE]) && ((1ULL << frontSq) & tools.defendedByPawn[BLACK])) {
+        //std::cout << "backward " << sq << "\n";
         pawnScore[MG] += backwardPenalty[MG];
         pawnScore[EG] += backwardPenalty[EG];
 
@@ -342,6 +351,7 @@ void pawnEval(Board &board, int color, EvalTools &tools, int pawnScore[], uint64
           trace.backwardPenalty[color][MG]++, trace.backwardPenalty[color][EG]++;
       }
       if(fileUpMask[sq] & tools.pawns[WHITE]) {
+        //std::cout << "doubled " << sq << "\n";
         pawnScore[MG] += doubledPawnsPenalty[MG];
         pawnScore[EG] += doubledPawnsPenalty[EG];
 
@@ -355,6 +365,7 @@ void pawnEval(Board &board, int color, EvalTools &tools, int pawnScore[], uint64
       }
 
       if(neigh && !((neighFileUpMask[frontSq] ^ b) & tools.pawns[BLACK]) && ((1ULL << frontSq) & tools.defendedByPawn[WHITE])) {
+        //std::cout << "backward " << sq << "\n";
         pawnScore[MG] += backwardPenalty[MG];
         pawnScore[EG] += backwardPenalty[EG];
 
@@ -362,6 +373,7 @@ void pawnEval(Board &board, int color, EvalTools &tools, int pawnScore[], uint64
           trace.backwardPenalty[color][MG]++, trace.backwardPenalty[color][EG]++;
       }
       if(fileDownMask[sq] & tools.pawns[BLACK]) {
+        //std::cout << "doubled " << sq << "\n";
         pawnScore[MG] += doubledPawnsPenalty[MG];
         pawnScore[EG] += doubledPawnsPenalty[EG];
 
@@ -374,6 +386,7 @@ void pawnEval(Board &board, int color, EvalTools &tools, int pawnScore[], uint64
     if(phalanx | defenders) {
       /// give bonus if pawn is connected, increase it if pawn makes a phalanx, decrease it if pawn is blocked
 
+      //std::cout << sq << " " << phalanx << " " << defenders << "\n";
       int f = (phalanx ? 4 : 2) / (opposed ? 2 : 1);
 
       if(TUNE) {
@@ -394,6 +407,7 @@ void pawnEval(Board &board, int color, EvalTools &tools, int pawnScore[], uint64
 
     /// no supporting pawns
     if(!neigh) {
+      //std::cout << "isolated pawn on " << sq << "\n";
       pawnScore[MG] += isolatedPenalty[MG];
       pawnScore[EG] += isolatedPenalty[EG];
 
@@ -712,52 +726,63 @@ void kingEval(Board &board, int color, EvalTools &tools) {
       trace.SafetyTable[color][MG][weight]--;
       trace.SafetyTable[color][EG][weight]--;
     }
+  }
 
-    /// apply penalty if enemy can give safe checks
+  /// apply penalty if enemy can give safe checks
 
-    /// weak squares are those attacked by the enemy, undefended or defended once by our king or queen
+  /// weak squares are those attacked by the enemy, undefended or defended once by our king or queen
 
-    uint64_t weak = tools.attackedBy[enemy] & ~tools.attackedBy2[color] &
-                    (~tools.attackedBy[color] | tools.attackedByPiece[color][QUEEN] | tools.attackedByPiece[color][KING]);
+  uint64_t weak = tools.attackedBy[enemy] & ~tools.attackedBy2[color] &
+                  (~tools.attackedBy[color] | tools.attackedByPiece[color][QUEEN] | tools.attackedByPiece[color][KING]);
 
-    /// safe squares are those which are not attacked by us or weak squares attacked twice by the enemy
+  /// safe squares are those which are not attacked by us or weak squares attacked twice by the enemy
 
-    uint64_t safe = ~board.pieces[enemy] & (~tools.attackedBy[color] | (weak & tools.attackedBy2[enemy])),
-             occ = board.pieces[WHITE] | board.pieces[BLACK];
-    int knightChecksCount = count(knightBBAttacks[king] & tools.attackedByPiece[enemy][KNIGHT] & safe);
-    int bishopChecksCount = count(genAttacksBishop(occ, king) & tools.attackedByPiece[enemy][BISHOP] & safe);
-    int rookChecksCount = count(genAttacksRook(occ, king) & tools.attackedByPiece[enemy][ROOK] & safe);
-    int queenChecksCount = count(genAttacksQueen(occ, king) & tools.attackedByPiece[enemy][QUEEN] & safe);
+  uint64_t safe = ~board.pieces[enemy] & (~tools.attackedBy[color] | (weak & tools.attackedBy2[enemy])),
+           occ = board.pieces[WHITE] | board.pieces[BLACK];
+  int knightChecksCount = count(knightBBAttacks[king] & tools.attackedByPiece[enemy][KNIGHT] & safe);
+  int bishopChecksCount = count(genAttacksBishop(occ, king) & tools.attackedByPiece[enemy][BISHOP] & safe);
+  int rookChecksCount = count(genAttacksRook(occ, king) & tools.attackedByPiece[enemy][ROOK] & safe);
+  int queenChecksCount = count(genAttacksQueen(occ, king) & tools.attackedByPiece[enemy][QUEEN] & safe);
 
-    tools.score[color][MG] += safeCheck[MG][KNIGHT] * knightChecksCount;
-    tools.score[color][EG] += safeCheck[EG][KNIGHT] * knightChecksCount;
+  tools.score[color][MG] += safeCheck[MG][KNIGHT] * knightChecksCount;
+  tools.score[color][EG] += safeCheck[EG][KNIGHT] * knightChecksCount;
 
-    tools.score[color][MG] += safeCheck[MG][BISHOP] * bishopChecksCount;
-    tools.score[color][EG] += safeCheck[EG][BISHOP] * bishopChecksCount;
+  tools.score[color][MG] += safeCheck[MG][BISHOP] * bishopChecksCount;
+  tools.score[color][EG] += safeCheck[EG][BISHOP] * bishopChecksCount;
 
-    tools.score[color][MG] += safeCheck[MG][ROOK] * rookChecksCount;
-    tools.score[color][EG] += safeCheck[EG][ROOK] * rookChecksCount;
+  tools.score[color][MG] += safeCheck[MG][ROOK] * rookChecksCount;
+  tools.score[color][EG] += safeCheck[EG][ROOK] * rookChecksCount;
 
-    tools.score[color][MG] += safeCheck[MG][QUEEN] * queenChecksCount;
-    tools.score[color][EG] += safeCheck[EG][QUEEN] * queenChecksCount;
+  tools.score[color][MG] += safeCheck[MG][QUEEN] * queenChecksCount;
+  tools.score[color][EG] += safeCheck[EG][QUEEN] * queenChecksCount;
 
-    //std::cout << knightChecksCount << " " << bishopChecksCount << " " << rookChecksCount << " " << queenChecksCount << "\n";
+  //std::cout << knightChecksCount << " " << bishopChecksCount << " " << rookChecksCount << " " << queenChecksCount << "\n";
 
-    if(TUNE) {
-      trace.safeCheck[color][MG][KNIGHT] += knightChecksCount, trace.safeCheck[color][EG][KNIGHT] += knightChecksCount;
-      trace.safeCheck[color][MG][BISHOP] += bishopChecksCount, trace.safeCheck[color][EG][BISHOP] += bishopChecksCount;
-      trace.safeCheck[color][MG][ROOK] += rookChecksCount, trace.safeCheck[color][EG][ROOK] += rookChecksCount;
-      trace.safeCheck[color][MG][QUEEN] += queenChecksCount, trace.safeCheck[color][EG][QUEEN] += queenChecksCount;
-    }
+  if(TUNE) {
+    trace.safeCheck[color][MG][KNIGHT] += knightChecksCount, trace.safeCheck[color][EG][KNIGHT] += knightChecksCount;
+    trace.safeCheck[color][MG][BISHOP] += bishopChecksCount, trace.safeCheck[color][EG][BISHOP] += bishopChecksCount;
+    trace.safeCheck[color][MG][ROOK] += rookChecksCount, trace.safeCheck[color][EG][ROOK] += rookChecksCount;
+    trace.safeCheck[color][MG][QUEEN] += queenChecksCount, trace.safeCheck[color][EG][QUEEN] += queenChecksCount;
+  }
+
+  /// penalty for weak squares
+
+  int cntWeak = count(weak & tools.kingRing[color]);
+
+  tools.score[color][MG] += weakKingSq[MG] * cntWeak;
+  tools.score[color][EG] += weakKingSq[EG] * cntWeak;
+
+  if(TUNE) {
+    trace.weakKingSq[color][MG] += cntWeak, trace.weakKingSq[color][EG] += cntWeak;
   }
 
   /// evaluate king storm, shelter and blocked storms as on cpw
 
-  int f = king % 8;
+  int f = king & 7;
 
   f = (f < 1 ? 1 : (f > 6 ? 6 : f)); /// clamp king file between B and G files
 
-  for(int file = std::max(0, f - 1); file <= std::min(7, f + 1); file++) {
+  for(int file = f - 1; file <= f + 1; file++) {
 
     uint64_t b = fileMask[file] & tools.pawns[color];
     int ours = getFirstBit(enemy, b) / 8;
@@ -813,7 +838,7 @@ void threatsEval(Board &board, int color, EvalTools &tools) {
 
   b &= ~tools.defendedByPawn[enemy] & safe; /// don't consider pawn pushes to unsafe squares
 
-  b = getPawnAttacks(board, color, b) & (board.pieces[enemy] ^ board.bb[getType(PAWN, enemy)]); /// exclude pawn pushes that attack enemy pawns
+  b = getPawnAttacks(color, b) & (board.pieces[enemy] ^ board.bb[getType(PAWN, enemy)]); /// exclude pawn pushes that attack enemy pawns
 
   cnt = count(b);
 
@@ -917,6 +942,12 @@ void getTraceEntries(EvalTrace &trace) {
   for(int i = MG; i <= EG; i++) {
     for(int col = 0; i == MG && col < 2; col++)
       trace.add(ind, ind + 1, col, trace.threatMinorByMinor[col][i]);
+    ind++;
+  }
+
+  for(int i = MG; i <= EG; i++) {
+    for(int col = 0; i == MG && col < 2; col++)
+      trace.add(ind, ind + 1, col, trace.weakKingSq[col][i]);
     ind++;
   }
 
@@ -1121,6 +1152,8 @@ int evaluate(Board &board, Search *searcher = nullptr) {
 
   tools.init();
 
+  /// initialize evaluation tools
+
   for(int col = BLACK; col <= WHITE; col++) {
     int king = board.king(col); /// board.king(color)
 
@@ -1184,8 +1217,8 @@ int evaluate(Board &board, Search *searcher = nullptr) {
 
     uint64_t tmp = 0;
 
-    pawnEval(board, WHITE, tools, pawnScore[WHITE], tmp);
-    pawnEval(board, BLACK, tools, pawnScore[BLACK], tmp);
+    pawnEval(WHITE, tools, pawnScore[WHITE], tmp);
+    pawnEval(BLACK, tools, pawnScore[BLACK], tmp);
 
     int pScore[2] = {pawnScore[WHITE][MG] - pawnScore[BLACK][MG], pawnScore[WHITE][EG] - pawnScore[BLACK][EG]};
 
@@ -1202,8 +1235,8 @@ int evaluate(Board &board, Search *searcher = nullptr) {
 
     uint64_t passers[2] = {0, 0};
 
-    pawnEval(board, WHITE, tools, pawnScore[WHITE], passers[WHITE]);
-    pawnEval(board, BLACK, tools, pawnScore[BLACK], passers[BLACK]);
+    pawnEval(WHITE, tools, pawnScore[WHITE], passers[WHITE]);
+    pawnEval(BLACK, tools, pawnScore[BLACK], passers[BLACK]);
 
     passersEval(board, WHITE, tools, passers[WHITE]);
     passersEval(board, BLACK, tools, passers[BLACK]);

@@ -6,6 +6,139 @@
 #include "attacks.h"
 #include "evaluate.h"
 
+/// the makeMoveFast/undoMoveFast functions are used only for legality check
+
+inline void makeMoveFast(Board &board, uint16_t mv) {
+  int posFrom = sqFrom(mv), posTo = sqTo(mv);
+  int pieceFrom = board.board[posFrom], pieceTo = board.board[posTo];
+
+  switch(type(mv)) {
+  case NEUT:
+    board.pieces[board.turn]  ^= (1ULL << posFrom) ^ (1ULL << posTo);
+    board.bb[pieceFrom]       ^= (1ULL << posFrom) ^ (1ULL << posTo);
+
+    if(pieceTo) {
+      board.pieces[1 ^ board.turn]  ^= (1ULL << posTo);
+      board.bb[pieceTo]             ^= (1ULL << posTo);
+    }
+
+    break;
+  case ENPASSANT:
+    {
+        int pos = sqDir(board.turn, SOUTH, posTo), pieceCap = getType(PAWN, 1 ^ board.turn);
+
+        board.pieces[board.turn]  ^= (1ULL << posFrom) ^ (1ULL << posTo);
+        board.bb[pieceFrom]       ^= (1ULL << posFrom) ^ (1ULL << posTo);
+
+        board.pieces[1 ^ board.turn]  ^= (1ULL << pos);
+        board.bb[pieceCap]            ^= (1ULL << pos);
+        //board.captured       = 0; /// even thought i capture a pawn
+    }
+
+    break;
+  case CASTLE:
+    {
+        int rFrom, rTo, rPiece = getType(ROOK, board.turn);
+
+        if(posTo == mirror(board.turn, C1)) {
+          rFrom = mirror(board.turn, A1);
+          rTo   = mirror(board.turn, D1);
+        } else {
+          rFrom = mirror(board.turn, H1);
+          rTo   = mirror(board.turn, F1);
+        }
+
+        board.pieces[board.turn]  ^= (1ULL << posFrom) ^ (1ULL << posTo) ^
+                                      (1ULL << rFrom) ^ (1ULL << rTo);
+        board.bb[pieceFrom]       ^= (1ULL << posFrom) ^ (1ULL << posTo);
+        board.bb[rPiece]          ^= (1ULL << rFrom) ^ (1ULL << rTo);
+    }
+
+    break;
+  default: /// promotion
+    {
+        int promPiece = getType(promoted(mv) + KNIGHT, board.turn);
+
+        board.pieces[board.turn]  ^= (1ULL << posFrom) ^ (1ULL << posTo);
+        board.bb[pieceFrom]       ^= (1ULL << posFrom);
+        board.bb[promPiece]       ^= (1ULL << posTo);
+
+        if(pieceTo) {
+          board.bb[pieceTo]             ^= (1ULL << posTo);
+          board.pieces[1 ^ board.turn]  ^= (1ULL << posTo);
+        }
+    }
+
+    break;
+  }
+
+  board.turn ^= 1;
+}
+
+inline void undoMoveFast(Board &board, uint16_t move) {
+  board.turn ^= 1;
+
+  int posFrom = sqFrom(move), posTo = sqTo(move), piece = board.board[posFrom], pieceCap = board.board[posTo]; /// we don't updated board, so this works
+
+  switch(type(move)) {
+  case NEUT:
+    board.pieces[board.turn] ^= (1ULL << posFrom) ^ (1ULL << posTo);
+    board.bb[piece]          ^= (1ULL << posFrom) ^ (1ULL << posTo);
+
+    if(pieceCap) {
+      board.pieces[1 ^ board.turn] ^= (1ULL << posTo);
+      board.bb[pieceCap]           ^= (1ULL << posTo);
+    }
+    break;
+  case CASTLE:
+    {
+        int rFrom, rTo, rPiece = getType(ROOK, board.turn);
+
+        if(posTo == mirror(board.turn, C1)) {
+          rFrom = mirror(board.turn, A1);
+          rTo   = mirror(board.turn, D1);
+        } else {
+          rFrom = mirror(board.turn, H1);
+          rTo   = mirror(board.turn, F1);
+        }
+
+        board.pieces[board.turn] ^= (1ULL << posFrom) ^ (1ULL << posTo) ^ (1ULL << rFrom) ^ (1ULL << rTo);
+        board.bb[piece]          ^= (1ULL << posFrom) ^ (1ULL << posTo);
+        board.bb[rPiece]         ^= (1ULL << rFrom) ^ (1ULL << rTo);
+    }
+    break;
+  case ENPASSANT:
+    {
+        int pos = sqDir(board.turn, SOUTH, posTo);
+
+        pieceCap = getType(PAWN, 1 ^ board.turn);
+
+        board.pieces[board.turn] ^= (1ULL << posFrom) ^ (1ULL << posTo);
+        board.bb[piece]          ^= (1ULL << posFrom) ^ (1ULL << posTo);
+
+        board.pieces[1 ^ board.turn] ^= (1ULL << pos);
+        board.bb[pieceCap]           ^= (1ULL << pos);
+    }
+    break;
+  default: /// promotion
+    {
+        int promPiece = getType(promoted(move) + KNIGHT, board.turn);
+
+        piece = getType(PAWN, board.turn);
+
+        board.pieces[board.turn] ^= (1ULL << posFrom) ^ (1ULL << posTo);
+        board.bb[piece]          ^= (1ULL << posFrom);
+        board.bb[promPiece]      ^= (1ULL << posTo);
+
+        if(pieceCap) {
+          board.pieces[1 ^ board.turn] ^= (1ULL << posTo);
+          board.bb[pieceCap]           ^= (1ULL << posTo);
+        }
+    }
+    break;
+  }
+}
+
 inline void makeMove(Board &board, uint16_t mv) { /// assuming move is at least pseudo-legal
   int posFrom = sqFrom(mv), posTo = sqTo(mv);
   int pieceFrom = board.board[posFrom], pieceTo = board.board[posTo];
@@ -683,7 +816,6 @@ inline int genLegal(Board &board, uint16_t *moves) {
 
 
 inline int genLegalNoisy(Board &board, uint16_t *moves) {
-  //Board *temp = new Board(board);
   int nrMoves = 0;
   int color = board.turn, enemy = color ^ 1;
   int king = board.king(color), enemyKing = board.king(enemy);
@@ -1269,9 +1401,9 @@ bool isLegalMove(Board &board, int move) {
     return 1;
   }
 
-  makeMove(board, move);
+  makeMoveFast(board, move);
   bool legal = !isSqAttacked(board, board.turn, board.king(board.turn ^ 1));
-  undoMove(board, move);
+  undoMoveFast(board, move);
 
   //std::cout << legal << "\n";
 

@@ -9,6 +9,23 @@
 
 int main(int argc, char **argv) {
   //sr->clearStack();
+  /*long double t1 = getTime();
+  long long s = 0;
+  for(int i = 1; i <= 1000000000; i++)
+    s += count(rng(gen) & 3);
+  long double t2 = getTime();
+  std::cout << s << ", time taken " << (t2 - t1) / 1000.0 << "s\n";
+  t1 = getTime();
+  s = 0;
+  for(int i = 1; i <= 1000000000; i++)
+    s += smallPopCount(rng(gen) & 3);
+  t2 = getTime();
+  std::cout << s << ", time taken " << (t2 - t1) / 1000.0 << "s\n";
+
+  */
+
+
+
   init_defs();
   initAttacks();
   initPSQT();

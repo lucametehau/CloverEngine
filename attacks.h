@@ -249,7 +249,7 @@ inline uint64_t getAttackers(Board &board, int color, uint64_t blockers, int sq)
 
 /// same as the below one, only difference is that b is known
 
-inline uint64_t getPawnAttacks(Board &board, int color, uint64_t b) {
+inline uint64_t getPawnAttacks(int color, uint64_t b) {
   int fileA = (color == WHITE ? 0 : 7), fileH = 7 - fileA;
   return shift(color, NORTHWEST, b & ~fileMask[fileA]) | shift(color, NORTHEAST, b & ~fileMask[fileH]);
 }

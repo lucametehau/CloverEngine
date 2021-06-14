@@ -14,7 +14,7 @@
 
 const int PRECISION = 8;
 const int NPOS = 9999740; /// 9999740 2500002
-const int TERMS = 1312;
+const int TERMS = 1314;
 const int BUCKET_SIZE = 1LL * NPOS * TERMS / 64;
 const double TUNE_K = 2.67213609;
 
@@ -61,7 +61,7 @@ void load(std::ifstream &stream) {
   info->startTime = 0;
 
   uint64_t totalEntries = 0, kek = 0, d = 0;
-  int kc = 0, defp = 0;
+  int kc = 0, defp = 0, weak = 0;
   uint64_t kekw[28];
 
   memset(kekw, 0, sizeof(kekw));
@@ -73,7 +73,8 @@ void load(std::ifstream &stream) {
     Position pos;
 
     if(nrPos % 100000 == 0) {
-      std::cout << nrPos << ", entries = " << totalEntries << ", kek = " << kek << ", kc = " << kc << ", d = " << d << ", defp = " << defp << "\n";
+      std::cout << nrPos << ", entries = " << totalEntries << ", kek = " << kek << ", kc = " << kc << ", d = " << d << ", defp = " << defp
+                << ", weak = " << weak << "\n";
       /*for(int i = 0; i < 28; i++)
         std::cout << kekw[i] << " ";
       std::cout << "\n";*/
@@ -140,7 +141,7 @@ void load(std::ifstream &stream) {
 
     trace = empty;
     //std::cout << trace.phase << "\n";
-    int initScore = evaluate(board, emptySearcher);
+    /*int initScore =*/ evaluate(board, emptySearcher);
 
     getTraceEntries(trace);
 
@@ -165,6 +166,8 @@ void load(std::ifstream &stream) {
     position[nrPos].scale = trace.scale;
 
     kek += sizeof(position[nrPos]);
+
+    weak += trace.weakKingSq[WHITE][MG] + trace.weakKingSq[BLACK][MG];
 
     kc += trace.safeCheck[WHITE][MG][KNIGHT] + trace.safeCheck[BLACK][MG][KNIGHT];
 
@@ -218,6 +221,9 @@ void loadWeights() {
     weights[ind++] = (threatByPawnPush[i]);
   for(int i = MG; i <= EG; i++)
     weights[ind++] = (threatMinorByMinor[i]);
+
+  for(int i = MG; i <= EG; i++)
+    weights[ind++] = (weakKingSq[i]);
 
   for(int s = MG; s <= EG; s++) {
     for(int i = PAWN; i <= QUEEN; i++)
@@ -328,6 +334,9 @@ void saveWeights() {
     threatByPawnPush[i] = std::round(weights[ind++]);
   for(int i = MG; i <= EG; i++)
     threatMinorByMinor[i] = std::round(weights[ind++]);
+
+  for(int i = MG; i <= EG; i++)
+    weakKingSq[i] = std::round(weights[ind++]);
 
   for(int s = MG; s <= EG; s++) {
     for(int i = PAWN; i <= QUEEN; i++)
@@ -459,7 +468,7 @@ void printWeights(int iteration) {
   out << "int pawnDefendedBonus[2] = {";
   for(int i = MG; i <= EG; i++)
     out << newWeights[ind++] << ", ";
-  out << "};\n";
+  out << "};\n\n";
 
   out << "int threatByPawnPush[2] = {";
   for(int i = MG; i <= EG; i++)
@@ -469,7 +478,12 @@ void printWeights(int iteration) {
   out << "int threatMinorByMinor[2] = {";
   for(int i = MG; i <= EG; i++)
     out << newWeights[ind++] << ", ";
-  out << "};\n";
+  out << "};\n\n";
+
+  out << "int weakKingSq[2] = {";
+  for(int i = MG; i <= EG; i++)
+    out << newWeights[ind++] << ", ";
+  out << "};\n\n";
 
   out << "int mat[2][7] = {\n";
   for(int s = MG; s <= EG; s++) {
@@ -478,9 +492,9 @@ void printWeights(int iteration) {
       out << newWeights[ind++] << ", ";
     out << "0},\n";
   }
-  out << "};\n";
+  out << "};\n\n";
   out << "const int phaseVal[] = {0, 0, 1, 1, 2, 4};\n";
-  out << "const int maxWeight = 16 * phaseVal[PAWN] + 4 * phaseVal[KNIGHT] + 4 * phaseVal[BISHOP] + 4 * phaseVal[ROOK] + 2 * phaseVal[QUEEN];\n";
+  out << "const int maxWeight = 16 * phaseVal[PAWN] + 4 * phaseVal[KNIGHT] + 4 * phaseVal[BISHOP] + 4 * phaseVal[ROOK] + 2 * phaseVal[QUEEN];\n\n";
 
   out << "int passedBonus[2][7] = {\n";
   for(int s = MG; s <= EG; s++) {
@@ -587,7 +601,7 @@ void printWeights(int iteration) {
       out << ", " << newWeights[ind++];
     out << "},\n";
   }
-  out << "};\n";
+  out << "};\n\n";
 
   out << "int rookOpenFile[2] = {";
   for(int i = MG; i <= EG; i++)
@@ -597,7 +611,7 @@ void printWeights(int iteration) {
   out << "int rookSemiOpenFile[2] = {";
   for(int i = MG; i <= EG; i++)
     out << newWeights[ind++] << ", ";
-  out << "};\n";
+  out << "};\n\n";
 
   out << "int bishopPair[2] = {";
   for(int i = MG; i <= EG; i++)
@@ -612,7 +626,7 @@ void printWeights(int iteration) {
   out << "int trappedRook[2] = {";
   for(int i = MG; i <= EG; i++)
     out << newWeights[ind++] << ", ";
-  out << "};\n";
+  out << "};\n\n";
 
   out << "int mobilityBonus[7][2][30] = {\n";
   out << "    {},\n";
