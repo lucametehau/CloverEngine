@@ -284,7 +284,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
     }
   }
 
-  bool improving = (ply >= 2 && Stack[ply].eval > Stack[ply - 2].eval); /// (TO DO: make all pruning dependent of this variable?)
+  bool improving = (!isCheck && ply >= 2 && Stack[ply].eval > Stack[ply - 2].eval); /// (TO DO: make all pruning dependent of this variable?)
 
   killers[ply + 1][0] = killers[ply + 1][1] = NULLMOVE;
 
@@ -707,8 +707,8 @@ void Search :: startSearch(Info *_info) {
 
       window += window / 2;
 
-      if(window > 700) /// idk (testing indicated that any window above this pretty much leads to mate)
-        window = INF;
+      /*if(window > 700) /// idk (testing indicated that any window above this pretty much leads to mate)
+        window = INF;*/
     }
 
     if(principalSearcher) {

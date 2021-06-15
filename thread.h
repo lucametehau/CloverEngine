@@ -14,7 +14,7 @@ int RazorCoef = 325;
 int SNMPCoef1 = 85;
 int SNMPCoef2 = 20;
 int seeCoefQuiet = 80;
-int seeCoefNoisy = 25;
+int seeCoefNoisy = 18;
 
 const int TERMINATED_BY_USER = 1;
 const int TERMINATED_BY_TIME = 2;
