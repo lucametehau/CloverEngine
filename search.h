@@ -461,7 +461,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
     if(isQuiet && depth >= 3 && played > 1 + 2 * rootNode) { /// first few moves we don't reduce
       R = lmrRed[std::min(63, depth)][std::min(63, played)];
 
-      R += !(nodes & 255); /// idea: reduce more every 255 nodes
+      //R += !(nodes & 1023); /// idea: reduce more every 1024 nodes
 
       R += !pvNode + !improving; /// not on pv or not improving
 
@@ -696,11 +696,11 @@ void Search :: startSearch(Info *_info) {
       if(flag & TERMINATED_SEARCH)
         break;
 
-      if(-INF < score && score <= alpha) {
+      if(score <= alpha) {
         beta = (beta + alpha) / 2;
-        alpha = std::max(-INF, alpha - window);
-      } else if(beta <= score && score < INF) {
-        beta = std::min(INF, beta + window);
+        alpha = std::max(-INF, score - window);
+      } else if(beta <= score) {
+        beta = std::min(INF, score + window);
       } else {
         if(pvTableLen[0])
           bestMove = pvTable[0][0];
