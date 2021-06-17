@@ -461,6 +461,8 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
     if(isQuiet && depth >= 3 && played > 1 + 2 * rootNode) { /// first few moves we don't reduce
       R = lmrRed[std::min(63, depth)][std::min(63, played)];
 
+      R += !(nodes & 255); /// idea: reduce more every 255 nodes
+
       R += !pvNode + !improving; /// not on pv or not improving
 
       R += isCheck && piece_type(board.board[sqTo(move)]) == KING; /// check evasions
