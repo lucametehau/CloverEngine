@@ -33,7 +33,7 @@
 /// is this working?
 /// i guess so?
 
-const std::string VERSION = "2.4-dev23"; /// 2.0 was "FM"
+const std::string VERSION = "2.4-dev25"; /// 2.0 was "FM"
 
 char line[INPUTBUFFER];
 
