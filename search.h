@@ -472,6 +472,12 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
       R -= std::max(-2, std::min(2, (H.h + H.ch + H.fh) / 5000)); /// reduce based on move history
 
       R = std::min(depth - 1, std::max(R, 1)); /// clamp R
+    } else if(depth >= 3 && played > 1 + 2 * rootNode) { /// noisy late move reduction
+      R = lmrRed[std::min(63, depth)][std::min(63, played)] / 2;
+
+      R += !pvNode;
+
+      R = std::min(depth - 1, std::max(R, 1)); /// clamp R
     }
 
     int score = -INF;
@@ -698,9 +704,9 @@ void Search :: startSearch(Info *_info) {
 
       if(score <= alpha) {
         beta = (beta + alpha) / 2;
-        alpha = std::max(-INF, score - window);
+        alpha = std::max(-INF, alpha - window);
       } else if(beta <= score) {
-        beta = std::min(INF, score + window);
+        beta = std::min(INF, beta + window);
       } else {
         if(pvTableLen[0])
           bestMove = pvTable[0][0];
