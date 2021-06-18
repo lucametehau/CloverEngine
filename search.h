@@ -475,8 +475,6 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
     } else if(depth >= 3 && played > 1 + 2 * rootNode) { /// noisy late move reduction
       R = lmrRed[std::min(63, depth)][std::min(63, played)] / 2;
 
-      R += !pvNode;
-
       R = std::min(depth - 1, std::max(R, 1)); /// clamp R
     }
 
