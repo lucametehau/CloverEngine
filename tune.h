@@ -14,13 +14,14 @@
 
 const int PRECISION = 8;
 const int NPOS = 9999740; /// 9999740 2500002
-const int TERMS = 1314;
+const int TERMS = 1316;
 const int BUCKET_SIZE = 1LL * NPOS * TERMS / 64;
 const double TUNE_K = 2.67213609;
 
 struct Position {
   std::string fen;
   float result;
+  int16_t staticEval;
 };
 
 TunePos *position;
@@ -141,7 +142,9 @@ void load(std::ifstream &stream) {
 
     trace = empty;
     //std::cout << trace.phase << "\n";
-    /*int initScore =*/ evaluate(board, emptySearcher);
+    int initScore = evaluate(board, emptySearcher);
+
+    pos.staticEval = initScore;
 
     getTraceEntries(trace);
 
@@ -224,6 +227,9 @@ void loadWeights() {
 
   for(int i = MG; i <= EG; i++)
     weights[ind++] = (weakKingSq[i]);
+
+  for(int i = MG; i <= EG; i++)
+    weights[ind++] = (knightBehindPawn[i]);
 
   for(int s = MG; s <= EG; s++) {
     for(int i = PAWN; i <= QUEEN; i++)
@@ -337,6 +343,9 @@ void saveWeights() {
 
   for(int i = MG; i <= EG; i++)
     weakKingSq[i] = std::round(weights[ind++]);
+
+  for(int i = MG; i <= EG; i++)
+    knightBehindPawn[i] = std::round(weights[ind++]);
 
   for(int s = MG; s <= EG; s++) {
     for(int i = PAWN; i <= QUEEN; i++)
@@ -481,6 +490,11 @@ void printWeights(int iteration) {
   out << "};\n\n";
 
   out << "int weakKingSq[2] = {";
+  for(int i = MG; i <= EG; i++)
+    out << newWeights[ind++] << ", ";
+  out << "};\n\n";
+
+  out << "int knightBehindPawn[2] = {";
   for(int i = MG; i <= EG; i++)
     out << newWeights[ind++] << ", ";
   out << "};\n\n";
@@ -684,7 +698,7 @@ void printWeights(int iteration) {
 
 }
 
-void rangeEvalError(std::atomic <double> & error, double k, int l, int r) {
+void rangeEvalError(std::atomic <double> & error, double k, int l, int r, bool isStaticEval) {
 
   double errorRange = 0;
   //Board board;
@@ -692,7 +706,12 @@ void rangeEvalError(std::atomic <double> & error, double k, int l, int r) {
   for(int i = l; i <= r; i++) {
     //board.setFen(texelPos[i].fen);
     //board.print();
-    double eval = evaluateTrace(position[i], weights);
+    double eval;
+    if(!isStaticEval) {
+      eval = evaluateTrace(position[i], weights);
+    } else {
+      eval = texelPos[i].staticEval;
+    }
     //int evalInit = evaluate(board);
     //assert(evalInit == eval);
     /*
@@ -718,7 +737,7 @@ void rangeEvalError(std::atomic <double> & error, double k, int l, int r) {
   M.unlock();
 }
 
-double evalError(double k, int nrThreads) {
+double evalError(double k, int nrThreads, bool isStaticEval = 0) {
   std::atomic <double> error{};
   double share = 1.0 * nrPos / nrThreads;
   double ind = 0;
@@ -726,7 +745,7 @@ double evalError(double k, int nrThreads) {
   std::vector <std::thread> threads(nrThreads);
 
   for(auto &t : threads) {
-    t = std::thread{ rangeEvalError, ref(error), k, int(floor(ind)), int(floor(ind + share) - 1) };
+    t = std::thread{ rangeEvalError, ref(error), k, int(floor(ind)), int(floor(ind + share) - 1), isStaticEval };
     ind += share;
   }
 
@@ -750,7 +769,7 @@ double bestK(int nrThreads, long double ST) {
     double unit = pow(10.0, -i), range = 10.0 * unit, r = k + range;
 
     for(double curr = std::max(k - range, 0.0); curr <= r; curr += unit) {
-      double error = evalError(curr, nrThreads);
+      double error = evalError(curr, nrThreads, 1);
 
       std::cout << "current K = " << curr << ", current error = " << error << ", time = " << (getTime() - ST) / 1000.0 << "s\n";
 
