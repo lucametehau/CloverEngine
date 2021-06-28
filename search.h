@@ -689,6 +689,8 @@ void Search :: startSearch(Info *_info) {
         std::cout << std::endl;
       }
 
+      assert(abs(score) < INF);
+
       if(score <= alpha) {
         beta = (beta + alpha) / 2;
         alpha = std::max(-INF, alpha - window);
