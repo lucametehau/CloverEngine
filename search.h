@@ -140,6 +140,9 @@ int Search :: quiesce(int alpha, int beta) {
     score = -quiesce(-beta, -alpha);
     undoMove(board, move);
 
+    if(flag & TERMINATED_SEARCH)
+      return ABORT;
+
     if(score > best) {
       best = score;
       bestMove = move;
@@ -495,6 +498,9 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
     }
 
     undoMove(board, move);
+
+    if(flag & TERMINATED_SEARCH)
+      return ABORT;
 
     if(score > best) {
       best = score;
