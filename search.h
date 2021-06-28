@@ -653,6 +653,9 @@ void Search :: startSearch(Info *_info) {
 
       score = search(alpha, beta, tDepth);
 
+      if(flag & TERMINATED_SEARCH)
+        break;
+
       if(principalSearcher && printStats && ((alpha < score && score < beta) || getTime() > t0 + 3000)) {
         if(principalSearcher) {
           totalNodes = nodes;
@@ -685,9 +688,6 @@ void Search :: startSearch(Info *_info) {
         printPv();
         std::cout << std::endl;
       }
-
-      if(flag & TERMINATED_SEARCH)
-        break;
 
       if(score <= alpha) {
         beta = (beta + alpha) / 2;
