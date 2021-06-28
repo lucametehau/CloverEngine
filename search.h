@@ -687,17 +687,6 @@ void Search :: startSearch(Info *_info) {
         std::cout << "pv ";
         printPv();
         std::cout << std::endl;
-        /*if(tDepth >= 20) {
-        //board.print();
-        for(int i = 0; i < pvTableLen[0]; i++) {
-          makeMove(board, pvTable[0][i]);
-        }
-        board.print();
-        std::cout << evaluate(board) << "\n";
-        for(int i = pvTableLen[0] - 1; i >= 0; i--) {
-          undoMove(board, pvTable[0][i]);
-        }
-        }*/
       }
 
       if(score <= alpha) {

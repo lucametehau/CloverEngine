@@ -228,9 +228,6 @@ void loadWeights() {
   for(int i = MG; i <= EG; i++)
     weights[ind++] = (weakKingSq[i]);
 
-  for(int i = MG; i <= EG; i++)
-    weights[ind++] = (knightBehindPawn[i]);
-
   for(int s = MG; s <= EG; s++) {
     for(int i = PAWN; i <= QUEEN; i++)
       weights[ind++] = (mat[s][i]);
@@ -343,9 +340,6 @@ void saveWeights() {
 
   for(int i = MG; i <= EG; i++)
     weakKingSq[i] = std::round(weights[ind++]);
-
-  for(int i = MG; i <= EG; i++)
-    knightBehindPawn[i] = std::round(weights[ind++]);
 
   for(int s = MG; s <= EG; s++) {
     for(int i = PAWN; i <= QUEEN; i++)
@@ -490,11 +484,6 @@ void printWeights(int iteration) {
   out << "};\n\n";
 
   out << "int weakKingSq[2] = {";
-  for(int i = MG; i <= EG; i++)
-    out << newWeights[ind++] << ", ";
-  out << "};\n\n";
-
-  out << "int knightBehindPawn[2] = {";
   for(int i = MG; i <= EG; i++)
     out << newWeights[ind++] << ", ";
   out << "};\n\n";
