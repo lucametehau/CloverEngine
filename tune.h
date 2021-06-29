@@ -226,6 +226,9 @@ void loadWeights() {
     weights[ind++] = (threatMinorByMinor[i]);
 
   for(int i = MG; i <= EG; i++)
+    weights[ind++] = (knightBehindPawn[i]);
+
+  for(int i = MG; i <= EG; i++)
     weights[ind++] = (weakKingSq[i]);
 
   for(int s = MG; s <= EG; s++) {
@@ -337,6 +340,9 @@ void saveWeights() {
     threatByPawnPush[i] = std::round(weights[ind++]);
   for(int i = MG; i <= EG; i++)
     threatMinorByMinor[i] = std::round(weights[ind++]);
+
+  for(int i = MG; i <= EG; i++)
+    knightBehindPawn[i] = std::round(weights[ind++]);
 
   for(int i = MG; i <= EG; i++)
     weakKingSq[i] = std::round(weights[ind++]);
@@ -479,6 +485,11 @@ void printWeights(int iteration) {
   out << "};\n";
 
   out << "int threatMinorByMinor[2] = {";
+  for(int i = MG; i <= EG; i++)
+    out << newWeights[ind++] << ", ";
+  out << "};\n\n";
+
+  out << "int knightBehindPawn[2] = {";
   for(int i = MG; i <= EG; i++)
     out << newWeights[ind++] << ", ";
   out << "};\n\n";
