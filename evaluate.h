@@ -52,6 +52,8 @@ public:
 
   uint8_t weakKingSq[2][2];
 
+  uint8_t knightBehindPawn[2][2];
+
   uint8_t mat[2][2][7];
 
   uint8_t passedBonus[2][2][7];
@@ -526,6 +528,16 @@ void pieceEval(Board &board, int color, EvalTools &tools) {
       }
     }
 
+    /*if(b & shift(color, SOUTH, tools.pawns[color])) {
+      tools.score[color][MG] += knightBehindPawn[MG];
+      tools.score[color][EG] += knightBehindPawn[EG];
+
+      //std::cout << "knight behind pawn at " << sq << "\n";
+
+      if(TUNE)
+        trace.knightBehindPawn[color][MG]++, trace.knightBehindPawn[color][EG]++;
+    }*/
+
     tools.attackedBy2[color] |= tools.attackedBy[color] & att;
     tools.attackedBy[color] |= att;
     tools.attackedByPiece[color][KNIGHT] |= att;
@@ -948,6 +960,12 @@ void getTraceEntries(EvalTrace &trace) {
   for(int i = MG; i <= EG; i++) {
     for(int col = 0; i == MG && col < 2; col++)
       trace.add(ind, ind + 1, col, trace.weakKingSq[col][i]);
+    ind++;
+  }
+
+  for(int i = MG; i <= EG; i++) {
+    for(int col = 0; i == MG && col < 2; col++)
+      trace.add(ind, ind + 1, col, trace.knightBehindPawn[col][i]);
     ind++;
   }
 

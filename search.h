@@ -140,6 +140,9 @@ int Search :: quiesce(int alpha, int beta) {
     score = -quiesce(-beta, -alpha);
     undoMove(board, move);
 
+    if(flag & TERMINATED_SEARCH)
+      return ABORT;
+
     if(score > best) {
       best = score;
       bestMove = move;
@@ -461,6 +464,8 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
     if(isQuiet && depth >= 3 && played > 1 + 2 * rootNode) { /// first few moves we don't reduce
       R = lmrRed[std::min(63, depth)][std::min(63, played)];
 
+      //R += !(nodes & 1023); /// idea: reduce more every 1024 nodes
+
       R += !pvNode + !improving; /// not on pv or not improving
 
       R += isCheck && piece_type(board.board[sqTo(move)]) == KING; /// check evasions
@@ -470,7 +475,11 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
       R -= std::max(-2, std::min(2, (H.h + H.ch + H.fh) / 5000)); /// reduce based on move history
 
       R = std::min(depth - 1, std::max(R, 1)); /// clamp R
-    }
+    }/* else if(depth >= 3 && played > 1 + 2 * rootNode) { /// noisy late move reduction
+      R = lmrRed[std::min(63, depth)][std::min(63, played)] / 2;
+
+      R = std::min(depth - 1, std::max(R, 1)); /// clamp R
+    }*/
 
     int score = -INF;
 
@@ -489,6 +498,9 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
     }
 
     undoMove(board, move);
+
+    if(flag & TERMINATED_SEARCH)
+      return ABORT;
 
     if(score > best) {
       best = score;
@@ -647,6 +659,9 @@ void Search :: startSearch(Info *_info) {
 
       score = search(alpha, beta, tDepth);
 
+      if(flag & TERMINATED_SEARCH)
+        break;
+
       if(principalSearcher && printStats && ((alpha < score && score < beta) || getTime() > t0 + 3000)) {
         if(principalSearcher) {
           totalNodes = nodes;
@@ -678,26 +693,12 @@ void Search :: startSearch(Info *_info) {
         std::cout << "pv ";
         printPv();
         std::cout << std::endl;
-        /*if(tDepth >= 20) {
-        //board.print();
-        for(int i = 0; i < pvTableLen[0]; i++) {
-          makeMove(board, pvTable[0][i]);
-        }
-        board.print();
-        std::cout << evaluate(board) << "\n";
-        for(int i = pvTableLen[0] - 1; i >= 0; i--) {
-          undoMove(board, pvTable[0][i]);
-        }
-        }*/
       }
 
-      if(flag & TERMINATED_SEARCH)
-        break;
-
-      if(-INF < score && score <= alpha) {
+      if(score <= alpha) {
         beta = (beta + alpha) / 2;
         alpha = std::max(-INF, alpha - window);
-      } else if(beta <= score && score < INF) {
+      } else if(beta <= score) {
         beta = std::min(INF, beta + window);
       } else {
         if(pvTableLen[0])
