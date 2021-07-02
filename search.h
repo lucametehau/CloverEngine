@@ -100,7 +100,12 @@ int Search :: quiesce(int alpha, int beta) {
       return score;
   }
 
-  if(eval == INF) {
+  bool isCheck = inCheck(board);
+
+  if(isCheck) {
+    /// when in check, don't evaluate (king safety evaluation might break)
+    Stack[ply].eval = eval = INF;
+  } else if(eval == INF) {
     /// if last move was null, we already know the evaluation
     Stack[ply].eval = eval = (!Stack[ply - 1].move ? -Stack[ply - 1].eval + 2 * TEMPO : evaluate(board, this));
   } else {
@@ -116,18 +121,21 @@ int Search :: quiesce(int alpha, int beta) {
 
   /// stand-pat
 
-  if(eval >= beta)
-    return eval;
+  if(!isCheck) {
+    if(eval >= beta)
+      return eval;
 
-  alpha = std::max(alpha, eval);
-  best = eval;
+    alpha = std::max(alpha, eval);
+    best = eval;
+  }
 
   Movepick noisyPicker(NULLMOVE,
-                       NULLMOVE, NULLMOVE, NULLMOVE, 0); /// delta pruning -> TO DO: find better constant (edit: removed)
+                       NULLMOVE, NULLMOVE, NULLMOVE, (!isCheck ? 0 : -INF)); /// no pruning when in check
 
   uint16_t move;
+  int played = 0;
 
-  while((move = noisyPicker.nextMove(this, 1, 1))) {
+  while((move = noisyPicker.nextMove(this, !isCheck, !isCheck))) {
 
     //cout << "in quiesce, ply = " << ply << ", move = " << toString(move) << "\n";
 
@@ -136,11 +144,13 @@ int Search :: quiesce(int alpha, int beta) {
     Stack[ply].move = move;
     Stack[ply].piece = board.piece_at(sqFrom(move));
 
+    played++;
+
     makeMove(board, move);
     score = -quiesce(-beta, -alpha);
     undoMove(board, move);
 
-    if(flag & TERMINATED_SEARCH)
+    if(flag & TERMINATED_SEARCH) /// stop search
       return ABORT;
 
     if(score > best) {
@@ -156,6 +166,9 @@ int Search :: quiesce(int alpha, int beta) {
       }
     }
   }
+
+  if(isCheck && !played)
+    return -INF + ply;
 
   /// store info in transposition table (seems to work)
 
@@ -271,6 +284,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
   bool isCheck = inCheck(board);
 
   if(isCheck) {
+    /// when in check, don't evaluate (king safety evaluation might break)
     Stack[ply].eval = eval = INF;
   } else if(eval == INF) {
     /// if last move was null, we already know the evaluation
@@ -397,7 +411,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
           continue;
 
         /// futility pruning
-        if(depth <= 8 && !isCheck && Stack[ply].eval + 90 * depth <= alpha && H.h + H.ch + H.fh < fpHistoryLimit[improving])
+        if(depth <= 8 && !isCheck && Stack[ply].eval + fpCoef * depth <= alpha && H.h + H.ch + H.fh < fpHistoryLimit[improving])
           skip = 1;
 
         /// late move pruning
