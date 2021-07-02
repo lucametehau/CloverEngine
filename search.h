@@ -270,9 +270,9 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
   bool isCheck = inCheck(board);
 
-  /*if(isCheck) {
+  if(isCheck) {
     Stack[ply].eval = eval = INF;
-  } else*/ if(eval == INF) {
+  } else if(eval == INF) {
     /// if last move was null, we already know the evaluation
     if(excluded)
       eval = Stack[ply].eval;

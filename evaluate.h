@@ -51,6 +51,7 @@ public:
   uint8_t threatMinorByMinor[2][2];
 
   uint8_t weakKingSq[2][2];
+  uint8_t pieceInKingRing[2][2][6];
 
   uint8_t knightBehindPawn[2][2];
 

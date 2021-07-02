@@ -63,7 +63,7 @@ void load(std::ifstream &stream) {
 
   uint64_t totalEntries = 0, kek = 0, d = 0;
   int kc = 0, defp = 0, weak = 0;
-  uint64_t kekw[28];
+  uint64_t kekw[28], totPieceInKingRing[6];
 
   memset(kekw, 0, sizeof(kekw));
 
@@ -73,9 +73,12 @@ void load(std::ifstream &stream) {
   while(getline(stream, line)) {
     Position pos;
 
-    if(nrPos % 100000 == 0) {
+    if(nrPos % 100000 == 0) { /// to check that everything is working, also some info about some terms
       std::cout << nrPos << ", entries = " << totalEntries << ", kek = " << kek << ", kc = " << kc << ", d = " << d << ", defp = " << defp
-                << ", weak = " << weak << "\n";
+                << ", weak = " << weak << ", pieceInKingRing: ";
+      for(int i = KNIGHT; i <= QUEEN; i++)
+        std::cout << totPieceInKingRing[i] << " ";
+      std::cout << "\n";
       /*for(int i = 0; i < 28; i++)
         std::cout << kekw[i] << " ";
       std::cout << "\n";*/
@@ -177,6 +180,9 @@ void load(std::ifstream &stream) {
     defp += trace.pawnDefendedBonus[WHITE][MG] + trace.pawnDefendedBonus[BLACK][MG];
 
     d += trace.passerDistToEdge[WHITE][MG] + trace.passerDistToEdge[BLACK][MG];
+
+    for(int i = KNIGHT; i <= QUEEN; i++)
+      totPieceInKingRing[i] += trace.pieceInKingRing[WHITE][MG][i] + trace.pieceInKingRing[BLACK][MG][i];
 
     /*for(int i = 0; i < 28; i++)
       kekw[i] += trace.mobilityBonus[WHITE][QUEEN][MG][i] + trace.mobilityBonus[WHITE][QUEEN][MG][i];*/
@@ -872,12 +878,10 @@ void tune(int nrThreads, std::string path) {
   double startTime = getTime();
 
   double errorStart = evalError(k, nrThreads), errorMin = errorStart;
-  double otherTime = getTime();
 
   std::cout << "best K = " << k << "\n";
 
   std::cout << "start evaluation error: " << errorStart << std::endl;
-  std::cout << "expected iteration time: " << (uint64_t)(otherTime - startTime) * TERMS * 2 / 1000 << "s" << std::endl;
 
   //cout << evaluate(texelPos[0].board) << endl;
 
