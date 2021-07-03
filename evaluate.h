@@ -885,6 +885,8 @@ int scaleFactor(Board &board, int eg) {
   bool oppositeBishops = 0;
   int color = (eg > 0 ? WHITE : BLACK);
   int scale = 100;
+    uint64_t allPawns = board.bb[WP] | board.bb[BP];
+
   if(count(board.bb[WB]) == 1 && count(board.bb[BB]) == 1) {
     int sq1 = Sq(board.bb[WB]), sq2 = Sq(board.bb[BB]);
     if(oppositeColor(sq1, sq2))
@@ -895,11 +897,10 @@ int scaleFactor(Board &board, int eg) {
 
   if(oppositeBishops)
     scale = 50 + 10 * (count(board.pieces[color] ^ board.bb[getType(PAWN, color)]) - 2); /// without the king and the bishop
-  /* // doesn't work (loses elo)
-  else {
-    /// thanks to https://hxim.github.io/Stockfish-Evaluation-Guide/ for this idea
-    scale = 80 +  5 * count(board.bb[getType(PAWN, color)]);
-  }*/
+
+  /// positions with pawns on only 1 flank tend to be drawish
+
+  scale -= 10 * ((allPawns & flankMask[0]) && (allPawns & flankMask[1]));
 
   scale = std::min(scale, 100);
 

@@ -100,12 +100,7 @@ int Search :: quiesce(int alpha, int beta) {
       return score;
   }
 
-  bool isCheck = inCheck(board);
-
-  if(isCheck) {
-    /// when in check, don't evaluate (king safety evaluation might break)
-    Stack[ply].eval = eval = INF;
-  } else if(eval == INF) {
+  if(eval == INF) {
     /// if last move was null, we already know the evaluation
     Stack[ply].eval = eval = (!Stack[ply - 1].move ? -Stack[ply - 1].eval + 2 * TEMPO : evaluate(board, this));
   } else {
@@ -121,21 +116,18 @@ int Search :: quiesce(int alpha, int beta) {
 
   /// stand-pat
 
-  if(!isCheck) {
-    if(eval >= beta)
-      return eval;
+  if(eval >= beta)
+    return eval;
 
-    alpha = std::max(alpha, eval);
-    best = eval;
-  }
+  alpha = std::max(alpha, eval);
+  best = eval;
 
   Movepick noisyPicker(NULLMOVE,
-                       NULLMOVE, NULLMOVE, NULLMOVE, (!isCheck ? 0 : -INF)); /// no pruning when in check
+                       NULLMOVE, NULLMOVE, NULLMOVE, 0); /// delta pruning -> TO DO: find better constant (edit: removed)
 
   uint16_t move;
-  int played = 0;
 
-  while((move = noisyPicker.nextMove(this, !isCheck, !isCheck))) {
+  while((move = noisyPicker.nextMove(this, 1, 1))) {
 
     //cout << "in quiesce, ply = " << ply << ", move = " << toString(move) << "\n";
 
@@ -144,13 +136,11 @@ int Search :: quiesce(int alpha, int beta) {
     Stack[ply].move = move;
     Stack[ply].piece = board.piece_at(sqFrom(move));
 
-    played++;
-
     makeMove(board, move);
     score = -quiesce(-beta, -alpha);
     undoMove(board, move);
 
-    if(flag & TERMINATED_SEARCH) /// stop search
+    if(flag & TERMINATED_SEARCH)
       return ABORT;
 
     if(score > best) {
@@ -166,9 +156,6 @@ int Search :: quiesce(int alpha, int beta) {
       }
     }
   }
-
-  if(isCheck && !played)
-    return -INF + ply;
 
   /// store info in transposition table (seems to work)
 
@@ -297,10 +284,8 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
     Stack[ply].eval = eval;
 
-    if(!isCheck) {
-      if(bound == EXACT || (bound == LOWER && ttValue > eval) || (bound == UPPER && ttValue < eval))
-        eval = ttValue;
-    }
+    if(bound == EXACT || (bound == LOWER && ttValue > eval) || (bound == UPPER && ttValue < eval))
+      eval = ttValue;
   }
 
   bool improving = (!isCheck && ply >= 2 && Stack[ply].eval > Stack[ply - 2].eval); /// (TO DO: make all pruning dependent of this variable?)
