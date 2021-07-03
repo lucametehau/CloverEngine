@@ -15,6 +15,7 @@
 const int PRECISION = 8;
 const int NPOS = 9999740; /// 9999740 2500002
 const int TERMS = 1316;
+const int SCALE_TERMS = 3;
 const int BUCKET_SIZE = 1LL * NPOS * TERMS / 64;
 const double TUNE_K = 2.67213609;
 
@@ -38,6 +39,7 @@ double sigmoid(double k, double s) {
 
 std::mutex M; /// for debugging data races
 double weights[TERMS + 5];
+int scaleWeights[SCALE_TERMS + 5];
 EvalTrace empty;
 
 /// TEXEL tuning method
@@ -168,8 +170,14 @@ void load(std::ifstream &stream) {
       position[nrPos].entries[i] = trace.entries[i];
 
     position[nrPos].phase = trace.phase;
+    position[nrPos].mg = trace.mg;
+    position[nrPos].eg = trace.eg;
     position[nrPos].turn = board.turn;
     position[nrPos].scale = trace.scale;
+
+    position[nrPos].ocb = trace.ocb;
+    position[nrPos].ocbPieceCount = trace.ocbPieceCount;
+    position[nrPos].pawnsOn1Flank = trace.pawnsOn1Flank;
 
     kek += sizeof(position[nrPos]);
 
@@ -325,6 +333,12 @@ void loadWeights() {
     }
   }
   std::cout << ind << " terms\n";
+
+  ind = 0;
+  scaleWeights[ind++] = ocbStart;
+  scaleWeights[ind++] = ocbStep;
+  scaleWeights[ind++] = pawnsOn1Flank;
+  std::cout << ind << " scale terms\n";
 }
 
 void saveWeights() {
@@ -441,6 +455,12 @@ void saveWeights() {
         bonusTable[i][s][j] = std::round(weights[ind++]);
     }
   }
+
+  ind = 0;
+
+  ocbStart = scaleWeights[ind++];
+  ocbStep = scaleWeights[ind++];
+  pawnsOn1Flank = scaleWeights[ind++];
 }
 
 void printWeights(int iteration) {
@@ -700,7 +720,13 @@ void printWeights(int iteration) {
     }
     out << "    },\n";
   }
-  out << "};\n";
+  out << "};\n\n";
+
+  ind = 0;
+
+  out << "int ocbStart = " << scaleWeights[ind++] << ";\n";
+  out << "int ocbStep = " << scaleWeights[ind++] << ";\n";
+  out << "int pawnsOn1Flank = " << scaleWeights[ind++] << ";\n";
 
 }
 
@@ -713,10 +739,21 @@ void rangeEvalError(std::atomic <double> & error, double k, int l, int r, bool i
     //board.setFen(texelPos[i].fen);
     //board.print();
     double eval;
-    if(!isStaticEval) {
-      eval = evaluateTrace(position[i], weights);
-    } else {
-      eval = texelPos[i].staticEval;
+    if(TUNE_FLAG & TUNE_SCALE) {
+      int mg = position[i].mg, eg = position[i].eg;
+
+      eg = eg * scaleFactorTrace(position[i]) / 100;
+
+      eval = (mg * position[i].phase + eg * (maxWeight - position[i].phase)) / maxWeight;
+
+      eval = TEMPO + eval * (position[i].turn == WHITE ? 1 : -1);
+    }
+    if(TUNE_FLAG & TUNE_TERMS) {
+      if(!isStaticEval) {
+        eval = evaluateTrace(position[i], weights);
+      } else {
+        eval = texelPos[i].staticEval;
+      }
     }
     //int evalInit = evaluate(board);
     //assert(evalInit == eval);
@@ -826,7 +863,6 @@ void calcGradient(double k, double grad[], int nrThreads) {
     t = std::thread{ calcRangeGradient, tGrad[tInd], k, int(floor(ind)), int(floor(ind + share) - 1) };
     ind += share;
     tInd++;
-    //std::cout << tInd << "\n";
   }
 
   for(auto &t : threads)
@@ -836,12 +872,22 @@ void calcGradient(double k, double grad[], int nrThreads) {
     for(int j = 0; j < TERMS; j++)
       grad[j] += tGrad[i][j];
   }
+}
 
-  /*for(int i = 0; i < TERMS; i++) {
-    std::cout << grad[i] << " ";
+bool isBetter(double &mn, double k, int nrThreads) {
+  saveWeights();
+
+  double error = evalError(k, nrThreads);
+
+  if(error < mn) {
+    if(mn - error > mn / nrThreads / 2) {
+      return 0;
+    }
+    mn = error;
+    return 1;
   }
 
-  std::cout << std::endl;*/
+  return 0;
 }
 
 void tune(int nrThreads, std::string path) {
@@ -885,37 +931,70 @@ void tune(int nrThreads, std::string path) {
 
   //cout << evaluate(texelPos[0].board) << endl;
 
-  memset(adagrad, 0, sizeof(adagrad));
+  if(TUNE_FLAG & TUNE_TERMS) { /// tune normal terms
+    memset(adagrad, 0, sizeof(adagrad));
 
-  double rate = 1.0;
+    double rate = 1.0;
 
-  for(int i = 1; i <= 100000; i++) {
-    std::cout << "epoch " << i << " starting..." << std::endl;
+    for(int i = 1; i <= 100000; i++) {
+      std::cout << "epoch " << i << " starting..." << std::endl;
 
-    double ST = getTime();
+      double ST = getTime();
 
-    memset(grad, 0, sizeof(grad));
+      memset(grad, 0, sizeof(grad));
 
-    calcGradient(k, grad, nrThreads);
+      calcGradient(k, grad, nrThreads);
 
-    for(int j = 0; j < TERMS; j++) {
-      adagrad[j] += pow((k / 200) * grad[j] / NPOS, 2.0);
+      for(int j = 0; j < TERMS; j++) {
+        adagrad[j] += pow((k / 200) * grad[j] / NPOS, 2.0);
 
-      weights[j] += (k / 200) * (grad[j] / NPOS) * (rate / sqrt(1e-8 + adagrad[j]));
+        weights[j] += (k / 200) * (grad[j] / NPOS) * (rate / sqrt(1e-8 + adagrad[j]));
+      }
+
+      if(i % 100 == 0)
+        rate /= 1.0;
+
+      double ET = getTime();
+
+      if(i % 10 == 0) {
+        std::cout << "time taken for epoch: " << (double)(ET - ST) / 1000.0 << " s\n";
+        printWeights(i);
+        //saveWeights();
+
+        errorMin = evalError(k, nrThreads);
+
+        std::cout << "evaluation error: " << errorMin << "\n";
+      }
     }
+  }
+  if(TUNE_FLAG & TUNE_SCALE) {
+    std::cout << "Tuning scale terms...\n";
+    for(int i = 1; i <= 1000; i++) {
+      long double t1 = getTime();
+      std::cout << "epoch " << i << " starting..." << std::endl;
+      for(int j = 0; j < SCALE_TERMS; j++) {
+        int temp = scaleWeights[j];
+        bool improve = 0;
 
-    if(i % 100 == 0)
-      rate /= 1.0;
+        //cout << "parameter " << ind << "..\n";
 
-    double ET = getTime();
+        scaleWeights[j] += 1;
 
-    if(i % 10 == 0) {
-      std::cout << "time taken for epoch: " << (double)(ET - ST) / 1000.0 << " s\n";
+        if(isBetter(errorMin, k, nrThreads))
+          improve = 1;
+        else {
+          scaleWeights[j] -= 2;
+          improve = isBetter(errorMin, k, nrThreads);
+        }
+
+        if(!improve)
+          scaleWeights[j] = temp;
+      }
+      long double t2 = getTime();
+      std::cout << "time taken for epoch: " << (t2 - t1) / 1000.0 << " s\n";
       printWeights(i);
-      //saveWeights();
-
       errorMin = evalError(k, nrThreads);
-
+      saveWeights();
       std::cout << "evaluation error: " << errorMin << "\n";
     }
   }

@@ -82,6 +82,9 @@ public:
 
   uint8_t scale;
 
+  uint8_t ocb, ocbPieceCount;
+  uint8_t pawnsOn1Flank;
+
   int8_t SafetyTable[2][2][100];
   int8_t kingShelter[2][2][4][8];
   int8_t kingStorm[2][2][4][8];
@@ -90,6 +93,7 @@ public:
   EvalTraceEntry entries[2000];
   int nrEntries;
 
+  int mg, eg;
   int phase;
 
   void add(int mgind, int egind, bool color, int val) {
@@ -112,12 +116,17 @@ class TunePos {
 public:
   EvalTraceEntry *entries;
 
+  int mg, eg;
+
   uint16_t nrEntries;
 
   uint16_t kingDanger[2][2];
 
   uint8_t phase;
   uint8_t scale;
+
+  uint8_t ocb, ocbPieceCount;
+  uint8_t pawnsOn1Flank;
 
   bool turn;
 };
@@ -251,6 +260,11 @@ int mobilityBonus[7][2][30] = {
         {-236, -90, -6, -85, -36, 5, -32, 9, 17, 42, 49, 71, 66, 79, 84, 92, 97, 101, 107, 111, 108, 104, 107, 107, 114, 69, 93, 132, },
     }
 };
+
+
+int ocbStart = 47;
+int ocbStep = 46;
+int pawnsOn1Flank = 34;
 
 /// evaluate material
 
@@ -881,11 +895,11 @@ void threatsEval(Board &board, int color, EvalTools &tools) {
 
 /// scale score if we recognize some draw patterns
 
-int scaleFactor(Board &board, int eg) {
+int scaleFactor(Board &board, EvalTrace &trace, int eg) {
   bool oppositeBishops = 0;
   int color = (eg > 0 ? WHITE : BLACK);
   int scale = 100;
-    uint64_t allPawns = board.bb[WP] | board.bb[BP];
+  uint64_t allPawns = board.bb[WP] | board.bb[BP];
 
   if(count(board.bb[WB]) == 1 && count(board.bb[BB]) == 1) {
     int sq1 = Sq(board.bb[WB]), sq2 = Sq(board.bb[BB]);
@@ -895,15 +909,38 @@ int scaleFactor(Board &board, int eg) {
 
   /// scale down score for opposite color bishops, increase scale factor if we have any more pieces
 
-  if(oppositeBishops)
-    scale = 50 + 10 * (count(board.pieces[color] ^ board.bb[getType(PAWN, color)]) - 2); /// without the king and the bishop
+  if(oppositeBishops) {
+    if(TUNE) {
+      trace.ocb = 1;
+    }
+
+    scale = ocbStart + ocbStep * (count(board.pieces[color] ^ board.bb[getType(PAWN, color)]) - 2); /// without the king and the bishop
+
+    if(TUNE) {
+      trace.ocbPieceCount = count(board.pieces[color] ^ board.bb[getType(PAWN, color)]) - 2;
+    }
+  }
 
   /// positions with pawns on only 1 flank tend to be drawish
 
-  scale -= 10 * ((allPawns & flankMask[0]) && (allPawns & flankMask[1]));
+  scale -= pawnsOn1Flank * (!((allPawns & flankMask[0]) && (allPawns & flankMask[1])));
+
+  if(TUNE) {
+    trace.pawnsOn1Flank = !((allPawns & flankMask[0]) && (allPawns & flankMask[1]));
+  }
 
   scale = std::min(scale, 100);
 
+  return scale;
+}
+
+int scaleFactorTrace(TunePos &pos) {
+  int scale = 100;
+  if(pos.ocb)
+    scale = ocbStart + ocbStep * pos.ocbPieceCount;
+  scale -= pawnsOn1Flank * pos.pawnsOn1Flank;
+
+  scale = std::min(scale, 100);
   return scale;
 }
 
@@ -1112,8 +1149,6 @@ void getTraceEntries(EvalTrace &trace) {
     }
   }
 
-  //cout << ind << "\n";
-
   for(int i = PAWN; i <= KING; i++) {
     for(int s = MG; s <= EG; s++) {
       for(int j = A1; j <= H8; j++) {
@@ -1274,9 +1309,14 @@ int evaluate(Board &board, Search *searcher = nullptr) {
       searcher->PT.save(board.pawnKey, pScore, passers[WHITE] | passers[BLACK]);
   }
 
+  if(TUNE) {
+    trace.mg = mg;
+    trace.eg = eg;
+  }
+
   /// scale down eg score for winning side
 
-  int scale = scaleFactor(board, eg);
+  int scale = scaleFactor(board, trace, eg);
 
   eg = eg * scale / 100;
 
