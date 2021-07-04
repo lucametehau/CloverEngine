@@ -271,6 +271,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
   bool isCheck = inCheck(board);
 
   if(isCheck) {
+    /// when in check, don't evaluate (king safety evaluation might break)
     Stack[ply].eval = eval = INF;
   } else if(eval == INF) {
     /// if last move was null, we already know the evaluation
@@ -283,10 +284,8 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
     Stack[ply].eval = eval;
 
-    if(!isCheck) {
-      if(bound == EXACT || (bound == LOWER && ttValue > eval) || (bound == UPPER && ttValue < eval))
-        eval = ttValue;
-    }
+    if(bound == EXACT || (bound == LOWER && ttValue > eval) || (bound == UPPER && ttValue < eval))
+      eval = ttValue;
   }
 
   bool improving = (!isCheck && ply >= 2 && Stack[ply].eval > Stack[ply - 2].eval); /// (TO DO: make all pruning dependent of this variable?)
@@ -397,7 +396,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
           continue;
 
         /// futility pruning
-        if(depth <= 8 && !isCheck && Stack[ply].eval + 90 * depth <= alpha && H.h + H.ch + H.fh < fpHistoryLimit[improving])
+        if(depth <= 8 && !isCheck && Stack[ply].eval + fpCoef * depth <= alpha && H.h + H.ch + H.fh < fpHistoryLimit[improving])
           skip = 1;
 
         /// late move pruning

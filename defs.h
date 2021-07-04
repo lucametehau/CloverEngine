@@ -62,6 +62,9 @@ const uint64_t LONG_DIAGONALS =  9314046665258451585ULL;
 const std::string START_POS_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 bool TUNE = false; /// false by default, automatically set to true when tuning
+const int TUNE_SCALE = 1;
+const int TUNE_TERMS = 2;
+const int TUNE_FLAG = TUNE_SCALE;
 
 int cod[256];
 uint64_t hashKey[13][64], castleKey[2][2], enPasKey[64];
@@ -73,7 +76,7 @@ uint64_t fileUpMask[64], neighFileUpMask[64];
 uint64_t fileDownMask[64], neighFileDownMask[64];
 uint64_t neighFilesMask[64];
 uint64_t between[64][64], Line[64][64];
-uint64_t flankMask[8];
+uint64_t flankMask[2];
 int mirrorSq[2][64];
 int distance[64][64];
 
@@ -343,14 +346,8 @@ inline void init_defs() {
     }
   }
 
-  /// flank mask if we are on a file
-  uint64_t queenSide = fileMask[0] | fileMask[1] | fileMask[2] | fileMask[3], kingSide = fileMask[4] | fileMask[5] | fileMask[6] | fileMask[7];
-
-  flankMask[0] = queenSide ^ fileMask[3];
-  flankMask[1] = flankMask[2] = queenSide;
-  flankMask[3] = flankMask[4] = fileMask[3] | fileMask[4] | fileMask[5] | fileMask[6];
-  flankMask[5] = flankMask[6] = kingSide;
-  flankMask[7] = kingSide ^ fileMask[7];
+  flankMask[0] = fileMask[0] | fileMask[1] | fileMask[2] | fileMask[3];
+  flankMask[1] = fileMask[4] | fileMask[5] | fileMask[6] | fileMask[7];
 
   /// generate all squares that are above and below a square
 

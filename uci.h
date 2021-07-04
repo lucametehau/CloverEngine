@@ -33,7 +33,7 @@
 /// is this working?
 /// i guess so?
 
-const std::string VERSION = "2.4-dev29"; /// 2.0 was "FM"
+const std::string VERSION = "2.4-dev30"; /// 2.0 was "FM"
 
 char line[INPUTBUFFER];
 
@@ -265,7 +265,7 @@ void UCI :: Uci_Loop() {
               //cout << "Set TB path to " << path << "\n";
             }
 
-            /// search params
+            /// search params, used by ctt
 
             if(name == "RazorCoef") {
               iss >> value;
@@ -302,6 +302,13 @@ void UCI :: Uci_Loop() {
 
               iss >> val;
               seeCoefNoisy = val;
+            } else if(name == "fpCoef") {
+              iss >> value;
+
+              int val;
+
+              iss >> val;
+              fpCoef = val;
             }
 
           } else if(cmd == "tune") {
@@ -393,6 +400,8 @@ void UCI :: Perft(int depth) {
   std::cout << "time : " << t << std::endl;
   std::cout << "nps  : " << nps << std::endl;
 }
+
+/// positions used for benching
 
 std::string benchPos[] = {
   "r3k2r/2pb1ppp/2pp1q2/p7/1nP1B3/1P2P3/P2N1PPP/R2QK2R w KQkq a6 0 14   ",
