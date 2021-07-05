@@ -264,11 +264,11 @@ int mobilityBonus[7][2][30] = {
 };
 
 
-int ocbStart = 32;
-int ocbStep = 28;
+int ocbStart = 35;
+int ocbStep = 31;
 int pawnsOn1Flank = 21;
-int pawnScaleStart = 61;
-int pawnScaleStep = 1;
+int pawnScaleStart = 48;
+int pawnScaleStep = 12;
 
 /// evaluate material
 
@@ -926,7 +926,7 @@ int scaleFactor(Board &board, EvalTrace &trace, int eg) {
   } else {
     int cnt = count(board.bb[getType(PAWN, color)]);
 
-    scale = pawnScaleStart + pawnScaleStep * cnt * cnt;
+    scale = pawnScaleStart + pawnScaleStep * cnt;
 
     if(TUNE) {
       trace.allPawnsCount = cnt;
@@ -941,6 +941,7 @@ int scaleFactor(Board &board, EvalTrace &trace, int eg) {
     trace.pawnsOn1Flank = !((allPawns & flankMask[0]) && (allPawns & flankMask[1]));
   }
 
+  scale = std::max(scale, 0);
   scale = std::min(scale, 100);
 
   return scale;
@@ -951,9 +952,10 @@ int scaleFactorTrace(TunePos &pos) {
   if(pos.ocb)
     scale = ocbStart + ocbStep * pos.ocbPieceCount;
   else
-    scale = pawnScaleStart + pawnScaleStep * pos.allPawnsCount * pos.allPawnsCount;
+    scale = pawnScaleStart + pawnScaleStep * pos.allPawnsCount;
   scale -= pawnsOn1Flank * pos.pawnsOn1Flank;
 
+  scale = std::max(scale, 0);
   scale = std::min(scale, 100);
   return scale;
 }
