@@ -15,7 +15,7 @@
 const int PRECISION = 8;
 const int NPOS = 9999740; /// 9999740 2500002
 const int TERMS = 1316;
-const int SCALE_TERMS = 3;
+const int SCALE_TERMS = 5;
 const int BUCKET_SIZE = 1LL * NPOS * TERMS / 64;
 const double TUNE_K = 2.67213609;
 
@@ -66,6 +66,7 @@ void load(std::ifstream &stream) {
   uint64_t totalEntries = 0, kek = 0, d = 0;
   int kc = 0, defp = 0, weak = 0;
   uint64_t kekw[28], totPieceInKingRing[6];
+  int nrOcb = 0;
 
   memset(kekw, 0, sizeof(kekw));
 
@@ -77,9 +78,7 @@ void load(std::ifstream &stream) {
 
     if(nrPos % 100000 == 0) { /// to check that everything is working, also some info about some terms
       std::cout << nrPos << ", entries = " << totalEntries << ", kek = " << kek << ", kc = " << kc << ", d = " << d << ", defp = " << defp
-                << ", weak = " << weak << ", pieceInKingRing: ";
-      for(int i = KNIGHT; i <= QUEEN; i++)
-        std::cout << totPieceInKingRing[i] << " ";
+                << ", weak = " << weak << ", nrOcb = " << nrOcb;
       std::cout << "\n";
       /*for(int i = 0; i < 28; i++)
         std::cout << kekw[i] << " ";
@@ -178,6 +177,9 @@ void load(std::ifstream &stream) {
     position[nrPos].ocb = trace.ocb;
     position[nrPos].ocbPieceCount = trace.ocbPieceCount;
     position[nrPos].pawnsOn1Flank = trace.pawnsOn1Flank;
+    position[nrPos].allPawnsCount = trace.allPawnsCount;
+
+    nrOcb += position[nrPos].ocb;
 
     kek += sizeof(position[nrPos]);
 
@@ -338,6 +340,8 @@ void loadWeights() {
   scaleWeights[ind++] = ocbStart;
   scaleWeights[ind++] = ocbStep;
   scaleWeights[ind++] = pawnsOn1Flank;
+  scaleWeights[ind++] = pawnScaleStart;
+  scaleWeights[ind++] = pawnScaleStep;
   std::cout << ind << " scale terms\n";
 }
 
@@ -461,6 +465,8 @@ void saveWeights() {
   ocbStart = scaleWeights[ind++];
   ocbStep = scaleWeights[ind++];
   pawnsOn1Flank = scaleWeights[ind++];
+  pawnScaleStart = scaleWeights[ind++];
+  pawnScaleStep = scaleWeights[ind++];
 }
 
 void printWeights(int iteration) {
@@ -727,6 +733,8 @@ void printWeights(int iteration) {
   out << "int ocbStart = " << scaleWeights[ind++] << ";\n";
   out << "int ocbStep = " << scaleWeights[ind++] << ";\n";
   out << "int pawnsOn1Flank = " << scaleWeights[ind++] << ";\n";
+  out << "int pawnScaleStart = " << scaleWeights[ind++] << ";\n";
+  out << "int pawnScaleStep = " << scaleWeights[ind++] << ";\n";
 
 }
 
@@ -993,8 +1001,9 @@ void tune(int nrThreads, std::string path) {
       long double t2 = getTime();
       std::cout << "time taken for epoch: " << (t2 - t1) / 1000.0 << " s\n";
       printWeights(i);
-      errorMin = evalError(k, nrThreads);
       saveWeights();
+      std::cout << "evaluation error: " << errorMin << "\n";
+      errorMin = evalError(k, nrThreads);
       std::cout << "evaluation error: " << errorMin << "\n";
     }
   }

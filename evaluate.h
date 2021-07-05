@@ -84,6 +84,7 @@ public:
 
   uint8_t ocb, ocbPieceCount;
   uint8_t pawnsOn1Flank;
+  uint8_t allPawnsCount;
 
   int8_t SafetyTable[2][2][100];
   int8_t kingShelter[2][2][4][8];
@@ -127,6 +128,7 @@ public:
 
   uint8_t ocb, ocbPieceCount;
   uint8_t pawnsOn1Flank;
+  uint8_t allPawnsCount;
 
   bool turn;
 };
@@ -262,9 +264,11 @@ int mobilityBonus[7][2][30] = {
 };
 
 
-int ocbStart = 47;
-int ocbStep = 46;
-int pawnsOn1Flank = 34;
+int ocbStart = 35;
+int ocbStep = 31;
+int pawnsOn1Flank = 21;
+int pawnScaleStart = 48;
+int pawnScaleStep = 12;
 
 /// evaluate material
 
@@ -919,6 +923,14 @@ int scaleFactor(Board &board, EvalTrace &trace, int eg) {
     if(TUNE) {
       trace.ocbPieceCount = count(board.pieces[color] ^ board.bb[getType(PAWN, color)]) - 2;
     }
+  } else {
+    int cnt = count(board.bb[getType(PAWN, color)]);
+
+    scale = pawnScaleStart + pawnScaleStep * cnt;
+
+    if(TUNE) {
+      trace.allPawnsCount = cnt;
+    }
   }
 
   /// positions with pawns on only 1 flank tend to be drawish
@@ -929,6 +941,7 @@ int scaleFactor(Board &board, EvalTrace &trace, int eg) {
     trace.pawnsOn1Flank = !((allPawns & flankMask[0]) && (allPawns & flankMask[1]));
   }
 
+  scale = std::max(scale, 0);
   scale = std::min(scale, 100);
 
   return scale;
@@ -938,8 +951,11 @@ int scaleFactorTrace(TunePos &pos) {
   int scale = 100;
   if(pos.ocb)
     scale = ocbStart + ocbStep * pos.ocbPieceCount;
+  else
+    scale = pawnScaleStart + pawnScaleStep * pos.allPawnsCount;
   scale -= pawnsOn1Flank * pos.pawnsOn1Flank;
 
+  scale = std::max(scale, 0);
   scale = std::min(scale, 100);
   return scale;
 }
