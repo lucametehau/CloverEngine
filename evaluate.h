@@ -50,6 +50,8 @@ public:
   uint8_t threatByPawnPush[2][2];
   uint8_t threatMinorByMinor[2][2];
 
+  uint8_t bishopSameColorAsPawns[2][2];
+
   uint8_t weakKingSq[2][2];
 
   uint8_t knightBehindPawn[2][2];
@@ -135,15 +137,17 @@ public:
 const int TEMPO = 20;
 
 int passerDistToEdge[2] = {-5, -5, };
-int doubledPawnsPenalty[2] = {-4, -29, };
+int doubledPawnsPenalty[2] = {-5, -28, };
 int isolatedPenalty[2] = {-4, -9, };
-int backwardPenalty[2] = {-6, -17, };
+int backwardPenalty[2] = {-6, -16, };
 int pawnDefendedBonus[2] = {12, 5, };
 
 int threatByPawnPush[2] = {6, 9, };
-int threatMinorByMinor[2] = {-10, -23, };
+int threatMinorByMinor[2] = {-9, -23, };
 
-int knightBehindPawn[2] = {4, 11, };
+int bishopSameColorAsPawns[2] = {-3, -6, };
+
+int knightBehindPawn[2] = {4, 13, };
 
 int weakKingSq[2] = {-17, 1, };
 
@@ -151,15 +155,15 @@ const int phaseVal[] = {0, 0, 1, 1, 2, 4};
 const int maxWeight = 16 * phaseVal[PAWN] + 4 * phaseVal[KNIGHT] + 4 * phaseVal[BISHOP] + 4 * phaseVal[ROOK] + 2 * phaseVal[QUEEN];
 
 int passedBonus[2][7] = {
-  {0, -6, -4, 3, 30, 38, 74},
-  {0, 20, 26, 54, 83, 149, 142},
+  {0, -5, -3, 3, 29, 38, 74},
+  {0, 20, 26, 54, 83, 150, 143},
 };
 int blockedPassedBonus[2][7] = {
   {0, -3, 0, 13, 36, 41, 35},
-  {0, -3, 8, 20, 28, 54, 41},
+  {0, -3, 8, 20, 28, 55, 41},
 };
 int connectedBonus[2][7] = {
-  {0, 1, 3, 3, 6, 22, 70},
+  {0, 1, 3, 3, 6, 21, 70},
   {0, -1, 1, 3, 11, 21, 23},
 };
 int kingAttackWeight[] = {0, 0, 2, 2, 3, 5};
@@ -177,7 +181,7 @@ int SafetyTable[2][100] = {
     500, 500, 500, 500, 500, 500, 500, 500, 500, 500,
   },
   {
-    0, -4, -2, -3, 0, -2, 6, 14, 14, 18,
+    0, -4, -1, -2, 0, -1, 7, 14, 14, 18,
     26, 20, 27, 26, 34, 46, 34, 44, 48, 52,
     67, 68, 74, 80, 77, 102, 100, 104, 116, 122,
     141, 140, 169, 179, 183, 201, 212, 224, 237, 248,
@@ -192,52 +196,52 @@ int SafetyTable[2][100] = {
 int kingShelter[2][4][7] = {
   {
     {-20, 12, 17, 4, 2, 8, 2, },
-    {-20, 22, 18, -9, -1, 8, 1, },
-    {-16, 17, -3, -9, -1, 1, 5, },
+    {-19, 22, 18, -9, -2, 8, 1, },
+    {-16, 18, -4, -9, -1, 1, 5, },
     {-13, 10, 1, -6, -8, -20, -1, },
   },
   {
-    {0, -36, -17, 0, 15, 19, 14, },
-    {0, -14, -13, 5, 13, 14, 12, },
-    {-11, -10, -4, -2, 7, 12, 10, },
+    {0, -36, -17, 0, 15, 20, 14, },
+    {0, -14, -13, 5, 13, 15, 12, },
+    {-11, -9, -5, -2, 7, 12, 10, },
     {-19, -16, -14, 1, 13, 12, 6, },
   },
 };
 int kingStorm[2][4][7] = {
   {
-    {-12, 22, 17, -18, -9, 3, 0, },
-    {-20, 7, -1, -23, -6, 12, 1, },
-    {-12, 3, -5, -24, 0, 9, 7, },
+    {-12, 22, 17, -18, -9, 2, 0, },
+    {-20, 7, -1, -23, -7, 12, 1, },
+    {-11, 3, -5, -24, 0, 9, 7, },
     {2, 7, 1, -15, 2, 18, 18, },
   },
   {
-    {-32, 41, 65, 30, -7, -25, -16, },
-    {-26, 32, 54, 24, -3, -25, -26, },
-    {-24, 30, 45, 20, -10, -24, -34, },
-    {-12, 37, 51, 17, -6, -14, -12, },
+    {-32, 42, 66, 30, -7, -25, -16, },
+    {-26, 33, 55, 23, -3, -25, -26, },
+    {-24, 30, 46, 19, -11, -24, -33, },
+    {-12, 38, 52, 17, -6, -14, -12, },
   },
 };
 int blockedStorm[2][7] = {
-  {0, 0, -17, 13, 13, 11, -5, },
-  {0, 0, -6, -26, -40, -47, -27, },
+  {0, 0, -16, 12, 13, 11, -6, },
+  {0, 0, -6, -27, -40, -48, -28, },
 };
 int safeCheck[2][6] = {
-  {0, 0, -65, -18, -54, -37},
-  {0, 0, 10, -9, 6, -17},
+  {0, 0, -64, -16, -52, -35},
+  {0, 0, 10, -9, 5, -20},
 };
 int outpostBonus[2][4] = {
-  {0, 0, 23, 25},
-  {0, 0, -2, 5},
+  {0, 0, 23, 24},
+  {0, 0, -2, 6},
 };
 int outpostHoleBonus[2][4] = {
-  {0, 0, 18, 19},
-  {0, 0, 3, 9},
+  {0, 0, 17, 19},
+  {0, 0, 2, 9},
 };
 
-int rookOpenFile[2] = {32, 7, };
+int rookOpenFile[2] = {31, 7, };
 int rookSemiOpenFile[2] = {12, 13, };
 
-int bishopPair[2] = {15, 77, };
+int bishopPair[2] = {16, 78, };
 int longDiagonalBishop[2] = {7, 17, };
 int trappedRook[2] = {-28, -17, };
 
@@ -245,20 +249,20 @@ int mobilityBonus[7][2][30] = {
     {},
     {},
     {
-        {-58, -7, 16, 25, 34, 37, 43, 50, 61, },
-        {-30, -34, 7, 43, 53, 73, 74, 70, 47, },
+        {-58, -6, 16, 24, 34, 36, 42, 50, 60, },
+        {-30, -34, 7, 43, 53, 72, 74, 70, 48, },
     },
     {
-        {-56, -9, 9, 14, 24, 30, 31, 32, 32, 38, 40, 57, 58, 63, },
-        {-58, -64, -27, 6, 17, 38, 50, 55, 61, 63, 60, 47, 55, 33, },
+        {-56, -8, 10, 15, 25, 30, 32, 33, 33, 38, 40, 57, 58, 63, },
+        {-58, -64, -27, 7, 18, 39, 51, 56, 62, 64, 61, 47, 55, 33, },
     },
     {
-        {-67, -29, -13, -7, -5, -4, -3, 1, 6, 10, 11, 16, 20, 31, 62, },
-        {-92, -50, -18, 12, 31, 47, 59, 65, 72, 77, 83, 84, 85, 73, 50, },
+        {-67, -29, -13, -7, -5, -4, -3, 1, 5, 9, 11, 16, 19, 31, 62, },
+        {-92, -50, -18, 12, 32, 47, 59, 65, 72, 77, 83, 84, 85, 73, 49, },
     },
     {
-        {-310, -148, -74, -8, 3, 15, 30, 32, 37, 38, 43, 45, 49, 51, 51, 50, 51, 46, 45, 41, 46, 52, 50, 56, 60, 123, 64, 124, },
-        {-236, -90, -6, -85, -36, 5, -31, 10, 18, 43, 50, 72, 67, 79, 84, 92, 97, 101, 107, 110, 107, 103, 106, 107, 114, 69, 93, 132, },
+        {-310, -148, -74, -8, 3, 16, 31, 32, 37, 38, 43, 45, 49, 51, 51, 50, 51, 46, 45, 41, 46, 52, 50, 56, 60, 123, 64, 124, },
+        {-236, -90, -6, -85, -36, 5, -31, 10, 18, 44, 51, 72, 67, 79, 84, 92, 97, 101, 107, 110, 107, 103, 106, 107, 114, 69, 93, 132, },
     }
 };
 
@@ -627,6 +631,18 @@ void pieceEval(Board &board, int color, EvalTools &tools) {
         trace.longDiagonalBishop[color][MG]++, trace.longDiagonalBishop[color][EG]++;
     }
 
+    cnt = count(tools.pawns[color] & ((sq / 8 + sq % 8) % 2 ? LIGHT_SQUARES : DARK_SQUARES));
+
+    tools.score[color][MG] += bishopSameColorAsPawns[MG] * cnt;
+    tools.score[color][EG] += bishopSameColorAsPawns[EG] * cnt;
+
+    //std::cout << cnt << " pawns on the same color as the bishop on " << sq << "\n";
+
+    if(TUNE) {
+      trace.bishopSameColorAsPawns[color][MG] += cnt;
+      trace.bishopSameColorAsPawns[color][EG] += cnt;
+    }
+
     tools.attackedBy2[color] |= tools.attackedBy[color] & att;
     tools.attackedBy[color] |= att;
     tools.attackedByPiece[color][BISHOP] |= att;
@@ -905,10 +921,8 @@ int scaleFactor(Board &board, EvalTrace &trace, int eg) {
   int scale = 100;
   uint64_t allPawns = board.bb[WP] | board.bb[BP];
 
-  if(count(board.bb[WB]) == 1 && count(board.bb[BB]) == 1) {
-    int sq1 = Sq(board.bb[WB]), sq2 = Sq(board.bb[BB]);
-    if(oppositeColor(sq1, sq2))
-      oppositeBishops = 1;
+  if(count(board.bb[WB]) == 1 && count(board.bb[BB]) == 1 && count((board.bb[WB] | board.bb[BB]) & DARK_SQUARES) == 1) {
+    oppositeBishops = 1;
   }
 
   /// scale down score for opposite color bishops, increase scale factor if we have any more pieces
@@ -1011,6 +1025,12 @@ void getTraceEntries(EvalTrace &trace) {
   for(int i = MG; i <= EG; i++) {
     for(int col = 0; i == MG && col < 2; col++)
       trace.add(ind, ind + 1, col, trace.threatMinorByMinor[col][i]);
+    ind++;
+  }
+
+  for(int i = MG; i <= EG; i++) {
+    for(int col = 0; i == MG && col < 2; col++)
+      trace.add(ind, ind + 1, col, trace.bishopSameColorAsPawns[col][i]);
     ind++;
   }
 

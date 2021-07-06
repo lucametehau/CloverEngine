@@ -14,7 +14,7 @@
 
 const int PRECISION = 8;
 const int NPOS = 9999740; /// 9999740 2500002
-const int TERMS = 1316;
+const int TERMS = 1318;
 const int SCALE_TERMS = 5;
 const int BUCKET_SIZE = 1LL * NPOS * TERMS / 64;
 const double TUNE_K = 2.67213609;
@@ -63,7 +63,7 @@ void load(std::ifstream &stream) {
   info->timeset = 0;
   info->startTime = 0;
 
-  uint64_t totalEntries = 0, kek = 0, d = 0, behindPasser = 0;
+  uint64_t totalEntries = 0, kek = 0, d = 0, bishopSame = 0;
   int kc = 0, defp = 0, weak = 0;
   uint64_t kekw[28];
 
@@ -77,7 +77,7 @@ void load(std::ifstream &stream) {
 
     if(nrPos % 100000 == 0) { /// to check that everything is working, also some info about some terms
       std::cout << nrPos << ", entries = " << totalEntries << ", kek = " << kek << ", kc = " << kc << ", d = " << d << ", defp = " << defp
-                << ", weak = " << weak;
+                << ", weak = " << weak << ", bishopSameColorAsPawns = " << bishopSame;
       std::cout << "\n";
       /*for(int i = 0; i < 28; i++)
         std::cout << kekw[i] << " ";
@@ -188,6 +188,8 @@ void load(std::ifstream &stream) {
 
     d += trace.passerDistToEdge[WHITE][MG] + trace.passerDistToEdge[BLACK][MG];
 
+    bishopSame += trace.bishopSameColorAsPawns[WHITE][MG] + trace.bishopSameColorAsPawns[BLACK][MG];
+
     /*double traceScore = evaluateTrace(position[nrPos], weights);
 
     if(abs(initScore - traceScore) >= 10) {
@@ -225,6 +227,9 @@ void loadWeights() {
     weights[ind++] = (threatByPawnPush[i]);
   for(int i = MG; i <= EG; i++)
     weights[ind++] = (threatMinorByMinor[i]);
+
+  for(int i = MG; i <= EG; i++)
+    weights[ind++] = (bishopSameColorAsPawns[i]);
 
   for(int i = MG; i <= EG; i++)
     weights[ind++] = (knightBehindPawn[i]);
@@ -349,6 +354,9 @@ void saveWeights() {
     threatByPawnPush[i] = std::round(weights[ind++]);
   for(int i = MG; i <= EG; i++)
     threatMinorByMinor[i] = std::round(weights[ind++]);
+
+  for(int i = MG; i <= EG; i++)
+    bishopSameColorAsPawns[i] = std::round(weights[ind++]);
 
   for(int i = MG; i <= EG; i++)
     knightBehindPawn[i] = std::round(weights[ind++]);
@@ -502,6 +510,11 @@ void printWeights(int iteration) {
   out << "};\n";
 
   out << "int threatMinorByMinor[2] = {";
+  for(int i = MG; i <= EG; i++)
+    out << newWeights[ind++] << ", ";
+  out << "};\n\n";
+
+  out << "int bishopSameColorAsPawns[2] = {";
   for(int i = MG; i <= EG; i++)
     out << newWeights[ind++] << ", ";
   out << "};\n\n";
