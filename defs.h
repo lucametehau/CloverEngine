@@ -163,11 +163,11 @@ inline int Sq(uint64_t bb) {
   return 63 - __builtin_clzll(bb);
 }
 
-int getFirstBit(int color, uint64_t bb) {
+int getFrontBit(int color, uint64_t bb) {
   if(!bb)
     return 0;
 
-  return (color == WHITE ? Sq(lsb(bb)) : Sq(bb));
+  return (color == WHITE ? Sq(bb) : __builtin_ctzll(bb));
 }
 
 inline int oppositeColor(int sq1, int sq2) {
