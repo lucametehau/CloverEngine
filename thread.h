@@ -15,7 +15,8 @@ int SNMPCoef1 = 85;
 int SNMPCoef2 = 20;
 int seeCoefQuiet = 80;
 int seeCoefNoisy = 18;
-int fpCoef = 90; /// 51
+int fpCoef = 150; /// 51
+int histDiv = 5000;
 
 const int TERMINATED_BY_USER = 1;
 const int TERMINATED_BY_TIME = 2;

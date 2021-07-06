@@ -64,7 +64,7 @@ const std::string START_POS_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w
 bool TUNE = false; /// false by default, automatically set to true when tuning
 const int TUNE_SCALE = 1;
 const int TUNE_TERMS = 2;
-const int TUNE_FLAG = TUNE_SCALE;
+const int TUNE_FLAG = TUNE_TERMS;
 
 int cod[256];
 uint64_t hashKey[13][64], castleKey[2][2], enPasKey[64];
