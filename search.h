@@ -112,8 +112,6 @@ int Search :: quiesce(int alpha, int beta) {
       eval = ttValue;
   }
 
-  //Stack[ply].eval = eval;
-
   /// stand-pat
 
   if(eval >= beta)
@@ -473,7 +471,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
       R -= picker.stage < STAGE_QUIETS; /// reduce for refutation moves
 
-      R -= std::max(-2, std::min(2, (H.h + H.ch + H.fh) / 5000)); /// reduce based on move history
+      R -= std::max(-2, std::min(2, (H.h + H.ch + H.fh) / histDiv)); /// reduce based on move history
 
       R = std::min(depth - 1, std::max(R, 1)); /// clamp R
     }/* else if(depth >= 3 && played > 1 + 2 * rootNode) { /// noisy late move reduction
@@ -509,6 +507,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
       if(score > alpha) {
         alpha = score;
+
         updatePv(ply, move);
 
         if(alpha >= beta)

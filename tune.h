@@ -14,7 +14,7 @@
 
 const int PRECISION = 8;
 const int NPOS = 9999740; /// 9999740 2500002
-const int TERMS = 1316;
+const int TERMS = 1318;
 const int SCALE_TERMS = 5;
 const int BUCKET_SIZE = 1LL * NPOS * TERMS / 64;
 const double TUNE_K = 2.67213609;
@@ -63,10 +63,9 @@ void load(std::ifstream &stream) {
   info->timeset = 0;
   info->startTime = 0;
 
-  uint64_t totalEntries = 0, kek = 0, d = 0;
+  uint64_t totalEntries = 0, kek = 0, d = 0, bishopSame = 0;
   int kc = 0, defp = 0, weak = 0;
-  uint64_t kekw[28], totPieceInKingRing[6];
-  int nrOcb = 0;
+  uint64_t kekw[28];
 
   memset(kekw, 0, sizeof(kekw));
 
@@ -78,7 +77,7 @@ void load(std::ifstream &stream) {
 
     if(nrPos % 100000 == 0) { /// to check that everything is working, also some info about some terms
       std::cout << nrPos << ", entries = " << totalEntries << ", kek = " << kek << ", kc = " << kc << ", d = " << d << ", defp = " << defp
-                << ", weak = " << weak << ", nrOcb = " << nrOcb;
+                << ", weak = " << weak << ", bishopSameColorAsPawns = " << bishopSame;
       std::cout << "\n";
       /*for(int i = 0; i < 28; i++)
         std::cout << kekw[i] << " ";
@@ -179,8 +178,6 @@ void load(std::ifstream &stream) {
     position[nrPos].pawnsOn1Flank = trace.pawnsOn1Flank;
     position[nrPos].allPawnsCount = trace.allPawnsCount;
 
-    nrOcb += position[nrPos].ocb;
-
     kek += sizeof(position[nrPos]);
 
     weak += trace.weakKingSq[WHITE][MG] + trace.weakKingSq[BLACK][MG];
@@ -191,17 +188,7 @@ void load(std::ifstream &stream) {
 
     d += trace.passerDistToEdge[WHITE][MG] + trace.passerDistToEdge[BLACK][MG];
 
-    for(int i = KNIGHT; i <= QUEEN; i++)
-      totPieceInKingRing[i] += trace.pieceInKingRing[WHITE][MG][i] + trace.pieceInKingRing[BLACK][MG][i];
-
-    /*for(int i = 0; i < 28; i++)
-      kekw[i] += trace.mobilityBonus[WHITE][QUEEN][MG][i] + trace.mobilityBonus[WHITE][QUEEN][MG][i];*/
-
-    /*if(trace.scale) {
-      std::cout << "xd????????????\n";
-      std::cout << int(trace.scale) << "\n";
-      board.print();
-    }*/
+    bishopSame += trace.bishopSameColorAsPawns[WHITE][MG] + trace.bishopSameColorAsPawns[BLACK][MG];
 
     /*double traceScore = evaluateTrace(position[nrPos], weights);
 
@@ -240,6 +227,9 @@ void loadWeights() {
     weights[ind++] = (threatByPawnPush[i]);
   for(int i = MG; i <= EG; i++)
     weights[ind++] = (threatMinorByMinor[i]);
+
+  for(int i = MG; i <= EG; i++)
+    weights[ind++] = (bishopSameColorAsPawns[i]);
 
   for(int i = MG; i <= EG; i++)
     weights[ind++] = (knightBehindPawn[i]);
@@ -364,6 +354,9 @@ void saveWeights() {
     threatByPawnPush[i] = std::round(weights[ind++]);
   for(int i = MG; i <= EG; i++)
     threatMinorByMinor[i] = std::round(weights[ind++]);
+
+  for(int i = MG; i <= EG; i++)
+    bishopSameColorAsPawns[i] = std::round(weights[ind++]);
 
   for(int i = MG; i <= EG; i++)
     knightBehindPawn[i] = std::round(weights[ind++]);
@@ -517,6 +510,11 @@ void printWeights(int iteration) {
   out << "};\n";
 
   out << "int threatMinorByMinor[2] = {";
+  for(int i = MG; i <= EG; i++)
+    out << newWeights[ind++] << ", ";
+  out << "};\n\n";
+
+  out << "int bishopSameColorAsPawns[2] = {";
   for(int i = MG; i <= EG; i++)
     out << newWeights[ind++] << ", ";
   out << "};\n\n";
