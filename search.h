@@ -654,10 +654,10 @@ void Search :: startSearch(Info *_info) {
       beta = INF;
     }
 
-    int initDepth = tDepth;
+    int depth = tDepth;
     while(true) {
 
-      score = search(alpha, beta, tDepth);
+      score = search(alpha, beta, depth);
 
       if(flag & TERMINATED_SEARCH)
         break;
@@ -685,7 +685,7 @@ void Search :: startSearch(Info *_info) {
           std::cout << " lowerbound";
         else if(score <= alpha)
           std::cout << " upperbound";
-        std::cout << " depth " << initDepth << " seldepth " << selDepth << " nodes " << totalNodes;
+        std::cout << " depth " << depth << " seldepth " << selDepth << " nodes " << totalNodes;
         if(t)
           std::cout << " nps " << totalNodes * 1000 / t;
         std::cout << " time " << t << " ";
@@ -698,8 +698,12 @@ void Search :: startSearch(Info *_info) {
       if(score <= alpha) {
         beta = (beta + alpha) / 2;
         alpha = std::max(-INF, alpha - window);
+        depth = tDepth;
       } else if(beta <= score) {
         beta = std::min(INF, beta + window);
+        /// reduce depth if failing high
+        /// don't reduce when finding tb wins / mate scores
+        depth -= (abs(score) < TB_WIN_SCORE / 2);
       } else {
         if(pvTableLen[0])
           bestMove = pvTable[0][0];
