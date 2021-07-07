@@ -14,7 +14,7 @@
 
 const int PRECISION = 8;
 const int NPOS = 9999740; /// 9999740 2500002
-const int TERMS = 1318;
+const int TERMS = 1320;
 const int SCALE_TERMS = 5;
 const int BUCKET_SIZE = 1LL * NPOS * TERMS / 64;
 const double TUNE_K = 2.67213609;
@@ -212,8 +212,8 @@ void loadWeights() {
   int ind = 0;
   for(int i = MG; i <= EG; i++)
     weights[ind++] = (passerDistToEdge[i]);
-  /*for(int i = MG; i <= EG; i++)
-    weights[ind++] = (passerDistToKings[i]);*/
+  for(int i = MG; i <= EG; i++)
+    weights[ind++] = (passerDistToKings[i]);
   for(int i = MG; i <= EG; i++)
     weights[ind++] = (doubledPawnsPenalty[i]);
   for(int i = MG; i <= EG; i++)
@@ -339,8 +339,8 @@ void saveWeights() {
   int ind = 0;
   for(int i = MG; i <= EG; i++)
     passerDistToEdge[i] = std::round(weights[ind++]);
-  /*for(int i = MG; i <= EG; i++)
-    passerDistToKings[i] = std::round(weights[ind++]);*/
+  for(int i = MG; i <= EG; i++)
+    passerDistToKings[i] = std::round(weights[ind++]);
   for(int i = MG; i <= EG; i++)
     doubledPawnsPenalty[i] = std::round(weights[ind++]);
   for(int i = MG; i <= EG; i++)
@@ -479,10 +479,10 @@ void printWeights(int iteration) {
     out << newWeights[ind++] << ", ";
   out << "};\n";
 
-  /*out << "int passerDistToKings[2] = {";
+  out << "int passerDistToKings[2] = {";
   for(int i = MG; i <= EG; i++)
     out << newWeights[ind++] << ", ";
-  out << "};\n";*/
+  out << "};\n";
 
   out << "int doubledPawnsPenalty[2] = {";
   for(int i = MG; i <= EG; i++)
