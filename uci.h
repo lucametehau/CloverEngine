@@ -497,7 +497,7 @@ void UCI :: Bench() {
     std::cout << s << "\n";*/
     //searcher.board.print();
     info->timeset = 0;
-    info->depth = 12;
+    info->depth = 11;
     info->startTime = getTime();
     searcher.startSearch(info);
     totalNodes += searcher.nodes;
