@@ -418,6 +418,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
     if(!rootNode && !excluded && move == hashMove && abs(ttValue) < MATE && depth >= 8 && entry.depth() >= depth - 3 && (bound & LOWER)) { /// had best instead of ttValue lol
       int rBeta = ttValue - depth;
+
       int score = search(rBeta - 1, rBeta, depth / 2, move);
 
       if(score < rBeta)
@@ -657,6 +658,8 @@ void Search :: startSearch(Info *_info) {
     int depth = tDepth;
     while(true) {
 
+      depth = std::max(depth, 1);
+
       score = search(alpha, beta, depth);
 
       if(flag & TERMINATED_SEARCH)
@@ -694,6 +697,7 @@ void Search :: startSearch(Info *_info) {
         printPv();
         std::cout << std::endl;
       }
+      //std::cout << alpha << " " << beta << "\n";
 
       if(score <= alpha) {
         beta = (beta + alpha) / 2;
