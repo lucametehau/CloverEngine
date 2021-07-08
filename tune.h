@@ -14,7 +14,7 @@
 
 const int PRECISION = 8;
 const int NPOS = 9999740; /// 9999740 2500002
-const int TERMS = 1334;
+const int TERMS = 1322;
 const int SCALE_TERMS = 5;
 const int BUCKET_SIZE = 1LL * NPOS * TERMS / 64;
 const double TUNE_K = 2.67213609;
@@ -63,7 +63,7 @@ void load(std::ifstream &stream) {
   info->timeset = 0;
   info->startTime = 0;
 
-  uint64_t totalEntries = 0, kek = 0, d = 0;
+  uint64_t totalEntries = 0, kek = 0, d = 0, hang = 0;
   int kc = 0, defp = 0, weak = 0;
   uint64_t kekw[28];
 
@@ -77,7 +77,7 @@ void load(std::ifstream &stream) {
 
     if(nrPos % 100000 == 0) { /// to check that everything is working, also some info about some terms
       std::cout << nrPos << ", entries = " << totalEntries << ", kek = " << kek << ", kc = " << kc << ", d = " << d << ", defp = " << defp
-                << ", weak = " << weak;
+                << ", weak = " << weak << ", hanging = " << hang;
       std::cout << "\n";
       /*for(int i = 0; i < 28; i++)
         std::cout << kekw[i] << " ";
@@ -188,6 +188,8 @@ void load(std::ifstream &stream) {
 
     d += trace.passerDistToEdge[WHITE][MG] + trace.passerDistToEdge[BLACK][MG];
 
+    hang += trace.hangingPiece[WHITE][MG] + trace.hangingPiece[BLACK][MG];
+
     /*double traceScore = evaluateTrace(position[nrPos], weights);
 
     if(abs(initScore - traceScore) >= 10) {
@@ -215,6 +217,8 @@ void loadWeights() {
   for(int i = MG; i <= EG; i++)
     weights[ind++] = (doubledPawnsPenalty[i]);
   for(int i = MG; i <= EG; i++)
+    weights[ind++] = (isolatedPenalty[i]);
+  for(int i = MG; i <= EG; i++)
     weights[ind++] = (backwardPenalty[i]);
   for(int i = MG; i <= EG; i++)
     weights[ind++] = (pawnDefendedBonus[i]);
@@ -223,6 +227,8 @@ void loadWeights() {
     weights[ind++] = (threatByPawnPush[i]);
   for(int i = MG; i <= EG; i++)
     weights[ind++] = (threatMinorByMinor[i]);
+  for(int i = MG; i <= EG; i++)
+    weights[ind++] = (hangingPiece[i]);
 
   for(int i = MG; i <= EG; i++)
     weights[ind++] = (bishopSameColorAsPawns[i]);
@@ -248,10 +254,6 @@ void loadWeights() {
   for(int s = MG; s <= EG; s++) {
     for(int i = 1; i < 7; i++)
       weights[ind++] = (connectedBonus[s][i]);
-  }
-  for(int s = MG; s <= EG; s++) {
-    for(int i = 0; i < 8; i++)
-      weights[ind++] = (isolatedPenalty[s][i]);
   }
   for(int s = MG; s <= EG; s++) {
     for(int i = 0; i < 100; i++)
@@ -344,6 +346,8 @@ void saveWeights() {
   for(int i = MG; i <= EG; i++)
     doubledPawnsPenalty[i] = std::round(weights[ind++]);
   for(int i = MG; i <= EG; i++)
+    isolatedPenalty[i] = std::round(weights[ind++]);
+  for(int i = MG; i <= EG; i++)
     backwardPenalty[i] = std::round(weights[ind++]);
   for(int i = MG; i <= EG; i++)
     pawnDefendedBonus[i] = std::round(weights[ind++]);
@@ -352,6 +356,8 @@ void saveWeights() {
     threatByPawnPush[i] = std::round(weights[ind++]);
   for(int i = MG; i <= EG; i++)
     threatMinorByMinor[i] = std::round(weights[ind++]);
+  for(int i = MG; i <= EG; i++)
+    hangingPiece[i] = std::round(weights[ind++]);
 
   for(int i = MG; i <= EG; i++)
     bishopSameColorAsPawns[i] = std::round(weights[ind++]);
@@ -377,10 +383,6 @@ void saveWeights() {
   for(int s = MG; s <= EG; s++) {
     for(int i = 1; i < 7; i++)
       connectedBonus[s][i] = std::round(weights[ind++]);
-  }
-  for(int s = MG; s <= EG; s++) {
-    for(int i = 0; i < 8; i++)
-      isolatedPenalty[s][i] = std::round(weights[ind++]);
   }
   for(int s = MG; s <= EG; s++) {
     for(int i = 0; i < 100; i++)
@@ -491,6 +493,11 @@ void printWeights(int iteration) {
     out << newWeights[ind++] << ", ";
   out << "};\n";
 
+  out << "int isolatedPenalty[2] = {";
+  for(int i = MG; i <= EG; i++)
+    out << newWeights[ind++] << ", ";
+  out << "};\n";
+
   out << "int backwardPenalty[2] = {";
   for(int i = MG; i <= EG; i++)
     out << newWeights[ind++] << ", ";
@@ -507,6 +514,11 @@ void printWeights(int iteration) {
   out << "};\n";
 
   out << "int threatMinorByMinor[2] = {";
+  for(int i = MG; i <= EG; i++)
+    out << newWeights[ind++] << ", ";
+  out << "};\n";
+
+  out << "int hangingPiece[2] = {";
   for(int i = MG; i <= EG; i++)
     out << newWeights[ind++] << ", ";
   out << "};\n\n";
@@ -560,15 +572,6 @@ void printWeights(int iteration) {
     out << "  {0";
     for(int i = 1; i < 7; i++)
       out << ", " << newWeights[ind++];
-    out << "},\n";
-  }
-  out << "};\n";
-
-  out << "int isolatedPenalty[2][8] = {\n";
-  for(int s = MG; s <= EG; s++) {
-    out << "  {0";
-    for(int i = 0; i < 8; i++)
-      out << newWeights[ind++] << ", ";
     out << "},\n";
   }
   out << "};\n";
