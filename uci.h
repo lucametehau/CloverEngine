@@ -9,7 +9,7 @@
 #include "init.h"
 #include "perft.h"
 
-const std::string VERSION = "2.4-dev35"; /// 2.0 was "FM"
+const std::string VERSION = "2.4-dev36"; /// 2.0 was "FM"
 
 class UCI {
   public:

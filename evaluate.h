@@ -54,6 +54,7 @@ public:
   uint8_t bishopSameColorAsPawns[2][2];
 
   uint8_t weakKingSq[2][2];
+  uint8_t unsafeCheck[2][2];
 
   uint8_t knightBehindPawn[2][2];
 
@@ -144,7 +145,7 @@ int isolatedPenalty[2] = {-4, -10, };
 int backwardPenalty[2] = {-6, -15, };
 int pawnDefendedBonus[2] = {12, 5, };
 
-int threatByPawnPush[2] = {5, 9, };
+int threatByPawnPush[2] = {6, 10, };
 int threatMinorByMinor[2] = {-9, -21, };
 int hangingPiece[2] = {11, 10, };
 
@@ -152,18 +153,19 @@ int bishopSameColorAsPawns[2] = {-3, -7, };
 
 int knightBehindPawn[2] = {4, 16, };
 
-int weakKingSq[2] = {-17, 1, };
+int weakKingSq[2] = {-16, 1, };
+int unsafeCheck[2] = {-2, -4, };
 
 const int phaseVal[] = {0, 0, 1, 1, 2, 4};
 const int maxWeight = 16 * phaseVal[PAWN] + 4 * phaseVal[KNIGHT] + 4 * phaseVal[BISHOP] + 4 * phaseVal[ROOK] + 2 * phaseVal[QUEEN];
 
 int passedBonus[2][7] = {
   {0, -7, -5, 3, 30, 39, 76},
-  {0, 11, 20, 53, 86, 156, 147},
+  {0, 10, 19, 53, 86, 157, 148},
 };
 int blockedPassedBonus[2][7] = {
   {0, -3, 0, 13, 36, 43, 37},
-  {0, -3, 8, 22, 32, 59, 44},
+  {0, -3, 8, 23, 33, 60, 45},
 };
 int connectedBonus[2][7] = {
   {0, 1, 3, 3, 6, 21, 70},
@@ -207,13 +209,13 @@ int kingShelter[2][4][7] = {
     {0, -36, -16, 0, 16, 22, 16, },
     {-2, -12, -12, 5, 13, 17, 14, },
     {-11, -8, -5, -3, 6, 12, 10, },
-    {-21, -17, -15, -1, 11, 12, 6, },
+    {-21, -17, -15, -1, 10, 12, 6, },
   },
 };
 int kingStorm[2][4][7] = {
   {
     {-12, 22, 17, -19, -9, 2, -1, },
-    {-20, 7, -1, -24, -7, 12, 1, },
+    {-19, 7, -1, -24, -7, 12, 1, },
     {-10, 3, -5, -24, 1, 9, 8, },
     {2, 7, 1, -15, 2, 18, 18, },
   },
@@ -221,7 +223,7 @@ int kingStorm[2][4][7] = {
     {-32, 44, 66, 29, -7, -23, -15, },
     {-28, 35, 55, 21, -3, -22, -24, },
     {-25, 30, 46, 17, -11, -23, -31, },
-    {-14, 38, 52, 14, -8, -14, -12, },
+    {-14, 38, 52, 13, -8, -14, -12, },
   },
 };
 int blockedStorm[2][7] = {
@@ -229,8 +231,8 @@ int blockedStorm[2][7] = {
   {0, 0, -6, -26, -38, -50, -30, },
 };
 int safeCheck[2][6] = {
-  {0, 0, -61, -13, -48, -32},
-  {0, 0, 8, -9, 5, -24},
+  {0, 0, -60, -12, -47, -31},
+  {0, 0, 8, -9, 4, -25},
 };
 int outpostBonus[2][4] = {
   {0, 0, 22, 22},
@@ -241,7 +243,7 @@ int outpostHoleBonus[2][4] = {
   {0, 0, 2, 9},
 };
 
-int rookOpenFile[2] = {30, 7, };
+int rookOpenFile[2] = {30, 6, };
 int rookSemiOpenFile[2] = {12, 12, };
 
 int bishopPair[2] = {13, 78, };
@@ -264,7 +266,7 @@ int mobilityBonus[7][2][30] = {
         {-92, -50, -18, 14, 33, 48, 59, 66, 72, 78, 84, 85, 86, 73, 48, },
     },
     {
-        {-310, -148, -74, -8, 3, 18, 32, 33, 38, 39, 44, 45, 49, 51, 51, 50, 51, 46, 45, 41, 46, 52, 50, 56, 60, 123, 64, 124, },
+        {-310, -148, -74, -8, 3, 18, 32, 33, 38, 39, 44, 46, 49, 51, 51, 50, 51, 46, 45, 41, 46, 52, 50, 56, 60, 123, 64, 124, },
         {-236, -90, -6, -85, -36, 5, -31, 10, 19, 46, 53, 73, 67, 79, 84, 92, 97, 101, 107, 110, 107, 103, 106, 107, 114, 69, 93, 132, },
     }
 };
@@ -792,10 +794,14 @@ void kingEval(Board &board, int color, EvalTools &tools) {
 
   uint64_t safe = ~board.pieces[enemy] & (~tools.attackedBy[color] | (weak & tools.attackedBy2[enemy])),
            occ = board.pieces[WHITE] | board.pieces[BLACK];
-  int knightChecksCount = count(knightBBAttacks[king] & tools.attackedByPiece[enemy][KNIGHT] & safe);
-  int bishopChecksCount = count(genAttacksBishop(occ, king) & tools.attackedByPiece[enemy][BISHOP] & safe);
-  int rookChecksCount = count(genAttacksRook(occ, king) & tools.attackedByPiece[enemy][ROOK] & safe);
-  int queenChecksCount = count(genAttacksQueen(occ, king) & tools.attackedByPiece[enemy][QUEEN] & safe);
+  uint64_t knightChecks = knightBBAttacks[king] & tools.attackedByPiece[enemy][KNIGHT],
+           bishopChecks = genAttacksBishop(occ, king) & tools.attackedByPiece[enemy][BISHOP],
+           rookChecks = genAttacksRook(occ, king) & tools.attackedByPiece[enemy][ROOK],
+           queenChecks = genAttacksQueen(occ, king) & tools.attackedByPiece[enemy][QUEEN];
+  int knightChecksCount = count(knightChecks & safe),
+      bishopChecksCount = count(bishopChecks & safe),
+      rookChecksCount = count(rookChecks & safe),
+      queenChecksCount = count(queenChecks & safe);
 
   tools.score[color][MG] += safeCheck[MG][KNIGHT] * knightChecksCount;
   tools.score[color][EG] += safeCheck[EG][KNIGHT] * knightChecksCount;
@@ -816,6 +822,16 @@ void kingEval(Board &board, int color, EvalTools &tools) {
     trace.safeCheck[color][MG][BISHOP] += bishopChecksCount, trace.safeCheck[color][EG][BISHOP] += bishopChecksCount;
     trace.safeCheck[color][MG][ROOK] += rookChecksCount, trace.safeCheck[color][EG][ROOK] += rookChecksCount;
     trace.safeCheck[color][MG][QUEEN] += queenChecksCount, trace.safeCheck[color][EG][QUEEN] += queenChecksCount;
+  }
+
+  int unsafeChecks = count((knightChecks | bishopChecks | rookChecks | queenChecks) & ~safe);
+
+  tools.score[color][MG] += unsafeCheck[MG] * unsafeChecks;
+  tools.score[color][EG] += unsafeCheck[EG] * unsafeChecks;
+
+  if(TUNE) {
+    trace.unsafeCheck[color][MG] += unsafeChecks;
+    trace.unsafeCheck[color][EG] += unsafeChecks;
   }
 
   /// penalty for weak squares
@@ -1065,6 +1081,11 @@ void getTraceEntries(EvalTrace &trace) {
   for(int i = MG; i <= EG; i++) {
     for(int col = 0; i == MG && col < 2; col++)
       trace.add(ind, ind + 1, col, trace.weakKingSq[col][i]);
+    ind++;
+  }
+  for(int i = MG; i <= EG; i++) {
+    for(int col = 0; i == MG && col < 2; col++)
+      trace.add(ind, ind + 1, col, trace.unsafeCheck[col][i]);
     ind++;
   }
 
