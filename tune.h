@@ -14,7 +14,7 @@
 
 const int PRECISION = 8;
 const int NPOS = 9999740; /// 9999740 2500002
-const int TERMS = 1320;
+const int TERMS = 1324;
 const int SCALE_TERMS = 5;
 const int BUCKET_SIZE = 1LL * NPOS * TERMS / 64;
 const double TUNE_K = 2.67213609;
@@ -63,7 +63,7 @@ void load(std::ifstream &stream) {
   info->timeset = 0;
   info->startTime = 0;
 
-  uint64_t totalEntries = 0, kek = 0, d = 0, bishopSame = 0;
+  uint64_t totalEntries = 0, kek = 0, d = 0, hang = 0, unsafe = 0;
   int kc = 0, defp = 0, weak = 0;
   uint64_t kekw[28];
 
@@ -77,7 +77,7 @@ void load(std::ifstream &stream) {
 
     if(nrPos % 100000 == 0) { /// to check that everything is working, also some info about some terms
       std::cout << nrPos << ", entries = " << totalEntries << ", kek = " << kek << ", kc = " << kc << ", d = " << d << ", defp = " << defp
-                << ", weak = " << weak << ", bishopSameColorAsPawns = " << bishopSame;
+                << ", weak = " << weak << ", hanging = " << hang << ", unsafeChecks = " << unsafe;
       std::cout << "\n";
       /*for(int i = 0; i < 28; i++)
         std::cout << kekw[i] << " ";
@@ -188,7 +188,9 @@ void load(std::ifstream &stream) {
 
     d += trace.passerDistToEdge[WHITE][MG] + trace.passerDistToEdge[BLACK][MG];
 
-    bishopSame += trace.bishopSameColorAsPawns[WHITE][MG] + trace.bishopSameColorAsPawns[BLACK][MG];
+    hang += trace.hangingPiece[WHITE][MG] + trace.hangingPiece[BLACK][MG];
+
+    unsafe += trace.unsafeCheck[WHITE][MG] + trace.unsafeCheck[BLACK][MG];
 
     /*double traceScore = evaluateTrace(position[nrPos], weights);
 
@@ -227,6 +229,8 @@ void loadWeights() {
     weights[ind++] = (threatByPawnPush[i]);
   for(int i = MG; i <= EG; i++)
     weights[ind++] = (threatMinorByMinor[i]);
+  for(int i = MG; i <= EG; i++)
+    weights[ind++] = (hangingPiece[i]);
 
   for(int i = MG; i <= EG; i++)
     weights[ind++] = (bishopSameColorAsPawns[i]);
@@ -236,6 +240,8 @@ void loadWeights() {
 
   for(int i = MG; i <= EG; i++)
     weights[ind++] = (weakKingSq[i]);
+  for(int i = MG; i <= EG; i++)
+    weights[ind++] = (unsafeCheck[i]);
 
   for(int s = MG; s <= EG; s++) {
     for(int i = PAWN; i <= QUEEN; i++)
@@ -354,6 +360,8 @@ void saveWeights() {
     threatByPawnPush[i] = std::round(weights[ind++]);
   for(int i = MG; i <= EG; i++)
     threatMinorByMinor[i] = std::round(weights[ind++]);
+  for(int i = MG; i <= EG; i++)
+    hangingPiece[i] = std::round(weights[ind++]);
 
   for(int i = MG; i <= EG; i++)
     bishopSameColorAsPawns[i] = std::round(weights[ind++]);
@@ -363,6 +371,8 @@ void saveWeights() {
 
   for(int i = MG; i <= EG; i++)
     weakKingSq[i] = std::round(weights[ind++]);
+  for(int i = MG; i <= EG; i++)
+    unsafeCheck[i] = std::round(weights[ind++]);
 
   for(int s = MG; s <= EG; s++) {
     for(int i = PAWN; i <= QUEEN; i++)
@@ -512,6 +522,11 @@ void printWeights(int iteration) {
   out << "int threatMinorByMinor[2] = {";
   for(int i = MG; i <= EG; i++)
     out << newWeights[ind++] << ", ";
+  out << "};\n";
+
+  out << "int hangingPiece[2] = {";
+  for(int i = MG; i <= EG; i++)
+    out << newWeights[ind++] << ", ";
   out << "};\n\n";
 
   out << "int bishopSameColorAsPawns[2] = {";
@@ -527,11 +542,16 @@ void printWeights(int iteration) {
   out << "int weakKingSq[2] = {";
   for(int i = MG; i <= EG; i++)
     out << newWeights[ind++] << ", ";
+  out << "};\n";
+
+  out << "int unsafeCheck[2] = {";
+  for(int i = MG; i <= EG; i++)
+    out << newWeights[ind++] << ", ";
   out << "};\n\n";
 
   out << "int mat[2][7] = {\n";
   for(int s = MG; s <= EG; s++) {
-    out << "    {0, ";
+    out << "  {0, ";
     for(int i = PAWN; i <= QUEEN; i++)
       out << newWeights[ind++] << ", ";
     out << "0},\n";
@@ -710,19 +730,19 @@ void printWeights(int iteration) {
   out << "};\n";
 
   out << "int bonusTable[7][2][64] = {\n";
-  out << "    {},\n";
+  out << "  {},\n";
   for(int i = PAWN; i <= KING; i++) {
-    out << "    {\n";
+    out << "  {\n";
     for(int s = MG; s <= EG; s++) {
-      out << "        {\n            ";
+      out << "    {\n      ";
       for(int j = A1; j <= H8; j++) {
         out << newWeights[ind++] << ", ";
         if(j % 8 == 7)
-          out << "\n            ";
+          out << "\n      ";
       }
-      out << "\n        },\n";
+      out << "\n    },\n";
     }
-    out << "    },\n";
+    out << "  },\n";
   }
   out << "};\n\n";
 
