@@ -693,40 +693,40 @@ void printWeights(int iteration) {
   out << "};\n\n";
 
   out << "int mobilityBonus[7][2][30] = {\n";
-  out << "    {},\n";
-  out << "    {},\n";
-  out << "    {\n";
+  out << "  {},\n";
+  out << "  {},\n";
+  out << "  {\n";
   for(int s = MG; s <= EG; s++) {
-    out << "        {";
+    out << "    {";
     for(int i = 0; i < 9; i++)
       out << newWeights[ind++] << ", ";
     out << "},\n";
   }
-  out << "    },\n";
-  out << "    {\n";
+  out << "  },\n";
+  out << "  {\n";
   for(int s = MG; s <= EG; s++) {
-    out << "        {";
+    out << "    {";
     for(int i = 0; i < 14; i++)
       out << newWeights[ind++] << ", ";
     out << "},\n";
   }
-  out << "    },\n";
-  out << "    {\n";
+  out << "  },\n";
+  out << "  {\n";
   for(int s = MG; s <= EG; s++) {
-    out << "        {";
+    out << "    {";
     for(int i = 0; i < 15; i++)
       out << newWeights[ind++] << ", ";
     out << "},\n";
   }
-  out << "    },\n";
-  out << "    {\n";
+  out << "  },\n";
+  out << "  {\n";
   for(int s = MG; s <= EG; s++) {
-    out << "        {";
+    out << "    {";
     for(int i = 0; i < 28; i++)
       out << newWeights[ind++] << ", ";
     out << "},\n";
   }
-  out << "    }\n";
+  out << "  }\n";
   out << "};\n";
 
   out << "int bonusTable[7][2][64] = {\n";

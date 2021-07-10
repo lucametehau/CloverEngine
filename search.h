@@ -134,6 +134,15 @@ int Search :: quiesce(int alpha, int beta) {
     Stack[ply].move = move;
     Stack[ply].piece = board.piece_at(sqFrom(move));
 
+    /// futility pruning
+
+    int value = eval + 150 + seeVal[board.piece_type_at(sqTo(move))];
+
+    if(type(move) != PROMOTION && value <= alpha) {
+      best = std::max(best, value);
+      continue;
+    }
+
     makeMove(board, move);
     score = -quiesce(-beta, -alpha);
     undoMove(board, move);
