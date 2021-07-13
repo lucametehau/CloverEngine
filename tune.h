@@ -294,6 +294,7 @@ void loadWeights() {
     for(int i = KNIGHT; i <= BISHOP; i++)
       weights[ind++] = (outpostHoleBonus[s][i]);
   }
+
   for(int s = MG; s <= EG; s++)
     weights[ind++] = (rookOpenFile[s]);
   for(int s = MG; s <= EG; s++)
@@ -426,6 +427,7 @@ void saveWeights() {
     for(int i = KNIGHT; i <= BISHOP; i++)
       outpostHoleBonus[s][i] = std::round(weights[ind++]);
   }
+
   for(int s = MG; s <= EG; s++)
     rookOpenFile[s] = std::round(weights[ind++]);
   for(int s = MG; s <= EG; s++)

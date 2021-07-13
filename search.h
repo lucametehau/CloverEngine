@@ -134,15 +134,6 @@ int Search :: quiesce(int alpha, int beta) {
     Stack[ply].move = move;
     Stack[ply].piece = board.piece_at(sqFrom(move));
 
-    /// futility pruning
-
-    int value = eval + 150 + seeVal[board.piece_type_at(sqTo(move))];
-
-    if(type(move) != PROMOTION && value <= alpha) {
-      best = std::max(best, value);
-      continue;
-    }
-
     makeMove(board, move);
     score = -quiesce(-beta, -alpha);
     undoMove(board, move);
@@ -717,6 +708,9 @@ void Search :: startSearch(Info *_info) {
         /// reduce depth if failing high
         /// don't reduce when finding tb wins / mate scores
         depth -= (abs(score) < TB_WIN_SCORE / 2);
+
+        if(pvTableLen[0])
+          bestMove = pvTable[0][0];
       } else {
         if(pvTableLen[0])
           bestMove = pvTable[0][0];
