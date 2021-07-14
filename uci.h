@@ -9,32 +9,7 @@
 #include "init.h"
 #include "perft.h"
 
-#define INPUTBUFFER 6000
-
-/// 2.1 seems to be 85 elo stronger than 2.0
-/// TO DO - (fix multithreading scaling) -> 8 threads ... 4.5 (for now) -> done
-///       - tune on lichess-quiet.txt -> done
-///       - add kp-hash -> done
-///       - improve evaluation -> improve king safety, add more terms (idk) -> partially done
-///       - improve time management -> currently, it's something similar to vice :) -> done
-
-/// all of the above are done (maybe king safety not) (2.3.1)
-/// TO DO - tune the shit out of evaluation (why not)
-///       - add more evaluation terms
-///       - tune search parameters (ctt)
-///       - if I get stuck, last option is to add NNUE :)
-
-/// 2.4 log
-/// - so I added gradient descent and adagrad to my tuner and now I can easily tune any old/new param
-/// - added proper king shelter evaluation (king shelter, storm, blocked storm)
-/// - give blocked passers bonus score, bonus for distance to edge
-
-/// is this working?
-/// i guess so?
-
-const std::string VERSION = "2.4-dev14"; /// 2.0 was "FM"
-
-char line[INPUTBUFFER];
+const std::string VERSION = "2.4"; /// 2.0 was "FM"
 
 class UCI {
   public:
@@ -264,7 +239,7 @@ void UCI :: Uci_Loop() {
               //cout << "Set TB path to " << path << "\n";
             }
 
-            /// search params
+            /// search params, used by ctt
 
             if(name == "RazorCoef") {
               iss >> value;
@@ -273,20 +248,20 @@ void UCI :: Uci_Loop() {
 
               iss >> val;
               RazorCoef = val;
-            } else if(name == "StaticNullCoef") {
+            } else if(name == "SNMPCoef1") {
               iss >> value;
 
               int val;
 
               iss >> val;
-              StaticNullCoef = val;
-            } else if(name == "StaticNullImproveCoef") {
+              SNMPCoef1 = val;
+            } else if(name == "SNMPCoef2") {
               iss >> value;
 
               int val;
 
               iss >> val;
-              StaticNullImproveCoef = val;
+              SNMPCoef2 = val;
             } else if(name == "seeCoefQuiet") {
               iss >> value;
 
@@ -301,6 +276,20 @@ void UCI :: Uci_Loop() {
 
               iss >> val;
               seeCoefNoisy = val;
+            } else if(name == "fpCoef") {
+              iss >> value;
+
+              int val;
+
+              iss >> val;
+              fpCoef = val;
+            } else if(name == "histDiv") {
+              iss >> value;
+
+              int val;
+
+              iss >> val;
+              histDiv = val;
             }
 
           } else if(cmd == "tune") {
@@ -392,6 +381,8 @@ void UCI :: Perft(int depth) {
   std::cout << "time : " << t << std::endl;
   std::cout << "nps  : " << nps << std::endl;
 }
+
+/// positions used for benching
 
 std::string benchPos[] = {
   "r3k2r/2pb1ppp/2pp1q2/p7/1nP1B3/1P2P3/P2N1PPP/R2QK2R w KQkq a6 0 14   ",

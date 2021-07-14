@@ -55,13 +55,18 @@ const int INF = 32000;
 const int MATE = 31000;
 const int TB_WIN_SCORE = 22000;
 const int ABORT = 1000000;
-const int DEPTH = 1000;
+const int DEPTH = 255;
 const uint64_t CENTER = 103481868288ULL;
 const uint64_t ALL = 18446744073709551615ULL;
 const uint64_t LONG_DIAGONALS =  9314046665258451585ULL;
+const uint64_t DARK_SQUARES = 12273903644374837845ULL;
+const uint64_t LIGHT_SQUARES = 6172840429334713770ULL;
 const std::string START_POS_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 bool TUNE = false; /// false by default, automatically set to true when tuning
+const int TUNE_SCALE = 1;
+const int TUNE_TERMS = 2;
+const int TUNE_FLAG = TUNE_TERMS;
 
 int cod[256];
 uint64_t hashKey[13][64], castleKey[2][2], enPasKey[64];
@@ -73,7 +78,7 @@ uint64_t fileUpMask[64], neighFileUpMask[64];
 uint64_t fileDownMask[64], neighFileDownMask[64];
 uint64_t neighFilesMask[64];
 uint64_t between[64][64], Line[64][64];
-uint64_t flankMask[8];
+uint64_t flankMask[2];
 int mirrorSq[2][64];
 int distance[64][64];
 
@@ -88,24 +93,24 @@ int deltaPos[8]; /// how does my position change when moving in direction D
 
 const int castleRightsDelta[2][64] = {
   {
-      255, 255, 255, 255,  255, 255, 255,  255,
-      255, 255, 255, 255,  255, 255, 255,  255,
-      255, 255, 255, 255,  255, 255, 255,  255,
-      255, 255, 255, 255,  255, 255, 255,  255,
-      255, 255, 255, 255,  255, 255, 255,  255,
-      255, 255, 255, 255,  255, 255, 255,  255,
-      255, 255, 255, 255,  255, 255, 255,  255,
-       14, 255, 255, 255,   12, 255, 255,   13,
+      15, 15, 15, 15, 15, 15, 15, 15,
+      15, 15, 15, 15, 15, 15, 15, 15,
+      15, 15, 15, 15, 15, 15, 15, 15,
+      15, 15, 15, 15, 15, 15, 15, 15,
+      15, 15, 15, 15, 15, 15, 15, 15,
+      15, 15, 15, 15, 15, 15, 15, 15,
+      15, 15, 15, 15, 15, 15, 15, 15,
+      14, 15, 15, 15, 12, 15, 15, 13,
   },
   {
-       11, 255, 255, 255,    3, 255, 255,    7,
-      255, 255, 255, 255,  255, 255, 255,  255,
-      255, 255, 255, 255,  255, 255, 255,  255,
-      255, 255, 255, 255,  255, 255, 255,  255,
-      255, 255, 255, 255,  255, 255, 255,  255,
-      255, 255, 255, 255,  255, 255, 255,  255,
-      255, 255, 255, 255,  255, 255, 255,  255,
-      255, 255, 255, 255,  255, 255, 255,  255,
+      11, 15, 15, 15,  3, 15, 15,  7,
+      15, 15, 15, 15, 15, 15, 15, 15,
+      15, 15, 15, 15, 15, 15, 15, 15,
+      15, 15, 15, 15, 15, 15, 15, 15,
+      15, 15, 15, 15, 15, 15, 15, 15,
+      15, 15, 15, 15, 15, 15, 15, 15,
+      15, 15, 15, 15, 15, 15, 15, 15,
+      15, 15, 15, 15, 15, 15, 15, 15,
   }
 };
 
@@ -160,11 +165,11 @@ inline int Sq(uint64_t bb) {
   return 63 - __builtin_clzll(bb);
 }
 
-int getFirstBit(int color, uint64_t bb) {
+int getFrontBit(int color, uint64_t bb) {
   if(!bb)
     return 0;
 
-  return (color == WHITE ? Sq(lsb(bb)) : Sq(bb));
+  return (color == WHITE ? Sq(bb) : __builtin_ctzll(bb));
 }
 
 inline int oppositeColor(int sq1, int sq2) {
@@ -343,14 +348,8 @@ inline void init_defs() {
     }
   }
 
-  /// flank mask if we are on a file
-  uint64_t queenSide = fileMask[0] | fileMask[1] | fileMask[2] | fileMask[3], kingSide = fileMask[4] | fileMask[5] | fileMask[6] | fileMask[7];
-
-  flankMask[0] = queenSide ^ fileMask[3];
-  flankMask[1] = flankMask[2] = queenSide;
-  flankMask[3] = flankMask[4] = fileMask[3] | fileMask[4] | fileMask[5] | fileMask[6];
-  flankMask[5] = flankMask[6] = kingSide;
-  flankMask[7] = kingSide ^ fileMask[7];
+  flankMask[0] = fileMask[0] | fileMask[1] | fileMask[2] | fileMask[3];
+  flankMask[1] = fileMask[4] | fileMask[5] | fileMask[6] | fileMask[7];
 
   /// generate all squares that are above and below a square
 

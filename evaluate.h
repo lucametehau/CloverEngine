@@ -47,6 +47,17 @@ public:
   uint8_t backwardPenalty[2][2];
   uint8_t pawnDefendedBonus[2][2];
 
+  uint8_t threatByPawnPush[2][2];
+  uint8_t threatMinorByMinor[2][2];
+  uint8_t hangingPiece[2][2];
+
+  uint8_t bishopSameColorAsPawns[2][2];
+
+  uint8_t weakKingSq[2][2];
+  uint8_t unsafeCheck[2][2];
+
+  uint8_t knightBehindPawn[2][2];
+
   uint8_t mat[2][2][7];
 
   uint8_t passedBonus[2][2][7];
@@ -74,6 +85,10 @@ public:
 
   uint8_t scale;
 
+  uint8_t ocb, ocbPieceCount;
+  uint8_t pawnsOn1Flank;
+  uint8_t allPawnsCount;
+
   int8_t SafetyTable[2][2][100];
   int8_t kingShelter[2][2][4][8];
   int8_t kingStorm[2][2][4][8];
@@ -82,6 +97,7 @@ public:
   EvalTraceEntry entries[2000];
   int nrEntries;
 
+  int mg, eg;
   int phase;
 
   void add(int mgind, int egind, bool color, int val) {
@@ -104,6 +120,8 @@ class TunePos {
 public:
   EvalTraceEntry *entries;
 
+  int mg, eg;
+
   uint16_t nrEntries;
 
   uint16_t kingDanger[2][2];
@@ -111,37 +129,54 @@ public:
   uint8_t phase;
   uint8_t scale;
 
+  uint8_t ocb, ocbPieceCount;
+  uint8_t pawnsOn1Flank;
+  uint8_t allPawnsCount;
+
   bool turn;
 };
 
 const int TEMPO = 20;
 
-int passerDistToEdge[2] = {-4, -4, };
-int doubledPawnsPenalty[2] = {0, -33, };
-int isolatedPenalty[2] = {-3, -11, };
-int backwardPenalty[2] = {-6, -19, };
-int pawnDefendedBonus[2] = {13, 5, };
+int passerDistToEdge[2] = {-5, -3, };
+int passerDistToKings[2] = {-1, 10, };
+int doubledPawnsPenalty[2] = {-5, -26, };
+int isolatedPenalty[2] = {-4, -10, };
+int backwardPenalty[2] = {-6, -15, };
+int pawnDefendedBonus[2] = {12, 5, };
+
+int threatByPawnPush[2] = {6, 10, };
+int threatMinorByMinor[2] = {-9, -21, };
+int hangingPiece[2] = {11, 10, };
+
+int bishopSameColorAsPawns[2] = {-3, -7, };
+
+int knightBehindPawn[2] = {4, 16, };
+
+int weakKingSq[2] = {-16, 1, };
+int unsafeCheck[2] = {-2, -4, };
 
 const int phaseVal[] = {0, 0, 1, 1, 2, 4};
 const int maxWeight = 16 * phaseVal[PAWN] + 4 * phaseVal[KNIGHT] + 4 * phaseVal[BISHOP] + 4 * phaseVal[ROOK] + 2 * phaseVal[QUEEN];
+
 int passedBonus[2][7] = {
-  {0, -6, -5, 2, 30, 33, 72},
-  {0, 21, 27, 53, 81, 143, 136},
+  {0, -7, -5, 3, 30, 39, 76},
+  {0, 10, 19, 53, 86, 157, 148},
 };
 int blockedPassedBonus[2][7] = {
-  {0, -3, 0, 10, 34, 37, 30},
-  {0, -3, 7, 18, 28, 47, 37},
+  {0, -3, 0, 13, 36, 43, 37},
+  {0, -3, 8, 23, 33, 60, 45},
 };
 int connectedBonus[2][7] = {
-  {0, 1, 3, 3, 7, 25, 70},
-  {0, -1, 1, 3, 11, 21, 23},
+  {0, 1, 3, 3, 6, 21, 70},
+  {0, -1, 1, 3, 11, 23, 23},
 };
 int kingAttackWeight[] = {0, 0, 2, 2, 3, 5};
 int SafetyTable[2][100] = {
   {
-    0, -1, 3, 1, 1, 5, 8, 4, 17, 14,
-    36, 27, 14, 36, 28, 58, 46, 26, 53, 46,
-    74, 66, 55, 81, 65, 107, 98, 89, 113, 109,
+    0, -1, 4, 1, 0, 6, 8, 4, 17, 16,
+    37, 28, 13, 38, 28, 62, 50, 25, 57, 47,
+    79, 69, 53, 81, 65, 112, 98, 85, 113, 109,
     144, 133, 167, 178, 179, 200, 210, 224, 238, 248,
     260, 272, 284, 295, 307, 319, 330, 342, 354, 366,
     377, 389, 401, 412, 424, 436, 448, 459, 471, 483,
@@ -151,8 +186,8 @@ int SafetyTable[2][100] = {
     500, 500, 500, 500, 500, 500, 500, 500, 500, 500,
   },
   {
-    0, -4, -4, -5, -1, -6, 0, 12, 9, 15,
-    23, 20, 24, 26, 34, 46, 34, 44, 48, 52,
+    0, -4, 0, 0, 1, -1, 9, 14, 14, 19,
+    26, 20, 27, 26, 34, 46, 34, 44, 48, 52,
     67, 68, 74, 80, 77, 102, 100, 104, 116, 122,
     141, 140, 169, 179, 183, 201, 212, 224, 237, 248,
     260, 272, 283, 295, 307, 319, 330, 342, 354, 366,
@@ -165,75 +200,87 @@ int SafetyTable[2][100] = {
 };
 int kingShelter[2][4][7] = {
   {
-    {-23, 13, 18, 5, 3, 8, 2, },
-    {-26, 20, 17, -8, 3, 8, 1, },
-    {-19, 15, -1, -7, 2, 2, 5, },
-    {-13, 11, 2, -6, -9, -16, -1, },
+    {-20, 12, 16, 4, 2, 8, 2, },
+    {-19, 23, 18, -9, -4, 8, 1, },
+    {-18, 19, -4, -8, -2, 1, 5, },
+    {-14, 10, 1, -6, -8, -20, -1, },
   },
   {
-    {2, -33, -15, 0, 14, 18, 10, },
-    {0, -11, -11, 5, 12, 12, 11, },
-    {-11, -11, -3, 0, 8, 11, 9, },
-    {-20, -11, -15, 2, 13, 11, 6, },
+    {0, -36, -16, 0, 16, 22, 16, },
+    {-2, -12, -12, 5, 13, 17, 14, },
+    {-11, -8, -5, -3, 6, 12, 10, },
+    {-21, -17, -15, -1, 10, 12, 6, },
   },
 };
 int kingStorm[2][4][7] = {
   {
-    {-11, 16, 17, -16, -9, 4, 1, },
-    {-21, 6, -1, -19, -5, 14, -1, },
-    {-13, 3, -5, -22, -1, 10, 6, },
-    {1, 7, 1, -16, 0, 17, 18, },
+    {-12, 22, 17, -19, -9, 2, -1, },
+    {-19, 7, -1, -24, -7, 12, 1, },
+    {-10, 3, -5, -24, 1, 9, 8, },
+    {2, 7, 1, -15, 2, 18, 18, },
   },
   {
-    {-31, 32, 53, 29, -5, -23, -14, },
-    {-25, 25, 44, 26, 1, -22, -25, },
-    {-24, 24, 39, 22, -5, -20, -35, },
-    {-12, 30, 43, 17, -6, -14, -9, },
+    {-32, 44, 66, 29, -7, -23, -15, },
+    {-28, 35, 55, 21, -3, -22, -24, },
+    {-25, 30, 46, 17, -11, -23, -31, },
+    {-14, 38, 52, 13, -8, -14, -12, },
   },
 };
 int blockedStorm[2][7] = {
-  {0, 0, -18, 10, 16, 13, -3, },
-  {0, 0, -3, -21, -34, -40, -21, },
+  {0, 0, -14, 12, 12, 11, -7, },
+  {0, 0, -6, -26, -38, -50, -30, },
 };
 int safeCheck[2][6] = {
-  {0, 0, -72, -31, -66, -66},
-  {0, 0, -4, -17, -5, -13},
+  {0, 0, -60, -12, -47, -31},
+  {0, 0, 8, -9, 4, -25},
 };
 int outpostBonus[2][4] = {
-  {0, 0, 29, 29},
-  {0, 0, 1, 5},
+  {0, 0, 22, 22},
+  {0, 0, -2, 6},
 };
 int outpostHoleBonus[2][4] = {
-  {0, 0, 22, 23},
-  {0, 0, 8, 11},
+  {0, 0, 17, 19},
+  {0, 0, 2, 9},
 };
-int rookOpenFile[2] = {34, 4, };
-int rookSemiOpenFile[2] = {13, 11, };
-int bishopPair[2] = {18, 83, };
-int longDiagonalBishop[2] = {13, 17, };
-int trappedRook[2] = {-29, -18, };
+
+int rookOpenFile[2] = {30, 6, };
+int rookSemiOpenFile[2] = {12, 12, };
+
+int bishopPair[2] = {13, 78, };
+int longDiagonalBishop[2] = {6, 16, };
+int trappedRook[2] = {-28, -17, };
+
 int mobilityBonus[7][2][30] = {
     {},
     {},
     {
-        {-58, -9, 14, 23, 33, 36, 43, 51, 62, },
-        {-30, -29, 6, 39, 50, 69, 71, 67, 46, },
+        {-58, -5, 16, 24, 34, 36, 42, 49, 59, },
+        {-30, -34, 7, 43, 53, 72, 74, 71, 49, },
     },
     {
-        {-56, -10, 8, 14, 23, 30, 33, 33, 33, 38, 41, 57, 58, 63, },
-        {-58, -59, -27, 5, 17, 38, 49, 54, 59, 59, 57, 43, 52, 33, },
+        {-56, -7, 10, 15, 25, 30, 32, 33, 33, 38, 40, 57, 58, 63, },
+        {-58, -64, -27, 7, 20, 40, 52, 57, 62, 64, 61, 47, 55, 33, },
     },
     {
-        {-67, -29, -15, -9, -6, -5, -4, 1, 6, 11, 13, 18, 22, 33, 52, },
-        {-92, -45, -14, 9, 26, 42, 56, 61, 68, 74, 80, 82, 84, 74, 55, },
+        {-67, -29, -13, -7, -5, -5, -3, 0, 5, 9, 10, 15, 19, 30, 63, },
+        {-92, -50, -18, 14, 33, 48, 59, 66, 72, 78, 84, 85, 86, 73, 48, },
     },
     {
-        {-310, -148, -74, -8, 3, 13, 27, 28, 34, 36, 42, 44, 48, 51, 52, 52, 53, 48, 47, 42, 48, 54, 51, 56, 60, 123, 64, 124, },
-        {-236, -90, -6, -85, -36, 5, -32, 8, 16, 40, 47, 67, 65, 78, 83, 92, 97, 101, 107, 112, 109, 105, 108, 108, 114, 69, 93, 132, },
+        {-310, -148, -74, -8, 3, 18, 32, 33, 38, 39, 44, 46, 49, 51, 51, 50, 51, 46, 45, 41, 46, 52, 50, 56, 60, 123, 64, 124, },
+        {-236, -90, -6, -85, -36, 5, -31, 10, 19, 46, 53, 73, 67, 79, 84, 92, 97, 101, 107, 110, 107, 103, 106, 107, 114, 69, 93, 132, },
     }
 };
 
+int ocbStart = 35;
+int ocbStep = 31;
+int pawnsOn1Flank = 21;
+int pawnScaleStart = 48;
+int pawnScaleStep = 12;
 
+
+
+
+/// evaluate material
 
 void matEval(Board &board, int color, EvalTools &tools) {
   uint64_t pieces = board.pieces[color] ^ board.bb[getType(KING, color)];
@@ -267,6 +314,8 @@ bool isOpenFile(int file, EvalTools &tools) {
 bool isHalfOpenFile(int color, int file, EvalTools &tools) { /// is file half-open for color
   return !(tools.pawns[color] & fileMask[file]);
 }
+
+/// evaluate trapped rooks (TO DO: make code shorter and faster?)
 
 void rookEval(Board &board, int color, EvalTools &tools) {
   int king = getType(KING, color);
@@ -304,7 +353,9 @@ void rookEval(Board &board, int color, EvalTools &tools) {
   }
 }
 
-void pawnEval(Board &board, int color, EvalTools &tools, int pawnScore[], uint64_t &passedPawns) {
+/// evaluate pawns and pawn structure
+
+void pawnEval(int color, EvalTools &tools, int pawnScore[], uint64_t &passedPawns) {
   uint64_t pieces = tools.pawns[color], passers = 0;
 
   while(pieces) {
@@ -320,8 +371,7 @@ void pawnEval(Board &board, int color, EvalTools &tools, int pawnScore[], uint64
 
     if(color == WHITE) {
       if(!(neighFileUpMask[sq] & tools.pawns[BLACK])) { /// no enemy pawns on the neighbour files on all ranks in front of it
-        /*if(!(fileUpMask[sq] & tools.pawns[WHITE])) /// in case of double pawns, the one in the front is passed, but the other is not*/
-          passers |= b;
+        passers |= b;
       }
 
       if(neigh && !((neighFileDownMask[frontSq] ^ b) & tools.pawns[WHITE]) && ((1ULL << frontSq) & tools.defendedByPawn[BLACK])) {
@@ -340,8 +390,7 @@ void pawnEval(Board &board, int color, EvalTools &tools, int pawnScore[], uint64
       }
     } else {
       if(!(neighFileDownMask[sq] & tools.pawns[WHITE])) { /// no enemy pawns on the neighbour files on all ranks in front of it
-        /*if(!(fileDownMask[sq] & tools.pawns[BLACK])) /// in case of double pawns, the one in the front is passed, but the other is not*/
-          passers |= b;
+        passers |= b;
       }
 
       if(neigh && !((neighFileUpMask[frontSq] ^ b) & tools.pawns[BLACK]) && ((1ULL << frontSq) & tools.defendedByPawn[WHITE])) {
@@ -369,12 +418,9 @@ void pawnEval(Board &board, int color, EvalTools &tools, int pawnScore[], uint64
       if(TUNE) {
         trace.connectedBonus[color][MG][(color == WHITE ? rank : 7 - rank)] += f;
         trace.connectedBonus[color][EG][(color == WHITE ? rank : 7 - rank)] += f;
-        //std::cout << trace.connectedBonus[color][EG][(color == WHITE ? rank : 7 - rank)] << " " << phalanx << " " << opposed << "\n";
         trace.pawnDefendedBonus[color][MG] += count(defenders);
         trace.pawnDefendedBonus[color][EG] += count(defenders);
       }
-
-      //std::cout << f << " " << connectedBonus[MG][(color == WHITE ? rank : 7 - rank)] << "\n";
 
       pawnScore[MG] += f * connectedBonus[MG][(color == WHITE ? rank : 7 - rank)] +
                                 pawnDefendedBonus[MG] * count(defenders);
@@ -399,13 +445,15 @@ void pawnEval(Board &board, int color, EvalTools &tools, int pawnScore[], uint64
   passedPawns = passers;
 }
 
+/// evaluate passers
+
 void passersEval(Board &board, int color, EvalTools &tools, uint64_t passers) {
   /// blocked passers aren't given any passed bonus - to change? EDIT: changed
 
   while(passers) {
     uint64_t b = lsb(passers);
     int sq = Sq(b);
-    //int frontSq = sqDir(color, NORTH, sq);
+    int frontSq = sqDir(color, NORTH, sq);
     int rank = (color == WHITE ? sq / 8 : 7 - sq / 8), file = sq % 8;
 
     if(!(b & shift(color, SOUTH, board.pieces[color ^ 1]))) {
@@ -432,24 +480,25 @@ void passersEval(Board &board, int color, EvalTools &tools, uint64_t passers) {
     if(TUNE)
       trace.passerDistToEdge[color][MG] += distToEdge, trace.passerDistToEdge[color][EG] += distToEdge;
 
-    /// the following code doesn't gain elo, but in the future it might...
-    /*/// distance to advancing square is better
+    /// distance to advancing square is better
 
     int distToEnemyKing = distance[frontSq][board.king(color ^ 1)], distToOurKing = distance[frontSq][board.king(color)];
     int deltaDist = distToEnemyKing - distToOurKing;
 
-    deltaDist = std::max(-5, std::min(deltaDist, 5)); /// clamp distance between [-5, 5]
+    deltaDist = std::max(-4, std::min(deltaDist, 4)); /// clamp distance between [-4, 4]
 
     tools.score[color][MG] += passerDistToKings[MG] * deltaDist;
     tools.score[color][EG] += passerDistToKings[EG] * deltaDist;
 
     if(TUNE)
       trace.passerDistToKings[color][MG] += deltaDist, trace.passerDistToKings[color][EG] += deltaDist;
-    */
+
 
     passers ^= b;
   }
 }
+
+/// evaluate pieces and give specific bonuses for every piece
 
 void pieceEval(Board &board, int color, EvalTools &tools) {
   bool enemy = 1 ^ color;
@@ -496,6 +545,14 @@ void pieceEval(Board &board, int color, EvalTools &tools) {
             trace.outpostHoleBonus[color][MG][KNIGHT]++, trace.outpostHoleBonus[color][EG][KNIGHT]++;
         }
       }
+    }
+
+    if(b & shift(color, SOUTH, tools.pawns[color])) {
+      tools.score[color][MG] += knightBehindPawn[MG];
+      tools.score[color][EG] += knightBehindPawn[EG];
+
+      if(TUNE)
+        trace.knightBehindPawn[color][MG]++, trace.knightBehindPawn[color][EG]++;
     }
 
     tools.attackedBy2[color] |= tools.attackedBy[color] & att;
@@ -568,6 +625,16 @@ void pieceEval(Board &board, int color, EvalTools &tools) {
         trace.longDiagonalBishop[color][MG]++, trace.longDiagonalBishop[color][EG]++;
     }
 
+    cnt = count(tools.pawns[color] & ((sq / 8 + sq % 8) % 2 ? LIGHT_SQUARES : DARK_SQUARES));
+
+    tools.score[color][MG] += bishopSameColorAsPawns[MG] * cnt;
+    tools.score[color][EG] += bishopSameColorAsPawns[EG] * cnt;
+
+    if(TUNE) {
+      trace.bishopSameColorAsPawns[color][MG] += cnt;
+      trace.bishopSameColorAsPawns[color][EG] += cnt;
+    }
+
     tools.attackedBy2[color] |= tools.attackedBy[color] & att;
     tools.attackedBy[color] |= att;
     tools.attackedByPiece[color][BISHOP] |= att;
@@ -618,8 +685,9 @@ void pieceEval(Board &board, int color, EvalTools &tools) {
     tools.attackedBy[color] |= att;
     tools.attackedByPiece[color][ROOK] |= att;
 
-    /// update king safety terms
+
     if(att & tools.kingRing[enemy]) {
+      /// update king safety terms
       tools.kingAttackersWeight[color] += kingAttackWeight[ROOK] * count(att & tools.kingRing[enemy]);
       tools.kingAttackersCount[color]++;
     }
@@ -656,14 +724,12 @@ void pieceEval(Board &board, int color, EvalTools &tools) {
 
     pieces ^= b;
   }
-
-  //cout << "piece score for " << (color == WHITE ? "white " : "black ") << " : " << score << "\n";
 }
+
+/// evaluate king safety
 
 void kingEval(Board &board, int color, EvalTools &tools) {
   int king = board.king(color), pos = mirror(1 ^ color, king);
-  //int rank = king / 8, file = king % 8;
-  //uint64_t camp = (color == WHITE ? ALL ^ rankMask[5] ^ rankMask[6] ^ rankMask[7] : ALL ^ rankMask[0] ^ rankMask[1] ^ rankMask[2]), weak;
   bool enemy = 1 ^ color;
 
   /// king psqt
@@ -681,8 +747,6 @@ void kingEval(Board &board, int color, EvalTools &tools) {
   if(tools.kingAttackersCount[enemy] >= 2) {
     int weight = std::min(99, tools.kingAttackersWeight[enemy]);
 
-    //cout << weight << "\n";
-
     if(!board.bb[getType(QUEEN, enemy)])
       weight /= 2;
 
@@ -696,65 +760,89 @@ void kingEval(Board &board, int color, EvalTools &tools) {
       trace.SafetyTable[color][MG][weight]--;
       trace.SafetyTable[color][EG][weight]--;
     }
+  }
 
-    /// apply penalty if enemy can give safe checks
+  /// apply penalty if enemy can give safe checks
 
-    /// weak squares are those attacked by the enemy, undefended or defended once by our king or queen
+  /// weak squares are those attacked by the enemy, undefended or defended once by our king or queen
 
-    uint64_t weak = tools.attackedBy[enemy] & ~tools.attackedBy2[color] &
-                    (~tools.attackedBy[color] | tools.attackedByPiece[color][QUEEN] | tools.attackedByPiece[color][KING]);
+  uint64_t weak = tools.attackedBy[enemy] & ~tools.attackedBy2[color] &
+                  (~tools.attackedBy[color] | tools.attackedByPiece[color][QUEEN] | tools.attackedByPiece[color][KING]);
 
-    /// safe squares are those which are not attacked by us or weak squares attacked twice by the enemy
+  /// safe squares are those which are not attacked by us or weak squares attacked twice by the enemy
 
-    uint64_t safe = ~board.pieces[enemy] & (~tools.attackedBy[color] | (weak & tools.attackedBy2[enemy])),
-             occ = board.pieces[WHITE] | board.pieces[BLACK];
-    int knightChecksCount = count(knightBBAttacks[king] & tools.attackedByPiece[enemy][KNIGHT] & safe);
-    int bishopChecksCount = count(genAttacksBishop(occ, king) & tools.attackedByPiece[enemy][BISHOP] & safe);
-    int rookChecksCount = count(genAttacksRook(occ, king) & tools.attackedByPiece[enemy][ROOK] & safe);
-    int queenChecksCount = count(genAttacksQueen(occ, king) & tools.attackedByPiece[enemy][QUEEN] & safe);
+  uint64_t safe = ~board.pieces[enemy] & (~tools.attackedBy[color] | (weak & tools.attackedBy2[enemy])),
+           occ = board.pieces[WHITE] | board.pieces[BLACK];
+  uint64_t knightChecks = knightBBAttacks[king] & tools.attackedByPiece[enemy][KNIGHT],
+           bishopChecks = genAttacksBishop(occ, king) & tools.attackedByPiece[enemy][BISHOP],
+           rookChecks = genAttacksRook(occ, king) & tools.attackedByPiece[enemy][ROOK],
+           queenChecks = genAttacksQueen(occ, king) & tools.attackedByPiece[enemy][QUEEN];
+  int knightChecksCount = count(knightChecks & safe),
+      bishopChecksCount = count(bishopChecks & safe),
+      rookChecksCount = count(rookChecks & safe),
+      queenChecksCount = count(queenChecks & safe);
 
-    tools.score[color][MG] += safeCheck[MG][KNIGHT] * knightChecksCount;
-    tools.score[color][EG] += safeCheck[EG][KNIGHT] * knightChecksCount;
+  tools.score[color][MG] += safeCheck[MG][KNIGHT] * knightChecksCount;
+  tools.score[color][EG] += safeCheck[EG][KNIGHT] * knightChecksCount;
 
-    tools.score[color][MG] += safeCheck[MG][BISHOP] * bishopChecksCount;
-    tools.score[color][EG] += safeCheck[EG][BISHOP] * bishopChecksCount;
+  tools.score[color][MG] += safeCheck[MG][BISHOP] * bishopChecksCount;
+  tools.score[color][EG] += safeCheck[EG][BISHOP] * bishopChecksCount;
 
-    tools.score[color][MG] += safeCheck[MG][ROOK] * rookChecksCount;
-    tools.score[color][EG] += safeCheck[EG][ROOK] * rookChecksCount;
+  tools.score[color][MG] += safeCheck[MG][ROOK] * rookChecksCount;
+  tools.score[color][EG] += safeCheck[EG][ROOK] * rookChecksCount;
 
-    tools.score[color][MG] += safeCheck[MG][QUEEN] * queenChecksCount;
-    tools.score[color][EG] += safeCheck[EG][QUEEN] * queenChecksCount;
+  tools.score[color][MG] += safeCheck[MG][QUEEN] * queenChecksCount;
+  tools.score[color][EG] += safeCheck[EG][QUEEN] * queenChecksCount;
 
-    //std::cout << knightChecksCount << " " << bishopChecksCount << " " << rookChecksCount << " " << queenChecksCount << "\n";
+  //std::cout << knightChecksCount << " " << bishopChecksCount << " " << rookChecksCount << " " << queenChecksCount << "\n";
 
-    if(TUNE) {
-      trace.safeCheck[color][MG][KNIGHT] += knightChecksCount, trace.safeCheck[color][EG][KNIGHT] += knightChecksCount;
-      trace.safeCheck[color][MG][BISHOP] += bishopChecksCount, trace.safeCheck[color][EG][BISHOP] += bishopChecksCount;
-      trace.safeCheck[color][MG][ROOK] += rookChecksCount, trace.safeCheck[color][EG][ROOK] += rookChecksCount;
-      trace.safeCheck[color][MG][QUEEN] += queenChecksCount, trace.safeCheck[color][EG][QUEEN] += queenChecksCount;
-    }
+  if(TUNE) {
+    trace.safeCheck[color][MG][KNIGHT] += knightChecksCount, trace.safeCheck[color][EG][KNIGHT] += knightChecksCount;
+    trace.safeCheck[color][MG][BISHOP] += bishopChecksCount, trace.safeCheck[color][EG][BISHOP] += bishopChecksCount;
+    trace.safeCheck[color][MG][ROOK] += rookChecksCount, trace.safeCheck[color][EG][ROOK] += rookChecksCount;
+    trace.safeCheck[color][MG][QUEEN] += queenChecksCount, trace.safeCheck[color][EG][QUEEN] += queenChecksCount;
+  }
+
+  int unsafeChecks = count((knightChecks | bishopChecks | rookChecks | queenChecks) & ~safe);
+
+  tools.score[color][MG] += unsafeCheck[MG] * unsafeChecks;
+  tools.score[color][EG] += unsafeCheck[EG] * unsafeChecks;
+
+  if(TUNE) {
+    trace.unsafeCheck[color][MG] += unsafeChecks;
+    trace.unsafeCheck[color][EG] += unsafeChecks;
+  }
+
+  /// penalty for weak squares
+
+  int cntWeak = count(weak & tools.kingRing[color]);
+
+  tools.score[color][MG] += weakKingSq[MG] * cntWeak;
+  tools.score[color][EG] += weakKingSq[EG] * cntWeak;
+
+  if(TUNE) {
+    trace.weakKingSq[color][MG] += cntWeak, trace.weakKingSq[color][EG] += cntWeak;
   }
 
   /// evaluate king storm, shelter and blocked storms as on cpw
 
-  int f = king % 8;
+  int f = king & 7;
 
   f = (f < 1 ? 1 : (f > 6 ? 6 : f)); /// clamp king file between B and G files
 
-  for(int file = std::max(0, f - 1); file <= std::min(7, f + 1); file++) {
+  for(int file = f - 1; file <= f + 1; file++) {
 
     uint64_t b = fileMask[file] & tools.pawns[color];
-    int ours = getFirstBit(enemy, b) / 8;
+    int ours = getFrontBit(enemy, b) / 8;
     int rankOurs = (b ? (color == WHITE ? ours : 7 - ours) : 0); /// our first pawn on this file
 
     b = fileMask[file] & tools.pawns[enemy];
 
-    int theirs = getFirstBit(enemy, b) / 8;
+    int theirs = getFrontBit(enemy, b) / 8;
+
     int rankTheirs = (b ? (color == WHITE ? theirs : 7 - theirs) : 0); /// their first pawn on this file
 
     int distToEdge = (file > 3 ? 7 - file : file);
-
-    //std::cout << rankOurs << " " << rankTheirs << "\n";
 
     tools.score[color][MG] += kingShelter[MG][distToEdge][rankOurs];
     tools.score[color][EG] += kingShelter[EG][distToEdge][rankOurs];
@@ -784,38 +872,124 @@ void kingEval(Board &board, int color, EvalTools &tools) {
   }
 }
 
+/// evaluate piece threats
+
+void threatsEval(Board &board, int color, EvalTools &tools) {
+  bool enemy = 1 ^ color;
+  uint64_t b = shift(color, NORTH, tools.pawns[color]) & ~(board.pieces[WHITE] | board.pieces[BLACK]); /// for pawn push threat
+  uint64_t safe = ~tools.attackedBy[enemy] | tools.attackedBy[color];
+  uint64_t nonPawnEnemies = board.pieces[enemy] ^ board.bb[getType(PAWN, enemy)];
+  int cnt; /// for keeping count
+
+  b |= shift(color, NORTH, b & rankMask[(color == WHITE ? 2 : 5)]) & ~(board.pieces[WHITE] | board.pieces[BLACK]); /// consider double pushes
+
+  b &= ~tools.defendedByPawn[enemy] & safe; /// don't consider pawn pushes to unsafe squares
+
+  b = getPawnAttacks(color, b) & nonPawnEnemies; /// consider only non pawn enemies to be attacked
+
+  cnt = count(b);
+
+  tools.score[color][MG] += threatByPawnPush[MG] * cnt;
+  tools.score[color][EG] += threatByPawnPush[EG] * cnt;
+
+  if(TUNE) {
+    trace.threatByPawnPush[color][MG] += cnt;
+    trace.threatByPawnPush[color][MG] += cnt;
+  }
+
+  b = (tools.attackedByPiece[enemy][KNIGHT] | tools.attackedByPiece[enemy][BISHOP]) &
+      (board.bb[getType(KNIGHT, color)] | board.bb[getType(BISHOP, color)]); /// minors attacked by enemy minors
+
+  cnt = count(b);
+
+  tools.score[color][MG] += threatMinorByMinor[MG] * cnt;
+  tools.score[color][EG] += threatMinorByMinor[EG] * cnt;
+
+  if(TUNE) {
+    trace.threatMinorByMinor[color][MG] += cnt;
+    trace.threatMinorByMinor[color][MG] += cnt;
+  }
+
+  b = nonPawnEnemies & ~tools.attackedBy[enemy] & tools.attackedBy[color];
+
+  cnt = count(b);
+
+  tools.score[color][MG] += hangingPiece[MG] * cnt;
+  tools.score[color][EG] += hangingPiece[EG] * cnt;
+
+  if(TUNE) {
+    trace.hangingPiece[color][MG] += cnt;
+    trace.hangingPiece[color][MG] += cnt;
+  }
+}
+
 /// scale score if we recognize some draw patterns
 
-int scaleFactor(Board &board, int eg) {
+int scaleFactor(Board &board, EvalTrace &trace, int eg) {
   bool oppositeBishops = 0;
   int color = (eg > 0 ? WHITE : BLACK);
   int scale = 100;
-  if(count(board.bb[WB]) == 1 && count(board.bb[BB]) == 1) {
-    int sq1 = Sq(board.bb[WB]), sq2 = Sq(board.bb[BB]);
-    if(oppositeColor(sq1, sq2))
-      oppositeBishops = 1;
+  uint64_t allPawns = board.bb[WP] | board.bb[BP];
+
+  if(count(board.bb[WB]) == 1 && count(board.bb[BB]) == 1 && count((board.bb[WB] | board.bb[BB]) & DARK_SQUARES) == 1) {
+    oppositeBishops = 1;
   }
 
   /// scale down score for opposite color bishops, increase scale factor if we have any more pieces
 
-  if(oppositeBishops)
-    scale = 50 + 10 * (count(board.pieces[color] ^ board.bb[getType(PAWN, color)]) - 2); /// without the king and the bishop
-  /* // doesn't work (loses elo)
-  else {
-    /// thanks to https://hxim.github.io/Stockfish-Evaluation-Guide/ for this idea
-    scale = 80 +  5 * count(board.bb[getType(PAWN, color)]);
-  }*/
+  if(oppositeBishops) {
+    if(TUNE) {
+      trace.ocb = 1;
+    }
 
+    scale = ocbStart + ocbStep * (count(board.pieces[color] ^ board.bb[getType(PAWN, color)]) - 2); /// without the king and the bishop
+
+    if(TUNE) {
+      trace.ocbPieceCount = count(board.pieces[color] ^ board.bb[getType(PAWN, color)]) - 2;
+    }
+  } else {
+    int cnt = count(board.bb[getType(PAWN, color)]);
+
+    scale = pawnScaleStart + pawnScaleStep * cnt;
+
+    if(TUNE) {
+      trace.allPawnsCount = cnt;
+    }
+  }
+
+  /// positions with pawns on only 1 flank tend to be drawish
+
+  scale -= pawnsOn1Flank * (!((allPawns & flankMask[0]) && (allPawns & flankMask[1])));
+
+  if(TUNE) {
+    trace.pawnsOn1Flank = !((allPawns & flankMask[0]) && (allPawns & flankMask[1]));
+  }
+
+  scale = std::max(scale, 0);
   scale = std::min(scale, 100);
 
   return scale;
 }
 
+int scaleFactorTrace(TunePos &pos) {
+  int scale = 100;
+  if(pos.ocb)
+    scale = ocbStart + ocbStep * pos.ocbPieceCount;
+  else
+    scale = pawnScaleStart + pawnScaleStep * pos.allPawnsCount;
+  scale -= pawnsOn1Flank * pos.pawnsOn1Flank;
+
+  scale = std::max(scale, 0);
+  scale = std::min(scale, 100);
+  return scale;
+}
+
+/// evaluate for color
+
 void eval(Board &board, int color, EvalTools &tools) {
-  //cout << color << "\n";
-  //cout << "initially: " << score[color][MG] << "\n";
   rookEval(board, color, tools);
   kingEval(board, color, tools);
+  threatsEval(board, color, tools);
 }
 
 void getTraceEntries(EvalTrace &trace) {
@@ -825,11 +999,11 @@ void getTraceEntries(EvalTrace &trace) {
       trace.add(ind, ind + 1, col, trace.passerDistToEdge[col][i]);
     ind++;
   }
-  /*for(int i = MG; i <= EG; i++) {
+  for(int i = MG; i <= EG; i++) {
     for(int col = 0; i == MG && col < 2; col++)
       trace.add(ind, ind + 1, col, trace.passerDistToKings[col][i]);
     ind++;
-  }*/
+  }
   for(int i = MG; i <= EG; i++) {
     for(int col = 0; i == MG && col < 2; col++)
       trace.add(ind, ind + 1, col, trace.doubledPawnsPenalty[col][i]);
@@ -850,6 +1024,46 @@ void getTraceEntries(EvalTrace &trace) {
       trace.add(ind, ind + 1, col, trace.pawnDefendedBonus[col][i]);
     ind++;
   }
+
+  for(int i = MG; i <= EG; i++) {
+    for(int col = 0; i == MG && col < 2; col++)
+      trace.add(ind, ind + 1, col, trace.threatByPawnPush[col][i]);
+    ind++;
+  }
+  for(int i = MG; i <= EG; i++) {
+    for(int col = 0; i == MG && col < 2; col++)
+      trace.add(ind, ind + 1, col, trace.threatMinorByMinor[col][i]);
+    ind++;
+  }
+  for(int i = MG; i <= EG; i++) {
+    for(int col = 0; i == MG && col < 2; col++)
+      trace.add(ind, ind + 1, col, trace.hangingPiece[col][i]);
+    ind++;
+  }
+
+  for(int i = MG; i <= EG; i++) {
+    for(int col = 0; i == MG && col < 2; col++)
+      trace.add(ind, ind + 1, col, trace.bishopSameColorAsPawns[col][i]);
+    ind++;
+  }
+
+  for(int i = MG; i <= EG; i++) {
+    for(int col = 0; i == MG && col < 2; col++)
+      trace.add(ind, ind + 1, col, trace.knightBehindPawn[col][i]);
+    ind++;
+  }
+
+  for(int i = MG; i <= EG; i++) {
+    for(int col = 0; i == MG && col < 2; col++)
+      trace.add(ind, ind + 1, col, trace.weakKingSq[col][i]);
+    ind++;
+  }
+  for(int i = MG; i <= EG; i++) {
+    for(int col = 0; i == MG && col < 2; col++)
+      trace.add(ind, ind + 1, col, trace.unsafeCheck[col][i]);
+    ind++;
+  }
+
   for(int s = MG; s <= EG; s++) {
     for(int i = PAWN; i <= QUEEN; i++) {
       for(int col = 0; s == MG && col < 2; col++)
@@ -989,8 +1203,6 @@ void getTraceEntries(EvalTrace &trace) {
     }
   }
 
-  //cout << ind << "\n";
-
   for(int i = PAWN; i <= KING; i++) {
     for(int s = MG; s <= EG; s++) {
       for(int j = A1; j <= H8; j++) {
@@ -1005,36 +1217,16 @@ void getTraceEntries(EvalTrace &trace) {
 
 double evaluateTrace(TunePos &pos, double weights[]) {
 
-  /*int score[2][2] = {
-    {0, 0},
-    {0, 0}
-  };*/
-
   double sc[2] = {
     0, 0
   };
 
   int phase = pos.phase;
 
-  //std::cout << weights.size() << "\n";
-
   for(int i = 0; i < pos.nrEntries; i++) {
-    //std::cout << weights[trace.entries[i].ind] << " " << trace.entries[i].ind << " " << trace.entries[i].val << " " << trace.entries[i].color << " " << trace.entries[i].phase << "\n";
-    /*score[WHITE][MG] += weights[pos.entries[i].mgind] * pos.entries[i].wval;
-    score[BLACK][MG] += weights[pos.entries[i].mgind] * pos.entries[i].bval;
-    score[WHITE][EG] += weights[pos.entries[i].egind] * pos.entries[i].wval;
-    score[BLACK][EG] += weights[pos.entries[i].egind] * pos.entries[i].bval;*/
-
     sc[MG] += weights[pos.entries[i].mgind] * pos.entries[i].dval;
     sc[EG] += weights[pos.entries[i].mgind + pos.entries[i].deltaind] * pos.entries[i].dval;
   }
-
-  /*int mg = score[WHITE][MG] - score[BLACK][MG], eg = score[WHITE][EG] - score[BLACK][EG];
-
-  if(mg != sc[MG] || eg != sc[EG]) {
-    std::cout << "Wrong!\n";
-    std::cout << "mg: " << mg << ", " << sc[MG] << "; eg: " << eg << ", " << sc[EG] << "\n";
-  }*/
 
   double mg = sc[MG], eg = sc[EG];
 
@@ -1050,6 +1242,8 @@ int evaluate(Board &board, Search *searcher = nullptr) {
 
   tools.init();
 
+  /// initialize evaluation tools
+
   for(int col = BLACK; col <= WHITE; col++) {
     int king = board.king(col); /// board.king(color)
 
@@ -1060,8 +1254,6 @@ int evaluate(Board &board, Search *searcher = nullptr) {
     tools.kingSquare[col] = kingSquareMask[king];
 
     tools.pawnShield[col] = pawnShieldMask[king];
-
-    //printBB(pawnShield[col]);
 
     /// squares which are defended by 2 of our pawns are safe
 
@@ -1113,8 +1305,8 @@ int evaluate(Board &board, Search *searcher = nullptr) {
 
     uint64_t tmp = 0;
 
-    pawnEval(board, WHITE, tools, pawnScore[WHITE], tmp);
-    pawnEval(board, BLACK, tools, pawnScore[BLACK], tmp);
+    pawnEval(WHITE, tools, pawnScore[WHITE], tmp);
+    pawnEval(BLACK, tools, pawnScore[BLACK], tmp);
 
     int pScore[2] = {pawnScore[WHITE][MG] - pawnScore[BLACK][MG], pawnScore[WHITE][EG] - pawnScore[BLACK][EG]};
 
@@ -1131,8 +1323,8 @@ int evaluate(Board &board, Search *searcher = nullptr) {
 
     uint64_t passers[2] = {0, 0};
 
-    pawnEval(board, WHITE, tools, pawnScore[WHITE], passers[WHITE]);
-    pawnEval(board, BLACK, tools, pawnScore[BLACK], passers[BLACK]);
+    pawnEval(WHITE, tools, pawnScore[WHITE], passers[WHITE]);
+    pawnEval(BLACK, tools, pawnScore[BLACK], passers[BLACK]);
 
     passersEval(board, WHITE, tools, passers[WHITE]);
     passersEval(board, BLACK, tools, passers[BLACK]);
@@ -1148,9 +1340,14 @@ int evaluate(Board &board, Search *searcher = nullptr) {
       searcher->PT.save(board.pawnKey, pScore, passers[WHITE] | passers[BLACK]);
   }
 
+  if(TUNE) {
+    trace.mg = mg;
+    trace.eg = eg;
+  }
+
   /// scale down eg score for winning side
 
-  int scale = scaleFactor(board, eg);
+  int scale = scaleFactor(board, trace, eg);
 
   eg = eg * scale / 100;
 

@@ -14,12 +14,15 @@
 
 const int PRECISION = 8;
 const int NPOS = 9999740; /// 9999740 2500002
-const int TERMS = 1308;
+const int TERMS = 1324;
+const int SCALE_TERMS = 5;
 const int BUCKET_SIZE = 1LL * NPOS * TERMS / 64;
+const double TUNE_K = 2.67213609;
 
 struct Position {
   std::string fen;
   float result;
+  int16_t staticEval;
 };
 
 TunePos *position;
@@ -36,6 +39,7 @@ double sigmoid(double k, double s) {
 
 std::mutex M; /// for debugging data races
 double weights[TERMS + 5];
+int scaleWeights[SCALE_TERMS + 5];
 EvalTrace empty;
 
 /// TEXEL tuning method
@@ -59,8 +63,8 @@ void load(std::ifstream &stream) {
   info->timeset = 0;
   info->startTime = 0;
 
-  uint64_t totalEntries = 0, kek = 0, d = 0;
-  int kc = 0, defp = 0;
+  uint64_t totalEntries = 0, kek = 0, d = 0, hang = 0, unsafe = 0;
+  int kc = 0, defp = 0, weak = 0;
   uint64_t kekw[28];
 
   memset(kekw, 0, sizeof(kekw));
@@ -71,8 +75,10 @@ void load(std::ifstream &stream) {
   while(getline(stream, line)) {
     Position pos;
 
-    if(nrPos % 100000 == 0) {
-      std::cout << nrPos << ", entries = " << totalEntries << ", kek = " << kek << ", kc = " << kc << ", d = " << d << ", defp = " << defp << "\n";
+    if(nrPos % 100000 == 0) { /// to check that everything is working, also some info about some terms
+      std::cout << nrPos << ", entries = " << totalEntries << ", kek = " << kek << ", kc = " << kc << ", d = " << d << ", defp = " << defp
+                << ", weak = " << weak << ", hanging = " << hang << ", unsafeChecks = " << unsafe;
+      std::cout << "\n";
       /*for(int i = 0; i < 28; i++)
         std::cout << kekw[i] << " ";
       std::cout << "\n";*/
@@ -141,6 +147,8 @@ void load(std::ifstream &stream) {
     //std::cout << trace.phase << "\n";
     int initScore = evaluate(board, emptySearcher);
 
+    pos.staticEval = initScore;
+
     getTraceEntries(trace);
 
     int num = trace.nrEntries;
@@ -160,10 +168,19 @@ void load(std::ifstream &stream) {
       position[nrPos].entries[i] = trace.entries[i];
 
     position[nrPos].phase = trace.phase;
+    position[nrPos].mg = trace.mg;
+    position[nrPos].eg = trace.eg;
     position[nrPos].turn = board.turn;
     position[nrPos].scale = trace.scale;
 
+    position[nrPos].ocb = trace.ocb;
+    position[nrPos].ocbPieceCount = trace.ocbPieceCount;
+    position[nrPos].pawnsOn1Flank = trace.pawnsOn1Flank;
+    position[nrPos].allPawnsCount = trace.allPawnsCount;
+
     kek += sizeof(position[nrPos]);
+
+    weak += trace.weakKingSq[WHITE][MG] + trace.weakKingSq[BLACK][MG];
 
     kc += trace.safeCheck[WHITE][MG][KNIGHT] + trace.safeCheck[BLACK][MG][KNIGHT];
 
@@ -171,14 +188,9 @@ void load(std::ifstream &stream) {
 
     d += trace.passerDistToEdge[WHITE][MG] + trace.passerDistToEdge[BLACK][MG];
 
-    /*for(int i = 0; i < 28; i++)
-      kekw[i] += trace.mobilityBonus[WHITE][QUEEN][MG][i] + trace.mobilityBonus[WHITE][QUEEN][MG][i];*/
+    hang += trace.hangingPiece[WHITE][MG] + trace.hangingPiece[BLACK][MG];
 
-    /*if(trace.scale) {
-      std::cout << "xd????????????\n";
-      std::cout << int(trace.scale) << "\n";
-      board.print();
-    }*/
+    unsafe += trace.unsafeCheck[WHITE][MG] + trace.unsafeCheck[BLACK][MG];
 
     /*double traceScore = evaluateTrace(position[nrPos], weights);
 
@@ -202,8 +214,8 @@ void loadWeights() {
   int ind = 0;
   for(int i = MG; i <= EG; i++)
     weights[ind++] = (passerDistToEdge[i]);
-  /*for(int i = MG; i <= EG; i++)
-    weights[ind++] = (passerDistToKings[i]);*/
+  for(int i = MG; i <= EG; i++)
+    weights[ind++] = (passerDistToKings[i]);
   for(int i = MG; i <= EG; i++)
     weights[ind++] = (doubledPawnsPenalty[i]);
   for(int i = MG; i <= EG; i++)
@@ -212,6 +224,25 @@ void loadWeights() {
     weights[ind++] = (backwardPenalty[i]);
   for(int i = MG; i <= EG; i++)
     weights[ind++] = (pawnDefendedBonus[i]);
+
+  for(int i = MG; i <= EG; i++)
+    weights[ind++] = (threatByPawnPush[i]);
+  for(int i = MG; i <= EG; i++)
+    weights[ind++] = (threatMinorByMinor[i]);
+  for(int i = MG; i <= EG; i++)
+    weights[ind++] = (hangingPiece[i]);
+
+  for(int i = MG; i <= EG; i++)
+    weights[ind++] = (bishopSameColorAsPawns[i]);
+
+  for(int i = MG; i <= EG; i++)
+    weights[ind++] = (knightBehindPawn[i]);
+
+  for(int i = MG; i <= EG; i++)
+    weights[ind++] = (weakKingSq[i]);
+  for(int i = MG; i <= EG; i++)
+    weights[ind++] = (unsafeCheck[i]);
+
   for(int s = MG; s <= EG; s++) {
     for(int i = PAWN; i <= QUEEN; i++)
       weights[ind++] = (mat[s][i]);
@@ -263,6 +294,7 @@ void loadWeights() {
     for(int i = KNIGHT; i <= BISHOP; i++)
       weights[ind++] = (outpostHoleBonus[s][i]);
   }
+
   for(int s = MG; s <= EG; s++)
     weights[ind++] = (rookOpenFile[s]);
   for(int s = MG; s <= EG; s++)
@@ -300,14 +332,22 @@ void loadWeights() {
     }
   }
   std::cout << ind << " terms\n";
+
+  ind = 0;
+  scaleWeights[ind++] = ocbStart;
+  scaleWeights[ind++] = ocbStep;
+  scaleWeights[ind++] = pawnsOn1Flank;
+  scaleWeights[ind++] = pawnScaleStart;
+  scaleWeights[ind++] = pawnScaleStep;
+  std::cout << ind << " scale terms\n";
 }
 
 void saveWeights() {
   int ind = 0;
   for(int i = MG; i <= EG; i++)
     passerDistToEdge[i] = std::round(weights[ind++]);
-  /*for(int i = MG; i <= EG; i++)
-    passerDistToKings[i] = std::round(weights[ind++]);*/
+  for(int i = MG; i <= EG; i++)
+    passerDistToKings[i] = std::round(weights[ind++]);
   for(int i = MG; i <= EG; i++)
     doubledPawnsPenalty[i] = std::round(weights[ind++]);
   for(int i = MG; i <= EG; i++)
@@ -316,6 +356,25 @@ void saveWeights() {
     backwardPenalty[i] = std::round(weights[ind++]);
   for(int i = MG; i <= EG; i++)
     pawnDefendedBonus[i] = std::round(weights[ind++]);
+
+  for(int i = MG; i <= EG; i++)
+    threatByPawnPush[i] = std::round(weights[ind++]);
+  for(int i = MG; i <= EG; i++)
+    threatMinorByMinor[i] = std::round(weights[ind++]);
+  for(int i = MG; i <= EG; i++)
+    hangingPiece[i] = std::round(weights[ind++]);
+
+  for(int i = MG; i <= EG; i++)
+    bishopSameColorAsPawns[i] = std::round(weights[ind++]);
+
+  for(int i = MG; i <= EG; i++)
+    knightBehindPawn[i] = std::round(weights[ind++]);
+
+  for(int i = MG; i <= EG; i++)
+    weakKingSq[i] = std::round(weights[ind++]);
+  for(int i = MG; i <= EG; i++)
+    unsafeCheck[i] = std::round(weights[ind++]);
+
   for(int s = MG; s <= EG; s++) {
     for(int i = PAWN; i <= QUEEN; i++)
       mat[s][i] = std::round(weights[ind++]);
@@ -368,6 +427,7 @@ void saveWeights() {
     for(int i = KNIGHT; i <= BISHOP; i++)
       outpostHoleBonus[s][i] = std::round(weights[ind++]);
   }
+
   for(int s = MG; s <= EG; s++)
     rookOpenFile[s] = std::round(weights[ind++]);
   for(int s = MG; s <= EG; s++)
@@ -404,6 +464,14 @@ void saveWeights() {
         bonusTable[i][s][j] = std::round(weights[ind++]);
     }
   }
+
+  ind = 0;
+
+  ocbStart = scaleWeights[ind++];
+  ocbStep = scaleWeights[ind++];
+  pawnsOn1Flank = scaleWeights[ind++];
+  pawnScaleStart = scaleWeights[ind++];
+  pawnScaleStep = scaleWeights[ind++];
 }
 
 void printWeights(int iteration) {
@@ -423,10 +491,10 @@ void printWeights(int iteration) {
     out << newWeights[ind++] << ", ";
   out << "};\n";
 
-  /*out << "int passerDistToKings[2] = {";
+  out << "int passerDistToKings[2] = {";
   for(int i = MG; i <= EG; i++)
     out << newWeights[ind++] << ", ";
-  out << "};\n";*/
+  out << "};\n";
 
   out << "int doubledPawnsPenalty[2] = {";
   for(int i = MG; i <= EG; i++)
@@ -446,18 +514,53 @@ void printWeights(int iteration) {
   out << "int pawnDefendedBonus[2] = {";
   for(int i = MG; i <= EG; i++)
     out << newWeights[ind++] << ", ";
+  out << "};\n\n";
+
+  out << "int threatByPawnPush[2] = {";
+  for(int i = MG; i <= EG; i++)
+    out << newWeights[ind++] << ", ";
   out << "};\n";
+
+  out << "int threatMinorByMinor[2] = {";
+  for(int i = MG; i <= EG; i++)
+    out << newWeights[ind++] << ", ";
+  out << "};\n";
+
+  out << "int hangingPiece[2] = {";
+  for(int i = MG; i <= EG; i++)
+    out << newWeights[ind++] << ", ";
+  out << "};\n\n";
+
+  out << "int bishopSameColorAsPawns[2] = {";
+  for(int i = MG; i <= EG; i++)
+    out << newWeights[ind++] << ", ";
+  out << "};\n\n";
+
+  out << "int knightBehindPawn[2] = {";
+  for(int i = MG; i <= EG; i++)
+    out << newWeights[ind++] << ", ";
+  out << "};\n\n";
+
+  out << "int weakKingSq[2] = {";
+  for(int i = MG; i <= EG; i++)
+    out << newWeights[ind++] << ", ";
+  out << "};\n";
+
+  out << "int unsafeCheck[2] = {";
+  for(int i = MG; i <= EG; i++)
+    out << newWeights[ind++] << ", ";
+  out << "};\n\n";
 
   out << "int mat[2][7] = {\n";
   for(int s = MG; s <= EG; s++) {
-    out << "    {0, ";
+    out << "  {0, ";
     for(int i = PAWN; i <= QUEEN; i++)
       out << newWeights[ind++] << ", ";
     out << "0},\n";
   }
-  out << "};\n";
+  out << "};\n\n";
   out << "const int phaseVal[] = {0, 0, 1, 1, 2, 4};\n";
-  out << "const int maxWeight = 16 * phaseVal[PAWN] + 4 * phaseVal[KNIGHT] + 4 * phaseVal[BISHOP] + 4 * phaseVal[ROOK] + 2 * phaseVal[QUEEN];\n";
+  out << "const int maxWeight = 16 * phaseVal[PAWN] + 4 * phaseVal[KNIGHT] + 4 * phaseVal[BISHOP] + 4 * phaseVal[ROOK] + 2 * phaseVal[QUEEN];\n\n";
 
   out << "int passedBonus[2][7] = {\n";
   for(int s = MG; s <= EG; s++) {
@@ -564,7 +667,7 @@ void printWeights(int iteration) {
       out << ", " << newWeights[ind++];
     out << "},\n";
   }
-  out << "};\n";
+  out << "};\n\n";
 
   out << "int rookOpenFile[2] = {";
   for(int i = MG; i <= EG; i++)
@@ -574,7 +677,7 @@ void printWeights(int iteration) {
   out << "int rookSemiOpenFile[2] = {";
   for(int i = MG; i <= EG; i++)
     out << newWeights[ind++] << ", ";
-  out << "};\n";
+  out << "};\n\n";
 
   out << "int bishopPair[2] = {";
   for(int i = MG; i <= EG; i++)
@@ -589,65 +692,73 @@ void printWeights(int iteration) {
   out << "int trappedRook[2] = {";
   for(int i = MG; i <= EG; i++)
     out << newWeights[ind++] << ", ";
-  out << "};\n";
+  out << "};\n\n";
 
   out << "int mobilityBonus[7][2][30] = {\n";
-  out << "    {},\n";
-  out << "    {},\n";
-  out << "    {\n";
+  out << "  {},\n";
+  out << "  {},\n";
+  out << "  {\n";
   for(int s = MG; s <= EG; s++) {
-    out << "        {";
+    out << "    {";
     for(int i = 0; i < 9; i++)
       out << newWeights[ind++] << ", ";
     out << "},\n";
   }
-  out << "    },\n";
-  out << "    {\n";
+  out << "  },\n";
+  out << "  {\n";
   for(int s = MG; s <= EG; s++) {
-    out << "        {";
+    out << "    {";
     for(int i = 0; i < 14; i++)
       out << newWeights[ind++] << ", ";
     out << "},\n";
   }
-  out << "    },\n";
-  out << "    {\n";
+  out << "  },\n";
+  out << "  {\n";
   for(int s = MG; s <= EG; s++) {
-    out << "        {";
+    out << "    {";
     for(int i = 0; i < 15; i++)
       out << newWeights[ind++] << ", ";
     out << "},\n";
   }
-  out << "    },\n";
-  out << "    {\n";
+  out << "  },\n";
+  out << "  {\n";
   for(int s = MG; s <= EG; s++) {
-    out << "        {";
+    out << "    {";
     for(int i = 0; i < 28; i++)
       out << newWeights[ind++] << ", ";
     out << "},\n";
   }
-  out << "    }\n";
+  out << "  }\n";
   out << "};\n";
 
   out << "int bonusTable[7][2][64] = {\n";
-  out << "    {},\n";
+  out << "  {},\n";
   for(int i = PAWN; i <= KING; i++) {
-    out << "    {\n";
+    out << "  {\n";
     for(int s = MG; s <= EG; s++) {
-      out << "        {\n            ";
+      out << "    {\n      ";
       for(int j = A1; j <= H8; j++) {
         out << newWeights[ind++] << ", ";
         if(j % 8 == 7)
-          out << "\n            ";
+          out << "\n      ";
       }
-      out << "\n        },\n";
+      out << "\n    },\n";
     }
-    out << "    },\n";
+    out << "  },\n";
   }
-  out << "};\n";
+  out << "};\n\n";
+
+  ind = 0;
+
+  out << "int ocbStart = " << scaleWeights[ind++] << ";\n";
+  out << "int ocbStep = " << scaleWeights[ind++] << ";\n";
+  out << "int pawnsOn1Flank = " << scaleWeights[ind++] << ";\n";
+  out << "int pawnScaleStart = " << scaleWeights[ind++] << ";\n";
+  out << "int pawnScaleStep = " << scaleWeights[ind++] << ";\n";
 
 }
 
-void rangeEvalError(std::atomic <double> & error, double k, int l, int r) {
+void rangeEvalError(std::atomic <double> & error, double k, int l, int r, bool isStaticEval) {
 
   double errorRange = 0;
   //Board board;
@@ -655,7 +766,23 @@ void rangeEvalError(std::atomic <double> & error, double k, int l, int r) {
   for(int i = l; i <= r; i++) {
     //board.setFen(texelPos[i].fen);
     //board.print();
-    double eval = evaluateTrace(position[i], weights);
+    double eval;
+    if(TUNE_FLAG & TUNE_SCALE) {
+      int mg = position[i].mg, eg = position[i].eg;
+
+      eg = eg * scaleFactorTrace(position[i]) / 100;
+
+      eval = (mg * position[i].phase + eg * (maxWeight - position[i].phase)) / maxWeight;
+
+      eval = TEMPO + eval * (position[i].turn == WHITE ? 1 : -1);
+    }
+    if(TUNE_FLAG & TUNE_TERMS) {
+      if(!isStaticEval) {
+        eval = evaluateTrace(position[i], weights);
+      } else {
+        eval = texelPos[i].staticEval;
+      }
+    }
     //int evalInit = evaluate(board);
     //assert(evalInit == eval);
     /*
@@ -681,7 +808,7 @@ void rangeEvalError(std::atomic <double> & error, double k, int l, int r) {
   M.unlock();
 }
 
-double evalError(double k, int nrThreads) {
+double evalError(double k, int nrThreads, bool isStaticEval = 0) {
   std::atomic <double> error{};
   double share = 1.0 * nrPos / nrThreads;
   double ind = 0;
@@ -689,7 +816,7 @@ double evalError(double k, int nrThreads) {
   std::vector <std::thread> threads(nrThreads);
 
   for(auto &t : threads) {
-    t = std::thread{ rangeEvalError, ref(error), k, int(floor(ind)), int(floor(ind + share) - 1) };
+    t = std::thread{ rangeEvalError, ref(error), k, int(floor(ind)), int(floor(ind + share) - 1), isStaticEval };
     ind += share;
   }
 
@@ -713,7 +840,7 @@ double bestK(int nrThreads, long double ST) {
     double unit = pow(10.0, -i), range = 10.0 * unit, r = k + range;
 
     for(double curr = std::max(k - range, 0.0); curr <= r; curr += unit) {
-      double error = evalError(curr, nrThreads);
+      double error = evalError(curr, nrThreads, 1);
 
       std::cout << "current K = " << curr << ", current error = " << error << ", time = " << (getTime() - ST) / 1000.0 << "s\n";
 
@@ -764,7 +891,6 @@ void calcGradient(double k, double grad[], int nrThreads) {
     t = std::thread{ calcRangeGradient, tGrad[tInd], k, int(floor(ind)), int(floor(ind + share) - 1) };
     ind += share;
     tInd++;
-    //std::cout << tInd << "\n";
   }
 
   for(auto &t : threads)
@@ -774,12 +900,6 @@ void calcGradient(double k, double grad[], int nrThreads) {
     for(int j = 0; j < TERMS; j++)
       grad[j] += tGrad[i][j];
   }
-
-  /*for(int i = 0; i < TERMS; i++) {
-    std::cout << grad[i] << " ";
-  }
-
-  std::cout << std::endl;*/
 }
 
 bool isBetter(double &mn, double k, int nrThreads) {
@@ -827,50 +947,83 @@ void tune(int nrThreads, std::string path) {
   double start = getTime();
 
   double k = bestK(nrThreads, start);
+  //double k  = TUNE_K;
 
   double startTime = getTime();
 
   double errorStart = evalError(k, nrThreads), errorMin = errorStart;
-  double otherTime = getTime();
 
   std::cout << "best K = " << k << "\n";
 
   std::cout << "start evaluation error: " << errorStart << std::endl;
-  std::cout << "expected iteration time: " << (uint64_t)(otherTime - startTime) * TERMS * 2 / 1000 << "s" << std::endl;
 
   //cout << evaluate(texelPos[0].board) << endl;
 
-  memset(adagrad, 0, sizeof(adagrad));
+  if(TUNE_FLAG & TUNE_TERMS) { /// tune normal terms
+    memset(adagrad, 0, sizeof(adagrad));
 
-  double rate = 1.0;
+    double rate = 1.0;
 
-  for(int i = 1; i <= 100000; i++) {
-    std::cout << "epoch " << i << " starting..." << std::endl;
+    for(int i = 1; i <= 100000; i++) {
+      std::cout << "epoch " << i << " starting..." << std::endl;
 
-    double ST = getTime();
+      double ST = getTime();
 
-    memset(grad, 0, sizeof(grad));
+      memset(grad, 0, sizeof(grad));
 
-    calcGradient(k, grad, nrThreads);
+      calcGradient(k, grad, nrThreads);
 
-    for(int j = 0; j < TERMS; j++) {
-      adagrad[j] += pow((k / 200) * grad[j] / NPOS, 2.0);
+      for(int j = 0; j < TERMS; j++) {
+        adagrad[j] += pow((k / 200) * grad[j] / NPOS, 2.0);
 
-      weights[j] += (k / 200) * (grad[j] / NPOS) * (rate / sqrt(1e-8 + adagrad[j]));
+        weights[j] += (k / 200) * (grad[j] / NPOS) * (rate / sqrt(1e-8 + adagrad[j]));
+      }
+
+      if(i % 100 == 0)
+        rate /= 1.0;
+
+      double ET = getTime();
+
+      if(i % 10 == 0) {
+        std::cout << "time taken for epoch: " << (double)(ET - ST) / 1000.0 << " s\n";
+        printWeights(i);
+        //saveWeights();
+
+        errorMin = evalError(k, nrThreads);
+
+        std::cout << "evaluation error: " << errorMin << "\n";
+      }
     }
+  }
+  if(TUNE_FLAG & TUNE_SCALE) {
+    std::cout << "Tuning scale terms...\n";
+    for(int i = 1; i <= 1000; i++) {
+      long double t1 = getTime();
+      std::cout << "epoch " << i << " starting..." << std::endl;
+      for(int j = 0; j < SCALE_TERMS; j++) {
+        int temp = scaleWeights[j];
+        bool improve = 0;
 
-    if(i % 100 == 0)
-      rate /= 1.0;
+        //cout << "parameter " << ind << "..\n";
 
-    double ET = getTime();
+        scaleWeights[j] += 1;
 
-    if(i % 10 == 0) {
-      std::cout << "time taken for epoch: " << (double)(ET - ST) / 1000.0 << " s\n";
+        if(isBetter(errorMin, k, nrThreads))
+          improve = 1;
+        else {
+          scaleWeights[j] -= 2;
+          improve = isBetter(errorMin, k, nrThreads);
+        }
+
+        if(!improve)
+          scaleWeights[j] = temp;
+      }
+      long double t2 = getTime();
+      std::cout << "time taken for epoch: " << (t2 - t1) / 1000.0 << " s\n";
       printWeights(i);
-      //saveWeights();
-
+      saveWeights();
+      std::cout << "evaluation error: " << errorMin << "\n";
       errorMin = evalError(k, nrThreads);
-
       std::cout << "evaluation error: " << errorMin << "\n";
     }
   }
