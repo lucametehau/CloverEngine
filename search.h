@@ -499,9 +499,6 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
   /// update killers and history heuristics
 
-  if(best >= beta)
-    History :: updateCaptureHistory(this, noisy, nrNoisy, bestMove, depth * depth);
-
   if(best >= beta && !isNoisyMove(board, bestMove)) {
     if(killers[ply][0] != bestMove) {
       killers[ply][1] = killers[ply][0];

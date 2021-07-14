@@ -75,9 +75,6 @@ public:
         if(type(move) == PROMOTION)
           score += 100 * (promoted(move) + KNIGHT);
 
-        History :: getCaptureHistory(searcher, move, hist);
-        score += hist;
-
         scores[i] = score;
       }
       stage++;
