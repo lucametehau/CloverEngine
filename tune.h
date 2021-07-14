@@ -294,6 +294,7 @@ void loadWeights() {
     for(int i = KNIGHT; i <= BISHOP; i++)
       weights[ind++] = (outpostHoleBonus[s][i]);
   }
+
   for(int s = MG; s <= EG; s++)
     weights[ind++] = (rookOpenFile[s]);
   for(int s = MG; s <= EG; s++)
@@ -426,6 +427,7 @@ void saveWeights() {
     for(int i = KNIGHT; i <= BISHOP; i++)
       outpostHoleBonus[s][i] = std::round(weights[ind++]);
   }
+
   for(int s = MG; s <= EG; s++)
     rookOpenFile[s] = std::round(weights[ind++]);
   for(int s = MG; s <= EG; s++)
@@ -693,40 +695,40 @@ void printWeights(int iteration) {
   out << "};\n\n";
 
   out << "int mobilityBonus[7][2][30] = {\n";
-  out << "    {},\n";
-  out << "    {},\n";
-  out << "    {\n";
+  out << "  {},\n";
+  out << "  {},\n";
+  out << "  {\n";
   for(int s = MG; s <= EG; s++) {
-    out << "        {";
+    out << "    {";
     for(int i = 0; i < 9; i++)
       out << newWeights[ind++] << ", ";
     out << "},\n";
   }
-  out << "    },\n";
-  out << "    {\n";
+  out << "  },\n";
+  out << "  {\n";
   for(int s = MG; s <= EG; s++) {
-    out << "        {";
+    out << "    {";
     for(int i = 0; i < 14; i++)
       out << newWeights[ind++] << ", ";
     out << "},\n";
   }
-  out << "    },\n";
-  out << "    {\n";
+  out << "  },\n";
+  out << "  {\n";
   for(int s = MG; s <= EG; s++) {
-    out << "        {";
+    out << "    {";
     for(int i = 0; i < 15; i++)
       out << newWeights[ind++] << ", ";
     out << "},\n";
   }
-  out << "    },\n";
-  out << "    {\n";
+  out << "  },\n";
+  out << "  {\n";
   for(int s = MG; s <= EG; s++) {
-    out << "        {";
+    out << "    {";
     for(int i = 0; i < 28; i++)
       out << newWeights[ind++] << ", ";
     out << "},\n";
   }
-  out << "    }\n";
+  out << "  }\n";
   out << "};\n";
 
   out << "int bonusTable[7][2][64] = {\n";

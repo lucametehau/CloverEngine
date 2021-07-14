@@ -1010,8 +1010,6 @@ int scaleFactorTrace(TunePos &pos) {
 /// evaluate for color
 
 void eval(Board &board, int color, EvalTools &tools) {
-  //cout << color << "\n";
-  //cout << "initially: " << score[color][MG] << "\n";
   rookEval(board, color, tools);
   kingEval(board, color, tools);
   threatsEval(board, color, tools);

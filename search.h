@@ -708,6 +708,9 @@ void Search :: startSearch(Info *_info) {
         /// reduce depth if failing high
         /// don't reduce when finding tb wins / mate scores
         depth -= (abs(score) < TB_WIN_SCORE / 2);
+
+        if(pvTableLen[0])
+          bestMove = pvTable[0][0];
       } else {
         if(pvTableLen[0])
           bestMove = pvTable[0][0];
