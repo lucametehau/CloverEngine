@@ -63,9 +63,6 @@ bool PROBE_ROOT = true; /// default true
 int Search :: quiesce(int alpha, int beta) {
   int ply = board.ply;
 
-  //std::cout << "quiesce " << alpha << " " << beta << "\n";
-  //board.print();
-
   pvTableLen[ply] = 0;
 
   selDepth = std::max(selDepth, ply);
@@ -127,8 +124,6 @@ int Search :: quiesce(int alpha, int beta) {
 
   while((move = noisyPicker.nextMove(this, 1, 1))) {
 
-    //cout << "in quiesce, ply = " << ply << ", move = " << toString(move) << "\n";
-
     /// update stack info
 
     Stack[ply].move = move;
@@ -170,10 +165,6 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
   int alphaOrig = alpha;
   uint64_t key = board.key;
   uint16_t quiets[256], nrQuiets = 0;
-
-  //board.print();
-
-  //cout << alpha << " " << beta << " " << depth << "\n";
 
   if(checkForStop())
     return ABORT;
@@ -257,8 +248,6 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
         }
 
         if(type == EXACT || (type == UPPER && score <= alpha) || (type == LOWER && score >= beta)) {
-          //TT->save()
-          //board.print();
           TT->save(key, score, DEPTH, 0, type, NULLMOVE, 0);
           return score;
         }
@@ -383,8 +372,6 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
       if(isQuiet) {
         History :: getHistory(this, move, ply, H);
 
-        //cout << h << " " << ch << " " << fh << "\n";
-
         /// counter move and follow move pruning
 
         if(depth <= cmpDepth[improving] && H.ch < cmpHistoryLimit[improving])
@@ -440,16 +427,6 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
     if(rootNode && principalSearcher && getTime() > info->startTime + 2500) {
       std::cout << "info depth " << depth << " currmove " << toString(move) << " currmovenumber " << played << std::endl;
-      /*if(move == hashMove)
-        std::cout << "hashMove\n";
-      else if(move == killers[ply][0])
-        std::cout << "killer1\n";
-      else if(move == killers[ply][1])
-        std::cout << "killer2\n";
-      else if(move == counter)
-        std::cout << "counter\n";
-      else
-        std::cout << "normal\n";*/
     }
 
     /// store quiets for history
@@ -464,8 +441,6 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
     if(isQuiet && depth >= 3 && played > 1 + 2 * rootNode) { /// first few moves we don't reduce
       R = lmrRed[std::min(63, depth)][std::min(63, played)];
 
-      //R += !(nodes & 1023); /// idea: reduce more every 1024 nodes
-
       R += !pvNode + !improving; /// not on pv or not improving
 
       R += isCheck && piece_type(board.board[sqTo(move)]) == KING; /// check evasions
@@ -475,11 +450,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
       R -= std::max(-2, std::min(2, (H.h + H.ch + H.fh) / histDiv)); /// reduce based on move history
 
       R = std::min(depth - 1, std::max(R, 1)); /// clamp R
-    }/* else if(depth >= 3 && played > 1 + 2 * rootNode) { /// noisy late move reduction
-      R = lmrRed[std::min(63, depth)][std::min(63, played)] / 2;
-
-      R = std::min(depth - 1, std::max(R, 1)); /// clamp R
-    }*/
+    }
 
     int score = -INF;
 
@@ -563,12 +534,6 @@ void Search :: startSearch(Info *_info) {
 
       int nrMoves = genLegal(board, moves);
 
-      //board.print();
-
-      /*for(int i = 0; i < nrMoves; i++)
-        cout << toString(moves[i]) << " ";
-      cout << endl;*/
-
       /// only 1 move legal
 
       if(PROBE_ROOT && nrMoves == 1) {
@@ -595,8 +560,6 @@ void Search :: startSearch(Info *_info) {
                                   nullptr);
         if(probe != TB_RESULT_CHECKMATE && probe != TB_RESULT_FAILED && probe != TB_RESULT_STALEMATE) {
           int to = int(TB_GET_TO(probe)), from = int(TB_GET_FROM(probe)), promote = TB_GET_PROMOTES(probe), ep = TB_GET_EP(probe);
-
-          //cout << int(TB_GET_TO(probe)) << " " << int(TB_GET_FROM(probe)) << " " << from << " " << to << " " << prom << " " << ep << "\n";
 
           if(!promote && !ep) {
             move = getMove(from, to, 0, NEUT);
@@ -633,18 +596,13 @@ void Search :: startSearch(Info *_info) {
   if(threadCount)
     startWorkerThreads(info);
 
-  //cout << params[0].nodes << "\n";
-
   uint64_t totalNodes = 0, totalHits = 0;
   int lastScore = 0;
-
-  //cout << info->depth << endl;
 
   int limitDepth = (principalSearcher ? info->depth : DEPTH); /// when limited by depth, allow helper threads to pass the fixed depth
 
   for(tDepth = 1; tDepth <= limitDepth; tDepth++) {
 
-    //cout << "depth = " << depth << "\n";
     int window = 10;
 
     if(tDepth >= 6) {
@@ -669,10 +627,8 @@ void Search :: startSearch(Info *_info) {
         if(principalSearcher) {
           totalNodes = nodes;
           totalHits = tbHits;
-          //cout << "principal thread has analyzed " << nodes << " nodes" << endl;
           for(int i = 0; i < threadCount; i++) {
             totalNodes += params[i].nodes;
-            //cout << "thread " << i << " has analyzed " << params[i].nodes << " nodes" << endl;
             totalHits += params[i].tbHits;
           }
         }
@@ -697,7 +653,6 @@ void Search :: startSearch(Info *_info) {
         printPv();
         std::cout << std::endl;
       }
-      //std::cout << alpha << " " << beta << "\n";
 
       if(score <= alpha) {
         beta = (beta + alpha) / 2;
@@ -718,9 +673,6 @@ void Search :: startSearch(Info *_info) {
       }
 
       window += window / 2;
-
-      /*if(window > 700) /// idk (testing indicated that any window above this pretty much leads to mate)
-        window = INF;*/
     }
 
     if(principalSearcher) {

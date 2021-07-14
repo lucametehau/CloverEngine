@@ -1,11 +1,7 @@
 #include <iostream>
 #include "init.h"
 #include "perft.h"
-#include "play.h"
 #include "uci.h"
-//Info info[1];
-
-//Search sr[1];
 
 int main(int argc, char **argv) {
 

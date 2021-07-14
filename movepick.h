@@ -38,10 +38,6 @@ public:
 
     nrNoisy = nrQuiets = nrBadNoisy = 0;
     threshold = Threshold;
-    /*memset(noisy, 0, sizeof(noisy));
-    memset(quiets, 0, sizeof(quiets));
-    memset(badNoisy, 0, sizeof(badNoisy));*/
-    //memset(scores, 0, sizeof(scores));
   }
 
   int getBestMoveInd(int nrMoves, int start) {
@@ -57,8 +53,6 @@ public:
 
   uint16_t nextMove(Search *searcher, bool skip, bool noisyPicker) {
 
-    //cout << moveInd << " " << moves.size() << " " << stage << "\n";
-
     if(stage == STAGE_HASHMOVE) {
       stage++;
       if(hashMove) {
@@ -69,7 +63,6 @@ public:
     if(stage == STAGE_GEN_NOISY) {
       /// good noisy
       nrNoisy = genLegalNoisy(searcher->board, noisy);
-      //random_shuffle(allMoves.begin(), allMoves.end());
 
       for(int i = 0; i < nrNoisy; i++) {
         uint16_t move = noisy[i];
@@ -77,9 +70,6 @@ public:
         if(type(move) == ENPASSANT)
           cap = PAWN;
         score = captureValue[p][cap];
-        /*if(type(move) == ENPASSANT)
-          cap = PAWN;
-        score = 2000000 + 10 * seeVal[cap] - seeVal[p];*/
         if(type(move) == PROMOTION)
           score += 100 * (promoted(move) + KNIGHT);
         scores[i] = score;
@@ -162,13 +152,10 @@ public:
       uint16_t counterMove = (ply >= 1 ? searcher->Stack[ply - 1].move : NULLMOVE), followMove = (ply >= 2 ? searcher->Stack[ply - 2].move : NULLMOVE);
       int counterPiece = (ply >= 1 ? searcher->Stack[ply - 1].piece : 0), followPiece = (ply >= 2 ? searcher->Stack[ply - 2].piece : 0);
       int counterTo = sqTo(counterMove), followTo = sqTo(followMove);
-      //random_shuffle(allMoves.begin(), allMoves.end());
 
       for(int i = 0; i < nrQuiets; i++) {
         uint16_t move = quiets[i];
         int score = 0;
-        /*History :: Heuristics H{};
-        History :: getHistory(searcher, move, ply, H);*/
 
         if(move == hashMove || move == killer1 || move == killer2 || move == counter)
           score = -1000000000;

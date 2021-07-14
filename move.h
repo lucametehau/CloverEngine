@@ -32,7 +32,6 @@ inline void makeMoveFast(Board &board, uint16_t mv) {
 
         board.pieces[1 ^ board.turn]  ^= (1ULL << pos);
         board.bb[pieceCap]            ^= (1ULL << pos);
-        //board.captured       = 0; /// even thought i capture a pawn
     }
 
     break;
@@ -249,7 +248,6 @@ inline void makeMove(Board &board, uint16_t mv) { /// assuming move is at least 
         board.board[posFrom] = 0;
         board.board[posTo]   = pieceFrom;
         board.board[pos]     = 0;
-        //board.captured       = 0; /// even thought i capture a pawn
     }
 
     break;
@@ -266,7 +264,7 @@ inline void makeMove(Board &board, uint16_t mv) { /// assuming move is at least 
         }
 
         board.pieces[board.turn]  ^= (1ULL << posFrom) ^ (1ULL << posTo) ^
-                                      (1ULL << rFrom) ^ (1ULL << rTo);
+                                     (1ULL << rFrom) ^ (1ULL << rTo);
         board.bb[pieceFrom]       ^= (1ULL << posFrom) ^ (1ULL << posTo);
         board.bb[rPiece]          ^= (1ULL << rFrom) ^ (1ULL << rTo);
 
@@ -331,15 +329,7 @@ inline void makeMove(Board &board, uint16_t mv) { /// assuming move is at least 
 
   int temp = board.castleRights ^ board.history[ply].castleRights;
 
-  //cout << temp << "\n";
-
   board.key ^= castleKeyModifier[temp];
-
-  /*while(temp) {
-    int b = Sq(temp & -temp);
-    board.key ^= castleKey[b / 2][b % 2];
-    temp ^= (1 << b);
-  }*/
 
   board.turn ^= 1;
   board.ply++;
@@ -488,7 +478,6 @@ inline void undoNullMove(Board &board) {
 }
 
 inline int genLegal(Board &board, uint16_t *moves) {
-  //Board *temp = new Board(board);
   int nrMoves = 0;
   int color = board.turn, enemy = color ^ 1;
   int king = board.king(color), enemyKing = board.king(enemy);
@@ -523,20 +512,9 @@ inline int genLegal(Board &board, uint16_t *moves) {
 
   attacked |= kingBBAttacks[enemyKing];
 
-  //cout << "First\n";
-  //printBB(kingBBAttacks[king]);
-  //printBB(~(us | attacked));
-
   b1 = kingBBAttacks[king] & ~(us | attacked);
 
-  //printBB(us);
-  //printBB(attacked);
-
-  //printBB(b1);
-  //printBB(~them);
-
   moves = addMoves(moves, nrMoves, king, b1);
-  //moves = addCaps(moves, nrMoves, king, b1 & them);
 
 
   mask = (genAttacksRook(them, king) & enemyOrthSliders) | (genAttacksBishop(them, king) & enemyDiagSliders);
@@ -558,8 +536,6 @@ inline int genLegal(Board &board, uint16_t *moves) {
       pinned ^= b2;
     mask ^= b;
   }
-
-  //board.checkers = checkers;
 
   uint64_t notPinned = ~pinned, capMask = 0, quietMask = 0;
 
@@ -699,7 +675,6 @@ inline int genLegal(Board &board, uint16_t *moves) {
     uint64_t b = lsb(mask);
     int sq = Sq(b);
     moves = addMoves(moves, nrMoves, sq, knightBBAttacks[sq] & mobMask);
-    //moves = addCaps(moves, nrMoves, sq, knightBBAttacks[sq] & capMask);
     mask ^= b;
   }
 
@@ -709,7 +684,6 @@ inline int genLegal(Board &board, uint16_t *moves) {
     int sq = Sq(b);
     b2 = genAttacksBishop(all, sq);
     moves = addMoves(moves, nrMoves, sq, b2 & mobMask);
-    //moves = addCaps(moves, nrMoves, sq, b2 & capMask);
     mask ^= b;
   }
 
@@ -719,7 +693,6 @@ inline int genLegal(Board &board, uint16_t *moves) {
     int sq = Sq(b);
     b2 = genAttacksRook(all, sq);
     moves = addMoves(moves, nrMoves, sq, b2 & mobMask);
-    //moves = addCaps(moves, nrMoves, sq, b2 & capMask);
     mask ^= b;
   }
 
@@ -898,13 +871,6 @@ inline int genLegalNoisy(Board &board, uint16_t *moves) {
       }
       /// intentional fall through
     case KNIGHT:
-      /*mask = getAttackers(board, color, all, sq) & notPinned;
-      while(mask) {
-        b = lsb(mask);
-        moves.push_back(getMove(Sq(b), sq, 0, NEUT));
-        mask ^= b;
-      }
-      return moves;*/
       capMask = checkers;
       quietMask = 0;
       break;
@@ -1078,7 +1044,6 @@ inline int genLegalNoisy(Board &board, uint16_t *moves) {
 /// generate quiet moves
 
 inline int genLegalQuiets(Board &board, uint16_t *moves) {
-  //Board *temp = new Board(board);
   int nrMoves = 0;
   int color = board.turn, enemy = color ^ 1;
   int king = board.king(color), enemyKing = board.king(enemy), pos = board.king(board.turn);
