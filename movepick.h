@@ -64,14 +64,20 @@ public:
       /// good noisy
       nrNoisy = genLegalNoisy(searcher->board, noisy);
 
+      int hist = 0;
+
       for(int i = 0; i < nrNoisy; i++) {
         uint16_t move = noisy[i];
         int p = searcher->board.piece_type_at(sqFrom(move)), cap = searcher->board.piece_type_at(sqTo(move)), score;
         if(type(move) == ENPASSANT)
           cap = PAWN;
-        score = captureValue[p][cap];
+        score = 10 * seeVal[cap] - seeVal[p];
         if(type(move) == PROMOTION)
           score += 100 * (promoted(move) + KNIGHT);
+
+        History :: getCaptureHistory(searcher, move, hist);
+        score += hist;
+
         scores[i] = score;
       }
       stage++;

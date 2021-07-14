@@ -165,6 +165,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
   int alphaOrig = alpha;
   uint64_t key = board.key;
   uint16_t quiets[256], nrQuiets = 0;
+  uint16_t noisy[256], nrNoisy = 0;
 
   if(checkForStop())
     return ABORT;
@@ -433,6 +434,8 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
     if(isQuiet)
       quiets[nrQuiets++] = move;
+    else
+      noisy[nrNoisy++] = move;
 
     int newDepth = depth + (ex && !rootNode), R = 1;
 
@@ -495,6 +498,9 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
   }
 
   /// update killers and history heuristics
+
+  if(best >= beta)
+    History :: updateCaptureHistory(this, noisy, nrNoisy, bestMove, depth * depth);
 
   if(best >= beta && !isNoisyMove(board, bestMove)) {
     if(killers[ply][0] != bestMove) {

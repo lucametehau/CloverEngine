@@ -78,6 +78,7 @@ class Search {
     uint16_t cmTable[2][13][64];
     int hist[2][64][64];
     int follow[2][13][64][13][64];
+    int capHist[13][6][64];
     int lmrCnt[2][9];
     int lmrRed[64][64];
     StackEntry Stack[DEPTH + 5];

@@ -18,7 +18,9 @@ class History {
 
   public:
     static void updateHistory(Search *searcher, uint16_t *quiets, int nrQuiets, int ply, int bonus);
+    static void updateCaptureHistory(Search *searcher, uint16_t *noisy, int nrNoisy, uint16_t bestMove, int bonus);
     static void getHistory(Search *searcher, uint16_t move, int ply, Heuristics &H);
+    static void getCaptureHistory(Search *searcher, uint16_t move, int &H);
     static void updateHist(int &hist, int score);
   private:
     static constexpr int histMax = 400;
@@ -69,6 +71,18 @@ void History :: updateHistory(Search *searcher, uint16_t *quiets, int nrQuiets, 
   }
 }
 
+void History :: updateCaptureHistory(Search *searcher, uint16_t *noisy, int nrNoisy, uint16_t bestMove, int bonus) {
+  bonus = std::min(bonus, histMax);
+
+  for(int i = 0; i < nrNoisy; i++) {
+    int move = noisy[i];
+    int score = (move == bestMove ? bonus : -bonus);
+    int from = sqFrom(move), to = sqTo(move), piece = searcher->board.board[from], cap = searcher->board.piece_type_at(to);
+
+    updateHist(searcher->capHist[piece][cap][to], score);
+  }
+}
+
 void History :: getHistory(Search *searcher, uint16_t move, int ply, Heuristics &H) {
   int from = sqFrom(move), to = sqTo(move), piece = searcher->board.board[from];
 
@@ -81,4 +95,10 @@ void History :: getHistory(Search *searcher, uint16_t move, int ply, Heuristics 
   H.ch = searcher->follow[0][counterPiece][counterTo][piece][to];
 
   H.fh = searcher->follow[1][followPiece][followTo][piece][to];
+}
+
+void History :: getCaptureHistory(Search *searcher, uint16_t move, int &H) {
+  int from = sqFrom(move), to = sqTo(move), piece = searcher->board.board[from], cap = searcher->board.piece_type_at(to);
+
+  H = searcher->capHist[piece][cap][to];
 }
