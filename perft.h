@@ -21,9 +21,6 @@ uint64_t perft(Board &board, int depth) {
 
   }*/
 
-  if(board.pawnKey != board.pawnHash())
-    std::cout << "bru\n", board.print();
-
   if(depth == 1) {
     /*if(board.ply == 0) {
       for(int i = 0; i < nrMoves; i++)

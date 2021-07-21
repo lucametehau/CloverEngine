@@ -93,6 +93,8 @@ class Search {
     volatile int flag;
     int checkCount;
 
+    uint64_t nmpFail, nmpTries;
+
     int threadCount;
     int tDepth, selDepth;
 

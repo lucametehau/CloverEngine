@@ -165,7 +165,6 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
   int alphaOrig = alpha;
   uint64_t key = board.key;
   uint16_t quiets[256], nrQuiets = 0;
-  uint16_t noisy[256], nrNoisy = 0;
 
   if(checkForStop())
     return ABORT;
@@ -297,7 +296,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
   if(!pvNode && !isCheck && !excluded && eval >= beta && eval >= Stack[ply].eval && depth >= 2 && Stack[ply - 1].move &&
      (board.pieces[board.turn] ^ board.bb[getType(PAWN, board.turn)] ^ board.bb[getType(KING, board.turn)]) &&
      (!ttHit || !(bound & UPPER) || ttValue >= beta)) {
-    int R = 4 + depth / 6 + std::min(3, (eval - beta) / 200);
+    int R = 4 + depth / 6 + std::min(3, (eval - beta) / 100);
 
     Stack[ply].move = NULLMOVE;
     Stack[ply].piece = 0;
@@ -310,8 +309,12 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
     undoNullMove(board);
 
+    //nmpTries++;
+
     if(score >= beta) /// don't trust mate scores
       return (abs(score) > MATE ? beta : score);
+    /*else
+      nmpFail++;*/
   }
 
   /// probcut
@@ -434,8 +437,6 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
     if(isQuiet)
       quiets[nrQuiets++] = move;
-    else
-      noisy[nrNoisy++] = move;
 
     int newDepth = depth + (ex && !rootNode), R = 1;
 
@@ -655,6 +656,8 @@ void Search :: startSearch(Info *_info) {
         std::cout << "pv ";
         printPv();
         std::cout << std::endl;
+
+        //std::cout << "NMP Fail rate: " << 100.0 * nmpFail / nmpTries << "\n";
       }
 
       if(score <= alpha) {

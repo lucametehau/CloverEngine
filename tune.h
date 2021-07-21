@@ -231,10 +231,6 @@ void loadWeights() {
     weights[ind++] = (threatMinorByMinor[i]);
   for(int i = MG; i <= EG; i++)
     weights[ind++] = (hangingPiece[i]);
-  for(int s = MG; s <= EG; s++) {
-    for(int i = PAWN; i <= QUEEN; i++)
-      weights[ind++] = (threatByRook[s][i]);
-  }
 
   for(int i = MG; i <= EG; i++)
     weights[ind++] = (bishopSameColorAsPawns[i]);
@@ -367,10 +363,6 @@ void saveWeights() {
     threatMinorByMinor[i] = std::round(weights[ind++]);
   for(int i = MG; i <= EG; i++)
     hangingPiece[i] = std::round(weights[ind++]);
-  for(int s = MG; s <= EG; s++) {
-    for(int i = PAWN; i <= QUEEN; i++)
-      threatByRook[s][i] = std::round(weights[ind++]);
-  }
 
   for(int i = MG; i <= EG; i++)
     bishopSameColorAsPawns[i] = std::round(weights[ind++]);
@@ -537,15 +529,6 @@ void printWeights(int iteration) {
   out << "int hangingPiece[2] = {";
   for(int i = MG; i <= EG; i++)
     out << newWeights[ind++] << ", ";
-  out << "};\n";
-
-  out << "int threatByRook[2][6] = {\n";
-  for(int s = MG; s <= EG; s++) {
-    out << "  {0";
-    for(int i = PAWN; i <= QUEEN; i++)
-      out << ", " << newWeights[ind++];
-    out << "},\n";
-  }
   out << "};\n\n";
 
   out << "int bishopSameColorAsPawns[2] = {";
@@ -711,7 +694,7 @@ void printWeights(int iteration) {
     out << newWeights[ind++] << ", ";
   out << "};\n\n";
 
-  out << "int mobilityBonus[7][2][30] = {\n";
+  out << "int mobilityBonus[6][2][30] = {\n";
   out << "  {},\n";
   out << "  {},\n";
   out << "  {\n";
