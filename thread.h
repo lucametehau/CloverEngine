@@ -1,7 +1,6 @@
 #pragma once
 #include "board.h"
 #include "tt.h"
-#include "pawns.h"
 
 #include <thread>
 #include <mutex>
@@ -50,7 +49,8 @@ class Search {
     void _makeMove(uint16_t move);
 
     void startSearch(Info *info);
-    int quiesce(int alpha, int beta); /// for quiet position check (tuning)
+    int quiesce(int alpha, int beta, bool useTT = true); /// for quiet position check (tuning)
+    int search(int alpha, int beta, int depth, uint16_t excluded = NULLMOVE);
 
     void setTime(Info *tInfo) {
       info = tInfo;
@@ -63,7 +63,6 @@ class Search {
     void lazySMPSearcher();
     void releaseThreads();
     void waitUntilDone();
-    int search(int alpha, int beta, int depth, uint16_t excluded = NULLMOVE);
 
     void printPv();
     void updatePv(int ply, int move);
@@ -83,14 +82,13 @@ class Search {
     int lmrRed[64][64];
     StackEntry Stack[DEPTH + 5];
 
-    pTable PT;
+    Info *info;
+    volatile int flag;
 
   private:
     uint64_t tbHits;
-    uint32_t t0;
-    Info *info;
+    uint64_t t0;
 
-    volatile int flag;
     int checkCount;
 
     uint64_t nmpFail, nmpTries;
@@ -105,6 +103,8 @@ class Search {
     uint64_t nodes;
     bool principalSearcher;
     Board board;
+
+    tt :: HashTable *threadTT;
 
   private:
     std::unique_ptr <std::thread[]> threads;

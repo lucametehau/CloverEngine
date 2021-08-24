@@ -1,6 +1,6 @@
 CC  = g++
 SRC = *.cpp tbprobe.c
-EXE = Clover.2.5-dev1
+EXE = Clover.3.0-dev3
 WFLAGS = -Wall
 RFLAGS = $(WFLAGS) -std=c++17 -O3 -static -static-libgcc -static-libstdc++
 LIBS   = -pthread

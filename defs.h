@@ -128,6 +128,10 @@ inline int piece_type(int piece) {
   return (piece > 6 ? piece - 6 : piece);
 }
 
+inline int netInd(int piece, int sq) {
+  return 64 * (piece - 1) + sq;
+}
+
 inline int hashVal(int value, int ply) {
   if(value >= MATE)
     return value - ply;

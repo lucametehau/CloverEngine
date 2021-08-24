@@ -20,17 +20,9 @@ Search::Search() : threads(nullptr), params(nullptr)
       lmrRed[i][j] = 0.75 + log(i) * log(j) / 2.25;
   }
   for(int i = 1; i < 9; i++) {
-    lmrCnt[0][i] = (3 + i * i) / 2; /// 4 seems to be equal, but I doubt that -> nvm 4 seems to be weaker
+    lmrCnt[0][i] = (3 + i * i) / 2;
     lmrCnt[1][i] = 3 + i * i;
   }
-  /*std::cout << "int lmrCnt[2][9] = {\n";
-  for(int i = 0; i < 2; i++) {
-    std::cout << "  {";
-    for(int j = 0; j < 9; j++)
-      std::cout << lmrCnt[i][j] << ", ";
-    std::cout << "},\n";
-  }
-  std::cout << "};\n";*/
 }
 
 Search::~Search() {
@@ -60,7 +52,7 @@ bool Search :: checkForStop() {
 bool printStats = true; /// default true
 bool PROBE_ROOT = true; /// default true
 
-int Search :: quiesce(int alpha, int beta) {
+int Search :: quiesce(int alpha, int beta, bool useTT) {
   int ply = board.ply;
 
   pvTableLen[ply] = 0;
@@ -99,7 +91,7 @@ int Search :: quiesce(int alpha, int beta) {
 
   if(eval == INF) {
     /// if last move was null, we already know the evaluation
-    Stack[ply].eval = eval = (!Stack[ply - 1].move ? -Stack[ply - 1].eval + 2 * TEMPO : evaluate(board, this));
+    Stack[ply].eval = eval = (!Stack[ply - 1].move ? -Stack[ply - 1].eval + 2 * TEMPO : evaluate(board));
   } else {
     /// ttValue might be a better evaluation
 
@@ -265,7 +257,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
     if(excluded)
       eval = Stack[ply].eval;
     else
-      Stack[ply].eval = eval = (ply >= 1 && !Stack[ply - 1].move ? -Stack[ply - 1].eval + 2 * TEMPO : evaluate(board, this));
+      Stack[ply].eval = eval = (ply >= 1 && !Stack[ply - 1].move ? -Stack[ply - 1].eval + 2 * TEMPO : evaluate(board));
   } else {
     /// ttValue might be a better evaluation
 
@@ -429,7 +421,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
     /// current root move info
 
-    if(rootNode && principalSearcher && getTime() > info->startTime + 2500) {
+    if(rootNode && principalSearcher && printStats && getTime() > info->startTime + 2500) {
       std::cout << "info depth " << depth << " currmove " << toString(move) << " currmovenumber " << played << std::endl;
     }
 
@@ -532,69 +524,69 @@ void Search :: startSearch(Info *_info) {
 
   if(principalSearcher) {
 
-      /// corner cases
+    /// corner cases
 
-      uint16_t moves[256];
+    uint16_t moves[256];
 
-      int nrMoves = genLegal(board, moves);
+    int nrMoves = genLegal(board, moves);
 
-      /// only 1 move legal
+    /// only 1 move legal
 
-      if(PROBE_ROOT && nrMoves == 1) {
-        waitUntilDone();
-        std::cout << "bestmove " << toString(moves[0]) << std::endl;
-        return;
-      }
+    if(PROBE_ROOT && printStats && nrMoves == 1) {
+      waitUntilDone();
+      std::cout << "bestmove " << toString(moves[0]) << std::endl;
+      return;
+    }
 
-      /// position is in tablebase
+    /// position is in tablebase
 
-      if(PROBE_ROOT && count(board.pieces[WHITE] | board.pieces[BLACK]) <= (int)TB_LARGEST) {
-        int move = NULLMOVE;
-        auto probe = tb_probe_root(board.pieces[WHITE], board.pieces[BLACK],
-                                  board.bb[WK] | board.bb[BK],
-                                  board.bb[WQ] | board.bb[BQ],
-                                  board.bb[WR] | board.bb[BR],
-                                  board.bb[WB] | board.bb[BB],
-                                  board.bb[WN] | board.bb[BN],
-                                  board.bb[WP] | board.bb[BP],
-                                  board.halfMoves,
-                                  (board.castleRights & (3 << board.turn)) > 0,
-                                  0,
-                                  board.turn,
-                                  nullptr);
-        if(probe != TB_RESULT_CHECKMATE && probe != TB_RESULT_FAILED && probe != TB_RESULT_STALEMATE) {
-          int to = int(TB_GET_TO(probe)), from = int(TB_GET_FROM(probe)), promote = TB_GET_PROMOTES(probe), ep = TB_GET_EP(probe);
+    if(PROBE_ROOT && count(board.pieces[WHITE] | board.pieces[BLACK]) <= (int)TB_LARGEST) {
+      int move = NULLMOVE;
+      auto probe = tb_probe_root(board.pieces[WHITE], board.pieces[BLACK],
+                                board.bb[WK] | board.bb[BK],
+                                board.bb[WQ] | board.bb[BQ],
+                                board.bb[WR] | board.bb[BR],
+                                board.bb[WB] | board.bb[BB],
+                                board.bb[WN] | board.bb[BN],
+                                board.bb[WP] | board.bb[BP],
+                                board.halfMoves,
+                                (board.castleRights & (3 << board.turn)) > 0,
+                                0,
+                                board.turn,
+                                nullptr);
+      if(probe != TB_RESULT_CHECKMATE && probe != TB_RESULT_FAILED && probe != TB_RESULT_STALEMATE) {
+        int to = int(TB_GET_TO(probe)), from = int(TB_GET_FROM(probe)), promote = TB_GET_PROMOTES(probe), ep = TB_GET_EP(probe);
 
-          if(!promote && !ep) {
-            move = getMove(from, to, 0, NEUT);
-          } else {
-            int prom = 0;
-            switch(promote) {
-            case TB_PROMOTES_KNIGHT:
-              prom = KNIGHT;
-              break;
-            case TB_PROMOTES_BISHOP:
-              prom = BISHOP;
-              break;
-            case TB_PROMOTES_ROOK:
-              prom = ROOK;
-              break;
-            case TB_PROMOTES_QUEEN:
-              prom = QUEEN;
-              break;
-            }
-            move = getMove(from, to, prom - KNIGHT, PROMOTION);
+        if(!promote && !ep) {
+          move = getMove(from, to, 0, NEUT);
+        } else {
+          int prom = 0;
+          switch(promote) {
+          case TB_PROMOTES_KNIGHT:
+            prom = KNIGHT;
+            break;
+          case TB_PROMOTES_BISHOP:
+            prom = BISHOP;
+            break;
+          case TB_PROMOTES_ROOK:
+            prom = ROOK;
+            break;
+          case TB_PROMOTES_QUEEN:
+            prom = QUEEN;
+            break;
           }
-        }
-
-        for(auto &mv : moves) {
-          if(mv == move) {
-            waitUntilDone();
-            std::cout << "bestmove " << toString(move) << std::endl;
-            return;
-          }
+          move = getMove(from, to, prom - KNIGHT, PROMOTION);
         }
       }
+
+      for(auto &mv : moves) {
+        if(mv == move && printStats) {
+          waitUntilDone();
+          std::cout << "bestmove " << toString(move) << std::endl;
+          return;
+        }
+      }
+    }
   }
 
   if(threadCount)
@@ -744,13 +736,11 @@ void Search :: clearStack() {
   memset(Stack, 0, sizeof(Stack));
   memset(pvTableLen, 0, sizeof(pvTableLen));
   memset(pvTable, 0, sizeof(pvTable));
-  PT.initpTable();
 
   for(int i = 0; i < threadCount; i++) {
     memset(params[i].Stack, 0, sizeof(params[i].Stack));
     memset(params[i].pvTableLen, 0, sizeof(params[i].pvTableLen));
     memset(params[i].pvTable, 0, sizeof(params[i].pvTable));
-    params[i].PT.initpTable();
   }
 }
 
