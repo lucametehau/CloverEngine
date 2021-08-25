@@ -8,8 +8,9 @@
 #include "tbcore.h"
 #include "init.h"
 #include "perft.h"
+#include "generate.h"
 
-const std::string VERSION = "2.4"; /// 2.0 was "FM"
+const std::string VERSION = "2.4-generation"; /// 2.0 was "FM"
 
 class UCI {
   public:
@@ -42,7 +43,7 @@ void UCI :: Uci_Loop() {
 
     std::cout << "Clover " << VERSION << " by Luca Metehau" << std::endl;
 
-    TT = new tt :: HashTable();
+    //TT = new tt :: HashTable();
 
     Info info[1];
 
@@ -215,7 +216,7 @@ void UCI :: Uci_Loop() {
 
               iss >> ttSize;
 
-              TT->initTable(ttSize * MB);
+              //TT->initTable(ttSize * MB);
 
             } else if(name == "Threads") {
               int nrThreads;
@@ -292,6 +293,14 @@ void UCI :: Uci_Loop() {
               histDiv = val;
             }
 
+          } else if(cmd == "generate") {
+
+            int nrThreads, nrFens;
+
+            iss >> nrFens >> nrThreads;
+
+            generateData(nrFens, nrThreads);
+
           } else if(cmd == "tune") {
 
             int nrThreads;
@@ -343,12 +352,12 @@ void UCI :: UciNewGame(uint64_t ttSize) {
   searcher.clearKillers();
   searcher.clearStack();
 
-  TT->resetAge();
-  TT->initTable(ttSize * MB);
+  //TT->resetAge();
+  //TT->initTable(ttSize * MB);
 }
 
 void UCI :: Go(Info *info) {
-  TT->age();
+  //TT->age();
   searcher.clearBoard();
   searcher.startPrincipalSearch(info);
 }
@@ -443,7 +452,7 @@ std::string benchPos[] = {
 void UCI :: Bench() {
   Info info[1];
 
-  TT = new tt :: HashTable();
+  //TT = new tt :: HashTable();
 
   init(info);
 

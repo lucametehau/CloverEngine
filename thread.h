@@ -50,7 +50,8 @@ class Search {
     void _makeMove(uint16_t move);
 
     void startSearch(Info *info);
-    int quiesce(int alpha, int beta); /// for quiet position check (tuning)
+    int quiesce(int alpha, int beta, bool useTT = true); /// for quiet position check (tuning)
+    int search(int alpha, int beta, int depth, uint16_t excluded = NULLMOVE);
 
     void setTime(Info *tInfo) {
       info = tInfo;
@@ -63,7 +64,6 @@ class Search {
     void lazySMPSearcher();
     void releaseThreads();
     void waitUntilDone();
-    int search(int alpha, int beta, int depth, uint16_t excluded = NULLMOVE);
 
     void printPv();
     void updatePv(int ply, int move);
@@ -84,9 +84,11 @@ class Search {
 
     pTable PT;
 
+    tt :: HashTable *TT;
+
   private:
     uint64_t tbHits;
-    uint32_t t0;
+    uint64_t t0;
     Info *info;
 
     volatile int flag;

@@ -60,7 +60,7 @@ bool Search :: checkForStop() {
 bool printStats = true; /// default true
 bool PROBE_ROOT = true; /// default true
 
-int Search :: quiesce(int alpha, int beta) {
+int Search :: quiesce(int alpha, int beta, bool useTT) {
   int ply = board.ply;
 
   pvTableLen[ply] = 0;
@@ -88,7 +88,7 @@ int Search :: quiesce(int alpha, int beta) {
 
   /// probe transposition table
 
-  if(TT->probe(key, entry)) {
+  if(useTT && TT->probe(key, entry)) {
     eval = entry.info.eval;
     ttValue = score = entry.value(ply);
     bound = entry.bound();
@@ -105,8 +105,10 @@ int Search :: quiesce(int alpha, int beta) {
 
     Stack[ply].eval = eval;
 
-    if(bound == EXACT || (bound == LOWER && ttValue > eval) || (bound == UPPER && ttValue < eval))
-      eval = ttValue;
+    if(useTT) {
+      if(bound == EXACT || (bound == LOWER && ttValue > eval) || (bound == UPPER && ttValue < eval))
+        eval = ttValue;
+    }
   }
 
   /// stand-pat
@@ -152,8 +154,10 @@ int Search :: quiesce(int alpha, int beta) {
 
   /// store info in transposition table (seems to work)
 
-  bound = (best >= beta ? LOWER : (best > alphaOrig ? EXACT : UPPER));
-  TT->save(key, best, 0, ply, bound, bestMove, Stack[ply].eval);
+  if(useTT) {
+    bound = (best >= beta ? LOWER : (best > alphaOrig ? EXACT : UPPER));
+    TT->save(key, best, 0, ply, bound, bestMove, Stack[ply].eval);
+  }
 
   return best;
 }
