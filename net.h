@@ -19,16 +19,6 @@ namespace tools {
   std::mt19937_64 gen(time(0));
   std::uniform_real_distribution <double> rng(0, 1);
   std::uniform_int_distribution <int> bin(0, 1);
-
-  std::vector <double> createRandomArray(int length) {
-    std::vector <double> v;
-    double k = sqrtf(2.0 / length);
-
-    for(int i = 0; i < length; i++)
-      v.push_back(rng(gen) * k);
-
-    return v;
-  }
 }
 
 struct LayerInfo {
@@ -52,15 +42,14 @@ public:
 
     int numNeurons = _info.size;
 
-    bias = tools::createRandomArray(numNeurons);
+    bias.resize(numNeurons);
 
     output.resize(numNeurons);
 
-    weights.resize(numNeurons);
-
     if(prevNumNeurons) {
+      weights.resize(prevNumNeurons);
       for(int i = 0; i < numNeurons; i++) {
-        weights[i] = tools::createRandomArray(prevNumNeurons);
+        weights[i].resize(prevNumNeurons);
       }
     }
   }
@@ -85,7 +74,7 @@ public:
       layers.push_back(Layer(topology[i], (i > 0 ? topology[i - 1].size : 0)));
     }
 
-    load("Clover_20mil_d8_e64.nn");
+    load("Clover_40mil_d8_e92.nn");
   }
 
   Network(std::vector <LayerInfo> &topology) {
@@ -101,7 +90,7 @@ public:
       sum = layers[1].bias[n];
 
       for(auto &prevN : input.ind) {
-        sum += layers[1].weights[n][prevN];
+        sum += layers[1].weights[prevN][n];
       }
 
       layers[1].output[n] = sum;
@@ -112,13 +101,13 @@ public:
 
   void removeInput(int ind) {
     for(int n = 0; n < layers[1].info.size; n++) {
-      layers[1].output[n] -= layers[1].weights[n][ind];
+      layers[1].output[n] -= layers[1].weights[ind][n];
     }
   }
 
   void addInput(int ind) {
     for(int n = 0; n < layers[1].info.size; n++) {
-      layers[1].output[n] += layers[1].weights[n][ind];
+      layers[1].output[n] += layers[1].weights[ind][n];
     }
   }
 
@@ -126,7 +115,7 @@ public:
     double sum = layers.back().bias[0];
 
     for(int n = 0; n < layers[1].info.size; n++)
-      sum += std::max(0.0, layers[1].output[n]) * layers.back().weights[0][n];
+      sum += std::max(0.0, layers[1].output[n]) * layers.back().weights[n][0];
 
     return sum;
   }
@@ -176,8 +165,8 @@ public:
       temp = read(sz, in);
       temp = read(sz, in);
 
-      for(int j = 0; j < sz && i; j++) {
-        layers[i].weights[j] = read(layers[i - 1].info.size, in);
+      for(int j = 0; i && j < layers[i - 1].info.size; j++) {
+        layers[i].weights[j] = read(layers[i].info.size, in);
       }
     }
   }
