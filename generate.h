@@ -12,38 +12,39 @@ struct FenData {
 
 void generateFens(int id, int nrFens, std::string path) {
   std::ofstream out (path);
+  std::mt19937_64 gn(time(0));
+  std::uniform_int_distribution <uint32_t> rnd;
+
   Info info[1];
-  Board board;
   int gameInd = 1, totalFens = 0;
   double startTime = getTime();
 
   Search *searcher = new Search();
 
-  board.setFen(START_POS_FEN);
-
   info->timeset = false;
-  info->depth = 8;
-  info->startTime = 0;
+  info->depth = 9;
+  info->startTime = getTime();
   searcher->setTime(info);
 
   std::mutex M;
 
   searcher->TT = new tt :: HashTable();
+  searcher->principalSearcher = true;
 
   while(totalFens < nrFens) {
     FenData data;
     std::vector <FenData> fens;
     double result = 0;
     int ply = 0;
+    //int resignCnt = 0, drawCnt = 0;
 
-    board.setFen(START_POS_FEN);
     searcher->_setFen(START_POS_FEN);
 
     searcher->clearHistory();
     searcher->clearKillers();
     searcher->clearStack();
 
-    searcher->TT->initTable(128 * MB);
+    searcher->TT->initTable(32 * MB);
     searcher->TT->resetAge();
 
     while(true) {
@@ -52,18 +53,18 @@ void generateFens(int id, int nrFens, std::string path) {
 
       uint16_t moves[256];
 
-      int nrMoves = genLegal(board, moves);
+      int nrMoves = genLegal(searcher->board, moves);
 
       /// game over checking
 
-      if(isRepetition(board, ply) || board.halfMoves >= 100 || board.isMaterialDraw()) {
+      if(isRepetition(searcher->board, ply) || searcher->board.halfMoves >= 100 || searcher->board.isMaterialDraw()) {
         result = 0.5;
         break;
       }
 
       if(!nrMoves) {
-        if(inCheck(board)) {
-          result = (board.turn == WHITE ? 0.0 : 1.0);
+        if(inCheck(searcher->board)) {
+          result = (searcher->board.turn == WHITE ? 0.0 : 1.0);
         } else {
           result = 0.5;
         }
@@ -72,40 +73,33 @@ void generateFens(int id, int nrFens, std::string path) {
       }
 
       if(ply < 8) { /// simulating a book ?
-        move = moves[rng(gen) % nrMoves];
-        makeMove(board, move);
+        move = moves[rnd(gn) % nrMoves];
         searcher->_makeMove(move);
       } else {
         searcher->TT->age();
         searcher->clearBoard();
-        board.clear();
 
-        score = searcher->search(-INF, INF, 8);
-
-        tt::Entry entry = {};
-
-        move = searcher->pvTable[0][0];
+        //searcher->board.print();
+        std::pair <int, uint16_t> res = searcher->startSearch(info);
+        score = res.first, move = res.second;
 
         if(abs(score) <= 1500) {
-          data.fen = board.fen();
+          data.fen = searcher->board.fen();
           data.score = score;
 
-          //board.print();
-          //std::cout << evaluate(board) << " " << searcher->quiesce(-INF, INF, false) << "\n";
+          searcher->flag = 0;
 
-          if(!inCheck(board) && searcher->quiesce(-INF, INF, false) == evaluate(board)) /// relatively quiet position
+          if(!inCheck(searcher->board) && searcher->quiesce(-INF, INF, false) == evaluate(searcher->board)) /// relatively quiet position
             fens.push_back(data);
+        } else {
+          break;
         }
 
-        makeMove(board, move);
         searcher->_makeMove(move);
 
       }
 
       ply++;
-
-      //board.print();
-      //std::cout << toString(move) << " " << ply << "\n";
     }
 
     for(auto &fen : fens) {
@@ -124,76 +118,13 @@ void generateFens(int id, int nrFens, std::string path) {
   }
 }
 
-void filterData(std::string path) {
-  freopen (path.c_str(), "r", stdin);
-  std::ofstream out ("temp.txt");
-  Board board;
-  Search *searcher = new Search();
-  char fen[105], c, stm, a[15];
-  double gameRes;
-  int eval;
-  int total = 0, nrFens = 0;
-
-  Info info[1];
-  info->timeset = false;
-  info->depth = 8;
-  info->startTime = 0;
-  searcher->setTime(info);
-
-
-  searcher->_setFen(START_POS_FEN);
-
-  searcher->clearHistory();
-  searcher->clearKillers();
-  searcher->clearStack();
-
-  searcher->TT = new tt :: HashTable();
-  searcher->TT->initTable(128 * MB);
-  searcher->TT->resetAge();
-
-  while(true) {
-    if(feof(stdin)) {
-      std::cout << total << " fens out of " << nrFens << "\n";
-      break;
-    }
-
-    nrFens++;
-    scanf("%s", fen);
-
-    scanf("%c", &c);
-    scanf("%c", &stm);
-
-    scanf("%s", a); scanf("%s", a); scanf("%s", a); scanf("%s", a);
-
-    scanf("%c", &c);
-    scanf("%c", &c);
-    scanf("%lf", &gameRes);
-    scanf("%c", &c);
-    scanf("%d", &eval);
-
-    std::cout << "! 2 " << fen << " " << total << "\n";
-
-    std::string str(fen);
-
-    std::cout << str << " XD\n";
-    std::cout << str << " XD\n";
-
-    searcher->clearBoard();
-    searcher->_setFen(str);
-    std::cout << str << " XD\n";
-
-    if(!inCheck(searcher->board) && searcher->quiesce(-INF, INF) == evaluate(searcher->board))
-      out << searcher->board.fen() << " " << gameRes << " " << eval << "\n", total++;
-  }
-}
-
 void generateData(int nrFens, int nrThreads) {
   std::string path[10]; /// don't think I will use more than 8 threads
 
   srand(time(0));
 
   for(int i = 0; i < nrThreads; i++) {
-    path[i] = "CloverData2.";
+    path[i] = "CloverData3.";
     path[i] += char(i + '0');
     path[i] += ".txt";
     std::cout << path[i] << "\n";

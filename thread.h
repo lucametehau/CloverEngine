@@ -49,7 +49,7 @@ class Search {
     void _setFen(std::string fen);
     void _makeMove(uint16_t move);
 
-    void startSearch(Info *info);
+    std::pair <int, uint16_t> startSearch(Info *info);
     int quiesce(int alpha, int beta, bool useTT = true); /// for quiet position check (tuning)
     int search(int alpha, int beta, int depth, uint16_t excluded = NULLMOVE);
 
@@ -86,12 +86,12 @@ class Search {
 
     tt :: HashTable *TT;
 
+    volatile int flag;
+
   private:
     uint64_t tbHits;
     uint64_t t0;
     Info *info;
-
-    volatile int flag;
     int checkCount;
 
     int threadCount;

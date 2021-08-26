@@ -57,7 +57,7 @@ bool Search :: checkForStop() {
   return (flag & TERMINATED_SEARCH);
 }
 
-bool printStats = true; /// default true
+bool printStats = false; /// default true
 bool PROBE_ROOT = true; /// default true
 
 int Search :: quiesce(int alpha, int beta, bool useTT) {
@@ -429,7 +429,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
     /// current root move info
 
-    if(rootNode && principalSearcher && getTime() > info->startTime + 2500) {
+    if(rootNode && principalSearcher && printStats && getTime() > info->startTime + 2500) {
       std::cout << "info depth " << depth << " currmove " << toString(move) << " currmovenumber " << played << std::endl;
     }
 
@@ -518,7 +518,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
   return best;
 }
 
-void Search :: startSearch(Info *_info) {
+std::pair <int, uint16_t> Search :: startSearch(Info *_info) {
   int alpha, beta, score = 0;
   int bestMove = NULLMOVE;
 
@@ -530,7 +530,7 @@ void Search :: startSearch(Info *_info) {
   memset(pvTable, 0, sizeof(pvTable));
   info = _info;
 
-  if(principalSearcher) {
+  if(principalSearcher && printStats) {
 
       /// corner cases
 
@@ -543,7 +543,7 @@ void Search :: startSearch(Info *_info) {
       if(PROBE_ROOT && nrMoves == 1) {
         waitUntilDone();
         std::cout << "bestmove " << toString(moves[0]) << std::endl;
-        return;
+        return {0, moves[0]};
       }
 
       /// position is in tablebase
@@ -591,7 +591,7 @@ void Search :: startSearch(Info *_info) {
           if(mv == move) {
             waitUntilDone();
             std::cout << "bestmove " << toString(move) << std::endl;
-            return;
+            return {0, move};
           }
         }
       }
@@ -716,7 +716,9 @@ void Search :: startSearch(Info *_info) {
   if(principalSearcher && printStats)
     std::cout << "bestmove " << toString(bestMove) << std::endl;
 
-  //TT->age();
+  //std::cout << score << " " << bestMove << "\n";
+
+  return {score, bestMove};
 }
 
 void Search :: clearHistory() {
