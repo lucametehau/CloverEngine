@@ -12,7 +12,7 @@ struct FenData {
 
 void generateFens(int id, int nrFens, std::string path) {
   std::ofstream out (path);
-  std::mt19937_64 gn(time(0));
+  std::mt19937_64 gn(time(0) * id);
   std::uniform_int_distribution <uint32_t> rnd;
 
   Info info[1];
@@ -92,6 +92,11 @@ void generateFens(int id, int nrFens, std::string path) {
           if(!inCheck(searcher->board) && searcher->quiesce(-INF, INF, false) == evaluate(searcher->board)) /// relatively quiet position
             fens.push_back(data);
         } else {
+
+          score *= (searcher->board.turn == WHITE ? 1 : -1);
+
+          result = (score < 0 ? 0.0 : 1.0);
+
           break;
         }
 
