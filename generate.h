@@ -57,7 +57,7 @@ void generateFens(int id, int nrFens, std::string path) {
 
       /// game over checking
 
-      if(isRepetition(searcher->board, ply) || searcher->board.halfMoves >= 100 || searcher->board.isMaterialDraw()) {
+      if(isRepetition(searcher->board, 0) || searcher->board.halfMoves >= 100 || searcher->board.isMaterialDraw()) {
         result = 0.5;
         break;
       }
