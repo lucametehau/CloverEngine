@@ -12,7 +12,7 @@ struct FenData {
 
 void generateFens(int id, int nrFens, std::string path) {
   std::ofstream out (path);
-  std::mt19937_64 gn(time(0) * id);
+  std::mt19937_64 gn(getTime() * id + 69);
   std::uniform_int_distribution <uint32_t> rnd;
 
   Info info[1];
@@ -129,7 +129,7 @@ void generateData(int nrFens, int nrThreads) {
   srand(time(0));
 
   for(int i = 0; i < nrThreads; i++) {
-    path[i] = "CloverData3.";
+    path[i] = "CloverData4.";
     path[i] += char(i + '0');
     path[i] += ".txt";
     std::cout << path[i] << "\n";
