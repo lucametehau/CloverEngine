@@ -12,7 +12,7 @@ struct FenData {
 
 void generateFens(int id, int nrFens, std::string path) {
   std::ofstream out (path);
-  std::mt19937_64 gn(getTime() * id + 69);
+  std::mt19937_64 gn(getTime() * id + 29572LL);
   std::uniform_int_distribution <uint32_t> rnd;
 
   Info info[1];
