@@ -385,7 +385,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
           skip = 1;
       }
 
-      /// see pruning (to do: tune coefficients -> tuned with ctt, but the tuned ones are worse)
+      /// see pruning
 
       if(depth <= 8 && !isCheck) {
         if(isQuiet && !see(board, move, -seeCoefQuiet * depth))
@@ -397,7 +397,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
     bool ex = 0;
 
-    /// singular extension (we look if the tt move is better than the rest)
+    /// singular extension (look if the tt move is better than the rest)
 
     if(!rootNode && !excluded && move == hashMove && abs(ttValue) < MATE && depth >= 8 && entry.depth() >= depth - 3 && (bound & LOWER)) { /// had best instead of ttValue lol
       int rBeta = ttValue - depth;

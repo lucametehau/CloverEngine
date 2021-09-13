@@ -15,12 +15,6 @@ const int NO_ACTIV   = 0;
 const int SIGMOID    = 1;
 const int RELU       = 2;
 
-namespace tools {
-  std::mt19937_64 gen(time(0));
-  std::uniform_real_distribution <double> rng(0, 1);
-  std::uniform_int_distribution <int> bin(0, 1);
-}
-
 struct LayerInfo {
   int size;
   int activationType;
@@ -28,11 +22,6 @@ struct LayerInfo {
 
 struct NetInput {
   std::vector <short> ind;
-};
-
-struct FenOutput {
-  double result;
-  double eval;
 };
 
 class Layer {
@@ -74,7 +63,7 @@ public:
       layers.push_back(Layer(topology[i], (i > 0 ? topology[i - 1].size : 0)));
     }
 
-    load("Clover_40mil_d8_e92.nn");
+    load("Clover_100mil_d9_e121_h256_shuffled.nn");
   }
 
   Network(std::vector <LayerInfo> &topology) {
@@ -161,12 +150,14 @@ public:
     for(int i = 0; i < (int)layers.size(); i++) {
       int sz = layers[i].info.size;
       layers[i].bias = read(sz, in);
+      temp = read(sz, in);
       layers[i].output = read(sz, in);
       temp = read(sz, in);
       temp = read(sz, in);
 
       for(int j = 0; i && j < layers[i - 1].info.size; j++) {
         layers[i].weights[j] = read(layers[i].info.size, in);
+        temp = read(layers[i].info.size, in);
       }
     }
   }
