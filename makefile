@@ -11,6 +11,11 @@ endif
 
 WFLAGS = -Wall
 RFLAGS = $(WFLAGS) -std=c++17 -O3
+
+ifeq ($(EXT), .exe)
+	RFLAGS += -static -static-libgcc -static-libstdc++
+endif
+
 LIBS   = -pthread
 
 
@@ -24,13 +29,6 @@ ob:
 native:
 	$(CC) $(SRC) $(RFLAGS) $(LIBS) $(NATIVEFLAGS) -o $(EXE)-native$(EXT)
 run:
-	$(CC) $(SRC) $(RFLAGS) $(LIBS) -o $(EXE)$(EXT)
-	$(CC) $(SRC) $(RFLAGS) $(LIBS) $(POPCNTFLAGS) -o $(EXE)-popcnt$(EXT)
-	$(CC) $(SRC) $(RFLAGS) $(LIBS) $(BMI2FLAGS) -o $(EXE)-bmi2$(EXT)
-	$(CC) $(SRC) $(RFLAGS) $(LIBS) $(POPCNTFLAGS) $(AVX2FLAGS) -o $(EXE)-avx2$(EXT)
-	$(CC) $(SRC) $(RFLAGS) $(LIBS) $(NATIVEFLAGS) -o $(EXE)-native$(EXT)
-release:
-	RFLAGS += -static -static-libgcc -static-libstdc++
 	$(CC) $(SRC) $(RFLAGS) $(LIBS) -o $(EXE)$(EXT)
 	$(CC) $(SRC) $(RFLAGS) $(LIBS) $(POPCNTFLAGS) -o $(EXE)-popcnt$(EXT)
 	$(CC) $(SRC) $(RFLAGS) $(LIBS) $(BMI2FLAGS) -o $(EXE)-bmi2$(EXT)
