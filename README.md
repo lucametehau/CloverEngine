@@ -16,27 +16,14 @@ Clover is UCI compatible, but doesn't have a GUI, so, in order to play with it, 
 
 # Compiling locally
 
-If you want to compile locally, I recommend you to use:
-
-```g++ *.cpp *.c -march=native -Wall -O3 -o output.exe -std=c++17```
-
-without ```-flto```, because it crashes for some strange reason.
-
-***I also recommend you compile, on the master code or, if you want to compile a release, use the zip I provide (not the Source Code one), because there is a chance that they differ (releasing before updating master code, editing release etc).***
-
-***If you are compiling on Linux, you need to remove the static flags from the makefile (apparently, static + pthread on linux crashes).***
-
-In the future, I will add a makefile too.
-
-Edit: I added a makefile. To compile just do this:
-
 ``` 
 git clone https://github.com/lucametehau/CloverEngine.git
 make run 
 ```
-This will create 5 executables and you can choose which one fits your PC the best. TO DO: create exe with host PC specs (done, this is the native one)
+This will create 5 executables and you can choose which one fits your PC the best.
+For the best performance, you should try ``make native``, because it uses all compiler flags supported by your PC.
 
-Example:
+To run it's pretty easy:
 ```
 ./Clover.2.2-bmi2.exe
 ```
@@ -53,7 +40,7 @@ These are the versions sorted by speed, the ones at the top being the fastest:
 
 # UCI
 
-Setting thread count, Syzygy Path and Hash size is now available.
+Setting thread count, Syzygy Path and Hash size is available.
 
 Additional UCI commands:
 

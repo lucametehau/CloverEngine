@@ -7,8 +7,6 @@
 #include <cmath>
 #include <random>
 
-const double Momentum = 0.3;
-
 const double SIGMOID_SCALE = 0.0075;
 
 const int NO_ACTIV   = 0;
@@ -24,6 +22,24 @@ struct NetInput {
   std::vector <short> ind;
 };
 
+class Param {
+public:
+  double value, grad;
+  double m1, m2; /// momentums
+
+  Param(double _value, double _m1, double _m2) {
+    value = _value;
+    m1 = _m1;
+    m2 = _m2;
+    grad = 0;
+  }
+
+  Param() {
+    value = grad = 0;
+    m1 = m2 = 0;
+  }
+};
+
 class Layer {
 public:
   Layer(LayerInfo _info, int prevNumNeurons) {
@@ -37,8 +53,8 @@ public:
 
     if(prevNumNeurons) {
       weights.resize(prevNumNeurons);
-      for(int i = 0; i < numNeurons; i++) {
-        weights[i].resize(prevNumNeurons);
+      for(int i = 0; i < prevNumNeurons; i++) {
+        weights[i].resize(numNeurons);
       }
     }
   }
@@ -63,7 +79,7 @@ public:
       layers.push_back(Layer(topology[i], (i > 0 ? topology[i - 1].size : 0)));
     }
 
-    load("Clover_100mil_d9_e121_h256_shuffled.nn");
+    load("Clover_100mil_d9_e7_test.nn");
   }
 
   Network(std::vector <LayerInfo> &topology) {
@@ -125,41 +141,61 @@ public:
     assert(abs(ans2 - ans) < 1e-9);
   }
 
-  std::vector <double> read(int lg, std::ifstream &in) {
-    std::vector <double> v;
-    double x;
-    for(int i = 0; i < lg; i++)
-      in >> x, v.push_back(x);
-    return v;
-  }
+  void save(std::string path) {
+    FILE *f = fopen(path.c_str(), "wb");
+    int cnt = layers.size(), x;
 
-  void load(std::string path) {
-    std::ifstream in (path);
-    int cnt = layers.size(), cnt2 = 0;
-
-    in >> cnt2;
-
-    if(cnt2 != cnt) {
-      std::cout << "Can't load network!\n";
-      std::cout << "Expected " << cnt << ", got " << cnt2 << "\n";
-      assert(0);
-    }
-
-    std::vector <double> temp;
+    x = fwrite(&cnt, sizeof(int), 1, f);
+    assert(x == 1);
 
     for(int i = 0; i < (int)layers.size(); i++) {
       int sz = layers[i].info.size;
-      layers[i].bias = read(sz, in);
-      temp = read(sz, in);
-      layers[i].output = read(sz, in);
-      temp = read(sz, in);
-      temp = read(sz, in);
+
+      x = fwrite(&layers[i].bias[0], sizeof(Param), sz, f);
+
+      assert(x == sz);
 
       for(int j = 0; i && j < layers[i - 1].info.size; j++) {
-        layers[i].weights[j] = read(layers[i].info.size, in);
-        temp = read(layers[i].info.size, in);
+        x = fwrite(&layers[i].weights[j][0], sizeof(Param), sz, f);
+
+        assert(x == sz);
       }
     }
+
+    fclose(f);
+  }
+
+  void load(std::string path) {
+    FILE *f = fopen(path.c_str(), "rb");
+    int cnt = layers.size(), x;
+    std::vector <Param> v;
+
+    x = fread(&cnt, sizeof(int), 1, f);
+    assert(x == 1);
+    assert(cnt == (int)layers.size());
+
+    for(int i = 0; i < (int)layers.size(); i++) {
+      int sz = layers[i].info.size;
+
+      v.resize(sz);
+      x = fread(&v[0], sizeof(Param), sz, f);
+
+      for(int j = 0; j < sz; j++)
+        layers[i].bias[j] = v[j].value;
+
+      assert(x == sz);
+
+      for(int j = 0; i && j < layers[i - 1].info.size; j++) {
+        x = fread(&v[0], sizeof(Param), sz, f);
+
+        for(int k = 0; k < sz; k++)
+          layers[i].weights[j][k] = v[k].value;
+
+        assert(x == sz);
+      }
+    }
+
+    fclose(f);
   }
 
   std::vector <Layer> layers;
