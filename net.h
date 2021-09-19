@@ -1,4 +1,5 @@
 #pragma once
+#include "incbin.h"
 #include <fstream>
 #include <iomanip>
 #include <vector>
@@ -6,6 +7,8 @@
 #include <algorithm>
 #include <cmath>
 #include <random>
+
+INCBIN(Net, EVALFILE);
 
 const double SIGMOID_SCALE = 0.0075;
 
@@ -22,20 +25,19 @@ struct NetInput {
   std::vector <short> ind;
 };
 
-class Param {
+class Gradient {
 public:
-  double value, grad;
+  double grad;
   double m1, m2; /// momentums
 
-  Param(double _value, double _m1, double _m2) {
-    value = _value;
+  Gradient(double _m1, double _m2) {
     m1 = _m1;
     m2 = _m2;
     grad = 0;
   }
 
-  Param() {
-    value = grad = 0;
+  Gradient() {
+    grad = 0;
     m1 = m2 = 0;
   }
 };
@@ -79,7 +81,7 @@ public:
       layers.push_back(Layer(topology[i], (i > 0 ? topology[i - 1].size : 0)));
     }
 
-    load("Clover_100mil_d9_e7_test.nn");
+    load("chess2.nn");
   }
 
   Network(std::vector <LayerInfo> &topology) {
@@ -141,61 +143,46 @@ public:
     assert(abs(ans2 - ans) < 1e-9);
   }
 
-  void save(std::string path) {
-    FILE *f = fopen(path.c_str(), "wb");
-    int cnt = layers.size(), x;
-
-    x = fwrite(&cnt, sizeof(int), 1, f);
-    assert(x == 1);
-
-    for(int i = 0; i < (int)layers.size(); i++) {
-      int sz = layers[i].info.size;
-
-      x = fwrite(&layers[i].bias[0], sizeof(Param), sz, f);
-
-      assert(x == sz);
-
-      for(int j = 0; i && j < layers[i - 1].info.size; j++) {
-        x = fwrite(&layers[i].weights[j][0], sizeof(Param), sz, f);
-
-        assert(x == sz);
-      }
-    }
-
-    fclose(f);
-  }
-
   void load(std::string path) {
-    FILE *f = fopen(path.c_str(), "rb");
-    int cnt = layers.size(), x;
-    std::vector <Param> v;
+    int *intData;
+    double *doubleData;
+    Gradient *gradData;
+    std::vector <Gradient> v;
 
-    x = fread(&cnt, sizeof(int), 1, f);
-    assert(x == 1);
-    assert(cnt == (int)layers.size());
+    int x;
+    intData = (int*)gNetData;
+
+    x = *(intData++);
+    assert(x == (int)layers.size());
+
+    gradData = (Gradient*)intData;
 
     for(int i = 0; i < (int)layers.size(); i++) {
       int sz = layers[i].info.size;
-
       v.resize(sz);
-      x = fread(&v[0], sizeof(Param), sz, f);
 
-      for(int j = 0; j < sz; j++)
-        layers[i].bias[j] = v[j].value;
+      doubleData = (double*)gradData;
+      for(int j = 0; j < sz; j++) {
+        layers[i].bias[j] = *(doubleData++);
+      }
 
-      assert(x == sz);
+      gradData = (Gradient*)doubleData;
+      for(int j = 0; j < sz; j++) {
+        v[j] = *(gradData++);
+      }
 
       for(int j = 0; i && j < layers[i - 1].info.size; j++) {
-        x = fread(&v[0], sizeof(Param), sz, f);
+        doubleData = (double*)gradData;
+        for(int k = 0; k < sz; k++) {
+          layers[i].weights[j][k] = *(doubleData++);
+        }
 
-        for(int k = 0; k < sz; k++)
-          layers[i].weights[j][k] = v[k].value;
-
-        assert(x == sz);
+        gradData = (Gradient*)doubleData;
+        for(int k = 0; k < sz; k++) {
+          v[k] = *(gradData++);
+        }
       }
     }
-
-    fclose(f);
   }
 
   std::vector <Layer> layers;

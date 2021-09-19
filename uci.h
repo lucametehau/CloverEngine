@@ -9,7 +9,7 @@
 #include "perft.h"
 #include "generate.h"
 
-const std::string VERSION = "3.0-dev30"; /// 2.0 was "FM"
+const std::string VERSION = "3.0-dev31"; /// 2.0 was "FM"
 
 class UCI {
   public:
@@ -46,9 +46,6 @@ void UCI :: Uci_Loop() {
     Info info[1];
 
     init(info);
-
-    //pvMove.clear();
-    //table.clear();
 
     //searcher.setThreadCount(1); /// 2 threads for debugging data races
     UciNewGame(ttSize);
