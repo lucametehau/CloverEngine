@@ -1,8 +1,8 @@
 CC  = g++
 SRC = *.cpp tbprobe.c
 
-EXE = Clover.3.0-dev35
-EVALFILE = Clover_100mil_d9_v4.nn
+EXE = Clover.3.0-dev36
+EVALFILE = chess4.nn
 
 ifeq ($(OS), Windows_NT)
 	EXT = .exe
