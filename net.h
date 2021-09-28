@@ -81,7 +81,7 @@ public:
       layers.push_back(Layer(topology[i], (i > 0 ? topology[i - 1].size : 0)));
     }
 
-    load("chess2.nn");
+    load("Clover_120mil_d9_e171.nn");
   }
 
   Network(std::vector <LayerInfo> &topology) {
