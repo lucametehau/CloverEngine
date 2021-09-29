@@ -510,7 +510,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
   return best;
 }
 
-void Search :: startSearch(Info *_info) {
+std::pair <int, uint16_t> Search :: startSearch(Info *_info) {
   int alpha, beta, score = 0;
   int bestMove = NULLMOVE;
 
@@ -535,7 +535,7 @@ void Search :: startSearch(Info *_info) {
     if(PROBE_ROOT && printStats && nrMoves == 1) {
       waitUntilDone();
       std::cout << "bestmove " << toString(moves[0]) << std::endl;
-      return;
+      return {0, moves[0]};
     }
 
     /// position is in tablebase
@@ -583,7 +583,7 @@ void Search :: startSearch(Info *_info) {
         if(mv == move && printStats) {
           waitUntilDone();
           std::cout << "bestmove " << toString(move) << std::endl;
-          return;
+          return {0, move};
         }
       }
     }
@@ -711,6 +711,8 @@ void Search :: startSearch(Info *_info) {
     std::cout << "bestmove " << toString(bestMove) << std::endl;
 
   //TT->age();
+
+  return std::make_pair(score, bestMove);
 }
 
 void Search :: clearHistory() {

@@ -291,10 +291,11 @@ void UCI :: Uci_Loop() {
           } else if(cmd == "generate") {
 
             int nrThreads, nrFens;
+            std::string path;
 
-            iss >> nrFens >> nrThreads;
+            iss >> nrFens >> nrThreads >> path;
 
-            generateData(nrFens, nrThreads);
+            generateData(nrFens, nrThreads, path);
 
           } else if(cmd == "eval") {
 

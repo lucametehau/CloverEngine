@@ -56,17 +56,8 @@ const int MATE = 31000;
 const int TB_WIN_SCORE = 22000;
 const int ABORT = 1000000;
 const int DEPTH = 255;
-const uint64_t CENTER = 103481868288ULL;
 const uint64_t ALL = 18446744073709551615ULL;
-const uint64_t LONG_DIAGONALS =  9314046665258451585ULL;
-const uint64_t DARK_SQUARES = 12273903644374837845ULL;
-const uint64_t LIGHT_SQUARES = 6172840429334713770ULL;
 const std::string START_POS_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-
-bool TUNE = false; /// false by default, automatically set to true when tuning
-const int TUNE_SCALE = 1;
-const int TUNE_TERMS = 2;
-const int TUNE_FLAG = TUNE_SCALE;
 
 int cod[256];
 uint64_t hashKey[13][64], castleKey[2][2], enPasKey[64];

@@ -10,8 +10,6 @@
 
 INCBIN(Net, EVALFILE);
 
-const double SIGMOID_SCALE = 0.0075;
-
 const int NO_ACTIV   = 0;
 const int SIGMOID    = 1;
 const int RELU       = 2;
@@ -81,7 +79,7 @@ public:
       layers.push_back(Layer(topology[i], (i > 0 ? topology[i - 1].size : 0)));
     }
 
-    load("Clover_120mil_d9_e171.nn");
+    load();
   }
 
   Network(std::vector <LayerInfo> &topology) {
@@ -143,7 +141,7 @@ public:
     assert(abs(ans2 - ans) < 1e-9);
   }
 
-  void load(std::string path) {
+  void load() {
     int *intData;
     double *doubleData;
     Gradient *gradData;
