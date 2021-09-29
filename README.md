@@ -63,7 +63,7 @@ tune <nrThreads> <path for positions>
 
 - Bench command
 ```
-bench <path for positions>
+bench
 ```
 
 # Contributing
