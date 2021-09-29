@@ -72,6 +72,7 @@ public:
         score = captureValue[p][cap];
         if(type(move) == PROMOTION)
           score += 100 * (promoted(move) + KNIGHT);
+
         scores[i] = score;
       }
       stage++;

@@ -1,7 +1,7 @@
 #pragma once
 #include "move.h"
 
-uint64_t perft(Board &board, int depth) {
+uint64_t perft(Board &board, int depth, bool print = 0) {
   uint16_t moves[256];
   //uint16_t quiets[256], noisy[256];
   int nrMoves = genLegal(board, moves);
@@ -21,16 +21,10 @@ uint64_t perft(Board &board, int depth) {
 
   }*/
 
-  if(board.pawnKey != board.pawnHash())
-    std::cout << "bru\n", board.print();
-
   if(depth == 1) {
-    /*if(board.ply == 0) {
-      for(int i = 0; i < nrMoves; i++)
-        cout << toString(moves[i]) << ": 1\n";
-    }*/
     return nrMoves;
   }
+
   uint64_t nodes = 0;
 
   for(int i = 0; i < nrMoves; i++) {
@@ -38,11 +32,10 @@ uint64_t perft(Board &board, int depth) {
 
     makeMove(board, move);
 
-    uint64_t x = perft(board, depth - 1);
-    //std::cout << "depth = " << depth << ", move = " << toString(move) << "\n";
-    /*if(board.ply == 1) {
-      cout << toString(move) << ": " << x << "\n";
-    }*/
+    bool p = print;
+
+    uint64_t x = perft(board, depth - 1, p);
+
     nodes += x;
     undoMove(board, move);
   }

@@ -56,17 +56,8 @@ const int MATE = 31000;
 const int TB_WIN_SCORE = 22000;
 const int ABORT = 1000000;
 const int DEPTH = 255;
-const uint64_t CENTER = 103481868288ULL;
 const uint64_t ALL = 18446744073709551615ULL;
-const uint64_t LONG_DIAGONALS =  9314046665258451585ULL;
-const uint64_t DARK_SQUARES = 12273903644374837845ULL;
-const uint64_t LIGHT_SQUARES = 6172840429334713770ULL;
 const std::string START_POS_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-
-bool TUNE = false; /// false by default, automatically set to true when tuning
-const int TUNE_SCALE = 1;
-const int TUNE_TERMS = 2;
-const int TUNE_FLAG = TUNE_TERMS;
 
 int cod[256];
 uint64_t hashKey[13][64], castleKey[2][2], enPasKey[64];
@@ -93,24 +84,24 @@ int deltaPos[8]; /// how does my position change when moving in direction D
 
 const int castleRightsDelta[2][64] = {
   {
-      15, 15, 15, 15, 15, 15, 15, 15,
-      15, 15, 15, 15, 15, 15, 15, 15,
-      15, 15, 15, 15, 15, 15, 15, 15,
-      15, 15, 15, 15, 15, 15, 15, 15,
-      15, 15, 15, 15, 15, 15, 15, 15,
-      15, 15, 15, 15, 15, 15, 15, 15,
-      15, 15, 15, 15, 15, 15, 15, 15,
-      14, 15, 15, 15, 12, 15, 15, 13,
+    15, 15, 15, 15, 15, 15, 15, 15,
+    15, 15, 15, 15, 15, 15, 15, 15,
+    15, 15, 15, 15, 15, 15, 15, 15,
+    15, 15, 15, 15, 15, 15, 15, 15,
+    15, 15, 15, 15, 15, 15, 15, 15,
+    15, 15, 15, 15, 15, 15, 15, 15,
+    15, 15, 15, 15, 15, 15, 15, 15,
+    14, 15, 15, 15, 12, 15, 15, 13,
   },
   {
-      11, 15, 15, 15,  3, 15, 15,  7,
-      15, 15, 15, 15, 15, 15, 15, 15,
-      15, 15, 15, 15, 15, 15, 15, 15,
-      15, 15, 15, 15, 15, 15, 15, 15,
-      15, 15, 15, 15, 15, 15, 15, 15,
-      15, 15, 15, 15, 15, 15, 15, 15,
-      15, 15, 15, 15, 15, 15, 15, 15,
-      15, 15, 15, 15, 15, 15, 15, 15,
+    11, 15, 15, 15,  3, 15, 15,  7,
+    15, 15, 15, 15, 15, 15, 15, 15,
+    15, 15, 15, 15, 15, 15, 15, 15,
+    15, 15, 15, 15, 15, 15, 15, 15,
+    15, 15, 15, 15, 15, 15, 15, 15,
+    15, 15, 15, 15, 15, 15, 15, 15,
+    15, 15, 15, 15, 15, 15, 15, 15,
+    15, 15, 15, 15, 15, 15, 15, 15,
   }
 };
 
@@ -126,6 +117,10 @@ inline uint64_t lsb(uint64_t nr) {
 
 inline int piece_type(int piece) {
   return (piece > 6 ? piece - 6 : piece);
+}
+
+inline int netInd(int piece, int sq) {
+  return 64 * (piece - 1) + sq;
 }
 
 inline int hashVal(int value, int ply) {

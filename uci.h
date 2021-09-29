@@ -4,12 +4,12 @@
 #include <sstream>
 #include "move.h"
 #include "search.h"
-#include "tune.h"
 #include "tbcore.h"
 #include "init.h"
 #include "perft.h"
+#include "generate.h"
 
-const std::string VERSION = "2.4"; /// 2.0 was "FM"
+const std::string VERSION = "3.0-dev41"; /// 2.0 was "FM"
 
 class UCI {
   public:
@@ -29,7 +29,6 @@ class UCI {
     void Position();
     void SetOption();
     void Eval();
-    void Tune(int nrThreads, std::string path);
     void Perft(int depth);
 
   private:
@@ -47,9 +46,6 @@ void UCI :: Uci_Loop() {
     Info info[1];
 
     init(info);
-
-    //pvMove.clear();
-    //table.clear();
 
     //searcher.setThreadCount(1); /// 2 threads for debugging data races
     UciNewGame(ttSize);
@@ -215,7 +211,7 @@ void UCI :: Uci_Loop() {
 
               iss >> ttSize;
 
-              TT->initTable(ttSize * MB);
+              //TT->initTable(ttSize * MB);
 
             } else if(name == "Threads") {
               int nrThreads;
@@ -292,16 +288,14 @@ void UCI :: Uci_Loop() {
               histDiv = val;
             }
 
-          } else if(cmd == "tune") {
+          } else if(cmd == "generate") {
 
-            int nrThreads;
+            int nrThreads, nrFens;
             std::string path;
 
-            iss >> nrThreads;
+            iss >> nrFens >> nrThreads >> path;
 
-            iss >> path;
-
-            Tune(nrThreads, path);
+            generateData(nrFens, nrThreads, path);
 
           } else if(cmd == "eval") {
 
@@ -359,11 +353,6 @@ void UCI :: Stop() {
 
 void UCI :: Eval() {
   std::cout << evaluate(searcher.board) << std::endl;
-}
-
-void UCI :: Tune(int nrThreads, std::string path) {
-  TUNE = true;
-  tune(nrThreads, path);
 }
 
 void UCI :: IsReady() {
@@ -460,16 +449,9 @@ void UCI :: Bench() {
   uint64_t start = getTime();
   uint64_t totalNodes = 0;
 
-  //std::cout << "std::string benchPos = {\n";
-
   for(auto &fen : benchPos) {
-    //std::cout << fen << "\n";
     searcher._setFen(fen);
 
-    /*std::string s = "  ";
-    s += '"'; s += fen; s += '"'; s += ',';
-    std::cout << s << "\n";*/
-    //searcher.board.print();
     info->timeset = 0;
     info->depth = 11;
     info->startTime = getTime();
