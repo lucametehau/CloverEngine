@@ -288,7 +288,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
   if(!pvNode && !isCheck && !excluded && eval >= beta && eval >= Stack[ply].eval && depth >= 2 && Stack[ply - 1].move &&
      (board.pieces[board.turn] ^ board.bb[getType(PAWN, board.turn)] ^ board.bb[getType(KING, board.turn)]) &&
      (!ttHit || !(bound & UPPER) || ttValue >= beta)) {
-    int R = 4 + depth / 6 + std::min(3, (eval - beta) / 100);
+    int R = 4 + depth / 6 + std::min(3, (eval - beta) / 200);
 
     Stack[ply].move = NULLMOVE;
     Stack[ply].piece = 0;
