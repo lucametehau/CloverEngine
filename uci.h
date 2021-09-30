@@ -211,7 +211,7 @@ void UCI :: Uci_Loop() {
 
               iss >> ttSize;
 
-              //TT->initTable(ttSize * MB);
+              TT->initTable(ttSize * MB);
 
             } else if(name == "Threads") {
               int nrThreads;
