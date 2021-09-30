@@ -10,9 +10,9 @@
 
 INCBIN(Net, EVALFILE);
 
-const int NO_ACTIV   = 0;
-const int SIGMOID    = 1;
-const int RELU       = 2;
+const int NO_ACTIV = 0;
+const int SIGMOID  = 1;
+const int RELU     = 2;
 
 struct LayerInfo {
   int size;
