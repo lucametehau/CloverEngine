@@ -79,6 +79,9 @@ public:
       layers.push_back(Layer(topology[i], (i > 0 ? topology[i - 1].size : 0)));
     }
 
+    histSz = 0;
+    histOutput.resize(1000);
+
     load();
   }
 
@@ -101,44 +104,48 @@ public:
       layers[1].output[n] = sum;
     }
 
+    histOutput[histSz++] = layers[1].output;
+
     return getOutput();
   }
 
   void removeInput(int ind) {
-    for(int n = 0; n < layers[1].info.size; n++) {
+    /*for(int n = 0; n < layers[1].info.size; n++) {
       layers[1].output[n] -= layers[1].weights[ind][n];
-    }
+    }*/
+    updates.push_back(std::make_pair(ind, -1));
   }
 
   void addInput(int ind) {
-    for(int n = 0; n < layers[1].info.size; n++) {
+    /*for(int n = 0; n < layers[1].info.size; n++) {
       layers[1].output[n] += layers[1].weights[ind][n];
+    }*/
+    updates.push_back(std::make_pair(ind, 1));
+  }
+
+  void applyUpdates() {
+    histOutput[histSz] = histOutput[histSz - 1];
+    histSz++;
+
+    for(auto &u : updates) {
+      for(int n = 0; n < layers[1].info.size; n++)
+        histOutput[histSz - 1][n] += u.second * layers[1].weights[u.first][n];
     }
+
+    updates.clear();
+  }
+
+  void revertUpdates() {
+    histSz--;
   }
 
   double getOutput() {
     double sum = layers.back().bias[0];
 
     for(int n = 0; n < layers[1].info.size; n++)
-      sum += std::max(0.0, layers[1].output[n]) * layers.back().weights[n][0];
+      sum += std::max(0.0, histOutput[histSz - 1][n]) * layers.back().weights[n][0];
 
     return sum;
-  }
-
-  void checkRemoval() {
-    NetInput input;
-    input.ind.push_back(1);
-    addInput(1);
-    double ans = calc(input);
-    input.ind.push_back(2);
-    addInput(2);
-    calc(input);
-    removeInput(2);
-    input.ind.pop_back();
-    double ans2 = getOutput(), ans3 = calc(input);
-    std::cout << ans2 << " " << ans << " " << ans3 << "\n";
-
-    assert(abs(ans2 - ans) < 1e-9);
   }
 
   void load() {
@@ -161,7 +168,9 @@ public:
 
       doubleData = (double*)gradData;
       for(int j = 0; j < sz; j++) {
+        //std::cout << *doubleData << " ";
         layers[i].bias[j] = *(doubleData++);
+        //std::cout << layers[i].bias[j] << " " << layers[i].bias[j] / K_MULT << "\n";
       }
 
       gradData = (Gradient*)doubleData;
@@ -183,6 +192,9 @@ public:
     }
   }
 
+  int histSz;
   std::vector <Layer> layers;
+  std::vector <std::vector <double>> histOutput;
+  std::vector <std::pair <int, int8_t>> updates;
 };
 
