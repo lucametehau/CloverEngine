@@ -104,6 +104,8 @@ public:
       layers[1].output[n] = sum;
     }
 
+    histSz = 0;
+
     histOutput[histSz++] = layers[1].output;
 
     return getOutput();

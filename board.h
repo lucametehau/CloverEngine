@@ -101,6 +101,10 @@ public:
 
   void clear() {
     ply = 0;
+
+    NetInput input = toNetInput();
+
+    NN.calc(input);
   }
 
   void print() {
