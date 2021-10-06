@@ -72,7 +72,7 @@ public:
     std::vector <LayerInfo> topology;
 
     topology.push_back({768, NO_ACTIV});
-    topology.push_back({256, RELU});
+    topology.push_back({128, RELU});
     topology.push_back({1, SIGMOID});
 
     for(int i = 0; i < (int)topology.size(); i++) {
