@@ -25,17 +25,14 @@ struct NetInput {
 
 class Gradient {
 public:
-  double grad;
   double m1, m2; /// momentums
 
   Gradient(double _m1, double _m2) {
     m1 = _m1;
     m2 = _m2;
-    grad = 0;
   }
 
   Gradient() {
-    grad = 0;
     m1 = m2 = 0;
   }
 };
