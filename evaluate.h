@@ -9,7 +9,7 @@ const int TEMPO = 20;
 
 int evaluate(Board &board) {
 
-  double eval2 = board.NN.getOutput();
+  //double eval2 = board.NN.getOutput();
 
-  return int(eval2) * (board.turn == WHITE ? 1 : -1) + TEMPO;
+  return int(board.NN.getOutput()) * (board.turn == WHITE ? 1 : -1) + TEMPO;
 }

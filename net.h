@@ -13,6 +13,8 @@ INCBIN(Net, EVALFILE);
 const int NO_ACTIV = 0;
 const int SIGMOID  = 1;
 const int RELU     = 2;
+const int Q_MULT_1 = 32;
+const int Q_MULT_2 = 512;
 
 struct LayerInfo {
   int size;
@@ -23,17 +25,25 @@ struct NetInput {
   std::vector <short> ind;
 };
 
+struct Update {
+  int16_t ind;
+  int8_t coef;
+};
+
 class Gradient {
 public:
+  //double grad;
   double m1, m2; /// momentums
 
   Gradient(double _m1, double _m2) {
     m1 = _m1;
     m2 = _m2;
+    //grad = 0;
   }
 
   Gradient() {
     m1 = m2 = 0;
+    //grad = 0;
   }
 };
 
@@ -69,7 +79,7 @@ public:
     std::vector <LayerInfo> topology;
 
     topology.push_back({768, NO_ACTIV});
-    topology.push_back({512, RELU});
+    topology.push_back({256, RELU});
     topology.push_back({1, SIGMOID});
 
     for(int i = 0; i < (int)topology.size(); i++) {
@@ -78,6 +88,9 @@ public:
 
     histSz = 0;
     histOutput.resize(1000);
+
+    updateSz = 0;
+    updates.resize(5);
 
     load();
   }
@@ -108,30 +121,31 @@ public:
     return getOutput();
   }
 
-  void removeInput(int ind) {
+  void removeInput(int16_t ind) {
     /*for(int n = 0; n < layers[1].info.size; n++) {
       layers[1].output[n] -= layers[1].weights[ind][n];
     }*/
-    updates.push_back(std::make_pair(ind, -1));
+    updates[updateSz++] = {ind, -1};
   }
 
-  void addInput(int ind) {
+  void addInput(int16_t ind) {
     /*for(int n = 0; n < layers[1].info.size; n++) {
       layers[1].output[n] += layers[1].weights[ind][n];
     }*/
-    updates.push_back(std::make_pair(ind, 1));
+    updates[updateSz++] = {ind, 1};
   }
 
   void applyUpdates() {
     histOutput[histSz] = histOutput[histSz - 1];
     histSz++;
 
-    for(auto &u : updates) {
+    for(int i = 0; i < updateSz; i++) {
+      const int c = updates[i].coef;
       for(int n = 0; n < layers[1].info.size; n++)
-        histOutput[histSz - 1][n] += u.second * layers[1].weights[u.first][n];
+        histOutput[histSz - 1][n] += c * layers[1].weights[updates[i].ind][n];
     }
 
-    updates.clear();
+    updateSz = 0;
   }
 
   void revertUpdates() {
@@ -142,7 +156,9 @@ public:
     double sum = layers.back().bias[0];
 
     for(int n = 0; n < layers[1].info.size; n++)
-      sum += std::max(0.0, histOutput[histSz - 1][n]) * layers.back().weights[n][0];
+      sum += std::max<double>(histOutput[histSz - 1][n], 0.0) * layers.back().weights[n][0];
+
+    //std::cout << sum << "\n";
 
     return sum;
   }
@@ -169,7 +185,6 @@ public:
       for(int j = 0; j < sz; j++) {
         //std::cout << *doubleData << " ";
         layers[i].bias[j] = *(doubleData++);
-        //std::cout << layers[i].bias[j] << " " << layers[i].bias[j] / K_MULT << "\n";
       }
 
       gradData = (Gradient*)doubleData;
@@ -183,6 +198,8 @@ public:
           layers[i].weights[j][k] = *(doubleData++);
         }
 
+        //std::cout << "\n";
+
         gradData = (Gradient*)doubleData;
         for(int k = 0; k < sz; k++) {
           v[k] = *(gradData++);
@@ -191,9 +208,9 @@ public:
     }
   }
 
-  int histSz;
+  int histSz, updateSz;
   std::vector <Layer> layers;
   std::vector <std::vector <double>> histOutput;
-  std::vector <std::pair <int, int8_t>> updates;
+  std::vector <Update> updates;
 };
 
