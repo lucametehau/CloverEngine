@@ -25,17 +25,14 @@ struct NetInput {
 
 class Gradient {
 public:
-  double grad;
-  double m1, m2; /// momentums
+  float m1, m2; /// momentums
 
-  Gradient(double _m1, double _m2) {
+  Gradient(float _m1, float _m2) {
     m1 = _m1;
     m2 = _m2;
-    grad = 0;
   }
 
   Gradient() {
-    grad = 0;
     m1 = m2 = 0;
   }
 };
@@ -60,9 +57,9 @@ public:
   }
 
   LayerInfo info;
-  std::vector <double> bias;
-  std::vector <double> output;
-  std::vector <std::vector <double>> weights;
+  std::vector <float> bias;
+  std::vector <float> output;
+  std::vector <std::vector <float>> weights;
 };
 
 class Network {
@@ -72,7 +69,7 @@ public:
     std::vector <LayerInfo> topology;
 
     topology.push_back({768, NO_ACTIV});
-    topology.push_back({256, RELU});
+    topology.push_back({512, RELU});
     topology.push_back({1, SIGMOID});
 
     for(int i = 0; i < (int)topology.size(); i++) {
@@ -88,8 +85,8 @@ public:
     }
   }
 
-  double calc(NetInput &input) { /// feed forward
-    double sum;
+  float calc(NetInput &input) { /// feed forward
+    float sum;
 
     for(int n = 0; n < layers[1].info.size; n++) {
       sum = layers[1].bias[n];
@@ -116,11 +113,11 @@ public:
     }
   }
 
-  double getOutput() {
-    double sum = layers.back().bias[0];
+  float getOutput() {
+    float sum = layers.back().bias[0];
 
     for(int n = 0; n < layers[1].info.size; n++)
-      sum += std::max(0.0, layers[1].output[n]) * layers.back().weights[n][0];
+      sum += std::max(0.0f, layers[1].output[n]) * layers.back().weights[n][0];
 
     return sum;
   }
@@ -129,13 +126,13 @@ public:
     NetInput input;
     input.ind.push_back(1);
     addInput(1);
-    double ans = calc(input);
+    float ans = calc(input);
     input.ind.push_back(2);
     addInput(2);
     calc(input);
     removeInput(2);
     input.ind.pop_back();
-    double ans2 = getOutput(), ans3 = calc(input);
+    float ans2 = getOutput(), ans3 = calc(input);
     std::cout << ans2 << " " << ans << " " << ans3 << "\n";
 
     assert(abs(ans2 - ans) < 1e-9);
@@ -143,7 +140,7 @@ public:
 
   void load() {
     int *intData;
-    double *doubleData;
+    float *floatData;
     Gradient *gradData;
     std::vector <Gradient> v;
 
@@ -159,23 +156,23 @@ public:
       int sz = layers[i].info.size;
       v.resize(sz);
 
-      doubleData = (double*)gradData;
+      floatData = (float*)gradData;
       for(int j = 0; j < sz; j++) {
-        layers[i].bias[j] = *(doubleData++);
+        layers[i].bias[j] = *(floatData++);
       }
 
-      gradData = (Gradient*)doubleData;
+      gradData = (Gradient*)floatData;
       for(int j = 0; j < sz; j++) {
         v[j] = *(gradData++);
       }
 
       for(int j = 0; i && j < layers[i - 1].info.size; j++) {
-        doubleData = (double*)gradData;
+        floatData = (float*)gradData;
         for(int k = 0; k < sz; k++) {
-          layers[i].weights[j][k] = *(doubleData++);
+          layers[i].weights[j][k] = *(floatData++);
         }
 
-        gradData = (Gradient*)doubleData;
+        gradData = (Gradient*)floatData;
         for(int k = 0; k < sz; k++) {
           v[k] = *(gradData++);
         }

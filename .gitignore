@@ -5,6 +5,7 @@
 *.exe
 *.pgn
 bin
+.vs
 gmon.out
 search.cpp
 *.txt

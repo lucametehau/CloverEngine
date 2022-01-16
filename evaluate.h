@@ -16,7 +16,7 @@ int evaluate(Board &board) {
   /*NetInput input = board.toNetInput();
   double score = board.NN.calc(input);
 
-  if(abs(eval2 - score) > 1e-9) {
+  if (abs(eval2 - score) > 1e-9) {
     board.print();
     std::cout << eval2 << " " << score << "\n";
     assert(0);
