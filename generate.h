@@ -176,8 +176,7 @@ void generateData(int nrFens, int nrThreads, std::string rootPath) {
 
     while (sumFens <= nrFens) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
-        std::cout << "Generated " << sumFens << " ; Time elapsed: " << (getTime() - startTime) / 1000.0 << "s ; " 
-            << 1.0 * sumFens / (getTime() - startTime) * 1000.0 << " fens per second\r";
+        std::cout << "Fens " << sumFens << " ; Time elapsed: " << (getTime() - startTime) / 1000.0 << "s\r";
     }
 
     for (auto& t : threads)
