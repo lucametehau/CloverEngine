@@ -4,6 +4,7 @@
 *.layout
 *.exe
 *.pgn
+.vs
 bin
 gmon.out
 search.cpp
