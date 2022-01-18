@@ -1,8 +1,8 @@
 CC  = g++
 SRC = *.cpp tbprobe.c
 
-EXE = Clover.3.0-dev100
-EVALFILE = Clover_21mil_e41_512.nn
+EXE = Clover.3.0-dev103
+EVALFILE = Clover_150mil_e41_256.nn
 
 ifeq ($(OS), Windows_NT)
 	EXT = .exe
@@ -28,13 +28,11 @@ EVALFILEFLAGS = -DEVALFILE=\"$(EVALFILE)\"
 
 ob:
 	$(CC) $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(NATIVEFLAGS) -o Clover$(EXT)
-normal:
-	$(CC) $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) -o Clover$(EXT)
 native:
 	$(CC) $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(NATIVEFLAGS) -o $(EXE)-native$(EXT)
 run:
 	$(CC) $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) -o $(EXE)$(EXT)
 	$(CC) $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(POPCNTFLAGS) -o $(EXE)-popcnt$(EXT)
 	$(CC) $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(BMI2FLAGS) -o $(EXE)-bmi2$(EXT)
-	$(CC) $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(AVX2FLAGS) -o $(EXE)-avx2$(EXT)
+	$(CC) $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(POPCNTFLAGS) $(AVX2FLAGS) -o $(EXE)-avx2$(EXT)
 	$(CC) $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(NATIVEFLAGS) -o $(EXE)-native$(EXT)
