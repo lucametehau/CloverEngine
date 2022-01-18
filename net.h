@@ -139,26 +139,25 @@ public:
     histOutput[histSz] = histOutput[histSz - 1];
     histSz++;
 
-    for(int i = 0; i < updateSz; i++) {
-      const int c = updates[i].coef;
-      for(int n = 0; n < layers[1].info.size; n++)
-        histOutput[histSz - 1][n] += c * layers[1].weights[updates[i].ind][n];
-    }
-
-    updateSz = 0;
-  }
+    for(int n = 0; n < layers[1].info.size; n++)
+      sum += std::max(0.0f, layers[1].output[n]) * layers.back().weights[n][0];
 
   void revertUpdates() {
     histSz--;
   }
 
-  double getOutput() {
-    double sum = layers.back().bias[0];
-
-    for(int n = 0; n < layers[1].info.size; n++)
-      sum += std::max<double>(histOutput[histSz - 1][n], 0.0) * layers.back().weights[n][0];
-
-    //std::cout << sum << "\n";
+  void checkRemoval() {
+    NetInput input;
+    input.ind.push_back(1);
+    addInput(1);
+    float ans = calc(input);
+    input.ind.push_back(2);
+    addInput(2);
+    calc(input);
+    removeInput(2);
+    input.ind.pop_back();
+    float ans2 = getOutput(), ans3 = calc(input);
+    std::cout << ans2 << " " << ans << " " << ans3 << "\n";
 
     return sum;
   }
