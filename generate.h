@@ -13,7 +13,7 @@ struct FenData {
 
 void generateFens(std::atomic <int>& sumFens, int nrFens, std::string path, uint64_t seed) {
     std::ofstream out(path);
-    std::mt19937_64 gn(seed + 86739672LL);
+    std::mt19937_64 gn(seed + 90067376704169LL);
 
     Info info[1];
     int gameInd = 1, totalFens = 0;
