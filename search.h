@@ -88,8 +88,14 @@ int Search :: quiesce(int alpha, int beta, bool useTT) {
     if(bound == EXACT || (bound == LOWER && score >= beta) || (bound == UPPER && score <= alpha))
       return score;
   }
+  
+  bool isCheck = inCheck(board), noisyOnly = !isCheck;
 
-  if(eval == INF) {
+  if (isCheck) {
+    Stack[ply].eval = INF;
+    eval = -INF;
+  }
+  else if(eval == INF) {
     /// if last move was null, we already know the evaluation
     Stack[ply].eval = eval = (!Stack[ply - 1].move ? -Stack[ply - 1].eval + 2 * TEMPO : evaluate(board));
   } else {
@@ -110,12 +116,12 @@ int Search :: quiesce(int alpha, int beta, bool useTT) {
   best = eval;
 
   Movepick noisyPicker(NULLMOVE,
-                       NULLMOVE, NULLMOVE, NULLMOVE, 0); /// delta pruning -> TO DO: find better constant (edit: removed)
+                       NULLMOVE, NULLMOVE, NULLMOVE, (noisyOnly ? 0 : -10000)); /// delta pruning -> TO DO: find better constant (edit: removed)
 
   uint16_t move;
+  int moves = 0;
 
-  while((move = noisyPicker.nextMove(this, 1, 1))) {
-
+  while((move = noisyPicker.nextMove(this, noisyOnly, noisyOnly))) {
     /// update stack info
 
     Stack[ply].move = move;
@@ -124,6 +130,7 @@ int Search :: quiesce(int alpha, int beta, bool useTT) {
     makeMove(board, move);
     score = -quiesce(-beta, -alpha);
     undoMove(board, move);
+    moves++;
 
     if(flag & TERMINATED_SEARCH)
       return ABORT;
@@ -140,6 +147,10 @@ int Search :: quiesce(int alpha, int beta, bool useTT) {
           break;
       }
     }
+  }
+
+  if (isCheck && !moves) {
+    return -INF + ply;
   }
 
   /// store info in transposition table (seems to work)
