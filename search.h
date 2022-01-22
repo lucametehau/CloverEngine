@@ -189,7 +189,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
   int eval = INF;
 
-  if(!excluded && (ply == 0 || Stack[ply - 1].move) && TT->probe(key, entry)) {
+  if(!excluded && TT->probe(key, entry)) {
     int score = entry.value(ply);
     ttHit = 1;
     ttValue = score;
@@ -439,7 +439,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
       R += isCheck && piece_type(board.board[sqTo(move)]) == KING; /// check evasions
 
-      R -= picker.stage < STAGE_QUIETS; /// reduce for refutation moves
+      R -= 2 * (picker.stage < STAGE_QUIETS); /// reduce for refutation moves
 
       R -= std::max(-2, std::min(2, (H.h + H.ch + H.fh) / histDiv)); /// reduce based on move history
 
