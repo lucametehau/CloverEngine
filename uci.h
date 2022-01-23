@@ -226,7 +226,7 @@ void UCI::Uci_Loop() {
                     iss >> value;
 
                     iss >> ttSize;
-
+                    
                     TT->initTable(ttSize * MB);
 
                 }
