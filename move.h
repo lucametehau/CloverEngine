@@ -311,6 +311,8 @@ inline void makeMove(Board &board, uint16_t mv) { /// assuming move is at least 
     break;
   }
 
+  board.NN.applyUpdates();
+
   /// dirty trick
 
   int temp = board.castleRights ^ board.history[ply].castleRights;
@@ -345,14 +347,14 @@ inline void undoMove(Board &board, uint16_t move) {
     board.pieces[board.turn] ^= (1ULL << posFrom) ^ (1ULL << posTo);
     board.bb[piece]          ^= (1ULL << posFrom) ^ (1ULL << posTo);
 
-    board.NN.removeInput(netInd(piece, posTo));
-    board.NN.addInput(netInd(piece, posFrom));
+    //board.NN.removeInput(netInd(piece, posTo));
+    //board.NN.addInput(netInd(piece, posFrom));
 
     board.board[posFrom] = piece;
     board.board[posTo]   = pieceCap;
 
     if(pieceCap) {
-      board.NN.addInput(netInd(pieceCap, posTo));
+      //board.NN.addInput(netInd(pieceCap, posTo));
 
       board.pieces[1 ^ board.turn] ^= (1ULL << posTo);
       board.bb[pieceCap]           ^= (1ULL << posTo);
@@ -370,10 +372,10 @@ inline void undoMove(Board &board, uint16_t move) {
           rTo   = mirror(board.turn, F1);
         }
 
-        board.NN.removeInput(netInd(piece, posTo));
-        board.NN.addInput(netInd(piece, posFrom));
-        board.NN.removeInput(netInd(rPiece, rTo));
-        board.NN.addInput(netInd(rPiece, rFrom));
+        //board.NN.removeInput(netInd(piece, posTo));
+        //board.NN.addInput(netInd(piece, posFrom));
+        //board.NN.removeInput(netInd(rPiece, rTo));
+        //board.NN.addInput(netInd(rPiece, rFrom));
 
         board.pieces[board.turn] ^= (1ULL << posFrom) ^ (1ULL << posTo) ^ (1ULL << rFrom) ^ (1ULL << rTo);
         board.bb[piece]          ^= (1ULL << posFrom) ^ (1ULL << posTo);
@@ -390,9 +392,9 @@ inline void undoMove(Board &board, uint16_t move) {
 
         pieceCap = getType(PAWN, 1 ^ board.turn);
 
-        board.NN.removeInput(netInd(piece, posTo));
-        board.NN.addInput(netInd(piece, posFrom));
-        board.NN.addInput(netInd(pieceCap, pos));
+        //board.NN.removeInput(netInd(piece, posTo));
+        //board.NN.addInput(netInd(piece, posFrom));
+        //board.NN.addInput(netInd(pieceCap, pos));
 
         board.pieces[board.turn] ^= (1ULL << posFrom) ^ (1ULL << posTo);
         board.bb[piece]          ^= (1ULL << posFrom) ^ (1ULL << posTo);
@@ -411,8 +413,8 @@ inline void undoMove(Board &board, uint16_t move) {
 
         piece = getType(PAWN, board.turn);
 
-        board.NN.removeInput(netInd(promPiece, posTo));
-        board.NN.addInput(netInd(piece, posFrom));
+        //board.NN.removeInput(netInd(promPiece, posTo));
+        //board.NN.addInput(netInd(piece, posFrom));
 
         board.pieces[board.turn] ^= (1ULL << posFrom) ^ (1ULL << posTo);
         board.bb[piece]          ^= (1ULL << posFrom);
@@ -422,7 +424,7 @@ inline void undoMove(Board &board, uint16_t move) {
         board.board[posFrom] = piece;
 
         if(pieceCap) {
-          board.NN.addInput(netInd(pieceCap, posTo));
+          //board.NN.addInput(netInd(pieceCap, posTo));
 
           board.pieces[1 ^ board.turn] ^= (1ULL << posTo);
           board.bb[pieceCap]           ^= (1ULL << posTo);
@@ -430,6 +432,8 @@ inline void undoMove(Board &board, uint16_t move) {
     }
     break;
   }
+
+  board.NN.revertUpdates();
 
   board.captured = board.history[ply].captured;
 }

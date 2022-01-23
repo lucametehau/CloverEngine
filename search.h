@@ -42,7 +42,7 @@ bool Search :: checkForStop() {
   checkCount &= 1023;
 
   if(!checkCount) {
-    if(info->timeset && getTime() > info->stopTime)
+    if(info->timeset && getTime() > info->startTime + info->hardTimeLim)
       flag |= TERMINATED_BY_TIME;
   }
 
@@ -109,13 +109,11 @@ int Search :: quiesce(int alpha, int beta, bool useTT) {
   alpha = std::max(alpha, eval);
   best = eval;
 
-  Movepick noisyPicker(NULLMOVE,
-                       NULLMOVE, NULLMOVE, NULLMOVE, 0); /// delta pruning -> TO DO: find better constant (edit: removed)
+  Movepick noisyPicker(NULLMOVE, NULLMOVE, NULLMOVE, NULLMOVE, 0);
 
   uint16_t move;
 
   while((move = noisyPicker.nextMove(this, 1, 1))) {
-
     /// update stack info
 
     Stack[ply].move = move;
@@ -150,7 +148,7 @@ int Search :: quiesce(int alpha, int beta, bool useTT) {
   return best;
 }
 
-int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
+int Search :: search(int alpha, int beta, int depth, bool cutNode, uint16_t excluded) {
   int pvNode = (alpha < beta - 1), rootNode = (board.ply == 0);
   uint16_t hashMove = NULLMOVE;
   int ply = board.ply;
@@ -295,7 +293,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
     makeNullMove(board);
 
-    int score = -search(-beta, -beta + 1, depth - R);
+    int score = -search(-beta, -beta + 1, depth - R, !cutNode);
 
     /// TO DO: (verification search?)
 
@@ -332,7 +330,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
       int score = -quiesce(-cutBeta, -cutBeta + 1);
 
       if(score >= cutBeta) /// then we should try searching this capture
-        score = -search(-cutBeta, -cutBeta + 1, depth - 4);
+        score = -search(-cutBeta, -cutBeta + 1, depth - 4, !cutNode);
 
       undoMove(board, move);
 
@@ -402,7 +400,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
     if(!rootNode && !excluded && move == hashMove && abs(ttValue) < MATE && depth >= 8 && entry.depth() >= depth - 3 && (bound & LOWER)) { /// had best instead of ttValue lol
       int rBeta = ttValue - depth;
 
-      int score = search(rBeta - 1, rBeta, depth / 2, move);
+      int score = search(rBeta - 1, rBeta, depth / 2, cutNode, move);
 
       if(score < rBeta)
         ex = 1;
@@ -439,9 +437,11 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
       R += !pvNode + !improving; /// not on pv or not improving
 
+      R += cutNode;
+
       R += isCheck && piece_type(board.board[sqTo(move)]) == KING; /// check evasions
 
-      R -= picker.stage < STAGE_QUIETS; /// reduce for refutation moves
+      R -= 2 * (picker.stage < STAGE_QUIETS); /// reduce for refutation moves
 
       R -= std::max(-2, std::min(2, (H.h + H.ch + H.fh) / histDiv)); /// reduce based on move history
 
@@ -453,15 +453,15 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
     /// principal variation search
 
     if(R != 1) {
-      score = -search(-alpha - 1, -alpha, newDepth - R);
+      score = -search(-alpha - 1, -alpha, newDepth - R, true);
     }
 
     if((R != 1 && score > alpha) || (R == 1 && !(pvNode && played == 1))) {
-      score = -search(-alpha - 1, -alpha, newDepth - 1);
+      score = -search(-alpha - 1, -alpha, newDepth - 1, !cutNode);
     }
 
     if(pvNode && (played == 1 || score > alpha)) {
-      score = -search(-beta, -alpha, newDepth - 1);
+      score = -search(-beta, -alpha, newDepth - 1, false);
     }
 
     undoMove(board, move);
@@ -518,6 +518,7 @@ std::pair <int, uint16_t> Search :: startSearch(Info *_info) {
   t0 = getTime();
   flag = 0;
   checkCount = 0;
+  bestMoveCnt = 0;
 
   memset(pvTable, 0, sizeof(pvTable));
   info = _info;
@@ -593,8 +594,7 @@ std::pair <int, uint16_t> Search :: startSearch(Info *_info) {
     startWorkerThreads(info);
 
   uint64_t totalNodes = 0, totalHits = 0;
-  int lastScore = 0;
-
+  int lastScore = 0, lastBestMove = NULLMOVE;
   int limitDepth = (principalSearcher ? info->depth : DEPTH); /// when limited by depth, allow helper threads to pass the fixed depth
 
   for(tDepth = 1; tDepth <= limitDepth; tDepth++) {
@@ -614,7 +614,7 @@ std::pair <int, uint16_t> Search :: startSearch(Info *_info) {
 
       depth = std::max(depth, 1);
 
-      score = search(alpha, beta, depth);
+      score = search(alpha, beta, depth, false);
 
       if(flag & TERMINATED_SEARCH)
         break;
@@ -675,18 +675,20 @@ std::pair <int, uint16_t> Search :: startSearch(Info *_info) {
 
     if(principalSearcher) {
       /// adjust time if score is dropping (and maybe if it's jumping)
-      if(tDepth >= 11) {
-        if(lastScore > score) {
-          info->goodTimeLim *= std::min(1.0 + (lastScore - score) / 100, 1.5);
-          info->goodTimeLim = std::min(info->goodTimeLim, info->hardTimeLim);
-        } else {
-          /// TO DO ?
+        double scoreChange = 1.0, bestMoveStreak = 1.0;
+        if (tDepth >= 9) {
+            scoreChange = std::max(0.5, std::min(1.0 + (lastScore - score) / 100, 1.5));
+
+            bestMoveCnt = (bestMove == lastBestMove ? bestMoveCnt + 1 : 1);
+
+            bestMoveStreak = 1.5 - 0.1 * std::min(10, bestMoveCnt);
         }
-      }
-      info->stopTime = info->startTime + info->goodTimeLim;
+
+        info->stopTime = info->startTime + info->goodTimeLim * scoreChange * bestMoveStreak;
     }
 
     lastScore = score;
+    lastBestMove = bestMove;
 
     if(flag & TERMINATED_SEARCH)
       break;
