@@ -50,7 +50,7 @@ class Search {
 
     std::pair <int, uint16_t> startSearch(Info *info);
     int quiesce(int alpha, int beta, bool useTT = true); /// for quiet position check (tuning)
-    int search(int alpha, int beta, int depth, uint16_t excluded = NULLMOVE);
+    int search(int alpha, int beta, int depth, bool cutNode, uint16_t excluded = NULLMOVE);
 
     void setTime(Info *tInfo) {
       info = tInfo;

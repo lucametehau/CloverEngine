@@ -148,7 +148,7 @@ int Search :: quiesce(int alpha, int beta, bool useTT) {
   return best;
 }
 
-int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
+int Search :: search(int alpha, int beta, int depth, bool cutNode, uint16_t excluded) {
   int pvNode = (alpha < beta - 1), rootNode = (board.ply == 0);
   uint16_t hashMove = NULLMOVE;
   int ply = board.ply;
@@ -293,7 +293,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
     makeNullMove(board);
 
-    int score = -search(-beta, -beta + 1, depth - R);
+    int score = -search(-beta, -beta + 1, depth - R, !cutNode);
 
     /// TO DO: (verification search?)
 
@@ -330,7 +330,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
       int score = -quiesce(-cutBeta, -cutBeta + 1);
 
       if(score >= cutBeta) /// then we should try searching this capture
-        score = -search(-cutBeta, -cutBeta + 1, depth - 4);
+        score = -search(-cutBeta, -cutBeta + 1, depth - 4, !cutNode);
 
       undoMove(board, move);
 
@@ -400,7 +400,7 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
     if(!rootNode && !excluded && move == hashMove && abs(ttValue) < MATE && depth >= 8 && entry.depth() >= depth - 3 && (bound & LOWER)) { /// had best instead of ttValue lol
       int rBeta = ttValue - depth;
 
-      int score = search(rBeta - 1, rBeta, depth / 2, move);
+      int score = search(rBeta - 1, rBeta, depth / 2, cutNode, move);
 
       if(score < rBeta)
         ex = 1;
@@ -437,6 +437,8 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
 
       R += !pvNode + !improving; /// not on pv or not improving
 
+      R += cutNode;
+
       R += isCheck && piece_type(board.board[sqTo(move)]) == KING; /// check evasions
 
       R -= 2 * (picker.stage < STAGE_QUIETS); /// reduce for refutation moves
@@ -451,15 +453,15 @@ int Search :: search(int alpha, int beta, int depth, uint16_t excluded) {
     /// principal variation search
 
     if(R != 1) {
-      score = -search(-alpha - 1, -alpha, newDepth - R);
+      score = -search(-alpha - 1, -alpha, newDepth - R, true);
     }
 
     if((R != 1 && score > alpha) || (R == 1 && !(pvNode && played == 1))) {
-      score = -search(-alpha - 1, -alpha, newDepth - 1);
+      score = -search(-alpha - 1, -alpha, newDepth - 1, !cutNode);
     }
 
     if(pvNode && (played == 1 || score > alpha)) {
-      score = -search(-beta, -alpha, newDepth - 1);
+      score = -search(-beta, -alpha, newDepth - 1, false);
     }
 
     undoMove(board, move);
@@ -612,7 +614,7 @@ std::pair <int, uint16_t> Search :: startSearch(Info *_info) {
 
       depth = std::max(depth, 1);
 
-      score = search(alpha, beta, depth);
+      score = search(alpha, beta, depth, false);
 
       if(flag & TERMINATED_SEARCH)
         break;
