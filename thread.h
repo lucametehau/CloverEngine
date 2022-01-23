@@ -92,6 +92,7 @@ class Search {
     int checkCount;
 
     uint64_t nmpFail, nmpTries;
+    int bestMoveCnt;
 
     int threadCount;
     int tDepth, selDepth;

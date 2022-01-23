@@ -42,7 +42,7 @@ bool Search :: checkForStop() {
   checkCount &= 1023;
 
   if(!checkCount) {
-    if(info->timeset && getTime() > info->stopTime)
+    if(info->timeset && getTime() > info->startTime + info->hardTimeLim)
       flag |= TERMINATED_BY_TIME;
   }
 
@@ -518,6 +518,7 @@ std::pair <int, uint16_t> Search :: startSearch(Info *_info) {
   t0 = getTime();
   flag = 0;
   checkCount = 0;
+  bestMoveCnt = 0;
 
   memset(pvTable, 0, sizeof(pvTable));
   info = _info;
@@ -593,8 +594,7 @@ std::pair <int, uint16_t> Search :: startSearch(Info *_info) {
     startWorkerThreads(info);
 
   uint64_t totalNodes = 0, totalHits = 0;
-  int lastScore = 0;
-
+  int lastScore = 0, lastBestMove = NULLMOVE;
   int limitDepth = (principalSearcher ? info->depth : DEPTH); /// when limited by depth, allow helper threads to pass the fixed depth
 
   for(tDepth = 1; tDepth <= limitDepth; tDepth++) {
@@ -675,18 +675,20 @@ std::pair <int, uint16_t> Search :: startSearch(Info *_info) {
 
     if(principalSearcher) {
       /// adjust time if score is dropping (and maybe if it's jumping)
-      if(tDepth >= 11) {
-        if(lastScore > score) {
-          info->goodTimeLim *= std::min(1.0 + (lastScore - score) / 100, 1.5);
-          info->goodTimeLim = std::min(info->goodTimeLim, info->hardTimeLim);
-        } else {
-          /// TO DO ?
+        double scoreChange = 1.0, bestMoveStreak = 1.0;
+        if (tDepth >= 9) {
+            scoreChange = std::max(0.5, std::min(1.0 + (lastScore - score) / 100, 1.5));
+
+            bestMoveCnt = (bestMove == lastBestMove ? bestMoveCnt + 1 : 1);
+
+            bestMoveStreak = 1.5 - 0.1 * std::min(10, bestMoveCnt);
         }
-      }
-      info->stopTime = info->startTime + info->goodTimeLim;
+
+        info->stopTime = info->startTime + info->goodTimeLim * scoreChange * bestMoveStreak;
     }
 
     lastScore = score;
+    lastBestMove = bestMove;
 
     if(flag & TERMINATED_SEARCH)
       break;
