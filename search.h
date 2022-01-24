@@ -466,8 +466,7 @@ int Search :: search(int alpha, int beta, int depth, bool cutNode, uint16_t excl
       score = -search(-beta, -alpha, newDepth - 1, false);
     }
 
-    if (true)
-      nodesSearched[sqFrom(move)][sqTo(move)] += nodes - initNodes;
+    nodesSearched[sqFrom(move)][sqTo(move)] += nodes - initNodes;
 
     undoMove(board, move);
 
