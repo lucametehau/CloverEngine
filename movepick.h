@@ -73,8 +73,6 @@ public:
         if(type(move) == PROMOTION)
           score += 100 * (promoted(move) + KNIGHT);
 
-        score += searcher->nodesSearched[sqFrom(move)][sqTo(move)] / 10000;
-
         scores[i] = score;
       }
       stage++;
