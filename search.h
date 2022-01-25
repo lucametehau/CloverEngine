@@ -97,7 +97,7 @@ int Search :: quiesce(int alpha, int beta, bool useTT) {
   /// probe transposition table
 
   if(TT->probe(key, entry)) {
-    eval = entry.info.eval;
+    best = eval = entry.info.eval;
     ttValue = score = entry.value(ply);
     bound = entry.bound();
 
@@ -107,7 +107,7 @@ int Search :: quiesce(int alpha, int beta, bool useTT) {
 
   if(eval == INF) {
     /// if last move was null, we already know the evaluation
-    Stack[ply].eval = eval = (!Stack[ply - 1].move ? -Stack[ply - 1].eval + 2 * TEMPO : evaluate(board));
+    Stack[ply].eval = best = eval = (!Stack[ply - 1].move ? -Stack[ply - 1].eval + 2 * TEMPO : evaluate(board));
   } else {
     /// ttValue might be a better evaluation
 
