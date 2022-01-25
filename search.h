@@ -114,16 +114,15 @@ int Search :: quiesce(int alpha, int beta, bool useTT) {
     Stack[ply].eval = eval;
 
     if(bound == EXACT || (bound == LOWER && ttValue > eval) || (bound == UPPER && ttValue < eval))
-      eval = ttValue;
+      best = ttValue;
   }
 
   /// stand-pat
 
-  if(eval >= beta)
-    return eval;
+  if(best >= beta)
+    return best;
 
-  alpha = std::max(alpha, eval);
-  best = eval;
+  alpha = std::max(alpha, best);
 
   Movepick noisyPicker(NULLMOVE, NULLMOVE, NULLMOVE, NULLMOVE, 0);
 
