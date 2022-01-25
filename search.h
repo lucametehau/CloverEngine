@@ -452,6 +452,8 @@ int Search :: search(int alpha, int beta, int depth, bool cutNode, uint16_t excl
 
     /// principal variation search
 
+    uint64_t initNodes = nodes;
+
     if(R != 1) {
       score = -search(-alpha - 1, -alpha, newDepth - R, true);
     }
@@ -463,6 +465,8 @@ int Search :: search(int alpha, int beta, int depth, bool cutNode, uint16_t excl
     if(pvNode && (played == 1 || score > alpha)) {
       score = -search(-beta, -alpha, newDepth - 1, false);
     }
+
+    nodesSearched[sqFrom(move)][sqTo(move)] += nodes - initNodes;
 
     undoMove(board, move);
 
@@ -721,11 +725,13 @@ void Search :: clearHistory() {
   memset(hist, 0, sizeof(hist));
   memset(cmTable, 0, sizeof(cmTable));
   memset(follow, 0, sizeof(follow));
+  memset(nodesSearched, 0, sizeof(nodesSearched));
 
   for(int i = 0; i < threadCount; i++) {
     memset(params[i].hist, 0, sizeof(params[i].hist));
     memset(params[i].cmTable, 0, sizeof(params[i].cmTable));
     memset(params[i].follow, 0, sizeof(params[i].follow));
+    memset(params[i].nodesSearched, 0, sizeof(params[i].nodesSearched));
   }
 }
 
