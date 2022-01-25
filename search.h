@@ -523,7 +523,7 @@ int Search :: search(int alpha, int beta, int depth, bool cutNode, uint16_t excl
   }
 
   if (best >= beta)
-    History::updateCapHistory(this, captures, nrCaptures, ply, depth * depth);
+    History::updateCapHistory(this, captures, nrCaptures, bestMove, ply, depth * depth);
 
   /// update tt only if we aren't in a singular search
 

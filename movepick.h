@@ -85,9 +85,9 @@ public:
         int p = searcher->board.piece_type_at(sqFrom(move)), cap = searcher->board.piece_type_at(sqTo(move)), score;
         if(type(move) == ENPASSANT)
           cap = PAWN;
-        score = captureValue[p][cap];
+        score = 100 * captureValue[p][cap];
         if(type(move) == PROMOTION)
-          score += 100 * (promoted(move) + KNIGHT);
+          score += 10000 * (promoted(move) + KNIGHT);
 
         score += searcher->capHist[p][sqTo(move)][cap];
 

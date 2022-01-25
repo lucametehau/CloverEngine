@@ -34,7 +34,7 @@ class History {
 
   public:
     static void updateHistory(Search* searcher, uint16_t* quiets, int nrQuiets, int ply, int bonus);
-    static void updateCapHistory(Search* searcher, uint16_t* captures, int nrCaptures, int ply, int bonus);
+    static void updateCapHistory(Search* searcher, uint16_t* captures, int nrCaptures, uint16_t best, int ply, int bonus);
     static void getHistory(Search *searcher, uint16_t move, int ply, Heuristics &H);
     static void updateHist(int &hist, int score);
   private:
@@ -86,9 +86,7 @@ void History::updateHistory(Search* searcher, uint16_t* quiets, int nrQuiets, in
     }
 }
 
-void History::updateCapHistory(Search* searcher, uint16_t* captures, int nrCaptures, int ply, int bonus) {
-    uint16_t best = captures[nrCaptures - 1];
-
+void History::updateCapHistory(Search* searcher, uint16_t* captures, int nrCaptures, uint16_t best, int ply, int bonus) {
     bonus = std::min(bonus, histMax);
 
     for (int i = 0; i < nrCaptures; i++) {
