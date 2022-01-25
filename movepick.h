@@ -87,7 +87,7 @@ public:
 
         if(type(move) == ENPASSANT || type(move) == PROMOTION)
           cap = PAWN;
-        score += 10 * seeVal[cap];
+        score += 30 * seeVal[cap];
         if(type(move) == PROMOTION)
           score += 100000 * (promoted(move) + KNIGHT);
 
