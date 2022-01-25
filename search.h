@@ -135,6 +135,10 @@ int Search :: quiesce(int alpha, int beta, bool useTT) {
     Stack[ply].move = move;
     Stack[ply].piece = board.piece_at(sqFrom(move));
 
+    // if move seems very good end qsearch and return beta
+    if (eval + seeVal[board.piece_at(sqTo(move))] - seeVal[board.piece_at(sqFrom(move))] > beta + 300)
+      return beta;
+
     makeMove(board, move);
     score = -quiesce(-beta, -alpha);
     undoMove(board, move);
