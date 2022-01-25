@@ -89,6 +89,8 @@ public:
         if(type(move) == PROMOTION)
           score += 100 * (promoted(move) + KNIGHT);
 
+        score += searcher->capHist[p][sqTo(move)][cap];
+
         scores[i] = score;
       }
       stage++;
@@ -177,7 +179,7 @@ public:
         if(move == hashMove || move == killer1 || move == killer2 || move == counter)
           score = -1000000000;
         else {
-          int from = sqFrom(move), to = sqTo(move), piece = searcher->board.piece_type_at(from);
+          int from = sqFrom(move), to = sqTo(move), piece = searcher->board.piece_at(from);
 
           score = searcher->hist[searcher->board.turn][from][to];
 
@@ -247,9 +249,9 @@ bool see(Board &board, uint16_t move, int threshold) {
   int from = sqFrom(move), to = sqTo(move), t = type(move), col, nextVictim, score = -threshold;
   uint64_t diag, orth, occ, att, myAtt;
 
-  nextVictim = (t != PROMOTION ? piece_type(board.board[from]) : promoted(move) + KNIGHT);
+  nextVictim = (t != PROMOTION ? board.piece_type_at(from) : promoted(move) + KNIGHT);
 
-  score += seeVal[piece_type(board.board[to])];
+  score += seeVal[board.piece_type_at(to)];
 
   if(t == PROMOTION)
     score += seeVal[promoted(move) + KNIGHT] - seeVal[PAWN];

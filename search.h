@@ -132,7 +132,7 @@ int Search :: quiesce(int alpha, int beta, bool useTT) {
     /// update stack info
 
     Stack[ply].move = move;
-    Stack[ply].piece = board.piece_type_at(sqFrom(move));
+    Stack[ply].piece = board.piece_at(sqFrom(move));
 
     makeMove(board, move);
     score = -quiesce(-beta, -alpha);
@@ -170,6 +170,7 @@ int Search :: search(int alpha, int beta, int depth, bool cutNode, uint16_t excl
   int alphaOrig = alpha;
   uint64_t key = board.key;
   uint16_t quiets[256], nrQuiets = 0;
+  uint16_t captures[256], nrCaptures = 0;
 
   if(checkForStop())
     return ABORT;
@@ -336,7 +337,7 @@ int Search :: search(int alpha, int beta, int depth, bool cutNode, uint16_t excl
         continue;
 
       Stack[ply].move = move;
-      Stack[ply].piece = board.piece_type_at(sqFrom(move));
+      Stack[ply].piece = board.piece_at(sqFrom(move));
 
       makeMove(board, move);
 
@@ -427,7 +428,7 @@ int Search :: search(int alpha, int beta, int depth, bool cutNode, uint16_t excl
 
     /// update stack info
     Stack[ply].move = move;
-    Stack[ply].piece = board.piece_type_at(sqFrom(move));
+    Stack[ply].piece = board.piece_at(sqFrom(move));
 
     makeMove(board, move);
     played++;
@@ -440,8 +441,10 @@ int Search :: search(int alpha, int beta, int depth, bool cutNode, uint16_t excl
 
     /// store quiets for history
 
-    if(isQuiet)
+    if (isQuiet)
       quiets[nrQuiets++] = move;
+    else
+      captures[nrCaptures++] = move;
 
     int newDepth = depth + (ex && !rootNode), R = 1;
 
@@ -454,7 +457,7 @@ int Search :: search(int alpha, int beta, int depth, bool cutNode, uint16_t excl
 
       R += cutNode;
 
-      R += isCheck && piece_type(board.board[sqTo(move)]) == KING; /// check evasions
+      R += isCheck && board.piece_type_at(sqTo(move)) == KING; /// check evasions
 
       R -= 2 * (picker.stage < STAGE_QUIETS); /// reduce for refutation moves
 
@@ -518,6 +521,9 @@ int Search :: search(int alpha, int beta, int depth, bool cutNode, uint16_t excl
     }
     History :: updateHistory(this, quiets, nrQuiets, ply, depth * depth);
   }
+
+  if (best >= beta)
+    History::updateCapHistory(this, captures, nrCaptures, ply, depth * depth);
 
   /// update tt only if we aren't in a singular search
 
@@ -738,12 +744,14 @@ std::pair <int, uint16_t> Search :: startSearch(Info *_info) {
 
 void Search :: clearHistory() {
   memset(hist, 0, sizeof(hist));
+  memset(capHist, 0, sizeof(capHist));
   memset(cmTable, 0, sizeof(cmTable));
   memset(follow, 0, sizeof(follow));
   memset(nodesSearched, 0, sizeof(nodesSearched));
 
   for(int i = 0; i < threadCount; i++) {
     memset(params[i].hist, 0, sizeof(params[i].hist));
+    memset(params[i].capHist, 0, sizeof(params[i].capHist));
     memset(params[i].cmTable, 0, sizeof(params[i].cmTable));
     memset(params[i].follow, 0, sizeof(params[i].follow));
     memset(params[i].nodesSearched, 0, sizeof(params[i].nodesSearched));
