@@ -91,10 +91,10 @@ class Search {
     uint16_t pvTable[DEPTH + 5][DEPTH + 5];
     int pvTableLen[DEPTH + 5];
     uint16_t killers[DEPTH + 5][2];
-    uint16_t cmTable[2][13][64];
+    uint16_t cmTable[2][7][64];
     int hist[2][64][64];
-    int follow[2][13][64][13][64];
-    int capHist[13][6][64];
+    int follow[2][7][64][7][64];
+    int capHist[7][6][64];
     int lmrCnt[2][9];
     int lmrRed[64][64];
     StackEntry Stack[DEPTH + 5];

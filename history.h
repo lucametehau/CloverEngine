@@ -73,7 +73,7 @@ void History :: updateHistory(Search *searcher, uint16_t *quiets, int nrQuiets, 
 
     int move = quiets[i];
     int score = (move == best ? bonus : -bonus);
-    int from = sqFrom(move), to = sqTo(move), piece = searcher->board.board[from];
+    int from = sqFrom(move), to = sqTo(move), piece = searcher->board.piece_type_at(from);
 
     updateHist(searcher->hist[turn][from][to], score);
 
@@ -86,7 +86,7 @@ void History :: updateHistory(Search *searcher, uint16_t *quiets, int nrQuiets, 
 }
 
 void History :: getHistory(Search *searcher, uint16_t move, int ply, Heuristics &H) {
-  int from = sqFrom(move), to = sqTo(move), piece = searcher->board.board[from];
+  int from = sqFrom(move), to = sqTo(move), piece = searcher->board.piece_type_at(from);
 
   H.h = searcher->hist[searcher->board.turn][from][to];
 

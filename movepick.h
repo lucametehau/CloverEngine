@@ -177,7 +177,7 @@ public:
         if(move == hashMove || move == killer1 || move == killer2 || move == counter)
           score = -1000000000;
         else {
-          int from = sqFrom(move), to = sqTo(move), piece = searcher->board.board[from];
+          int from = sqFrom(move), to = sqTo(move), piece = searcher->board.piece_type_at(from);
 
           score = searcher->hist[searcher->board.turn][from][to];
 

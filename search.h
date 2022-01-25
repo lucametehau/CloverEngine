@@ -132,11 +132,7 @@ int Search :: quiesce(int alpha, int beta, bool useTT) {
     /// update stack info
 
     Stack[ply].move = move;
-    Stack[ply].piece = board.piece_at(sqFrom(move));
-
-    // if move seems very good end qsearch and return beta
-    if (eval + seeVal[board.piece_at(sqTo(move))] - seeVal[board.piece_at(sqFrom(move))] > beta + 300)
-      return beta;
+    Stack[ply].piece = board.piece_type_at(sqFrom(move));
 
     makeMove(board, move);
     score = -quiesce(-beta, -alpha);
@@ -340,7 +336,7 @@ int Search :: search(int alpha, int beta, int depth, bool cutNode, uint16_t excl
         continue;
 
       Stack[ply].move = move;
-      Stack[ply].piece = board.piece_at(sqFrom(move));
+      Stack[ply].piece = board.piece_type_at(sqFrom(move));
 
       makeMove(board, move);
 
@@ -431,7 +427,7 @@ int Search :: search(int alpha, int beta, int depth, bool cutNode, uint16_t excl
 
     /// update stack info
     Stack[ply].move = move;
-    Stack[ply].piece = board.piece_at(sqFrom(move));
+    Stack[ply].piece = board.piece_type_at(sqFrom(move));
 
     makeMove(board, move);
     played++;
