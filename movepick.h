@@ -94,6 +94,8 @@ public:
         score += searcher->capHist[p][sqTo(move)][cap];
 
         scores[i] = score;
+
+        assert(score >= 0);
       }
       stage++;
     }
