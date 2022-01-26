@@ -170,7 +170,7 @@ int Search :: search(int alpha, int beta, int depth, bool cutNode, uint16_t excl
   int alphaOrig = alpha;
   uint64_t key = board.key;
   uint16_t quiets[256], nrQuiets = 0;
-  uint16_t captures[256], nrCaptures = 0;
+  //uint16_t captures[256], nrCaptures = 0;
 
   if(checkForStop())
     return ABORT;
@@ -287,8 +287,9 @@ int Search :: search(int alpha, int beta, int depth, bool cutNode, uint16_t excl
 
   /// razoring (searching 1 more ply can't change the score much, drop in quiesce)
 
-  if(!pvNode && !isCheck && depth <= 1 && Stack[ply].eval + 325 < alpha)
+  if (!pvNode && !isCheck && depth <= 1 && eval + 325 < alpha) {
     return quiesce(alpha, beta);
+  }
 
   /// static null move pruning (don't prune when having a mate line, again stability)
 
@@ -328,7 +329,7 @@ int Search :: search(int alpha, int beta, int depth, bool cutNode, uint16_t excl
   if(!pvNode && !isCheck && depth >= 5 && abs(beta) < MATE) {
     int cutBeta = beta + 100;
     Movepick noisyPicker(NULLMOVE,
-                         NULLMOVE, NULLMOVE, NULLMOVE, cutBeta - Stack[ply].eval);
+                         NULLMOVE, NULLMOVE, NULLMOVE, cutBeta - eval);
 
     uint16_t move;
 
@@ -377,6 +378,8 @@ int Search :: search(int alpha, int beta, int depth, bool cutNode, uint16_t excl
     bool isQuiet = !isNoisyMove(board, move);
     History :: Heuristics H{}; /// history values for quiet moves
 
+    //int capH = capHist[board.piece_type_at(sqFrom(move))][sqTo(move)][board.piece_type_at(sqTo(move))];
+
     /// quiet move pruning
     if(!rootNode && best > -MATE) {
       if(isQuiet) {
@@ -391,7 +394,7 @@ int Search :: search(int alpha, int beta, int depth, bool cutNode, uint16_t excl
           continue;
 
         /// futility pruning
-        if(depth <= 8 && !isCheck && Stack[ply].eval + fpCoef * depth <= alpha && H.h + H.ch + H.fh < fpHistoryLimit[improving])
+        if(depth <= 8 && !isCheck && eval + fpCoef * depth <= alpha && H.h + H.ch + H.fh < fpHistoryLimit[improving])
           skip = 1;
 
         /// late move pruning
@@ -443,8 +446,8 @@ int Search :: search(int alpha, int beta, int depth, bool cutNode, uint16_t excl
 
     if (isQuiet)
       quiets[nrQuiets++] = move;
-    else
-      captures[nrCaptures++] = move;
+    /*else
+      captures[nrCaptures++] = move;*/
 
     int newDepth = depth + (ex && !rootNode), R = 1;
 
@@ -465,6 +468,13 @@ int Search :: search(int alpha, int beta, int depth, bool cutNode, uint16_t excl
 
       R = std::min(depth - 1, std::max(R, 1)); /// clamp R
     }
+    /*else if (!isQuiet && depth >= 3 && played > 1) {
+      //R = std::max(1, std::min(3, capH / 3000));
+
+      R += cutNode;
+
+      R = std::min(depth - 1, std::max(R, 1)); /// clamp R
+    }*/
 
     int score = -INF;
 
@@ -522,8 +532,8 @@ int Search :: search(int alpha, int beta, int depth, bool cutNode, uint16_t excl
     History :: updateHistory(this, quiets, nrQuiets, ply, depth * depth);
   }
 
-  if (best >= beta)
-    History::updateCapHistory(this, captures, nrCaptures, bestMove, ply, depth * depth);
+  /*if (best >= beta)
+    History::updateCapHistory(this, captures, nrCaptures, bestMove, ply, depth * depth);*/
 
   /// update tt only if we aren't in a singular search
 

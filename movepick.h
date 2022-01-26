@@ -83,15 +83,16 @@ public:
       for(int i = 0; i < nrNoisy; i++) {
         uint16_t move = noisy[i];
         int p = searcher->board.piece_type_at(sqFrom(move)), cap = searcher->board.piece_type_at(sqTo(move));
-        int score = 50000; // so that move score isn't negative
+        int score = 0; // so that move score isn't negative
 
         if(type(move) == ENPASSANT || type(move) == PROMOTION)
           cap = PAWN;
-        score += 30 * seeVal[cap];
+
+        score = 100 * captureValue[p][cap];
         if(type(move) == PROMOTION)
           score += 100000 * (promoted(move) + KNIGHT);
 
-        score += searcher->capHist[p][sqTo(move)][cap];
+        score += searcher->nodesSearched[sqFrom(move)][sqTo(move)] / 10000;
 
         scores[i] = score;
 
