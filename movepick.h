@@ -85,14 +85,12 @@ public:
         int p = searcher->board.piece_type_at(sqFrom(move)), cap = searcher->board.piece_type_at(sqTo(move));
         int score = 0; // so that move score isn't negative
 
-        if(type(move) == ENPASSANT || type(move) == PROMOTION)
+        if(type(move) == ENPASSANT)
           cap = PAWN;
 
-        score = 100 * captureValue[p][cap];
+        score = captureValue[p][cap];
         if(type(move) == PROMOTION)
-          score += 100000 * (promoted(move) + KNIGHT);
-
-        score += searcher->nodesSearched[sqFrom(move)][sqTo(move)] / 10000;
+          score += 100 * (promoted(move) + KNIGHT);
 
         scores[i] = score;
 

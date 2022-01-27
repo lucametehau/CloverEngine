@@ -287,7 +287,7 @@ int Search :: search(int alpha, int beta, int depth, bool cutNode, uint16_t excl
 
   /// razoring (searching 1 more ply can't change the score much, drop in quiesce)
 
-  if (!pvNode && !isCheck && depth <= 1 && eval + 325 < alpha) {
+  if (!pvNode && !isCheck && depth <= 1 && Stack[ply].eval + 325 < alpha) {
     return quiesce(alpha, beta);
   }
 
@@ -329,7 +329,7 @@ int Search :: search(int alpha, int beta, int depth, bool cutNode, uint16_t excl
   if(!pvNode && !isCheck && depth >= 5 && abs(beta) < MATE) {
     int cutBeta = beta + 100;
     Movepick noisyPicker(NULLMOVE,
-                         NULLMOVE, NULLMOVE, NULLMOVE, cutBeta - eval);
+                         NULLMOVE, NULLMOVE, NULLMOVE, cutBeta - Stack[ply].eval);
 
     uint16_t move;
 
@@ -394,7 +394,7 @@ int Search :: search(int alpha, int beta, int depth, bool cutNode, uint16_t excl
           continue;
 
         /// futility pruning
-        if(depth <= 8 && !isCheck && eval + fpCoef * depth <= alpha && H.h + H.ch + H.fh < fpHistoryLimit[improving])
+        if(depth <= 8 && !isCheck && Stack[ply].eval + fpCoef * depth <= alpha && H.h + H.ch + H.fh < fpHistoryLimit[improving])
           skip = 1;
 
         /// late move pruning
@@ -459,8 +459,6 @@ int Search :: search(int alpha, int beta, int depth, bool cutNode, uint16_t excl
       R += !pvNode + !improving; /// not on pv or not improving
 
       R += cutNode;
-
-      R += isCheck && board.piece_type_at(sqTo(move)) == KING; /// check evasions
 
       R -= 2 * (picker.stage < STAGE_QUIETS); /// reduce for refutation moves
 
