@@ -26,12 +26,12 @@
 /// search params (tuning all with ctt, but I didn't get any nice results)
 
 int RazorCoef = 325;
-int SNMPCoef1 = 85;
-int SNMPCoef2 = 20;
+int SNMPCoef1 = 97;
+int SNMPCoef2 = 25;
 int seeCoefQuiet = 80;
 int seeCoefNoisy = 18;
-int fpCoef = 90; /// 51
-int histDiv = 5000;
+int fpCoef = 103; /// 51
+int histDiv = 4766;
 
 const int TERMINATED_BY_USER = 1;
 const int TERMINATED_BY_TIME = 2;

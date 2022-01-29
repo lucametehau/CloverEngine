@@ -466,13 +466,6 @@ int Search :: search(int alpha, int beta, int depth, bool cutNode, uint16_t excl
 
       R = std::min(depth - 1, std::max(R, 1)); /// clamp R
     }
-    /*else if (!isQuiet && depth >= 3 && played > 1) {
-      //R = std::max(1, std::min(3, capH / 3000));
-
-      R += cutNode;
-
-      R = std::min(depth - 1, std::max(R, 1)); /// clamp R
-    }*/
 
     int score = -INF;
 
