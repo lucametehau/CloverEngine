@@ -335,6 +335,14 @@ void UCI::Uci_Loop() {
                     iss >> val;
                     fhCoef = val;
                 }
+                else if (name == "fpHistDiv") {
+                    iss >> value;
+
+                    int val;
+
+                    iss >> val;
+                    fpHistDiv = val;
+                }
                 else if (name == "histDiv") {
                     iss >> value;
 

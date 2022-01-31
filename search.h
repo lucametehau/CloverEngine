@@ -391,7 +391,7 @@ int Search :: search(int alpha, int beta, int depth, bool cutNode, uint16_t excl
           continue;
 
         /// futility pruning
-        if(depth <= 8 && !isCheck && Stack[ply].eval + fpCoef * depth + (H.h + H.ch + H.fh) / fpHistDiv <= alpha)
+        if(depth <= 8 && !isCheck && Stack[ply].eval + fpMargin + fpCoef * depth + (H.h + H.ch + H.fh) / fpHistDiv <= alpha)
           skip = 1;
 
         /// late move pruning
