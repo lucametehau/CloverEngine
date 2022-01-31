@@ -375,7 +375,7 @@ int Search :: search(int alpha, int beta, int depth, bool cutNode, uint16_t excl
     if(move == excluded)
       continue;
 
-    bool isQuiet = !isNoisyMove(board, move);
+    bool isQuiet = !isNoisyMove(board, move), refutationMove = (picker.stage < STAGE_QUIETS);
     History :: Heuristics H{}; /// history values for quiet moves
 
     //int capH = capHist[board.piece_type_at(sqFrom(move))][sqTo(move)][board.piece_type_at(sqTo(move))];
@@ -385,17 +385,19 @@ int Search :: search(int alpha, int beta, int depth, bool cutNode, uint16_t excl
       if(isQuiet) {
         History :: getHistory(this, move, ply, H);
 
-        /// counter move and follow move pruning
+        /// approximately the new depth for the next search
+        int newDepth = std::max(0, depth - lmrRed[std::min(63, depth)][std::min(63, played)]);
 
-        if(depth <= 3 && H.ch < chCoef * depth)
+        /// counter move and follow move pruning
+        if(newDepth <= 3 && !refutationMove && (H.ch < chCoef * newDepth || H.fh < fhCoef * newDepth))
           continue;
 
         /// futility pruning
-        if(depth <= 8 && !isCheck && Stack[ply].eval + fpMargin + fpCoef * depth + (H.h + H.ch + H.fh) / fpHistDiv <= alpha)
+        if(newDepth <= 8 && !isCheck && Stack[ply].eval + fpMargin + fpCoef * newDepth + (H.h + H.ch + H.fh) / fpHistDiv <= alpha)
           skip = 1;
 
         /// late move pruning
-        if(depth <= 8 && nrQuiets >= lmrCnt[improving][depth])
+        if(newDepth <= 8 && nrQuiets >= lmrCnt[improving][newDepth])
           skip = 1;
       }
 
@@ -457,7 +459,7 @@ int Search :: search(int alpha, int beta, int depth, bool cutNode, uint16_t excl
 
       R += cutNode;
 
-      R -= 2 * (picker.stage < STAGE_QUIETS); /// reduce for refutation moves
+      R -= 2 * refutationMove; /// reduce for refutation moves
 
       R -= std::max(-2, std::min(2, (H.h + H.ch + H.fh) / histDiv)); /// reduce based on move history
 

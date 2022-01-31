@@ -35,7 +35,7 @@ int fpCoef = 103; /// 51
 int histDiv = 4766;
 int chCoef = -2000;
 int fhCoef = -2000;
-int fpHistDiv = 500;
+int fpHistDiv = 512;
 
 const int TERMINATED_BY_USER = 1;
 const int TERMINATED_BY_TIME = 2;
