@@ -387,14 +387,11 @@ int Search :: search(int alpha, int beta, int depth, bool cutNode, uint16_t excl
 
         /// counter move and follow move pruning
 
-        if(depth <= cmpDepth[improving] && H.ch < cmpHistoryLimit[improving])
-          continue;
-
-        if(depth <= fmpDepth[improving] && H.fh < fmpHistoryLimit[improving])
+        if(depth <= 3 && H.ch < chCoef * depth)
           continue;
 
         /// futility pruning
-        if(depth <= 8 && !isCheck && Stack[ply].eval + fpCoef * depth <= alpha && H.h + H.ch + H.fh < fpHistoryLimit[improving])
+        if(depth <= 8 && !isCheck && Stack[ply].eval + fpCoef * depth + (H.h + H.ch + H.fh) / fpHistDiv <= alpha)
           skip = 1;
 
         /// late move pruning

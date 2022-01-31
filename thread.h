@@ -32,6 +32,9 @@ int seeCoefQuiet = 80;
 int seeCoefNoisy = 18;
 int fpCoef = 103; /// 51
 int histDiv = 4766;
+int chCoef = -2000;
+int fhCoef = -2000;
+int fpHistDiv = 500;
 
 const int TERMINATED_BY_USER = 1;
 const int TERMINATED_BY_TIME = 2;
@@ -138,14 +141,6 @@ class Search {
     void resetLazySMP() {
       lazyDepth = 0;
     }
-
-    const int cmpDepth[2] = {3, 2};
-    const int cmpHistoryLimit[2] = {    0, -1000};
-
-    const int fmpDepth[2] = {3, 2};
-    const int fmpHistoryLimit[2] = {-2000, -4000};
-
-    const int fpHistoryLimit[2] =  {12000,  6000};
 
     bool terminateSMP;
 

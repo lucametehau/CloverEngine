@@ -25,7 +25,7 @@
 #include "perft.h"
 #include "generate.h"
 
-const std::string VERSION = "3.1-dev4"; /// 2.0 was "FM"
+const std::string VERSION = "3.1-dev5"; /// 2.0 was "FM"
 
 class UCI {
 public:
@@ -318,6 +318,22 @@ void UCI::Uci_Loop() {
 
                     iss >> val;
                     fpCoef = val;
+                }
+                else if (name == "chCoef") {
+                    iss >> value;
+
+                    int val;
+
+                    iss >> val;
+                    chCoef = val;
+                }
+                else if (name == "fhCoef") {
+                    iss >> value;
+
+                    int val;
+
+                    iss >> val;
+                    fhCoef = val;
                 }
                 else if (name == "histDiv") {
                     iss >> value;
