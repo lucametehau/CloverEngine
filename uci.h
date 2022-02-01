@@ -351,6 +351,22 @@ void UCI::Uci_Loop() {
                     iss >> val;
                     histDiv = val;
                 }
+                else if (name == "lmrMargin") {
+                    iss >> value;
+
+                    float val;
+
+                    iss >> val;
+                    lmrMargin = val;
+                }
+                else if (name == "lmrDiv") {
+                    iss >> value;
+
+                    float val;
+
+                    iss >> val;
+                    lmrDiv = val;
+                }
 
             }
             else if (cmd == "generate") {

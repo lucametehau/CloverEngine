@@ -36,6 +36,8 @@ int histDiv = 4766;
 int chCoef = -2000;
 int fhCoef = -2000;
 int fpHistDiv = 512;
+float lmrMargin = 0.9;
+float lmrDiv = 1.7;
 
 const int TERMINATED_BY_USER = 1;
 const int TERMINATED_BY_TIME = 2;

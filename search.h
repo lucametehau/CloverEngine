@@ -33,7 +33,7 @@ Search::Search() : threads(nullptr), params(nullptr)
 
     for (int i = 0; i < 64; i++) { /// depth
         for (int j = 0; j < 64; j++) /// moves played
-            lmrRed[i][j] = 0.75 + log(i) * log(j) / 2.25;
+            lmrRed[i][j] = lmrMargin + log(i) * log(j) / lmrDiv;
     }
     for (int i = 1; i < 9; i++) {
         lmrCnt[0][i] = (3 + i * i) / 2;
@@ -419,7 +419,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         /// singular extension (look if the tt move is better than the rest)
 
         if (!rootNode && !excluded && move == hashMove && abs(ttValue) < MATE && depth >= 8 && entry.depth() >= depth - 3 && (bound & LOWER)) { /// had best instead of ttValue lol
-            int rBeta = ttValue - 2 * depth;
+            int rBeta = ttValue - depth;
 
             int score = search(rBeta - 1, rBeta, depth / 2, cutNode, move);
 
