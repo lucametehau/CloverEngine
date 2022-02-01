@@ -14,6 +14,7 @@
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+
 #pragma once
 #include <fstream>
 #include <vector>
@@ -153,17 +154,21 @@ void generateFens(std::atomic <int>& sumFens, int nrFens, std::string path, uint
 
         gameInd++;
     }
-}*/
+}
 
 void generateData(int nrFens, int nrThreads, std::string rootPath) {
-    /*
     std::string path[100];
 
     srand(time(0));
 
     for (int i = 0; i < nrThreads; i++) {
         path[i] = rootPath;
-        path[i] += char(i + '0');
+
+        if (i < 10)
+            path[i] += char(i + '0');
+        else
+            path[i] += char(i / 10 + '0'), path[i] += char(i % 10 + '0');
+            
         path[i] += ".txt";
         std::cout << path[i] << "\n";
     }
@@ -186,10 +191,9 @@ void generateData(int nrFens, int nrThreads, std::string rootPath) {
 
     while (sumFens <= nrFens) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
-        std::cout << "Generated " << sumFens << " ; Time elapsed: " << (getTime() - startTime) / 1000.0 << "s" << "\r";
+        std::cout << "Fens " << sumFens << " ; Time elapsed: " << (getTime() - startTime) / 1000.0 << "s\r";
     }
 
     for (auto& t : threads)
         t.join();
-    */
 }
