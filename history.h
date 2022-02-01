@@ -23,33 +23,33 @@
 class Search;
 
 class History {
-  History() = delete;
-  ~History() = delete;
+    History() = delete;
+    ~History() = delete;
 
-  public:
+public:
     struct Heuristics {
-      Heuristics() : h(0), ch(0), fh(0) {}
-      int h, ch, fh;
+        Heuristics() : h(0), ch(0), fh(0) {}
+        int h, ch, fh;
     };
 
-  public:
+public:
     static void updateHistory(Search* searcher, uint16_t* quiets, int nrQuiets, int ply, int bonus);
     static void updateCapHistory(Search* searcher, uint16_t* captures, int nrCaptures, uint16_t best, int ply, int bonus);
-    static void getHistory(Search *searcher, uint16_t move, int ply, Heuristics &H);
-    static void updateHist(int &hist, int score);
-  private:
+    static void getHistory(Search* searcher, uint16_t move, int ply, Heuristics& H);
+    static void updateHist(int& hist, int score);
+private:
     static constexpr int histMax = 400;
     static constexpr int histMult = 32;
     static constexpr int histDiv = 512;
 };
 
-constexpr int History :: histMax;
-constexpr int History :: histMult;
-constexpr int History :: histDiv;
+constexpr int History::histMax;
+constexpr int History::histMult;
+constexpr int History::histDiv;
 
 
-void History :: updateHist(int &hist, int score) {
-  hist += score * histMult - hist * abs(score) / histDiv;
+void History::updateHist(int& hist, int score) {
+    hist += score * histMult - hist * abs(score) / histDiv;
 }
 
 void History::updateHistory(Search* searcher, uint16_t* quiets, int nrQuiets, int ply, int bonus) {
@@ -104,16 +104,16 @@ void History::updateCapHistory(Search* searcher, uint16_t* captures, int nrCaptu
     }
 }
 
-void History :: getHistory(Search *searcher, uint16_t move, int ply, Heuristics &H) {
-  int from = sqFrom(move), to = sqTo(move), piece = searcher->board.piece_at(from);
+void History::getHistory(Search* searcher, uint16_t move, int ply, Heuristics& H) {
+    int from = sqFrom(move), to = sqTo(move), piece = searcher->board.piece_at(from);
 
-  H.h = searcher->hist[searcher->board.turn][from][to];
+    H.h = searcher->hist[searcher->board.turn][from][to];
 
-  uint16_t counterMove = searcher->Stack[ply - 1].move, followMove = (ply >= 2 ? searcher->Stack[ply - 2].move : NULLMOVE);
-  int counterPiece = searcher->Stack[ply - 1].piece, followPiece = (ply >= 2 ? searcher->Stack[ply - 2].piece : 0);
-  int counterTo = sqTo(counterMove), followTo = sqTo(followMove);
+    uint16_t counterMove = searcher->Stack[ply - 1].move, followMove = (ply >= 2 ? searcher->Stack[ply - 2].move : NULLMOVE);
+    int counterPiece = searcher->Stack[ply - 1].piece, followPiece = (ply >= 2 ? searcher->Stack[ply - 2].piece : 0);
+    int counterTo = sqTo(counterMove), followTo = sqTo(followMove);
 
-  H.ch = searcher->follow[0][counterPiece][counterTo][piece][to];
+    H.ch = searcher->follow[0][counterPiece][counterTo][piece][to];
 
-  H.fh = searcher->follow[1][followPiece][followTo][piece][to];
+    H.fh = searcher->follow[1][followPiece][followTo][piece][to];
 }

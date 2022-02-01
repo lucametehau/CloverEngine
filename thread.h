@@ -39,20 +39,20 @@ int fpHistDiv = 512;
 
 const int TERMINATED_BY_USER = 1;
 const int TERMINATED_BY_TIME = 2;
-const int TERMINATED_SEARCH  = 3; /// 1 | 2
+const int TERMINATED_SEARCH = 3; /// 1 | 2
 
 class Search {
 
-  friend class Movepick;
-  friend class History;
+    friend class Movepick;
+    friend class History;
 
-  public:
+public:
     Search();
     ~Search();
     Search(const Search&) = delete;
     Search& operator = (const Search&) = delete;
 
-  public:
+public:
     void initSearch();
     void clearForSearch();
     void clearKillers();
@@ -60,7 +60,7 @@ class Search {
     void clearStack();
     void clearBoard();
     void setThreadCount(int nrThreads);
-    void startPrincipalSearch(Info *info);
+    void startPrincipalSearch(Info* info);
     void stopPrincipalSearch();
     void isReady();
     int getThreadCount();
@@ -68,16 +68,16 @@ class Search {
     void _setFen(std::string fen);
     void _makeMove(uint16_t move);
 
-    std::pair <int, uint16_t> startSearch(Info *info);
+    std::pair <int, uint16_t> startSearch(Info* info);
     int quiesce(int alpha, int beta, bool useTT = true); /// for quiet position check (tuning)
     int search(int alpha, int beta, int depth, bool cutNode, uint16_t excluded = NULLMOVE);
 
-    void setTime(Info *tInfo) {
-      info = tInfo;
+    void setTime(Info* tInfo) {
+        info = tInfo;
     }
 
-  private:
-    void startWorkerThreads(Info *info);
+private:
+    void startWorkerThreads(Info* info);
     void flagWorkersStop();
     void stopWorkerThreads();
     void lazySMPSearcher();
@@ -89,7 +89,7 @@ class Search {
 
     bool checkForStop();
 
-  public:
+public:
 
     uint64_t nodesSearched[64][64];
     uint16_t pvTable[DEPTH + 5][DEPTH + 5];
@@ -103,10 +103,10 @@ class Search {
     int lmrRed[64][64];
     StackEntry Stack[DEPTH + 5];
 
-    Info *info;
+    Info* info;
     volatile int flag;
 
-  private:
+private:
     uint64_t tbHits;
     uint64_t t0;
 
@@ -121,14 +121,14 @@ class Search {
     std::unique_ptr <std::thread> principalThread;
     std::mutex readyMutex;
 
-  public:
+public:
     uint64_t nodes;
     bool principalSearcher;
     Board board;
 
-    tt :: HashTable *threadTT;
+    tt::HashTable* threadTT;
 
-  private:
+private:
     std::unique_ptr <std::thread[]> threads;
     std::unique_ptr <Search[]> params;
     std::condition_variable lazyCV;
@@ -136,11 +136,11 @@ class Search {
     volatile bool SMPThreadExit;
 
     bool isLazySMP() {
-      return lazyDepth > 0;
+        return lazyDepth > 0;
     }
 
     void resetLazySMP() {
-      lazyDepth = 0;
+        lazyDepth = 0;
     }
 
     bool terminateSMP;
