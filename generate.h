@@ -1,3 +1,20 @@
+/*
+  Clover is a UCI chess playing engine authored by Luca Metehau.
+  <https://github.com/lucametehau/CloverEngine>
+
+  Clover is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  Clover is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #pragma once
 #include <fstream>
 #include <vector>
@@ -6,6 +23,7 @@
 #include <atomic>
 #include "search.h"
 
+/*
 struct FenData {
     int score;
     std::string fen;
@@ -13,7 +31,7 @@ struct FenData {
 
 void generateFens(std::atomic <int>& sumFens, int nrFens, std::string path, uint64_t seed) {
     std::ofstream out(path);
-    std::mt19937_64 gn(seed + 9107510751716LL);
+    std::mt19937_64 gn(seed);
 
     Info info[1];
     int gameInd = 1, totalFens = 0;
@@ -136,9 +154,6 @@ void generateFens(std::atomic <int>& sumFens, int nrFens, std::string path, uint
 
         gameInd++;
     }
-
-    /*for(int i = 0; i < 1000; i++)
-      std::cout << (cntGames[i] ? 1.0 * cntNodes[i] / cntGames[i] : 0) << " average nodes for ply " << i << "\n";*/
 }
 
 void generateData(int nrFens, int nrThreads, std::string rootPath) {
@@ -153,7 +168,7 @@ void generateData(int nrFens, int nrThreads, std::string rootPath) {
             path[i] += char(i + '0');
         else
             path[i] += char(i / 10 + '0'), path[i] += char(i % 10 + '0');
-
+            
         path[i] += ".txt";
         std::cout << path[i] << "\n";
     }
@@ -182,4 +197,3 @@ void generateData(int nrFens, int nrThreads, std::string rootPath) {
     for (auto& t : threads)
         t.join();
 }
-
