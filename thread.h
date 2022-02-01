@@ -108,6 +108,8 @@ public:
     Info* info;
     volatile int flag;
 
+    tt::HashTable* TT;
+
 private:
     uint64_t tbHits;
     uint64_t t0;
