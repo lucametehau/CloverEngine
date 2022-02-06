@@ -65,7 +65,7 @@ bool Search::checkForStop() {
     return (flag & TERMINATED_SEARCH);
 }
 
-bool printStats = true; /// default true
+bool printStats = false; /// default true
 bool PROBE_ROOT = true; /// default true
 
 int Search::quiesce(int alpha, int beta, bool useTT) {
@@ -96,7 +96,7 @@ int Search::quiesce(int alpha, int beta, bool useTT) {
 
     /// probe transposition table
 
-    if (TT->probe(key, entry)) {
+    if (useTT && TT->probe(key, entry)) {
         best = eval = entry.info.eval;
         ttValue = score = entry.value(ply);
         bound = entry.bound();
@@ -114,7 +114,7 @@ int Search::quiesce(int alpha, int beta, bool useTT) {
 
         Stack[ply].eval = eval;
 
-        if (bound == EXACT || (bound == LOWER && ttValue > eval) || (bound == UPPER && ttValue < eval))
+        if (useTT && (bound == EXACT || (bound == LOWER && ttValue > eval) || (bound == UPPER && ttValue < eval)))
             best = ttValue;
     }
 
@@ -158,8 +158,10 @@ int Search::quiesce(int alpha, int beta, bool useTT) {
 
     /// store info in transposition table (seems to work)
 
+  if(useTT) {
     bound = (best >= beta ? LOWER : (best > alphaOrig ? EXACT : UPPER));
     TT->save(key, best, 0, ply, bound, bestMove, Stack[ply].eval);
+  }
 
     return best;
 }
@@ -552,7 +554,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
     memset(pvTable, 0, sizeof(pvTable));
     info = _info;
 
-    if (principalSearcher) {
+    if(principalSearcher && printStats) {
 
         /// corner cases
 
@@ -617,6 +619,59 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
                     return { 0, move };
                 }
             }
+      if(PROBE_ROOT && nrMoves == 1) {
+        waitUntilDone();
+        std::cout << "bestmove " << toString(moves[0]) << std::endl;
+        return {0, moves[0]};
+      }
+
+      /// position is in tablebase
+
+      if(PROBE_ROOT && count(board.pieces[WHITE] | board.pieces[BLACK]) <= (int)TB_LARGEST) {
+        int move = NULLMOVE;
+        auto probe = tb_probe_root(board.pieces[WHITE], board.pieces[BLACK],
+                                  board.bb[WK] | board.bb[BK],
+                                  board.bb[WQ] | board.bb[BQ],
+                                  board.bb[WR] | board.bb[BR],
+                                  board.bb[WB] | board.bb[BB],
+                                  board.bb[WN] | board.bb[BN],
+                                  board.bb[WP] | board.bb[BP],
+                                  board.halfMoves,
+                                  (board.castleRights & (3 << board.turn)) > 0,
+                                  0,
+                                  board.turn,
+                                  nullptr);
+        if(probe != TB_RESULT_CHECKMATE && probe != TB_RESULT_FAILED && probe != TB_RESULT_STALEMATE) {
+          int to = int(TB_GET_TO(probe)), from = int(TB_GET_FROM(probe)), promote = TB_GET_PROMOTES(probe), ep = TB_GET_EP(probe);
+
+          if(!promote && !ep) {
+            move = getMove(from, to, 0, NEUT);
+          } else {
+            int prom = 0;
+            switch(promote) {
+            case TB_PROMOTES_KNIGHT:
+              prom = KNIGHT;
+              break;
+            case TB_PROMOTES_BISHOP:
+              prom = BISHOP;
+              break;
+            case TB_PROMOTES_ROOK:
+              prom = ROOK;
+              break;
+            case TB_PROMOTES_QUEEN:
+              prom = QUEEN;
+              break;
+            }
+            move = getMove(from, to, prom - KNIGHT, PROMOTION);
+          }
+        }
+
+        for(auto &mv : moves) {
+          if(mv == move) {
+            waitUntilDone();
+            std::cout << "bestmove " << toString(move) << std::endl;
+            return {0, move};
+          }
         }
     }
 
@@ -745,7 +800,8 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
     if (principalSearcher && printStats)
         std::cout << "bestmove " << toString(bestMove) << std::endl;
 
-    //TT->age();
+  return {score, bestMove};
+}
 
     return std::make_pair(score, bestMove);
 }

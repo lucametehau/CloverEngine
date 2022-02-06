@@ -117,10 +117,14 @@ public:
     Info* info;
     volatile int flag;
 
-private:
+    tt :: HashTable *TT;
+
+    volatile int flag;
+
+  private:
     uint64_t tbHits;
     uint64_t t0;
-
+    Info *info;
     int checkCount;
 
     uint64_t nmpFail, nmpTries;
