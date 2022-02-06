@@ -192,7 +192,7 @@ public:
                     if (followMove)
                         score += searcher->follow[1][followPiece][followTo][piece][to];
 
-                    score += searcher->nodesSearched[from][to] / 10000; // the longer it takes a move to be refuted, the higher its chance to become the best move
+                    score += searcher->nodesSearched[from][to] / nodesSearchedDiv; // the longer it takes a move to be refuted, the higher its chance to become the best move
                 }
                 scores[i] = score;
             }

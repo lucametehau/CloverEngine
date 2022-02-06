@@ -26,16 +26,25 @@
 /// search params (tuning all with ctt, but I didn't get any nice results)
 
 int RazorCoef = 325;
+
 int SNMPCoef1 = 97;
 int SNMPCoef2 = 25;
+
 int seeCoefQuiet = 80;
 int seeCoefNoisy = 18;
+
 int fpMargin = 100;
 int fpCoef = 103; /// 51
+
 int histDiv = 4766;
+
 int chCoef = -2000;
 int fhCoef = -2000;
+
 int fpHistDiv = 512;
+
+int nodesSearchedDiv = 100000;
+
 float lmrMargin = 0.75;
 float lmrDiv = 2.25;
 

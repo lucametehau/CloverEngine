@@ -367,6 +367,13 @@ void UCI::Uci_Loop() {
                     iss >> val;
                     lmrDiv = val;
                 }
+                else if (name == "nodesSearchedDiv") {
+                    iss >> value;
+
+                    int val;
+                    iss >> val;
+                    nodesSearchedDiv = val;
+                }
 
             }
             else if (cmd == "generate") {
