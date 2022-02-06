@@ -114,17 +114,12 @@ public:
     int lmrRed[64][64];
     StackEntry Stack[DEPTH + 5];
 
-    Info* info;
     volatile int flag;
 
-    tt :: HashTable *TT;
-
-    volatile int flag;
-
-  private:
+private:
     uint64_t tbHits;
     uint64_t t0;
-    Info *info;
+    Info* info;
     int checkCount;
 
     uint64_t nmpFail, nmpTries;

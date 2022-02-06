@@ -25,7 +25,7 @@
 #include "perft.h"
 #include "generate.h"
 
-const std::string VERSION = "3.1-dev6"; /// 2.0 was "FM"
+const std::string VERSION = "3.1-dev5"; /// 2.0 was "FM"
 
 class UCI {
 public:
@@ -57,7 +57,7 @@ void UCI::Uci_Loop() {
 
     std::cout << "Clover " << VERSION << " by Luca Metehau" << std::endl;
 
-    //TT = new tt :: HashTable();
+    TT = new tt::HashTable();
 
     Info info[1];
 
@@ -242,12 +242,12 @@ void UCI::Uci_Loop() {
                     iss >> value;
 
                     iss >> ttSize;
-                    
+
                     TT->initTable(ttSize * MB);
+
                 }
                 else if (name == "Threads") {
                     int nrThreads;
-              //TT->initTable(ttSize * MB);
 
                     iss >> value;
 
@@ -351,39 +351,6 @@ void UCI::Uci_Loop() {
                     iss >> val;
                     histDiv = val;
                 }
-                else if (name == "lmrMargin") {
-                    iss >> value;
-          } else if(cmd == "generate") {
-
-            int nrThreads, nrFens;
-            std::string path;
-
-            iss >> nrFens >> nrThreads >> path;
-
-            generateData(nrFens, nrThreads, path);
-
-          } else if(cmd == "tune") {
-
-                    float val;
-
-                    iss >> val;
-                    lmrMargin = val;
-                }
-                else if (name == "lmrDiv") {
-                    iss >> value;
-
-                    float val;
-
-                    iss >> val;
-                    lmrDiv = val;
-                }
-                else if (name == "nodesSearchedDiv") {
-                    iss >> value;
-
-                    int val;
-                    iss >> val;
-                    nodesSearchedDiv = val;
-                }
 
             }
             else if (cmd == "generate") {
@@ -417,6 +384,8 @@ void UCI::Uci_Loop() {
             if (info->quit)
                 break;
         }
+
+
     }
 }
 
@@ -427,14 +396,6 @@ void UCI::Uci() {
     std::cout << "option name Threads type spin default 1 min 1 max 256" << std::endl;
     std::cout << "option name SyzygyPath type string default <empty>" << std::endl;
     std::cout << "uciok" << std::endl;
-  //TT->resetAge();
-  //TT->initTable(ttSize * MB);
-}
-
-void UCI :: Go(Info *info) {
-  //TT->age();
-  searcher.clearBoard();
-  searcher.startPrincipalSearch(info);
 }
 
 void UCI::UciNewGame(uint64_t ttSize) {
@@ -536,10 +497,8 @@ std::string benchPos[] = {
 /// IMPORTANT NOTICE: AFTER RUNNING bench, RUN ucinewgame AGAIN (to fix)
 /// why? because tt is initialized with 16MB when bench is run
 
-void UCI :: Bench() {
-  Info info[1];
-
-  //TT = new tt :: HashTable();
+void UCI::Bench() {
+    Info info[1];
 
     TT = new tt::HashTable();
 
@@ -583,4 +542,3 @@ void UCI :: Bench() {
     std::cout << " time: " << t << "\n";
     std::cout << "  nps: " << int(totalNodes / t) << "\n";*/
 }
-
