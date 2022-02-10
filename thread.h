@@ -114,6 +114,8 @@ public:
     int lmrRed[64][64];
     StackEntry Stack[DEPTH + 5];
 
+    int16_t contempt;
+
     volatile int flag;
 
 private:

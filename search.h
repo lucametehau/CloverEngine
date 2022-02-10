@@ -107,7 +107,7 @@ int Search::quiesce(int alpha, int beta, bool useTT) {
 
     if (eval == INF) {
         /// if last move was null, we already know the evaluation
-        Stack[ply].eval = best = eval = (!Stack[ply - 1].move ? -Stack[ply - 1].eval + 2 * TEMPO : evaluate(board));
+        Stack[ply].eval = best = eval = (!Stack[ply - 1].move ? -Stack[ply - 1].eval + 2 * TEMPO : evaluate(this));
     }
     else {
         /// ttValue might be a better evaluation
@@ -273,7 +273,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         if (excluded)
             eval = Stack[ply].eval;
         else
-            Stack[ply].eval = eval = (ply >= 1 && !Stack[ply - 1].move ? -Stack[ply - 1].eval + 2 * TEMPO : evaluate(board));
+            Stack[ply].eval = eval = (ply >= 1 && !Stack[ply - 1].move ? -Stack[ply - 1].eval + 2 * TEMPO : evaluate(this));
     }
     else {
         /// ttValue might be a better evaluation
@@ -461,7 +461,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
             R += !pvNode + !improving; /// not on pv or not improving
 
-            R += cutNode;
+            R += cutNode; // reduce more for cut nodes
 
             R -= 2 * refutationMove; /// reduce for refutation moves
 
@@ -627,6 +627,8 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
     int lastScore = 0, lastBestMove = NULLMOVE;
     int limitDepth = (principalSearcher ? info->depth : DEPTH); /// when limited by depth, allow helper threads to pass the fixed depth
 
+    contempt = 0;
+
     for (tDepth = 1; tDepth <= limitDepth; tDepth++) {
 
         int window = 10;
@@ -639,6 +641,9 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
             alpha = -INF;
             beta = INF;
         }
+
+        contempt = (board.turn == WHITE ? lastScore / 20 : -lastScore / 20);
+        //std::cout << "CONTEMPT = " << contempt << "\n";
 
         int depth = tDepth;
         while (true) {

@@ -23,7 +23,7 @@
 
 const int TEMPO = 20;
 
-int evaluate(Board& board) {
+int evaluate(Search *searcher = nullptr) {
 
     //float eval2 = board.NN.getOutput();
 
@@ -38,5 +38,10 @@ int evaluate(Board& board) {
       assert(0);
     }*/
 
-    return int(board.NN.getOutput()) * (board.turn == WHITE ? 1 : -1) + TEMPO;
+    int eval = int(searcher->board.NN.getOutput());
+    bool turn = searcher->board.turn;
+
+    eval += searcher->contempt;
+
+    return eval * (turn == WHITE ? 1 : -1) + TEMPO;
 }

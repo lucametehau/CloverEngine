@@ -25,7 +25,7 @@
 #include "perft.h"
 #include "generate.h"
 
-const std::string VERSION = "3.1-dev5"; /// 2.0 was "FM"
+const std::string VERSION = "3.1-dev8"; /// 2.0 was "FM"
 
 class UCI {
 public:
@@ -420,7 +420,7 @@ void UCI::Stop() {
 }
 
 void UCI::Eval() {
-    std::cout << evaluate(searcher.board) << std::endl;
+    std::cout << evaluate(&searcher) << std::endl;
 }
 
 void UCI::IsReady() {
