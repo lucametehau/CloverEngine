@@ -323,8 +323,8 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
         if (score >= beta) /// don't trust mate scores
             return (abs(score) > MATE ? beta : score);
-        /*else
-            threatMove = Stack[ply + 1].move;*/
+        else
+            threatMove = Stack[ply + 1].move;
         /*else
           nmpFail++;*/
     }
@@ -342,7 +342,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
             if (move == excluded)
                 continue;
 
-            Stack[ply].isQuietMove = false;
             Stack[ply].move = move;
             Stack[ply].piece = board.piece_at(sqFrom(move));
 

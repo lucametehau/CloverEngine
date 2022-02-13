@@ -24,8 +24,8 @@
 
 enum {
     STAGE_NONE = 0, STAGE_HASHMOVE, STAGE_GEN_NOISY, STAGE_GOOD_NOISY,
-    STAGE_KILLER_1, STAGE_KILLER_2, STAGE_COUNTER, STAGE_GEN_QUIETS,
-    STAGE_QUIETS, STAGE_BAD_NOISY, STAGE_DONE
+    STAGE_KILLER_1, STAGE_KILLER_2, STAGE_COUNTER, STAGE_THREAT,
+    STAGE_GEN_QUIETS, STAGE_QUIETS, STAGE_BAD_NOISY, STAGE_DONE
 }; /// move picker stages
 
 bool see(Board& board, uint16_t move, int threshold);
@@ -129,6 +129,8 @@ public:
                         killer2 = NULLMOVE;
                     if (best == counter)
                         counter = NULLMOVE;
+                    if (best == threatMove)
+                        threatMove = NULLMOVE;
 
                     return best;
                 }
@@ -164,6 +166,14 @@ public:
                 return counter;
         }
 
+        if (stage == STAGE_THREAT) {
+
+            stage++;
+
+            if (!skip && threatMove && threatMove != hashMove && threatMove != killer1 && threatMove != killer2 && threatMove != counter && isLegalMove(searcher->board, threatMove))
+                return threatMove;
+        }
+
         if (stage == STAGE_GEN_QUIETS) {
             /// quiet moves
             /// TO DO: don't generate all quiets to validate refutation moves, add fast isLegal(move) function ? - done
@@ -180,7 +190,7 @@ public:
                 uint16_t move = quiets[i];
                 int score = 0;
 
-                if (move == hashMove || move == killer1 || move == killer2 || move == counter)
+                if (move == hashMove || move == killer1 || move == killer2 || move == counter || move == threatMove)
                     score = -1000000000;
                 else {
                     int from = sqFrom(move), to = sqTo(move), piece = searcher->board.piece_at(from);
@@ -213,7 +223,7 @@ public:
                 quiets[ind] = quiets[nrQuiets];
                 scores[ind] = scores[nrQuiets];
 
-                if (best == hashMove || best == killer1 || best == killer2 || best == counter)
+                if (best == hashMove || best == killer1 || best == killer2 || best == counter || best == threatMove)
                     return nextMove(searcher, skip, noisyPicker);
 
                 return best;
@@ -229,7 +239,7 @@ public:
                 nrBadNoisy--;
                 uint16_t move = badNoisy[nrBadNoisy];
 
-                if (move == hashMove || move == killer1 || move == killer2 || move == counter)
+                if (move == hashMove || move == killer1 || move == killer2 || move == counter || move == threatMove)
                     return nextMove(searcher, skip, noisyPicker);
 
                 return move;
