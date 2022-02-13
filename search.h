@@ -525,7 +525,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
             killers[ply][0] = bestMove;
         }
 
-        int updateDepth = depth + (best - beta > 200);
+        int updateDepth = depth;
         updateHistory(this, quiets, nrQuiets, ply, updateDepth * updateDepth);
     }
 
