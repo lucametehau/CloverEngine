@@ -20,39 +20,22 @@
 #include "defs.h"
 #include "thread.h"
 
-class Search;
-
-class History {
-    History() = delete;
-    ~History() = delete;
-
-public:
-    struct Heuristics {
-        Heuristics() : h(0), ch(0), fh(0) {}
-        int h, ch, fh;
-    };
-
-public:
-    static void updateHistory(Search* searcher, uint16_t* quiets, int nrQuiets, int ply, int bonus);
-    static void updateCapHistory(Search* searcher, uint16_t* captures, int nrCaptures, uint16_t best, int ply, int bonus);
-    static void getHistory(Search* searcher, uint16_t move, int ply, Heuristics& H);
-    static void updateHist(int& hist, int score);
-private:
-    static constexpr int histMax = 400;
-    static constexpr int histMult = 32;
-    static constexpr int histDiv = 512;
+struct Heuristics {
+    Heuristics() : h(0), ch(0), fh(0) {}
+    int h, ch, fh;
 };
 
-constexpr int History::histMax;
-constexpr int History::histMult;
-constexpr int History::histDiv;
+
+int histMax = 800;
+int histMult = 64;
+int histUpdateDiv = 273;
 
 
-void History::updateHist(int& hist, int score) {
-    hist += score * histMult - hist * abs(score) / histDiv;
+void updateHist(int& hist, int score) {
+    hist += score * histMult - hist * abs(score) / histUpdateDiv;
 }
 
-void History::updateHistory(Search* searcher, uint16_t* quiets, int nrQuiets, int ply, int bonus) {
+void updateHistory(Search* searcher, uint16_t* quiets, int nrQuiets, int ply, int bonus) {
     if (ply < 2 || !nrQuiets) /// we can't update if we don't have a follow move or no quiets
         return;
 
@@ -86,7 +69,7 @@ void History::updateHistory(Search* searcher, uint16_t* quiets, int nrQuiets, in
     }
 }
 
-void History::updateCapHistory(Search* searcher, uint16_t* captures, int nrCaptures, uint16_t best, int ply, int bonus) {
+void updateCapHistory(Search* searcher, uint16_t* captures, int nrCaptures, uint16_t best, int ply, int bonus) {
     bonus = std::min(bonus, histMax);
 
     for (int i = 0; i < nrCaptures; i++) {
@@ -104,7 +87,7 @@ void History::updateCapHistory(Search* searcher, uint16_t* captures, int nrCaptu
     }
 }
 
-void History::getHistory(Search* searcher, uint16_t move, int ply, Heuristics& H) {
+void getHistory(Search* searcher, uint16_t move, int ply, Heuristics& H) {
     int from = sqFrom(move), to = sqTo(move), piece = searcher->board.piece_at(from);
 
     H.h = searcher->hist[searcher->board.turn][from][to];

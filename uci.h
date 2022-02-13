@@ -351,6 +351,30 @@ void UCI::Uci_Loop() {
                     iss >> val;
                     histDiv = val;
                 }
+                else if (name == "histMax") {
+                    iss >> value;
+
+                    int val;
+
+                    iss >> val;
+                    histMax = val;
+                }
+                else if (name == "histMult") {
+                    iss >> value;
+
+                    int val;
+
+                    iss >> val;
+                    histMult = val;
+                }
+                else if (name == "histUpdateDiv") {
+                    iss >> value;
+
+                    int val;
+
+                    iss >> val;
+                    histUpdateDiv = val;
+                }
 
             }
             else if (cmd == "generate") {
@@ -420,7 +444,7 @@ void UCI::Stop() {
 }
 
 void UCI::Eval() {
-    std::cout << evaluate(&searcher) << std::endl;
+    std::cout << evaluate(searcher.board) << std::endl;
 }
 
 void UCI::IsReady() {

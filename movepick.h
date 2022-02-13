@@ -36,7 +36,7 @@ class Movepick {
 public:
     int stage;
 
-    uint16_t hashMove, killer1, killer2, counter, possibleCounter;
+    uint16_t hashMove, killer1, killer2, counter, threatMove, possibleCounter;
     int nrNoisy, nrQuiets, nrBadNoisy;
 
     int threshold;
@@ -44,13 +44,14 @@ public:
     uint16_t noisy[256], quiets[256], badNoisy[256];
     int scores[256];
 
-    Movepick(const uint16_t HashMove, const uint16_t Killer1, const uint16_t Killer2, const uint16_t Counter, const int Threshold) {
+    Movepick(const uint16_t HashMove, const uint16_t Killer1, const uint16_t Killer2, const uint16_t Counter, const uint16_t ThreatMove, const int Threshold) {
         stage = STAGE_HASHMOVE;
 
         hashMove = HashMove;
         killer1 = Killer1;
         killer2 = Killer2;
         counter = Counter;
+        threatMove = ThreatMove;
 
         nrNoisy = nrQuiets = nrBadNoisy = 0;
         threshold = Threshold;
