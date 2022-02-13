@@ -24,7 +24,7 @@
 
 enum {
     STAGE_NONE = 0, STAGE_HASHMOVE, STAGE_GEN_NOISY, STAGE_GOOD_NOISY,
-    STAGE_KILLER_1, STAGE_KILLER_2, STAGE_COUNTER, STAGE_THREAT,
+    STAGE_KILLER_1, STAGE_KILLER_2, STAGE_COUNTER,
     STAGE_GEN_QUIETS, STAGE_QUIETS, STAGE_BAD_NOISY, STAGE_DONE
 }; /// move picker stages
 
@@ -36,7 +36,7 @@ class Movepick {
 public:
     int stage;
 
-    uint16_t hashMove, killer1, killer2, counter, threatMove, possibleCounter;
+    uint16_t hashMove, killer1, killer2, counter, possibleCounter;
     int nrNoisy, nrQuiets, nrBadNoisy;
 
     int threshold;
@@ -44,14 +44,13 @@ public:
     uint16_t noisy[256], quiets[256], badNoisy[256];
     int scores[256];
 
-    Movepick(const uint16_t HashMove, const uint16_t Killer1, const uint16_t Killer2, const uint16_t Counter, const uint16_t ThreatMove, const int Threshold) {
+    Movepick(const uint16_t HashMove, const uint16_t Killer1, const uint16_t Killer2, const uint16_t Counter, const int Threshold) {
         stage = STAGE_HASHMOVE;
 
         hashMove = HashMove;
         killer1 = Killer1;
         killer2 = Killer2;
         counter = Counter;
-        threatMove = ThreatMove;
 
         nrNoisy = nrQuiets = nrBadNoisy = 0;
         threshold = Threshold;
@@ -164,14 +163,6 @@ public:
 
             if (!skip && counter && counter != hashMove && counter != killer1 && counter != killer2 && isLegalMove(searcher->board, counter))
                 return counter;
-        }
-
-        if (stage == STAGE_THREAT) {
-
-            stage++;
-
-            if (!skip && threatMove && threatMove != hashMove && threatMove != killer1 && threatMove != killer2 && threatMove != counter && isLegalMove(searcher->board, threatMove))
-                return threatMove;
         }
 
         if (stage == STAGE_GEN_QUIETS) {

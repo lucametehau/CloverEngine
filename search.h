@@ -125,7 +125,7 @@ int Search::quiesce(int alpha, int beta, bool useTT) {
 
     alpha = std::max(alpha, best);
 
-    Movepick noisyPicker(NULLMOVE, NULLMOVE, NULLMOVE, NULLMOVE, NULLMOVE, 0);
+    Movepick noisyPicker(NULLMOVE, NULLMOVE, NULLMOVE, NULLMOVE, 0);
 
     uint16_t move;
 
@@ -169,6 +169,9 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     if (checkForStop())
         return ABORT;
 
+    if (depth <= 0)
+        return quiesce(alpha, beta);
+
     int pvNode = (alpha < beta - 1), rootNode = (board.ply == 0);
     uint16_t hashMove = NULLMOVE;
     int ply = board.ply;
@@ -178,11 +181,8 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     //uint16_t captures[256], nrCaptures = 0;
     int played = 0, bound = NONE, skip = 0;
     int best = -INF;
-    uint16_t bestMove = NULLMOVE, threatMove = NULLMOVE;
+    uint16_t bestMove = NULLMOVE;
     int ttHit = 0, ttValue = 0;
-
-    if (depth <= 0)
-        return quiesce(alpha, beta);
 
     nodes++;
     selDepth = std::max(selDepth, ply);
@@ -323,8 +323,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
         if (score >= beta) /// don't trust mate scores
             return (abs(score) > MATE ? beta : score);
-        else
-            threatMove = Stack[ply + 1].move;
         /*else
           nmpFail++;*/
     }
@@ -333,8 +331,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
     if (!pvNode && !isCheck && depth >= 5 && abs(beta) < MATE) {
         int cutBeta = beta + 100;
-        Movepick noisyPicker(NULLMOVE,
-            NULLMOVE, NULLMOVE, NULLMOVE, threatMove, cutBeta - Stack[ply].eval);
+        Movepick noisyPicker(NULLMOVE, NULLMOVE, NULLMOVE, NULLMOVE, cutBeta - Stack[ply].eval);
 
         uint16_t move;
 
@@ -371,7 +368,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     uint16_t counter = (ply == 0 || !Stack[ply - 1].move ? NULLMOVE :
         cmTable[1 ^ board.turn][Stack[ply - 1].piece][sqTo(Stack[ply - 1].move)]);
 
-    Movepick picker(hashMove, killers[ply][0], killers[ply][1], counter, threatMove, 0);
+    Movepick picker(hashMove, killers[ply][0], killers[ply][1], counter, 0);
 
     uint16_t move;
 
