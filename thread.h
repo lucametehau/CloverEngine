@@ -125,6 +125,7 @@ private:
     int checkCount;
 
     uint64_t nmpFail, nmpTries;
+    uint64_t bmExt;
     int bestMoveCnt;
 
     int threadCount;

@@ -132,6 +132,7 @@ int Search::quiesce(int alpha, int beta, bool useTT) {
     while ((move = noisyPicker.nextMove(this, 1, 1))) {
         /// update stack info
 
+        Stack[ply].threatMove = NULLMOVE;
         Stack[ply].move = move;
         Stack[ply].piece = board.piece_at(sqFrom(move));
 
@@ -341,6 +342,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
             if (move == excluded)
                 continue;
 
+            Stack[ply].threatMove = NULLMOVE;
             Stack[ply].move = move;
             Stack[ply].piece = board.piece_at(sqFrom(move));
 
@@ -365,14 +367,13 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     if (pvNode && !isCheck && depth >= 4 && !hashMove)
         depth--;
 
+    Stack[ply].threatMove = threatMove;
+
     /// get counter move for move picker
 
     uint16_t counter = (ply == 0 || !Stack[ply - 1].move ? NULLMOVE : cmTable[1 ^ board.turn][Stack[ply - 1].piece][sqTo(Stack[ply - 1].move)]);
-    uint16_t threatCounter = (threatMove ? cmTable[1 ^ board.turn][board.piece_at(sqFrom(threatMove))][sqTo(threatMove)] : NULLMOVE);
 
-
-
-    Movepick picker(hashMove, killers[ply][0], killers[ply][1], (threatCounter && !isNoisyMove(board, threatCounter) ? threatCounter : counter), 0);
+    Movepick picker(hashMove, killers[ply][0], killers[ply][1], counter, 0);
 
     uint16_t move;
 
@@ -432,6 +433,10 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         }
         else {
             ex |= isCheck | (isQuiet && pvNode && H.ch >= 10000 && H.fh >= 10000); /// in check extension and moves with good history
+
+            if (ply >= 2 && move == hashMove && Stack[ply].threatMove == Stack[ply - 2].threatMove && Stack[ply].threatMove) { // botvinnik markoff extension
+                ex |= 1; 
+            }
         }
 
         /// update stack info
@@ -690,6 +695,8 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
                 std::cout << "pv ";
                 printPv();
                 std::cout << std::endl;
+
+                std::cout << "Extensions : " << bmExt << std::endl;
 
                 //std::cout << "NMP Fail rate: " << 100.0 * nmpFail / nmpTries << "\n";
             }
