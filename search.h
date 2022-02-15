@@ -181,7 +181,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     //uint16_t captures[256], nrCaptures = 0;
     int played = 0, bound = NONE, skip = 0;
     int best = -INF;
-    uint16_t bestMove = NULLMOVE;
+    uint16_t bestMove = NULLMOVE, threatMove = NULLMOVE;
     int ttHit = 0, ttValue = 0;
 
     nodes++;
@@ -323,8 +323,10 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
         if (score >= beta) /// don't trust mate scores
             return (abs(score) > MATE ? beta : score);
-        /*else
-          nmpFail++;*/
+        else {
+            threatMove = Stack[ply + 1].move;
+            //nmpFail++;
+        }
     }
 
     /// probcut
@@ -365,10 +367,12 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
     /// get counter move for move picker
 
-    uint16_t counter = (ply == 0 || !Stack[ply - 1].move ? NULLMOVE :
-        cmTable[1 ^ board.turn][Stack[ply - 1].piece][sqTo(Stack[ply - 1].move)]);
+    uint16_t counter = (ply == 0 || !Stack[ply - 1].move ? NULLMOVE : cmTable[1 ^ board.turn][Stack[ply - 1].piece][sqTo(Stack[ply - 1].move)]);
+    uint16_t threatCounter = (threatMove ? cmTable[1 ^ board.turn][board.piece_at(sqFrom(threatMove))][sqTo(threatMove)] : NULLMOVE);
 
-    Movepick picker(hashMove, killers[ply][0], killers[ply][1], counter, 0);
+
+
+    Movepick picker(hashMove, killers[ply][0], killers[ply][1], (threatCounter && !isNoisyMove(board, threatCounter) ? threatCounter : counter), 0);
 
     uint16_t move;
 
@@ -522,7 +526,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
             killers[ply][0] = bestMove;
         }
 
-        int updateDepth = depth + (best - beta > 200);
+        int updateDepth = depth;
         updateHistory(this, quiets, nrQuiets, ply, updateDepth * updateDepth);
     }
 
