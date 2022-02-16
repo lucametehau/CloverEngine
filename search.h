@@ -417,13 +417,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         /// singular extension (look if the tt move is better than the rest)
 
 
-        if (isCheck) {
-            ex = 1;
-        }
-        else if(isQuiet && pvNode && H.ch >= 10000 && H.fh >= 10000) { /// in check extension and moves with good history
-            ex = 1; 
-        }
-        else if (!rootNode && !excluded && move == ttMove && abs(ttValue) < MATE && depth >= 8 && entry.depth() >= depth - 3 && (bound & LOWER)) { /// had best instead of ttValue lol
+        if (!rootNode && !excluded && move == ttMove && abs(ttValue) < MATE && depth >= 8 && entry.depth() >= depth - 3 && (bound & LOWER)) { /// had best instead of ttValue lol
             int rBeta = ttValue - depth;
 
             int score = search(rBeta - 1, rBeta, depth / 2, cutNode, move);
@@ -433,6 +427,14 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
             else if (rBeta >= beta) /// multicut
                 return rBeta;
         }
+        else if (isCheck) {
+            ex = 1;
+        }
+        /*
+        else if (isQuiet && pvNode && H.ch >= 10000 && H.fh >= 10000) { /// in check extension and moves with good history
+            ex = 1;
+        }
+        */
 
         /// update stack info
         Stack[ply].move = move;
