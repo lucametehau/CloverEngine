@@ -173,7 +173,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         return quiesce(alpha, beta);
 
     int pvNode = (alpha < beta - 1), rootNode = (board.ply == 0);
-    uint16_t hashMove = NULLMOVE;
+    uint16_t ttMove = NULLMOVE;
     int ply = board.ply;
     int alphaOrig = alpha;
     uint64_t key = board.key;
@@ -210,7 +210,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         int score = entry.value(ply);
         ttHit = 1;
         ttValue = score;
-        bound = entry.bound(), hashMove = entry.info.move;
+        bound = entry.bound(), ttMove = entry.info.move;
         eval = entry.info.eval;
         if (entry.depth() >= depth && !pvNode) {
             if (bound == EXACT || (bound == LOWER && score >= beta) || (bound == UPPER && score <= alpha))
@@ -359,18 +359,19 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         }
     }
 
-    /// internal iterative deepening (search at reduced depth to find a hashMove) (Rebel like)
+    /// internal iterative deepening (search at reduced depth to find a ttMove) (Rebel like)
 
-    if (pvNode && !isCheck && depth >= 4 && !hashMove)
+    if (pvNode && !isCheck && depth >= 4 && !ttMove)
         depth--;
 
     /// get counter move for move picker
 
     uint16_t counter = (ply == 0 || !Stack[ply - 1].move ? NULLMOVE : cmTable[1 ^ board.turn][Stack[ply - 1].piece][sqTo(Stack[ply - 1].move)]);
 
-    Movepick picker(hashMove, killers[ply][0], killers[ply][1], counter, 0);
+    Movepick picker(ttMove, killers[ply][0], killers[ply][1], counter, 0);
 
     uint16_t move;
+    bool ttNoisy = (ttMove ? isNoisyMove(board, ttMove) : 0);
 
     while ((move = picker.nextMove(this, skip, 0)) != NULLMOVE) {
 
@@ -402,13 +403,13 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
                 if (newDepth <= 8 && nrQuiets >= lmrCnt[improving][newDepth])
                     skip = 1;
 
-                if (depth <= 8 && !isCheck && !see(board, move, -seeCoefQuiet * depth * depth))
+                if (depth <= 8 && !isCheck && !see(board, move, -seeCoefQuiet * depth))
                     continue;
             }
 
             /// see pruning
 
-            if (depth <= 8 && !isCheck && !isQuiet && picker.stage > STAGE_GOOD_NOISY && !see(board, move, -seeCoefNoisy * depth))
+            if (depth <= 8 && !isCheck && !isQuiet && picker.stage > STAGE_GOOD_NOISY && !see(board, move, -seeCoefNoisy * depth * depth))
                 continue;
         }
 
@@ -416,7 +417,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
         /// singular extension (look if the tt move is better than the rest)
 
-        if (!rootNode && !excluded && move == hashMove && abs(ttValue) < MATE && depth >= 8 && entry.depth() >= depth - 3 && (bound & LOWER)) { /// had best instead of ttValue lol
+        if (!rootNode && !excluded && move == ttMove && abs(ttValue) < MATE && depth >= 8 && entry.depth() >= depth - 3 && (bound & LOWER)) { /// had best instead of ttValue lol
             int rBeta = ttValue - depth;
 
             int score = search(rBeta - 1, rBeta, depth / 2, cutNode, move);
@@ -460,6 +461,8 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
             R += !pvNode + !improving; /// not on pv or not improving
 
             R += cutNode; // reduce more for cut nodes
+
+            R += ttNoisy; // reduce for quiets if ttmove is a noisy move
 
             R -= 2 * refutationMove; /// reduce for refutation moves
 
