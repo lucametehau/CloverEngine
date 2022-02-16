@@ -22,7 +22,7 @@
 #include "net.h"
 
 struct StackEntry { /// info to keep in the stack
-    uint16_t move, threatMove, piece;
+    uint16_t move, piece;
     int eval;
 };
 

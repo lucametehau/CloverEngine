@@ -132,7 +132,6 @@ int Search::quiesce(int alpha, int beta, bool useTT) {
     while ((move = noisyPicker.nextMove(this, 1, 1))) {
         /// update stack info
 
-        Stack[ply].threatMove = NULLMOVE;
         Stack[ply].move = move;
         Stack[ply].piece = board.piece_at(sqFrom(move));
 
@@ -182,7 +181,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     //uint16_t captures[256], nrCaptures = 0;
     int played = 0, bound = NONE, skip = 0;
     int best = -INF;
-    uint16_t bestMove = NULLMOVE, threatMove = NULLMOVE;
+    uint16_t bestMove = NULLMOVE;
     int ttHit = 0, ttValue = 0;
 
     nodes++;
@@ -325,7 +324,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         if (score >= beta) /// don't trust mate scores
             return (abs(score) > MATE ? beta : score);
         else {
-            threatMove = Stack[ply + 1].move;
             //nmpFail++;
         }
     }
@@ -342,7 +340,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
             if (move == excluded)
                 continue;
 
-            Stack[ply].threatMove = NULLMOVE;
             Stack[ply].move = move;
             Stack[ply].piece = board.piece_at(sqFrom(move));
 
@@ -366,8 +363,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
     if (pvNode && !isCheck && depth >= 4 && !hashMove)
         depth--;
-
-    Stack[ply].threatMove = threatMove;
 
     /// get counter move for move picker
 
@@ -407,13 +402,13 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
                 if (newDepth <= 8 && nrQuiets >= lmrCnt[improving][newDepth])
                     skip = 1;
 
-                if (depth <= 8 && !isCheck && !see(board, move, -seeCoefQuiet * depth))
+                if (depth <= 8 && !isCheck && !see(board, move, -seeCoefQuiet * depth * depth))
                     continue;
             }
 
             /// see pruning
 
-            if (depth <= 8 && !isCheck && !isQuiet && picker.stage > STAGE_GOOD_NOISY && !see(board, move, -seeCoefNoisy * depth * depth))
+            if (depth <= 8 && !isCheck && !isQuiet && picker.stage > STAGE_GOOD_NOISY && !see(board, move, -seeCoefNoisy * depth))
                 continue;
         }
 
@@ -433,10 +428,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         }
         else {
             ex |= isCheck | (isQuiet && pvNode && H.ch >= 10000 && H.fh >= 10000); /// in check extension and moves with good history
-
-            if (ply >= 2 && move == hashMove && Stack[ply].threatMove == Stack[ply - 2].threatMove && Stack[ply].threatMove) { // botvinnik markoff extension
-                ex |= 1; 
-            }
         }
 
         /// update stack info
@@ -695,8 +686,6 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
                 std::cout << "pv ";
                 printPv();
                 std::cout << std::endl;
-
-                std::cout << "Extensions : " << bmExt << std::endl;
 
                 //std::cout << "NMP Fail rate: " << 100.0 * nmpFail / nmpTries << "\n";
             }
