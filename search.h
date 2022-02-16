@@ -371,7 +371,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     Movepick picker(ttMove, killers[ply][0], killers[ply][1], counter, 0);
 
     uint16_t move;
-    bool ttNoisy = (ttMove ? isNoisyMove(board, ttMove) : 0);
 
     while ((move = picker.nextMove(this, skip, 0)) != NULLMOVE) {
 
@@ -417,7 +416,14 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
         /// singular extension (look if the tt move is better than the rest)
 
-        if (!rootNode && !excluded && move == ttMove && abs(ttValue) < MATE && depth >= 8 && entry.depth() >= depth - 3 && (bound & LOWER)) { /// had best instead of ttValue lol
+
+        if (isCheck) {
+            ex = 1;
+        }
+        else if(isQuiet && pvNode && H.ch >= 10000 && H.fh >= 10000) { /// in check extension and moves with good history
+            ex = 1; 
+        }
+        else if (!rootNode && !excluded && move == ttMove && abs(ttValue) < MATE && depth >= 8 && entry.depth() >= depth - 3 && (bound & LOWER)) { /// had best instead of ttValue lol
             int rBeta = ttValue - depth;
 
             int score = search(rBeta - 1, rBeta, depth / 2, cutNode, move);
@@ -426,9 +432,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
                 ex = 1;
             else if (rBeta >= beta) /// multicut
                 return rBeta;
-        }
-        else {
-            ex |= isCheck | (isQuiet && pvNode && H.ch >= 10000 && H.fh >= 10000); /// in check extension and moves with good history
         }
 
         /// update stack info
@@ -461,8 +464,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
             R += !pvNode + !improving; /// not on pv or not improving
 
             R += cutNode; // reduce more for cut nodes
-
-            R += ttNoisy; // reduce for quiets if ttmove is a noisy move
 
             R -= 2 * refutationMove; /// reduce for refutation moves
 
