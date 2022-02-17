@@ -371,6 +371,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     Movepick picker(ttMove, killers[ply][0], killers[ply][1], counter, 0);
 
     uint16_t move;
+    int recapSq = (!rootNode && Stack[ply - 1].move ? sqTo(Stack[ply - 1].move) : - 1);
 
     while ((move = picker.nextMove(this, skip, 0)) != NULLMOVE) {
 
@@ -428,6 +429,9 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
                 return rBeta;
         }
         else if (isCheck) {
+            ex = 1;
+        }
+        else if (sqTo(move) == recapSq) {
             ex = 1;
         }
         /*
