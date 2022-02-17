@@ -371,7 +371,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     Movepick picker(ttMove, killers[ply][0], killers[ply][1], counter, 0);
 
     uint16_t move;
-    int recapSq = (!rootNode && Stack[ply - 1].move ? sqTo(Stack[ply - 1].move) : - 1);
 
     while ((move = picker.nextMove(this, skip, 0)) != NULLMOVE) {
 
@@ -429,9 +428,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
                 return rBeta;
         }
         else if (isCheck) {
-            ex = 1;
-        }
-        else if (sqTo(move) == recapSq) {
             ex = 1;
         }
         /*
@@ -634,8 +630,10 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
         startWorkerThreads(info);
 
     uint64_t totalNodes = 0, totalHits = 0;
-    int lastScore = 0, lastBestMove = NULLMOVE;
+    int lastScore = 0;
     int limitDepth = (principalSearcher ? info->depth : DEPTH); /// when limited by depth, allow helper threads to pass the fixed depth
+    int mainThreadScore = 0;
+    uint16_t mainThreadBestMove = NULLMOVE;
 
     //contempt = 0;
 
@@ -727,18 +725,20 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
             /// adjust time if score is dropping (and maybe if it's jumping)
             double scoreChange = 1.0, bestMoveStreak = 1.0;
             if (tDepth >= 9) {
-                scoreChange = std::max(0.5, std::min(1.0 + (lastScore - score) / 100, 1.5));
+                scoreChange = std::max(0.5, std::min(1.0 + (mainThreadScore - score) / 100, 1.5));
 
-                bestMoveCnt = (bestMove == lastBestMove ? bestMoveCnt + 1 : 1);
+                bestMoveCnt = (bestMove == mainThreadBestMove ? bestMoveCnt + 1 : 1);
 
                 bestMoveStreak = 1.5 - 0.1 * std::min(10, bestMoveCnt);
             }
 
             info->stopTime = info->startTime + info->goodTimeLim * scoreChange * bestMoveStreak;
+
+            mainThreadScore = score;
+            mainThreadBestMove = bestMove;
         }
 
         lastScore = score;
-        lastBestMove = bestMove;
 
         if (flag & TERMINATED_SEARCH)
             break;
