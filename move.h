@@ -167,6 +167,7 @@ inline void makeMove(Board& board, uint16_t mv) { /// assuming move is at least 
     board.history[ply].key = board.key;
     board.history[ply].castleRights = board.castleRights;
     board.history[ply].captured = board.captured;
+    board.history[ply].checkers = board.checkers;
 
     board.key ^= (board.enPas >= 0 ? enPasKey[board.enPas] : 0);
 
@@ -338,6 +339,7 @@ inline void makeMove(Board& board, uint16_t mv) { /// assuming move is at least 
     int temp = board.castleRights ^ board.history[ply].castleRights;
 
     board.key ^= castleKeyModifier[temp];
+    board.checkers = getAttackers(board, board.turn, board.pieces[WHITE] | board.pieces[BLACK], board.king(1 ^ board.turn));
 
     board.turn ^= 1;
     board.ply++;
@@ -359,6 +361,7 @@ inline void undoMove(Board& board, uint16_t move) {
     board.moveIndex = board.history[ply].moveIndex;
     board.key = board.history[ply].key;
     board.castleRights = board.history[ply].castleRights;
+    board.checkers = board.history[ply].checkers;
 
     int posFrom = sqFrom(move), posTo = sqTo(move), piece = board.board[posTo], pieceCap = board.captured;
 
@@ -468,10 +471,12 @@ inline void makeNullMove(Board& board) {
     board.history[ply].key = board.key;
     board.history[ply].castleRights = board.castleRights;
     board.history[ply].captured = board.captured;
+    board.history[ply].checkers = board.checkers;
 
     board.key ^= (board.enPas >= 0 ? enPasKey[board.enPas] : 0);
 
     board.captured = 0;
+    board.checkers = 0;
     board.enPas = -1;
     board.turn ^= 1;
     board.key ^= 1;
@@ -493,6 +498,7 @@ inline void undoNullMove(Board& board) {
     board.key = board.history[ply].key;
     board.castleRights = board.history[ply].castleRights;
     board.captured = board.history[ply].captured;
+    board.checkers = board.history[ply].checkers;
 }
 
 inline int genLegal(Board& board, uint16_t* moves) {
@@ -501,7 +507,7 @@ inline int genLegal(Board& board, uint16_t* moves) {
     int king = board.king(color), enemyKing = board.king(enemy);
     uint64_t pieces, mask, us = board.pieces[color], them = board.pieces[enemy];
     uint64_t b, b1, b2, b3;
-    uint64_t attacked = 0, pinned = 0, checkers = 0; /// squares attacked by enemy / pinned pieces
+    uint64_t attacked = 0, pinned = 0; /// squares attacked by enemy / pinned pieces
     uint64_t enemyOrthSliders = board.orthSliders(enemy), enemyDiagSliders = board.diagSliders(enemy);
     uint64_t all = board.pieces[WHITE] | board.pieces[BLACK], emptySq = ~all;
 
@@ -534,41 +540,31 @@ inline int genLegal(Board& board, uint16_t* moves) {
 
     moves = addMoves(moves, nrMoves, king, b1);
 
-
     mask = (genAttacksRook(them, king) & enemyOrthSliders) | (genAttacksBishop(them, king) & enemyDiagSliders);
-
-    checkers = knightBBAttacks[king] & board.bb[getType(KNIGHT, enemy)];
-
-    if (enemy == WHITE)
-        checkers |= pawnAttacksMask[BLACK][king] & board.bb[WP];
-    else
-        checkers |= pawnAttacksMask[WHITE][king] & board.bb[BP];
 
     while (mask) {
         b = lsb(mask);
         int pos = Sq(b);
         b2 = us & between[pos][king];
-        if (!b2)
-            checkers ^= b;
-        else if (!(b2 & (b2 - 1)))
+        if (!(b2 & (b2 - 1)))
             pinned ^= b2;
         mask ^= b;
     }
 
     uint64_t notPinned = ~pinned, capMask = 0, quietMask = 0;
 
-    int cnt = smallPopCount(checkers);
+    int cnt = count(board.checkers);
 
     if (cnt == 2) { /// double check
       /// only king moves are legal
         return nrMoves;
     }
     else if (cnt == 1) { /// one check
-        int sq = Sq(lsb(checkers));
+        int sq = Sq(lsb(board.checkers));
         switch (board.piece_type_at(sq)) {
         case PAWN:
             /// make en passant to cancel the check
-            if (board.enPas != -1 && checkers == (1ULL << (sqDir(enemy, NORTH, board.enPas)))) {
+            if (board.enPas != -1 && board.checkers == (1ULL << (sqDir(enemy, NORTH, board.enPas)))) {
                 mask = pawnAttacksMask[enemy][board.enPas] & notPinned & board.bb[getType(PAWN, color)];
                 while (mask) {
                     b = lsb(mask);
@@ -579,11 +575,11 @@ inline int genLegal(Board& board, uint16_t* moves) {
             }
             /// intentional fall through
         case KNIGHT:
-            capMask = checkers;
+            capMask = board.checkers;
             quietMask = 0;
             break;
         default:
-            capMask = checkers;
+            capMask = board.checkers;
             quietMask = between[king][sq];
         }
     }
@@ -815,7 +811,7 @@ inline int genLegalNoisy(Board& board, uint16_t* moves) {
     int king = board.king(color), enemyKing = board.king(enemy);
     uint64_t pieces, mask, us = board.pieces[color], them = board.pieces[enemy];
     uint64_t b, b1, b2, b3;
-    uint64_t attacked = 0, pinned = 0, checkers = 0; /// squares attacked by enemy / pinned pieces
+    uint64_t attacked = 0, pinned = 0; /// squares attacked by enemy / pinned pieces
     uint64_t enemyOrthSliders = board.orthSliders(enemy), enemyDiagSliders = board.diagSliders(enemy);
     uint64_t all = board.pieces[WHITE] | board.pieces[BLACK];
 
@@ -846,43 +842,31 @@ inline int genLegalNoisy(Board& board, uint16_t* moves) {
 
     moves = addCaps(moves, nrMoves, king, kingBBAttacks[king] & ~(us | attacked) & them);
 
-    /// castle queen side
-
-
     mask = (genAttacksRook(them, king) & enemyOrthSliders) | (genAttacksBishop(them, king) & enemyDiagSliders);
-
-    checkers = knightBBAttacks[king] & board.bb[getType(KNIGHT, enemy)];
-
-    if (enemy == WHITE)
-        checkers |= pawnAttacksMask[BLACK][king] & board.bb[WP];
-    else
-        checkers |= pawnAttacksMask[WHITE][king] & board.bb[BP];
 
     while (mask) {
         b = lsb(mask);
         int pos = Sq(b);
         uint64_t b2 = us & between[pos][king];
-        if (!b2)
-            checkers ^= b;
-        else if (!(b2 & (b2 - 1)))
+        if (!(b2 & (b2 - 1)))
             pinned ^= b2;
         mask ^= b;
     }
 
     uint64_t notPinned = ~pinned, capMask = 0, quietMask = 0;
 
-    int cnt = smallPopCount(checkers);
+    int cnt = count(board.checkers);
 
     if (cnt == 2) { /// double check
       /// only king moves are legal
         return nrMoves;
     }
     else if (cnt == 1) { /// one check
-        int sq = Sq(lsb(checkers));
+        int sq = Sq(lsb(board.checkers));
         switch (board.piece_type_at(sq)) {
         case PAWN:
             /// make en passant to cancel the check
-            if (board.enPas != -1 && checkers == (1ULL << (sqDir(enemy, NORTH, board.enPas)))) {
+            if (board.enPas != -1 && board.checkers == (1ULL << (sqDir(enemy, NORTH, board.enPas)))) {
                 mask = pawnAttacksMask[enemy][board.enPas] & notPinned & board.bb[getType(PAWN, color)];
                 while (mask) {
                     b = lsb(mask);
@@ -893,11 +877,11 @@ inline int genLegalNoisy(Board& board, uint16_t* moves) {
             }
             /// intentional fall through
         case KNIGHT:
-            capMask = checkers;
+            capMask = board.checkers;
             quietMask = 0;
             break;
         default:
-            capMask = checkers;
+            capMask = board.checkers;
             quietMask = between[king][sq];
         }
     }
@@ -905,7 +889,7 @@ inline int genLegalNoisy(Board& board, uint16_t* moves) {
         capMask = them;
         quietMask = ~all;
 
-        if (board.enPas >= 0) {
+        if (board.enPas != -1) {
             int ep = board.enPas, sq2 = sqDir(color, SOUTH, ep);
             b2 = pawnAttacksMask[enemy][ep] & board.bb[getType(PAWN, color)];
             b1 = b2 & notPinned;
@@ -1073,7 +1057,7 @@ inline int genLegalQuiets(Board& board, uint16_t* moves) {
     int king = board.king(color), enemyKing = board.king(enemy), pos = board.king(board.turn);
     uint64_t pieces, mask, us = board.pieces[color], them = board.pieces[enemy];
     uint64_t b, b1, b2, b3;
-    uint64_t attacked = 0, pinned = 0, checkers = 0; /// squares attacked by enemy / pinned pieces
+    uint64_t attacked = 0, pinned = 0; /// squares attacked by enemy / pinned pieces
     uint64_t enemyOrthSliders = board.orthSliders(enemy), enemyDiagSliders = board.diagSliders(enemy);
     uint64_t all = board.pieces[WHITE] | board.pieces[BLACK], emptySq = ~all;
 
@@ -1107,34 +1091,25 @@ inline int genLegalQuiets(Board& board, uint16_t* moves) {
 
     mask = (genAttacksRook(them, king) & enemyOrthSliders) | (genAttacksBishop(them, king) & enemyDiagSliders);
 
-    checkers = knightBBAttacks[king] & board.bb[getType(KNIGHT, enemy)];
-
-    if (enemy == WHITE)
-        checkers |= pawnAttacksMask[BLACK][king] & board.bb[WP];
-    else
-        checkers |= pawnAttacksMask[WHITE][king] & board.bb[BP];
-
     while (mask) {
         b = lsb(mask);
         int pos = Sq(b);
         uint64_t b2 = us & between[pos][king];
-        if (!b2)
-            checkers ^= b;
-        else if (!(b2 & (b2 - 1)))
+        if (!(b2 & (b2 - 1)))
             pinned ^= b2;
         mask ^= b;
     }
 
     uint64_t notPinned = ~pinned, quietMask = 0;
 
-    int cnt = smallPopCount(checkers);
+    int cnt = count(board.checkers);
 
     if (cnt == 2) { /// double check
       /// only king moves are legal
         return nrMoves;
     }
     else if (cnt == 1) { /// one check
-        int sq = Sq(lsb(checkers));
+        int sq = Sq(lsb(board.checkers));
         switch (board.piece_type_at(sq)) {
         case PAWN:
 
@@ -1188,10 +1163,7 @@ inline int genLegalQuiets(Board& board, uint16_t* moves) {
         while (b1) {
             b = lsb(b1);
             int sq = Sq(b), rank7 = (color == WHITE ? 6 : 1), rank3 = (color == WHITE ? 2 : 5);
-            if (sq / 8 == rank7) { /// promotion captures
-
-            }
-            else {
+            if (sq / 8 != rank7) {
 
                 /// single pawn push
                 b2 = (1ULL << (sqDir(color, NORTH, sq))) & emptySq & Line[king][sq];
@@ -1354,7 +1326,7 @@ bool isPseudoLegalMove(Board& board, uint16_t move) {
     int side = (to % 8 == 6); /// queen side or king side
 
     if (board.castleRights & (1 << (2 * color + side))) { /// can i castle
-        if (isSqAttacked(board, color ^ 1, from) || isSqAttacked(board, color ^ 1, to))
+        if (board.checkers || isSqAttacked(board, color ^ 1, to))
             return 0;
 
         /// castle queen side

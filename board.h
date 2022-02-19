@@ -32,7 +32,7 @@ public:
     uint8_t castleRights;
     uint8_t captured;
     uint16_t halfMoves, moveIndex;
-    //uint64_t checkers;
+    uint64_t checkers;
     uint64_t key;
 };
 
@@ -47,7 +47,8 @@ public:
 
     uint16_t ply, gamePly;
     uint16_t halfMoves, moveIndex;
-
+    
+    uint64_t checkers;
     uint64_t bb[13];
     uint64_t pieces[2];
     uint64_t key;
@@ -146,97 +147,7 @@ public:
         return ans;
     }
 
-    void setFen(const std::string fen) {
-        int ind = 0;
-        key = 0;
-
-        ply = gamePly = 0;
-        captured = 0;
-
-        //checkers = 0;
-
-        for (int i = 0; i <= 12; i++)
-            bb[i] = 0;
-
-        pieces[BLACK] = pieces[WHITE] = 0;
-
-        for (int i = 7; i >= 0; i--) {
-            int j = 0;
-            while (fen[ind] != '/' && fen[ind] != ' ') {
-                int sq = getSq(i, j);
-                if (fen[ind] < '0' || '9' < fen[ind]) {
-                    board[sq] = cod[int(fen[ind])];
-                    key ^= hashKey[board[sq]][sq];
-
-                    pieces[(board[sq] > 6)] |= (1ULL << sq);
-                    bb[board[sq]] |= (1ULL << sq);
-                    j++;
-                }
-                else {
-                    int nr = fen[ind] - '0';
-                    while (nr)
-                        board[sq] = 0, j++, sq++, nr--;
-                }
-                ind++;
-            }
-            ind++;
-        }
-
-        if (fen[ind] == 'w')
-            turn = WHITE;
-        else
-            turn = BLACK;
-
-        key ^= turn;
-
-        //cout << "key " << key << "\n";
-
-        castleRights = 0;
-        ind += 2;
-        if (fen[ind] == 'K')
-            castleRights |= (1 << 3), ind++, key ^= castleKey[1][1];
-        if (fen[ind] == 'Q')
-            castleRights |= (1 << 2), ind++, key ^= castleKey[1][0];
-        if (fen[ind] == 'k')
-            castleRights |= (1 << 1), ind++, key ^= castleKey[0][1];
-        if (fen[ind] == 'q')
-            castleRights |= (1 << 0), ind++, key ^= castleKey[0][0];
-        if (fen[ind] == '-')
-            ind++;
-
-
-        //cout << "key " << key << "\n";
-        ind++;
-        if (fen[ind] != '-') {
-            int file = fen[ind] - 'a';
-            ind++;
-            int rank = fen[ind] - '1';
-            ind += 2;
-            enPas = getSq(rank, file);
-
-            key ^= enPasKey[enPas];
-        }
-        else {
-            enPas = -1;
-            ind += 2;
-        }
-        //cout << "key " << key << "\n";
-
-        int nr = 0;
-        while ('0' <= fen[ind] && fen[ind] <= '9')
-            nr = nr * 10 + fen[ind] - '0', ind++;
-        halfMoves = nr;
-
-        ind++;
-        nr = 0;
-        while ('0' <= fen[ind] && fen[ind] <= '9')
-            nr = nr * 10 + fen[ind] - '0', ind++;
-        moveIndex = nr;
-
-        NetInput input = toNetInput();
-
-        NN.calc(input);
-    }
+    void setFen(const std::string fen); // check init.h
 
     std::string fen() {
         std::string fen = "";
