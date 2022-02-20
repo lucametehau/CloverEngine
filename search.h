@@ -75,6 +75,7 @@ int Search::quiesce(int alpha, int beta, bool useTT) {
 
     selDepth = std::max(selDepth, ply);
     nodes++;
+    qsNodes++;
 
     if (isRepetition(board, ply) || board.halfMoves >= 100 || board.isMaterialDraw()) /// check for draw
         return 1 - (nodes & 2);
@@ -82,11 +83,11 @@ int Search::quiesce(int alpha, int beta, bool useTT) {
     if (checkForStop())
         return ABORT;
 
-    /// check if in transposition table
+    bool pvNode = (beta - alpha > 1);
     uint64_t key = board.key;
     int score = 0, best = -INF, alphaOrig = alpha;
     int bound = NONE;
-    uint16_t bestMove = NULLMOVE;
+    uint16_t bestMove = NULLMOVE, ttMove = NULLMOVE;
 
     TT->prefetch(key);
 
@@ -100,14 +101,23 @@ int Search::quiesce(int alpha, int beta, bool useTT) {
         best = eval = entry.info.eval;
         ttValue = score = entry.value(ply);
         bound = entry.bound();
+        ttMove = entry.info.move;
 
-        if (bound == EXACT || (bound == LOWER && score >= beta) || (bound == UPPER && score <= alpha))
+        if (!pvNode && (bound == EXACT || (bound == LOWER && score >= beta) || (bound == UPPER && score <= alpha)))
             return score;
     }
 
-    if (eval == INF) {
+    bool isCheck = (board.checkers != 0);
+    int futilityValue;
+
+    if (isCheck) {
+        Stack[ply].eval = INF;
+        best = futilityValue = -INF;
+    }
+    else if (eval == INF) {
         /// if last move was null, we already know the evaluation
         Stack[ply].eval = best = eval = (!Stack[ply - 1].move ? -Stack[ply - 1].eval + 2 * TEMPO : evaluate(board));
+        futilityValue = best + 200;
     }
     else {
         /// ttValue might be a better evaluation
@@ -116,29 +126,35 @@ int Search::quiesce(int alpha, int beta, bool useTT) {
 
         if (bound == EXACT || (bound == LOWER && ttValue > eval) || (bound == UPPER && ttValue < eval))
             best = ttValue;
+
+        futilityValue = best + 200;
     }
 
     /// stand-pat
 
-    if (best >= beta)
+    if (best >= beta) {
         return best;
+    }
 
     alpha = std::max(alpha, best);
 
-    Movepick noisyPicker(NULLMOVE, NULLMOVE, NULLMOVE, NULLMOVE, 0);
+    Movepick noisyPicker(ttMove, NULLMOVE, NULLMOVE, NULLMOVE, 0);
 
     uint16_t move;
-    int futilityValue = best + 150;
 
-    while ((move = noisyPicker.nextMove(this, 1, 1))) {
+    while ((move = noisyPicker.nextMove(this, !isCheck, 1))) {
 
         // futility pruning
 
-        int value = futilityValue + seeVal[board.piece_type_at(sqTo(move))];
-        if (type(move) != PROMOTION && value <= alpha) {
-            best = std::max(best, value);
-            continue;
+        
+        if (best > -MATE && futilityValue > -MATE) {
+            int value = futilityValue + seeVal[board.piece_type_at(sqTo(move))]/* - seeVal[board.piece_type_at(sqFrom(move))]*/;
+            if (type(move) != PROMOTION && value <= alpha) {
+                best = std::max(best, value);
+                continue;
+            }
         }
+        
 
         // update stack info
         Stack[ply].move = move;
@@ -165,7 +181,11 @@ int Search::quiesce(int alpha, int beta, bool useTT) {
         }
     }
 
-    /// store info in transposition table (seems to work)
+    if (isCheck && best == -INF) {
+        return -INF + ply;
+    }
+
+    /// store info in transposition table
 
     bound = (best >= beta ? LOWER : (best > alphaOrig ? EXACT : UPPER));
     TT->save(key, best, 0, ply, bound, bestMove, Stack[ply].eval);

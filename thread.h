@@ -125,6 +125,7 @@ private:
     int checkCount;
 
     uint64_t nmpFail, nmpTries;
+    uint64_t counter, counter2;
     int bestMoveCnt;
 
     int threadCount;
@@ -134,7 +135,7 @@ private:
     std::mutex readyMutex;
 
 public:
-    uint64_t nodes;
+    uint64_t nodes, qsNodes;
     bool principalSearcher;
     Board board;
 
