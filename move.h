@@ -162,12 +162,12 @@ inline void makeMove(Board& board, uint16_t mv) { /// assuming move is at least 
 
     int ply = board.gamePly;
     board.history[ply].enPas = board.enPas;
-    board.history[ply].halfMoves = board.halfMoves;
-    board.history[ply].moveIndex = board.moveIndex;
-    board.history[ply].key = board.key;
     board.history[ply].castleRights = board.castleRights;
     board.history[ply].captured = board.captured;
+    board.history[ply].halfMoves = board.halfMoves;
+    board.history[ply].moveIndex = board.moveIndex;
     board.history[ply].checkers = board.checkers;
+    board.history[ply].key = board.key;
 
     board.key ^= (board.enPas >= 0 ? enPasKey[board.enPas] : 0);
 
@@ -356,12 +356,13 @@ inline void undoMove(Board& board, uint16_t move) {
     board.gamePly--;
 
     int ply = board.gamePly;
-    board.halfMoves = board.history[ply].halfMoves;
+
     board.enPas = board.history[ply].enPas;
-    board.moveIndex = board.history[ply].moveIndex;
-    board.key = board.history[ply].key;
     board.castleRights = board.history[ply].castleRights;
+    board.halfMoves = board.history[ply].halfMoves;
+    board.moveIndex = board.history[ply].moveIndex;
     board.checkers = board.history[ply].checkers;
+    board.key = board.history[ply].key;
 
     int posFrom = sqFrom(move), posTo = sqTo(move), piece = board.board[posTo], pieceCap = board.captured;
 
@@ -466,12 +467,12 @@ inline void makeNullMove(Board& board) {
     int ply = board.gamePly;
 
     board.history[ply].enPas = board.enPas;
-    board.history[ply].halfMoves = board.halfMoves;
-    board.history[ply].moveIndex = board.moveIndex;
-    board.history[ply].key = board.key;
     board.history[ply].castleRights = board.castleRights;
     board.history[ply].captured = board.captured;
+    board.history[ply].halfMoves = board.halfMoves;
+    board.history[ply].moveIndex = board.moveIndex;
     board.history[ply].checkers = board.checkers;
+    board.history[ply].key = board.key;
 
     board.key ^= (board.enPas >= 0 ? enPasKey[board.enPas] : 0);
 
@@ -492,13 +493,13 @@ inline void undoNullMove(Board& board) {
     board.gamePly--;
     int ply = board.gamePly;
 
-    board.halfMoves = board.history[ply].halfMoves;
     board.enPas = board.history[ply].enPas;
-    board.moveIndex = board.history[ply].moveIndex;
-    board.key = board.history[ply].key;
     board.castleRights = board.history[ply].castleRights;
     board.captured = board.history[ply].captured;
+    board.halfMoves = board.history[ply].halfMoves;
+    board.moveIndex = board.history[ply].moveIndex;
     board.checkers = board.history[ply].checkers;
+    board.key = board.history[ply].key;
 }
 
 inline int genLegal(Board& board, uint16_t* moves) {

@@ -128,10 +128,19 @@ int Search::quiesce(int alpha, int beta, bool useTT) {
     Movepick noisyPicker(NULLMOVE, NULLMOVE, NULLMOVE, NULLMOVE, 0);
 
     uint16_t move;
+    int futilityValue = best + 150;
 
     while ((move = noisyPicker.nextMove(this, 1, 1))) {
-        /// update stack info
 
+        // futility pruning
+
+        int value = futilityValue + seeVal[board.piece_type_at(sqTo(move))];
+        if (type(move) != PROMOTION && value <= alpha) {
+            best = std::max(best, value);
+            continue;
+        }
+
+        // update stack info
         Stack[ply].move = move;
         Stack[ply].piece = board.piece_at(sqFrom(move));
 
@@ -427,7 +436,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
             else if (rBeta >= beta) /// multicut
                 return rBeta;
         }
-        else if (isCheck) {
+        else if (board.checkers) {
             ex = 1;
         }
         /*
@@ -462,8 +471,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
         if (isQuiet && depth >= 3 && played > 1 + 2 * rootNode) { /// first few moves we don't reduce
             R = lmrRed[std::min(63, depth)][std::min(63, played)];
-
-            R += (excluded != NULLMOVE);
 
             R += !pvNode + !improving; /// not on pv or not improving
 
