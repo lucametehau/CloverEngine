@@ -25,8 +25,9 @@
 
 Search::Search() : threads(nullptr), params(nullptr)
 {
-    nodes = tbHits = t0 = tDepth = selDepth = lazyDepth = threadCount = flag = checkCount = 0;
+    nodes = tbHits = t0 = tDepth = selDepth = threadCount = flag = checkCount = 0;
     principalSearcher = terminateSMP = SMPThreadExit = false;
+    lazyFlag = 0;
     memset(&lmrRed, 0, sizeof(lmrRed));
     memset(&lmrCnt, 0, sizeof(lmrCnt));
     memset(&info, 0, sizeof(info));
@@ -116,7 +117,7 @@ int Search::quiesce(int alpha, int beta, bool useTT) {
     }
     else if (eval == INF) {
         /// if last move was null, we already know the evaluation
-        Stack[ply].eval = best = eval = (!Stack[ply - 1].move ? -Stack[ply - 1].eval + 2 * TEMPO : evaluate(board));
+        Stack[ply].eval = best = eval = (!Stack[ply - 1].move ? -Stack[ply - 1].eval + 2 * TEMPO : evaluate(board, contempt));
         futilityValue = best + 200;
     }
     else {
@@ -302,7 +303,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         if (excluded)
             eval = Stack[ply].eval;
         else
-            Stack[ply].eval = eval = (ply >= 1 && !Stack[ply - 1].move ? -Stack[ply - 1].eval + 2 * TEMPO : evaluate(board));
+            Stack[ply].eval = eval = (ply >= 1 && !Stack[ply - 1].move ? -Stack[ply - 1].eval + 2 * TEMPO : evaluate(board, contempt));
     }
     else {
         /// ttValue might be a better evaluation
@@ -590,7 +591,6 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
         /// only 1 move legal
 
         if (PROBE_ROOT && printStats && nrMoves == 1) {
-            waitUntilDone();
             std::cout << "bestmove " << toString(moves[0]) << std::endl;
             return { 0, moves[0] };
         }
@@ -639,7 +639,6 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
 
             for (auto& mv : moves) {
                 if (mv == move && printStats) {
-                    waitUntilDone();
                     std::cout << "bestmove " << toString(move) << std::endl;
                     return { 0, move };
                 }
@@ -671,7 +670,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
             beta = INF;
         }
 
-        //contempt = (board.turn == WHITE ? lastScore / 20 : -lastScore / 20);
+        contempt = (board.turn == WHITE ? lastScore / 20 : -lastScore / 20);
         //std::cout << "CONTEMPT = " << contempt << "\n";
 
         int depth = tDepth;
@@ -778,8 +777,6 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
     if (threadCount)
         stopWorkerThreads();
 
-    waitUntilDone();
-
     if (principalSearcher && printStats)
         std::cout << "bestmove " << toString(bestMove) << std::endl;
 
@@ -848,7 +845,7 @@ void Search::startWorkerThreads(Info* info) {
         params[i].t0 = t0;
         params[i].SMPThreadExit = false;
 
-        params[i].lazyDepth = 1;
+        params[i].lazyFlag = 1;
         params[i].flag = flag;
 
         params[i].readyMutex.unlock();
@@ -868,13 +865,8 @@ void Search::stopWorkerThreads() {
     flagWorkersStop();
 
     for (int i = 0; i < threadCount; i++) {
-        while (params[i].lazyDepth);
+        while (params[i].lazyFlag);
     }
-}
-
-void Search::waitUntilDone() {
-    if (!principalSearcher)
-        return;
 }
 
 void Search::isReady() {
@@ -889,7 +881,7 @@ void Search::startPrincipalSearch(Info* info) {
 
     readyMutex.lock();
     setTime(info);
-    lazyDepth = 1;
+    lazyFlag = 1;
     readyMutex.unlock();
     lazyCV.notify_one();
 
@@ -930,8 +922,6 @@ void Search::lazySMPSearcher() {
             if (terminateSMP)
                 return;
 
-            tDepth = lazyDepth;
-
             startSearch(info);
             resetLazySMP();
         }
@@ -945,7 +935,7 @@ void Search::releaseThreads() {
 
             {
                 std::unique_lock <std::mutex> lk(params[i].readyMutex);
-                params[i].lazyDepth = 1;
+                params[i].lazyFlag = 1;
             }
 
             params[i].lazyCV.notify_one();

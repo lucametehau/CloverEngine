@@ -23,7 +23,7 @@
 
 const int TEMPO = 20;
 
-int evaluate(Board &board) {
+int evaluate(Board &board, int contempt = 0) {
 
     //float eval2 = board.NN.getOutput();
 
@@ -40,6 +40,8 @@ int evaluate(Board &board) {
 
     int eval = int(board.NN.getOutput());
     bool turn = board.turn;
+
+    eval += contempt;
 
     return eval * (turn == WHITE ? 1 : -1) + TEMPO;
 }

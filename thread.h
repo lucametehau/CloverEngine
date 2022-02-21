@@ -145,15 +145,15 @@ private:
     std::unique_ptr <std::thread[]> threads;
     std::unique_ptr <Search[]> params;
     std::condition_variable lazyCV;
-    volatile int lazyDepth;
+    volatile bool lazyFlag;
     volatile bool SMPThreadExit;
 
     bool isLazySMP() {
-        return lazyDepth > 0;
+        return lazyFlag;
     }
 
     void resetLazySMP() {
-        lazyDepth = 0;
+        lazyFlag = 0;
     }
 
     bool terminateSMP;
