@@ -434,10 +434,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
                 if (depth <= 8 && !isCheck && !see(board, move, -seeCoefQuiet * depth))
                     continue;
             }
-
-            /// see pruning
-
-            if (depth <= 8 && !isCheck && !isQuiet && picker.stage > STAGE_GOOD_NOISY && !see(board, move, -seeCoefNoisy * depth * depth))
+            else if (depth <= 8 && !isCheck && picker.stage > STAGE_GOOD_NOISY && !see(board, move, -seeCoefNoisy * depth * depth))
                 continue;
         }
 
@@ -456,14 +453,9 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
             else if (rBeta >= beta) /// multicut
                 return rBeta;
         }
-        else if (board.checkers) {
+        else if (isCheck) {
             ex = 1;
         }
-        /*
-        else if (isQuiet && pvNode && H.ch >= 10000 && H.fh >= 10000) { /// in check extension and moves with good history
-            ex = 1;
-        }
-        */
 
         /// update stack info
         Stack[ply].move = move;
