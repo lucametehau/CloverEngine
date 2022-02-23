@@ -117,7 +117,7 @@ int Search::quiesce(int alpha, int beta, bool useTT) {
     }
     else if (eval == INF) {
         /// if last move was null, we already know the evaluation
-        Stack[ply].eval = best = eval = (!Stack[ply - 1].move ? -Stack[ply - 1].eval + 2 * TEMPO : evaluate(board, contempt));
+        Stack[ply].eval = best = eval = (!Stack[ply - 1].move ? -Stack[ply - 1].eval + 2 * TEMPO : evaluate(board));
         futilityValue = best + 200;
     }
     else {
@@ -299,11 +299,11 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         Stack[ply].eval = eval = INF;
     }
     else if (eval == INF) {
-        /// if last move was null, we already know the evaluation
+        /// if last move was null or we are in a singular search, we already know the evaluation
         if (excluded)
             eval = Stack[ply].eval;
         else
-            Stack[ply].eval = eval = (ply >= 1 && !Stack[ply - 1].move ? -Stack[ply - 1].eval + 2 * TEMPO : evaluate(board, contempt));
+            Stack[ply].eval = eval = (ply >= 1 && !Stack[ply - 1].move ? -Stack[ply - 1].eval + 2 * TEMPO : evaluate(board));
     }
     else {
         /// ttValue might be a better evaluation
@@ -571,7 +571,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
     int alpha, beta, score = 0;
     int bestMove = NULLMOVE;
 
-    nodes = selDepth = tbHits = 0;
+    nodes = qsNodes = selDepth = tbHits = 0;
     t0 = getTime();
     flag = 0;
     checkCount = 0;
@@ -670,7 +670,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
             beta = INF;
         }
 
-        contempt = (board.turn == WHITE ? lastScore / 20 : -lastScore / 20);
+        //contempt = (board.turn == WHITE ? lastScore / 20 : -lastScore / 20);
         //std::cout << "CONTEMPT = " << contempt << "\n";
 
         int depth = tDepth;
@@ -706,7 +706,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
                     std::cout << " lowerbound";
                 else if (score <= alpha)
                     std::cout << " upperbound";
-                std::cout << " depth " << depth << " seldepth " << selDepth << " nodes " << totalNodes;
+                std::cout << " depth " << depth << " seldepth " << selDepth << " nodes " << totalNodes << " qsNodes " << qsNodes;
                 if (t)
                     std::cout << " nps " << totalNodes * 1000 / t;
                 std::cout << " time " << t << " ";

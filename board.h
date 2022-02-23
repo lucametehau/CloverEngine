@@ -66,6 +66,7 @@ public:
             board[i] = 0;
         castleRights = 0;
         captured = 0;
+        checkers = 0;
     }
 
     Board(const Board& other) {
@@ -84,6 +85,8 @@ public:
             board[i] = other.board[i];
         castleRights = other.castleRights;
         captured = other.captured;
+        NN = other.NN;
+        checkers = other.checkers;
     }
 
     uint64_t diagSliders(int color) {
@@ -118,6 +121,8 @@ public:
 
     void clear() {
         ply = 0;
+
+        checkers = 0;
 
         NetInput input = toNetInput();
 
