@@ -391,7 +391,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
     /// internal iterative deepening (search at reduced depth to find a ttMove) (Rebel like)
 
-    if (depth >= 4 && !ttMove)
+    if (pvNode && !isCheck && depth >= 4 && !ttMove)
         depth--;
 
     /// get counter move for move picker
@@ -439,7 +439,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
                 continue;
         }
 
-        bool ex = 0;
+        int ex = 0;
 
         /// singular extension (look if the tt move is better than the rest)
 
@@ -450,7 +450,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
             int score = search(rBeta - 1, rBeta, depth / 2, cutNode, move);
 
             if (score < rBeta)
-                ex = 1;
+                ex = 1 + (!pvNode && rBeta - score > 50);
             else if (rBeta >= beta) /// multicut
                 return rBeta;
         }
@@ -478,7 +478,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         /*else
           captures[nrCaptures++] = move;*/
 
-        int newDepth = depth + (ex && !rootNode), R = 1;
+        int newDepth = depth + ex, R = 1;
 
         /// quiet late move reduction
 
