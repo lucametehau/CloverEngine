@@ -391,7 +391,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
     /// internal iterative deepening (search at reduced depth to find a ttMove) (Rebel like)
 
-    if (pvNode && !isCheck && depth >= 4 && !ttMove)
+    if (depth >= 4 && !ttMove)
         depth--;
 
     /// get counter move for move picker
