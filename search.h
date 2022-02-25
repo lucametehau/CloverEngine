@@ -450,7 +450,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
             int score = search(rBeta - 1, rBeta, depth / 2, cutNode, move);
 
             if (score < rBeta)
-                ex = 1 + (!pvNode && rBeta - score > 50);
+                ex = 1 + (!pvNode && rBeta - score > 100);
             else if (rBeta >= beta) /// multicut
                 return rBeta;
         }
@@ -478,7 +478,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         /*else
           captures[nrCaptures++] = move;*/
 
-        int newDepth = depth + ex, R = 1;
+        int newDepth = depth + (rootNode ? 0 : ex), R = 1;
 
         /// quiet late move reduction
 
