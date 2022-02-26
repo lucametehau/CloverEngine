@@ -34,7 +34,7 @@ Search::Search() : threads(nullptr), params(nullptr)
 
     for (int i = 0; i < 64; i++) { /// depth
         for (int j = 0; j < 64; j++) /// moves played
-            lmrRed[i][j] = 1 + log(i) * log(j) / 2;
+            lmrRed[i][j] = 1 + log(i) * log(j) / 2.5;
     }
     for (int i = 1; i < 9; i++) {
         lmrCnt[0][i] = (3 + i * i) / 2;
