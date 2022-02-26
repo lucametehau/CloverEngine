@@ -1,6 +1,6 @@
 CC  = g++
 SRC = *.cpp tbprobe.c
-EXE = Clover.3.1-dev13
+EXE = Clover.3.1-dev14
 EVALFILE = Clover_3_1_365mil_e21_256.nn
 
 ifeq ($(OS), Windows_NT)
