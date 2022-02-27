@@ -821,6 +821,7 @@ void Search::clearStack() {
     memset(Stack, 0, sizeof(Stack));
     memset(pvTableLen, 0, sizeof(pvTableLen));
     memset(pvTable, 0, sizeof(pvTable));
+    memset(nodesSearched, 0, sizeof(nodesSearched));
 
     for (int i = 0; i < threadCount; i++) {
         memset(params[i].Stack, 0, sizeof(params[i].Stack));
