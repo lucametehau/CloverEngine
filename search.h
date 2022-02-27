@@ -137,6 +137,10 @@ int Search::quiesce(int alpha, int beta, bool useTT) {
         return best;
     }
 
+    if (!isCheck && best + seeVal[QUEEN] < alpha) {
+        return alpha;
+    }
+
     alpha = std::max(alpha, best);
 
     Movepick noisyPicker(ttMove, NULLMOVE, NULLMOVE, NULLMOVE, 0);
@@ -485,7 +489,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         if (isQuiet && depth >= 3 && played > 1 + 2 * rootNode) { /// first few moves we don't reduce
             R = lmrRed[std::min(63, depth)][std::min(63, played)];
 
-            R -= pvNode && (kingRingMask[board.king(board.turn)] >> sqTo(move));
+            //R -= pvNode && (kingRingMask[board.king(board.turn)] >> sqTo(move));
 
             R += !pvNode + !improving; /// not on pv or not improving
 
@@ -717,6 +721,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
                 printPv();
                 std::cout << std::endl;
 
+                //std::cout << counter << ", " << counter2 << " failed\n";
                 //std::cout << "NMP Fail rate: " << 100.0 * nmpFail / nmpTries << "\n";
             }
 
