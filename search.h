@@ -34,7 +34,7 @@ Search::Search() : threads(nullptr), params(nullptr)
 
     for (int i = 0; i < 64; i++) { /// depth
         for (int j = 0; j < 64; j++) /// moves played
-            lmrRed[i][j] = 1 + log(i) * log(j) / 2.5;
+            lmrRed[i][j] = lmrMargin + log(i) * log(j) / lmrDiv;
     }
     for (int i = 1; i < 9; i++) {
         lmrCnt[0][i] = (3 + i * i) / 2;
@@ -67,7 +67,7 @@ bool Search::checkForStop() {
 }
 
 bool printStats = true; /// default true
-bool PROBE_ROOT = true; /// default true
+const bool PROBE_ROOT = true; /// default true
 
 int Search::quiesce(int alpha, int beta, bool useTT) {
     int ply = board.ply;
@@ -137,6 +137,8 @@ int Search::quiesce(int alpha, int beta, bool useTT) {
         return best;
     }
 
+    /// delta pruning
+
     if (!isCheck && best + seeVal[QUEEN] < alpha) {
         return alpha;
     }
@@ -150,7 +152,6 @@ int Search::quiesce(int alpha, int beta, bool useTT) {
     while ((move = noisyPicker.nextMove(this, !isCheck, 1))) {
 
         // futility pruning
-
         
         if (best > -MATE && futilityValue > -MATE) {
             int value = futilityValue + seeVal[board.piece_type_at(sqTo(move))]/* - seeVal[board.piece_type_at(sqFrom(move))]*/;
@@ -324,7 +325,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
     /// razoring (searching 1 more ply can't change the score much, drop in quiesce)
 
-    if (!pvNode && !isCheck && depth <= 1 && Stack[ply].eval + 325 < alpha) {
+    if (!pvNode && !isCheck && depth <= 1 && Stack[ply].eval + RazorCoef < alpha) {
         return quiesce(alpha, beta);
     }
 
@@ -395,7 +396,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
     /// internal iterative deepening (search at reduced depth to find a ttMove) (Rebel like)
 
-    if (pvNode && !isCheck && depth >= 4 && !ttMove)
+    if (pvNode && !isCheck && depth >= 4 && !ttHit)
         depth--;
 
     /// get counter move for move picker
@@ -750,16 +751,19 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
 
         if (principalSearcher) {
             /// adjust time if score is dropping (and maybe if it's jumping)
-            double scoreChange = 1.0, bestMoveStreak = 1.0;
+            double scoreChange = 1.0, bestMoveStreak = 1.0, nodesSearchedPercentage = 1.0;
             if (tDepth >= 9) {
                 scoreChange = std::max(0.5, std::min(1.0 + (mainThreadScore - score) / 100, 1.5));
 
                 bestMoveCnt = (bestMove == mainThreadBestMove ? bestMoveCnt + 1 : 1);
 
+                nodesSearchedPercentage = 1.0 * nodesSearched[sqFrom(bestMove)][sqTo(bestMove)] / nodes;
+                nodesSearchedPercentage = 1.5 - nodesSearchedPercentage;
+
                 bestMoveStreak = 1.5 - 0.1 * std::min(10, bestMoveCnt);
             }
 
-            info->stopTime = info->startTime + info->goodTimeLim * scoreChange * bestMoveStreak;
+            info->stopTime = info->startTime + info->goodTimeLim * scoreChange * bestMoveStreak * nodesSearchedPercentage;
 
             mainThreadScore = score;
             mainThreadBestMove = bestMove;
@@ -797,14 +801,12 @@ void Search::clearHistory() {
     memset(capHist, 0, sizeof(capHist));
     memset(cmTable, 0, sizeof(cmTable));
     memset(follow, 0, sizeof(follow));
-    memset(nodesSearched, 0, sizeof(nodesSearched));
 
     for (int i = 0; i < threadCount; i++) {
         memset(params[i].hist, 0, sizeof(params[i].hist));
         memset(params[i].capHist, 0, sizeof(params[i].capHist));
         memset(params[i].cmTable, 0, sizeof(params[i].cmTable));
         memset(params[i].follow, 0, sizeof(params[i].follow));
-        memset(params[i].nodesSearched, 0, sizeof(params[i].nodesSearched));
     }
 }
 
@@ -824,6 +826,7 @@ void Search::clearStack() {
         memset(params[i].Stack, 0, sizeof(params[i].Stack));
         memset(params[i].pvTableLen, 0, sizeof(params[i].pvTableLen));
         memset(params[i].pvTable, 0, sizeof(params[i].pvTable));
+        memset(params[i].nodesSearched, 0, sizeof(params[i].nodesSearched));
     }
 }
 

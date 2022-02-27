@@ -25,7 +25,7 @@
 #include "perft.h"
 #include "generate.h"
 
-const std::string VERSION = "3.1-dev15"; /// 2.0 was "FM"
+const std::string VERSION = "3.1-dev16"; /// 2.0 was "FM"
 
 class UCI {
 public:
@@ -435,6 +435,7 @@ void UCI::UciNewGame(uint64_t ttSize) {
 
 void UCI::Go(Info* info) {
     TT->age();
+    searcher.clearStack();
     searcher.clearBoard();
     searcher.startPrincipalSearch(info);
 }

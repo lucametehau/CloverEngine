@@ -23,7 +23,7 @@
 #include <condition_variable>
 #include <functional>
 
-/// search params (tuning all with ctt, but I didn't get any nice results)
+/// search params
 
 int RazorCoef = 325;
 
@@ -34,7 +34,7 @@ int seeCoefQuiet = 80;
 int seeCoefNoisy = 18;
 
 int fpMargin = 100;
-int fpCoef = 103; /// 51
+int fpCoef = 103;
 
 int histDiv = 4766;
 
@@ -45,8 +45,8 @@ int fpHistDiv = 512;
 
 int nodesSearchedDiv = 10000;
 
-float lmrMargin = 0.75;
-float lmrDiv = 2.25;
+float lmrMargin = 1;
+float lmrDiv = 2.5;
 
 const int TERMINATED_BY_USER = 1;
 const int TERMINATED_BY_TIME = 2;
