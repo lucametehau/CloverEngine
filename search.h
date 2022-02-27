@@ -485,6 +485,8 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         if (isQuiet && depth >= 3 && played > 1 + 2 * rootNode) { /// first few moves we don't reduce
             R = lmrRed[std::min(63, depth)][std::min(63, played)];
 
+            R -= pvNode && (kingRingMask[board.king(board.turn)] >> sqTo(move));
+
             R += !pvNode + !improving; /// not on pv or not improving
 
             R += cutNode; // reduce more for cut nodes
