@@ -153,12 +153,19 @@ int Search::quiesce(int alpha, int beta, bool useTT) {
 
         // futility pruning
         
-        if (best > -MATE && futilityValue > -MATE) {
-            int value = futilityValue + seeVal[board.piece_type_at(sqTo(move))]/* - seeVal[board.piece_type_at(sqFrom(move))]*/;
-            if (type(move) != PROMOTION && value <= alpha) {
-                best = std::max(best, value);
+        if (best > -MATE) {
+            if (futilityValue > -MATE) {
+                int value = futilityValue + seeVal[board.piece_type_at(sqTo(move))]/* - seeVal[board.piece_type_at(sqFrom(move))]*/;
+                if (type(move) != PROMOTION && value <= alpha) {
+                    best = std::max(best, value);
+                    continue;
+                }
+            }
+
+            if (isCheck && !isNoisyMove(board, move) && !see(board, move, 0)) {
                 continue;
             }
+            
         }
         
 
@@ -346,6 +353,8 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         Stack[ply].move = NULLMOVE;
         Stack[ply].piece = 0;
 
+        //lastNullMove = board.turn;
+
         makeNullMove(board);
 
         int score = -search(-beta, -beta + 1, depth - R, !cutNode);
@@ -406,6 +415,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     Movepick picker(ttMove, killers[ply][0], killers[ply][1], counter, 0);
 
     uint16_t move;
+    int updateDepth = depth;
 
     while ((move = picker.nextMove(this, skip, 0)) != NULLMOVE) {
 
@@ -490,8 +500,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         if (isQuiet && depth >= 3 && played > 1 + 2 * rootNode) { /// first few moves we don't reduce
             R = lmrRed[std::min(63, depth)][std::min(63, played)];
 
-            //R -= pvNode && (kingRingMask[board.king(board.turn)] >> sqTo(move));
-
             R += !pvNode + !improving; /// not on pv or not improving
 
             R += cutNode; // reduce more for cut nodes
@@ -537,8 +545,10 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
                 updatePv(ply, move);
 
-                if (alpha >= beta)
+                if (alpha >= beta) {
+                    //std::cout << nodes << " " << initNodes << " " << nodes << " " << nodesBefore << '\n';
                     break;
+                }
             }
         }
     }
@@ -557,14 +567,13 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
             killers[ply][0] = bestMove;
         }
 
-        int updateDepth = depth;
         updateHistory(this, quiets, nrQuiets, ply, updateDepth * updateDepth);
     }
 
     /*if (best >= beta)
         updateCapHistory(this, captures, nrCaptures, bestMove, ply, depth * depth);*/
 
-      /// update tt only if we aren't in a singular search
+    /// update tt only if we aren't in a singular search
 
     if (!excluded) {
         bound = (best >= beta ? LOWER : (best > alphaOrig ? EXACT : UPPER));
@@ -722,7 +731,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
                 printPv();
                 std::cout << std::endl;
 
-                //std::cout << counter << ", " << counter2 << " failed\n";
+                //std::cout << cnt << " " << cnt2 << "\n";
                 //std::cout << "NMP Fail rate: " << 100.0 * nmpFail / nmpTries << "\n";
             }
 

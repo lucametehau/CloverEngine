@@ -125,8 +125,10 @@ private:
     int checkCount;
 
     uint64_t nmpFail, nmpTries;
-    uint64_t counter, counter2;
+    uint64_t cnt, cnt2;
     int bestMoveCnt;
+
+    bool lastNullMove;
 
     int threadCount;
     int tDepth, selDepth;

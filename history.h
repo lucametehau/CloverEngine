@@ -26,9 +26,9 @@ struct Heuristics {
 };
 
 
-int histMax = 400; // 800
-int histMult = 32; // 64
-int histUpdateDiv = 512; // 273
+int histMax = 400; // 1000
+int histMult = 32; // 50
+int histUpdateDiv = 512; // 300
 
 
 void updateHist(int& hist, int score) {
