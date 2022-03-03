@@ -220,7 +220,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     int alphaOrig = alpha;
     uint64_t key = board.key;
     uint16_t quiets[256], nrQuiets = 0;
-    //uint16_t captures[256], nrCaptures = 0;
+    uint16_t captures[256], nrCaptures = 0;
     int played = 0, bound = NONE, skip = 0;
     int best = -INF;
     uint16_t bestMove = NULLMOVE;
@@ -490,8 +490,8 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
         if (isQuiet)
             quiets[nrQuiets++] = move;
-        /*else
-          captures[nrCaptures++] = move;*/
+        else
+          captures[nrCaptures++] = move;
 
         int newDepth = depth + (rootNode ? 0 : ex), R = 1;
 
@@ -570,8 +570,8 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         updateHistory(this, quiets, nrQuiets, ply, updateDepth * updateDepth);
     }
 
-    /*if (best >= beta)
-        updateCapHistory(this, captures, nrCaptures, bestMove, ply, depth * depth);*/
+    if (best >= beta)
+        updateCapHistory(this, captures, nrCaptures, bestMove, ply, depth * depth);
 
     /// update tt only if we aren't in a singular search
 

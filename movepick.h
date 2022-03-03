@@ -22,6 +22,8 @@
 #include "history.h"
 #include <cassert>
 
+const int BAD_CAP_SCORE = (int)-1e9;
+
 enum {
     STAGE_NONE = 0, STAGE_HASHMOVE, STAGE_GEN_NOISY, STAGE_GOOD_NOISY,
     STAGE_KILLER_1, STAGE_KILLER_2, STAGE_COUNTER,
@@ -82,19 +84,21 @@ public:
 
             for (int i = 0; i < nrNoisy; i++) {
                 uint16_t move = noisy[i];
-                int p = searcher->board.piece_type_at(sqFrom(move)), cap = searcher->board.piece_type_at(sqTo(move));
+                int p = searcher->board.piece_at(sqFrom(move)), cap = searcher->board.piece_type_at(sqTo(move));
                 int score = 0; // so that move score isn't negative
 
                 if (type(move) == ENPASSANT)
                     cap = PAWN;
 
-                score = captureValue[p][cap];
-                if (type(move) == PROMOTION)
-                    score += 100 * (promoted(move) + KNIGHT);
+                score = 10 * seeVal[cap];
+                if (promoted(move) == QUEEN)
+                    score += 10000;
+
+                score += searcher->capHist[p][sqTo(move)][cap];
 
                 scores[i] = score;
 
-                assert(score >= 0);
+                //assert(score >= 0);
             }
             stage++;
         }
@@ -107,11 +111,11 @@ public:
 
                 uint16_t best = noisy[ind];
 
-                if (scores[ind] >= 0) {
+                if (scores[ind] != BAD_CAP_SCORE) {
 
                     if (!see(searcher->board, best, threshold)) {
                         badNoisy[nrBadNoisy++] = best;
-                        scores[ind] = -1; /// mark capture as bad
+                        scores[ind] = BAD_CAP_SCORE; /// mark capture as bad
                         return nextMove(searcher, skip, noisyPicker);
                     }
 

@@ -26,9 +26,9 @@ struct Heuristics {
 };
 
 
-int histMax = 400; // 1000
-int histMult = 32; // 50
-int histUpdateDiv = 512; // 300
+int histMax = 1582; // 1000
+int histMult = 40; // 50
+int histUpdateDiv = 301; // 300
 
 
 void updateHist(int& hist, int score) {
@@ -78,7 +78,7 @@ void updateCapHistory(Search* searcher, uint16_t* captures, int nrCaptures, uint
 
         int move = captures[i];
         int score = (move == best ? bonus : -bonus);
-        int from = sqFrom(move), to = sqTo(move), piece = searcher->board.piece_type_at(from), cap = searcher->board.piece_type_at(to);
+        int from = sqFrom(move), to = sqTo(move), piece = searcher->board.piece_at(from), cap = searcher->board.piece_type_at(to);
 
         if (type(move) == ENPASSANT || type(move) == PROMOTION)
             cap = PAWN;
