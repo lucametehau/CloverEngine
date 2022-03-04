@@ -125,7 +125,7 @@ private:
     int checkCount;
 
     uint64_t nmpFail, nmpTries;
-    uint64_t cnt, cnt2;
+    int64_t cnt, cnt2;
     int bestMoveCnt;
 
     bool lastNullMove;

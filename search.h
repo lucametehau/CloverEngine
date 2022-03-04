@@ -424,8 +424,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
         bool isQuiet = !isNoisyMove(board, move), refutationMove = (picker.stage < STAGE_QUIETS);
         Heuristics H{}; /// history values for quiet moves
-
-        //int capH = capHist[board.piece_type_at(sqFrom(move))][sqTo(move)][board.piece_type_at(sqTo(move))];
+        int captureHistory = capHist[board.piece_type_at(sqFrom(move))][sqTo(move)][board.piece_type_at(sqTo(move))];
 
         /// quiet move pruning
         if (!rootNode && best > -MATE) {
@@ -497,16 +496,21 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
         /// quiet late move reduction
 
-        if (isQuiet && depth >= 3 && played > 1 + 2 * rootNode) { /// first few moves we don't reduce
-            R = lmrRed[std::min(63, depth)][std::min(63, played)];
+        if (depth >= 3 && played > 1 + 2 * rootNode) { /// first few moves we don't reduce
+            if (isQuiet) {
+                R = lmrRed[std::min(63, depth)][std::min(63, played)];
 
-            R += !pvNode + !improving; /// not on pv or not improving
+                R += !pvNode + !improving; /// not on pv or not improving
 
-            R += cutNode; // reduce more for cut nodes
+                R += cutNode; // reduce more for cut nodes
 
-            R -= 2 * refutationMove; /// reduce for refutation moves
+                R -= 2 * refutationMove; /// reduce for refutation moves
 
-            R -= std::max(-2, std::min(2, (H.h + H.ch + H.fh) / histDiv)); /// reduce based on move history
+                R -= std::max(-2, std::min(2, (H.h + H.ch + H.fh) / histDiv)); /// reduce based on move history
+            }
+            else {
+                R -= std::max(-2, std::min(2, captureHistory / 4096));
+            }
 
             R = std::min(depth - 1, std::max(R, 1)); /// clamp R
         }
