@@ -509,7 +509,9 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
                 R -= std::max(-2, std::min(2, (H.h + H.ch + H.fh) / histDiv)); /// reduce based on move history
             }
             else {
-                R -= std::max(-2, std::min(2, captureHistory / 4096));
+                R -= std::max(-2, std::min(0, captureHistory / 4096));
+
+                R -= (board.checkers != 0);
             }
 
             R = std::min(depth - 1, std::max(R, 1)); /// clamp R
