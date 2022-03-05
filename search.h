@@ -737,7 +737,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
                 printPv();
                 std::cout << std::endl;
 
-                //std::cout << cnt << " " << cnt2 << "\n";
+                std::cout << cnt << " " << cnt2 << "\n";
                 //std::cout << "NMP Fail rate: " << 100.0 * nmpFail / nmpTries << "\n";
             }
 
