@@ -23,14 +23,16 @@
 #include <algorithm>
 #include <cmath>
 #include <random>
+#include <immintrin.h>
 
 INCBIN(Net, EVALFILE);
 
 const int NO_ACTIV = 0;
 const int SIGMOID = 1;
 const int RELU = 2;
-const int Q_MULT_1 = 32;
-const int Q_MULT_2 = 512;
+
+const int INPUT_NEURONS = 768;
+const int HIDDEN_NEURONS = 256;
 
 struct LayerInfo {
     int size;
@@ -65,27 +67,16 @@ public:
 
 class Layer {
 public:
-    Layer(LayerInfo _info, int prevNumNeurons) {
+    Layer(LayerInfo _info) {
         info = _info;
 
         int numNeurons = _info.size;
 
         bias.resize(numNeurons);
-
-        output.resize(numNeurons);
-
-        if (prevNumNeurons) {
-            weights.resize(prevNumNeurons);
-            for (int i = 0; i < prevNumNeurons; i++) {
-                weights[i].resize(numNeurons);
-            }
-        }
     }
 
     LayerInfo info;
     std::vector <float> bias;
-    std::vector <float> output;
-    std::vector <std::vector <float>> weights;
 };
 
 class Network {
@@ -94,16 +85,15 @@ public:
     Network() {
         std::vector <LayerInfo> topology;
 
-        topology.push_back({ 768, NO_ACTIV });
-        topology.push_back({ 256, RELU });
+        topology.push_back({ INPUT_NEURONS, NO_ACTIV });
+        topology.push_back({ HIDDEN_NEURONS, RELU });
         topology.push_back({ 1, SIGMOID });
 
         for (int i = 0; i < (int)topology.size(); i++) {
-            layers.push_back(Layer(topology[i], (i > 0 ? topology[i - 1].size : 0)));
+            layers.push_back(Layer(topology[i]));
         }
 
         histSz = 0;
-        histOutput.resize(1000);
 
         updateSz = 0;
         updates.resize(5);
@@ -113,52 +103,51 @@ public:
 
     Network(std::vector <LayerInfo>& topology) {
         for (int i = 0; i < (int)topology.size(); i++) {
-            layers.push_back(Layer(topology[i], (i > 0 ? topology[i - 1].size : 0)));
+            layers.push_back(Layer(topology[i]));
         }
     }
 
     float calc(NetInput& input) { /// feed forward
         float sum;
+        float output[HIDDEN_NEURONS];
 
-        for (int n = 0; n < layers[1].info.size; n++) {
+        for (int n = 0; n < HIDDEN_NEURONS; n++) {
             sum = layers[1].bias[n];
 
             for (auto& prevN : input.ind) {
-                sum += layers[1].weights[prevN][n];
+                sum += inputWeights[prevN][n];
             }
 
-            layers[1].output[n] = sum;
+            output[n] = sum;
         }
 
         histSz = 0;
 
-        histOutput[histSz++] = layers[1].output;
+        memcpy(histOutput[histSz], output, sizeof(output));
+        histSz++;
 
         return getOutput();
     }
 
     void removeInput(int16_t ind) {
-        /*for(int n = 0; n < layers[1].info.size; n++) {
-          layers[1].output[n] -= layers[1].weights[ind][n];
-        }*/
         updates[updateSz++] = { ind, -1 };
     }
 
     void addInput(int16_t ind) {
-        /*for(int n = 0; n < layers[1].info.size; n++) {
-          layers[1].output[n] += layers[1].weights[ind][n];
-        }*/
         updates[updateSz++] = { ind, 1 };
     }
 
     void applyUpdates() {
-        histOutput[histSz] = histOutput[histSz - 1];
+        memcpy(histOutput[histSz], histOutput[histSz - 1], sizeof(histOutput[histSz - 1]));
         histSz++;
 
         for (int i = 0; i < updateSz; i++) {
-            const int c = updates[i].coef;
-            for (int n = 0; n < layers[1].info.size; n++)
-                histOutput[histSz - 1][n] += c * layers[1].weights[updates[i].ind][n];
+            __m256* v = (__m256*)inputWeights[updates[i].ind];
+            __m256* w = (__m256*)histOutput[histSz - 1];
+            __m256 ct = _mm256_set1_ps(updates[i].coef);
+
+            for (int j = 0; j < batches; j++)
+                w[j] = _mm256_add_ps(_mm256_mul_ps(ct, v[j]), w[j]);
         }
 
         updateSz = 0;
@@ -171,10 +160,17 @@ public:
     float getOutput() {
         float sum = layers.back().bias[0];
 
-        for (int n = 0; n < layers[1].info.size; n++)
-            sum += std::max<float>(histOutput[histSz - 1][n], 0.0) * layers.back().weights[n][0];
+        __m256* v = (__m256*)outputWeights;
+        __m256* w = (__m256*)histOutput[histSz - 1];
+        __m256 zero = _mm256_setzero_ps();
 
-        //std::cout << sum << "\n";
+        for (int j = 0; j < batches; j++) {
+            __m256 temp = _mm256_mul_ps(_mm256_max_ps(w[j], zero), v[j]);
+            float tempRes[8] __attribute__((aligned(16)));
+            _mm256_store_ps(tempRes, temp);
+
+            sum += tempRes[0] + tempRes[1] + tempRes[2] + tempRes[3] + tempRes[4] + tempRes[5] + tempRes[6] + tempRes[7];
+        }
 
         return sum;
     }
@@ -211,7 +207,10 @@ public:
             for (int j = 0; i && j < layers[i - 1].info.size; j++) {
                 floatData = (float*)gradData;
                 for (int k = 0; k < sz; k++) {
-                    layers[i].weights[j][k] = *(floatData++);
+                    if (i == 1)
+                        inputWeights[j][k] = *(floatData++);
+                    else
+                        outputWeights[j] = *(floatData++);
                 }
 
                 //std::cout << "\n";
@@ -224,8 +223,13 @@ public:
         }
     }
 
+    int lg = sizeof(__m256) / sizeof(float);
+    int batches = HIDDEN_NEURONS / lg;
+
     int histSz, updateSz;
     std::vector <Layer> layers;
-    std::vector <std::vector <float>> histOutput;
+    float histOutput[1005][HIDDEN_NEURONS] __attribute__((aligned(32)));
+    float inputWeights[INPUT_NEURONS][HIDDEN_NEURONS] __attribute__((aligned(32)));
+    float outputWeights[HIDDEN_NEURONS] __attribute__((aligned(32)));
     std::vector <Update> updates;
 };
