@@ -98,7 +98,7 @@ int Search::quiesce(int alpha, int beta, bool useTT) {
 
     /// probe transposition table
 
-    if (TT->probe(key, entry)) {
+    if (useTT && TT->probe(key, entry)) {
         best = eval = entry.info.eval;
         ttValue = score = entry.value(ply);
         bound = entry.bound();
@@ -125,7 +125,7 @@ int Search::quiesce(int alpha, int beta, bool useTT) {
 
         Stack[ply].eval = eval;
 
-        if (bound == EXACT || (bound == LOWER && ttValue > eval) || (bound == UPPER && ttValue < eval))
+        if (useTT && (bound == EXACT || (bound == LOWER && ttValue > eval) || (bound == UPPER && ttValue < eval)))
             best = ttValue;
 
         futilityValue = best + 200;

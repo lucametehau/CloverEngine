@@ -23,7 +23,7 @@
 #include <atomic>
 #include "search.h"
 
-/*
+
 struct FenData {
     int score;
     std::string fen;
@@ -155,10 +155,12 @@ void generateFens(std::atomic <int>& sumFens, int nrFens, std::string path, uint
         gameInd++;
     }
 }
-*/
+
 
 void generateData(int nrFens, int nrThreads, std::string rootPath) {
-    /*
+
+    printStats = false;
+    
     std::string path[100];
 
     srand(time(0));
@@ -198,5 +200,5 @@ void generateData(int nrFens, int nrThreads, std::string rootPath) {
 
     for (auto& t : threads)
         t.join();
-     */
+     
 }

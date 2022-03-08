@@ -57,7 +57,7 @@ void UCI::Uci_Loop() {
 
     std::cout << "Clover " << VERSION << " by Luca Metehau" << std::endl;
 
-    TT = new tt::HashTable();
+    //TT = new tt::HashTable();
 
     Info info[1];
 
@@ -243,7 +243,7 @@ void UCI::Uci_Loop() {
 
                     iss >> ttSize;
 
-                    TT->initTable(ttSize * MB);
+                    //TT->initTable(ttSize * MB);
 
                 }
                 else if (name == "Threads") {
@@ -429,12 +429,12 @@ void UCI::UciNewGame(uint64_t ttSize) {
     searcher.clearKillers();
     searcher.clearStack();
 
-    TT->resetAge();
-    TT->initTable(ttSize * MB);
+    //TT->resetAge();
+    //TT->initTable(ttSize * MB);
 }
 
 void UCI::Go(Info* info) {
-    TT->age();
+    //TT->age();
     searcher.clearStack();
     searcher.clearBoard();
     searcher.startPrincipalSearch(info);
@@ -525,7 +525,7 @@ std::string benchPos[] = {
 void UCI::Bench() {
     Info info[1];
 
-    TT = new tt::HashTable();
+    //TT = new tt::HashTable();
 
     init(info);
 
