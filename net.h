@@ -32,7 +32,7 @@ const int SIGMOID = 1;
 const int RELU = 2;
 
 const int INPUT_NEURONS = 768;
-const int HIDDEN_NEURONS = 256;
+const int HIDDEN_NEURONS = 512;
 
 struct LayerInfo {
     int size;
@@ -69,14 +69,9 @@ class Layer {
 public:
     Layer(LayerInfo _info) {
         info = _info;
-
-        int numNeurons = _info.size;
-
-        bias.resize(numNeurons);
     }
 
     LayerInfo info;
-    std::vector <float> bias;
 };
 
 class Network {
@@ -109,22 +104,18 @@ public:
 
     float calc(NetInput& input) { /// feed forward
         float sum;
-        float output[HIDDEN_NEURONS];
 
         for (int n = 0; n < HIDDEN_NEURONS; n++) {
-            sum = layers[1].bias[n];
+            sum = inputBiases[n];
 
             for (auto& prevN : input.ind) {
                 sum += inputWeights[prevN][n];
             }
 
-            output[n] = sum;
+            histOutput[0][n] = sum;
         }
 
-        histSz = 0;
-
-        memcpy(histOutput[histSz], output, sizeof(output));
-        histSz++;
+        histSz = 1;
 
         return getOutput();
     }
@@ -158,7 +149,7 @@ public:
     }
 
     float getOutput() {
-        float sum = layers.back().bias[0];
+        float sum = outputBias;
 
         __m256* v = (__m256*)outputWeights;
         __m256* w = (__m256*)histOutput[histSz - 1];
@@ -172,6 +163,7 @@ public:
             sum += tempRes[0] + tempRes[1] + tempRes[2] + tempRes[3] + tempRes[4] + tempRes[5] + tempRes[6] + tempRes[7];
         }
 
+
         return sum;
     }
 
@@ -180,6 +172,7 @@ public:
         float* floatData;
         Gradient* gradData;
         std::vector <Gradient> v;
+        std::vector <float> w;
 
         int x;
         intData = (int*)gNetData;
@@ -187,9 +180,63 @@ public:
         x = *(intData++);
         assert(x == (int)layers.size());
 
-        gradData = (Gradient*)intData;
+        floatData = (float*)intData;
 
-        for (int i = 0; i < (int)layers.size(); i++) {
+        int sz = INPUT_NEURONS;
+        
+        /*w.resize(sz);
+        for (int j = 0; j < sz; j++)
+            w[j] = *(floatData++);
+
+        gradData = (Gradient*)floatData;
+
+        v.resize(sz);
+        for (int j = 0; j < sz; j++)
+            v[j] = *(gradData++);*/
+
+        sz = HIDDEN_NEURONS;
+
+        //floatData = (float*)gradData;
+
+        for (int j = 0; j < sz; j++)
+            inputBiases[j] = *(floatData++);
+
+        gradData = (Gradient*)floatData;
+
+        v.resize(sz);
+        for (int j = 0; j < sz; j++)
+            v[j] = *(gradData++);
+
+        for (int i = 0; i < INPUT_NEURONS; i++) {
+            floatData = (float*)gradData;
+            for (int j = 0; j < sz; j++) {
+                inputWeights[i][j] = *(floatData++);
+            }
+
+            gradData = (Gradient*)floatData;
+
+            for (int j = 0; j < sz; j++) {
+                v[j] = *(gradData++);
+            }
+        }
+
+        sz = 1;
+        floatData = (float*)gradData;
+
+        outputBias = *(floatData++);
+
+        gradData = (Gradient*)floatData;
+
+        v[0] = *(gradData++);
+         
+        floatData = (float*)gradData;
+
+        for (int j = 0; j < HIDDEN_NEURONS; j++) {
+            outputWeights[j] = *(floatData++);
+        }
+
+
+        /*for (int i = 0; i < (int)layers.size(); i++) {
             int sz = layers[i].info.size;
             v.resize(sz);
 
@@ -220,7 +267,7 @@ public:
                     v[k] = *(gradData++);
                 }
             }
-        }
+        }*/
     }
 
     int lg = sizeof(__m256) / sizeof(float);
@@ -228,6 +275,8 @@ public:
 
     int histSz, updateSz;
     std::vector <Layer> layers;
+
+    float inputBiases[HIDDEN_NEURONS], outputBias __attribute__((aligned(32)));
     float histOutput[1005][HIDDEN_NEURONS] __attribute__((aligned(32)));
     float inputWeights[INPUT_NEURONS][HIDDEN_NEURONS] __attribute__((aligned(32)));
     float outputWeights[HIDDEN_NEURONS] __attribute__((aligned(32)));
