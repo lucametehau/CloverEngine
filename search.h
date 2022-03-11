@@ -117,7 +117,7 @@ int Search::quiesce(int alpha, int beta, bool useTT) {
     }
     else if (eval == INF) {
         /// if last move was null, we already know the evaluation
-        Stack[ply].eval = best = eval = (!Stack[ply - 1].move ? -Stack[ply - 1].eval + 2 * TEMPO : evaluate(board));
+        Stack[ply].eval = best = eval = (ply && !Stack[ply - 1].move ? -Stack[ply - 1].eval + 2 * TEMPO : evaluate(board));
         futilityValue = best + 200;
     }
     else {

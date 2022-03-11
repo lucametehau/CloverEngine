@@ -81,7 +81,7 @@ void generateFens(std::atomic <int>& sumFens, int nrFens, std::string path, uint
             int nrMoves = genLegal(searcher->board, moves);
 
             if (!nrMoves) {
-                if (inCheck(searcher->board)) {
+                if (searcher->board.checkers) {
                     result = (searcher->board.turn == WHITE ? 0.0 : 1.0);
                 }
                 else {
@@ -112,7 +112,7 @@ void generateFens(std::atomic <int>& sumFens, int nrFens, std::string path, uint
 
                 searcher->flag = 0;
 
-                if (!inCheck(searcher->board) && searcher->quiesce(-INF, INF, false) == searcher->Stack[0].eval) { /// relatively quiet position
+                if (!searcher->board.checkers && !isNoisyMove(searcher->board, move) /*searcher->quiesce(-INF, INF, false) == searcher->Stack[0].eval*/) { /// relatively quiet position
                     data.fen = searcher->board.fen();
                     data.score = score;
                     fens.push_back(data);
