@@ -512,7 +512,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
                 R += cutNode; // reduce more for cut nodes
 
-                //R -= 2 * refutationMove; /// reduce for refutation moves
+                R -= 2 * refutationMove; /// reduce for refutation moves
 
                 R -= std::max(-2, std::min(2, (H.h + H.ch + H.fh) / histDiv)); /// reduce based on move history
             }
