@@ -27,17 +27,8 @@
 
 INCBIN(Net, EVALFILE);
 
-const int NO_ACTIV = 0;
-const int SIGMOID = 1;
-const int RELU = 2;
-
 const int INPUT_NEURONS = 768;
 const int HIDDEN_NEURONS = 512;
-
-struct LayerInfo {
-    int size;
-    int activationType;
-};
 
 struct NetInput {
     std::vector <short> ind;
@@ -65,41 +56,16 @@ public:
     }
 };
 
-class Layer {
-public:
-    Layer(LayerInfo _info) {
-        info = _info;
-    }
-
-    LayerInfo info;
-};
-
 class Network {
 public:
 
     Network() {
-        std::vector <LayerInfo> topology;
-
-        topology.push_back({ INPUT_NEURONS, NO_ACTIV });
-        topology.push_back({ HIDDEN_NEURONS, RELU });
-        topology.push_back({ 1, SIGMOID });
-
-        for (int i = 0; i < (int)topology.size(); i++) {
-            layers.push_back(Layer(topology[i]));
-        }
-
         histSz = 0;
 
         updateSz = 0;
         updates.resize(5);
 
         load();
-    }
-
-    Network(std::vector <LayerInfo>& topology) {
-        for (int i = 0; i < (int)topology.size(); i++) {
-            layers.push_back(Layer(topology[i]));
-        }
     }
 
     float calc(NetInput& input) { /// feed forward
@@ -178,25 +144,13 @@ public:
         intData = (int*)gNetData;
 
         x = *(intData++);
-        assert(x == (int)layers.size());
+        assert(x == 3);
 
         floatData = (float*)intData;
 
-        int sz = INPUT_NEURONS;
-        
-        /*w.resize(sz);
-        for (int j = 0; j < sz; j++)
-            w[j] = *(floatData++);
-
-        gradData = (Gradient*)floatData;
-
-        v.resize(sz);
-        for (int j = 0; j < sz; j++)
-            v[j] = *(gradData++);*/
+        int sz;
 
         sz = HIDDEN_NEURONS;
-
-        //floatData = (float*)gradData;
 
         for (int j = 0; j < sz; j++)
             inputBiases[j] = *(floatData++);
@@ -234,51 +188,17 @@ public:
         for (int j = 0; j < HIDDEN_NEURONS; j++) {
             outputWeights[j] = *(floatData++);
         }
-
-
-        /*for (int i = 0; i < (int)layers.size(); i++) {
-            int sz = layers[i].info.size;
-            v.resize(sz);
-
-            floatData = (float*)gradData;
-            for (int j = 0; j < sz; j++) {
-                //std::cout << *floatData << " ";
-                layers[i].bias[j] = *(floatData++);
-            }
-
-            gradData = (Gradient*)floatData;
-            for (int j = 0; j < sz; j++) {
-                v[j] = *(gradData++);
-            }
-
-            for (int j = 0; i && j < layers[i - 1].info.size; j++) {
-                floatData = (float*)gradData;
-                for (int k = 0; k < sz; k++) {
-                    if (i == 1)
-                        inputWeights[j][k] = *(floatData++);
-                    else
-                        outputWeights[j] = *(floatData++);
-                }
-
-                //std::cout << "\n";
-
-                gradData = (Gradient*)floatData;
-                for (int k = 0; k < sz; k++) {
-                    v[k] = *(gradData++);
-                }
-            }
-        }*/
     }
 
     int lg = sizeof(__m256) / sizeof(float);
     int batches = HIDDEN_NEURONS / lg;
 
     int histSz, updateSz;
-    std::vector <Layer> layers;
 
     float inputBiases[HIDDEN_NEURONS], outputBias __attribute__((aligned(32)));
     float histOutput[1005][HIDDEN_NEURONS] __attribute__((aligned(32)));
     float inputWeights[INPUT_NEURONS][HIDDEN_NEURONS] __attribute__((aligned(32)));
     float outputWeights[HIDDEN_NEURONS] __attribute__((aligned(32)));
+
     std::vector <Update> updates;
 };
