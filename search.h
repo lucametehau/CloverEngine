@@ -424,7 +424,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
         bool isQuiet = !isNoisyMove(board, move), refutationMove = (picker.stage < STAGE_QUIETS);
         Heuristics H{}; /// history values for quiet moves
-        int captureHistory = capHist[board.piece_at(sqFrom(move))][sqTo(move)][board.piece_type_at(sqTo(move))];
+        //int captureHistory = capHist[board.piece_at(sqFrom(move))][sqTo(move)][board.piece_type_at(sqTo(move))];
 
         /// quiet move pruning
         if (!rootNode && best > -MATE) {
@@ -516,11 +516,11 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
                 R -= std::max(-2, std::min(2, (H.h + H.ch + H.fh) / histDiv)); /// reduce based on move history
             }
-            else {
+            /*else {
                 R = std::max(0, -captureHistory / 4096);
 
                 R -= (board.checkers != 0);
-            }
+            }*/
 
             R = std::min(depth - 1, std::max(R, 1)); /// clamp R
         }
