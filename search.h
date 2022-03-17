@@ -350,8 +350,11 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     bool isCheck = (board.checkers != 0);
     int kingDanger = (!isCheck ? getKingDanger(board, board.turn) : 0);
 
-    /*if (kingDanger >= 15)
-        cnt++;*/
+    /*if (kingDanger > cnt) {
+        cnt = kingDanger;
+        std::cout << "KING DANGER IS : " << kingDanger << "\n";
+        board.print();
+    }*/
 
     if (isCheck) {
         /// when in check, don't evaluate (king safety evaluation might break)
@@ -392,10 +395,10 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     ///                    we have a good position and we don't have any idea if it's likely to fail)
     /// TO DO: tune nmp
 
-    if (!pvNode && !isCheck && !excluded && eval >= beta && eval >= Stack[ply].eval && depth >= 2 && Stack[ply - 1].move &&
+    if (!pvNode && !isCheck && !excluded && kingDanger < 25 && eval >= beta && eval >= Stack[ply].eval && depth >= 2 && Stack[ply - 1].move &&
         (board.pieces[board.turn] ^ board.bb[getType(PAWN, board.turn)] ^ board.bb[getType(KING, board.turn)]) &&
         (!ttHit || !(bound & UPPER) || ttValue >= beta)) {
-        int R = 4 + depth / 6 + std::min(3, (eval - beta) / 100) - kingDanger / 10;
+        int R = 4 + depth / 6 + std::min(3, (eval - beta) / 100);
 
         Stack[ply].move = NULLMOVE;
         Stack[ply].piece = 0;

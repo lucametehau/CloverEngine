@@ -30,7 +30,7 @@ int histMax = 400; // 1000
 int histMult = 32; // 50
 int histUpdateDiv = 512; // 300
 
-int counterHistMult = 32;
+int counterHistMult = 64;
 int counterHistUpdateDiv = 512;
 
 
