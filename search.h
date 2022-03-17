@@ -69,6 +69,49 @@ bool Search::checkForStop() {
 bool printStats = true; /// default true
 const bool PROBE_ROOT = true; /// default true
 
+int Search::getKingDanger(Board& board, int color) {
+    int enemy = 1 ^ color, king = board.king(color);
+    uint64_t pieces, b, all = board.pieces[WHITE] | board.pieces[BLACK];
+    uint64_t kingRing = kingRingMask[king] & 
+                        ~(shift(color, NORTHEAST, board.bb[getType(PAWN, color)] & ~fileMask[(color == WHITE ? 7 : 0)]) &
+                          shift(color, NORTHWEST, board.bb[getType(PAWN, color)] & ~fileMask[(color == WHITE ? 0 : 7)]));
+    int kingDanger = 0;
+
+    static const int kingDangerWeights[6] = {
+        0, 0, 2, 2, 3, 5
+    };
+
+    pieces = board.bb[getType(KNIGHT, enemy)];
+    while (pieces) {
+        b = lsb(pieces);
+        kingDanger += kingDangerWeights[KNIGHT] * count(knightBBAttacks[Sq(b)] & kingRing);
+        pieces ^= b;
+    }
+
+    pieces = board.bb[getType(BISHOP, enemy)];
+    while (pieces) {
+        b = lsb(pieces);
+        kingDanger += kingDangerWeights[BISHOP] * count(genAttacksBishop(all, Sq(b)) & kingRing);
+        pieces ^= b;
+    }
+
+    pieces = board.bb[getType(ROOK, enemy)];
+    while (pieces) {
+        b = lsb(pieces);
+        kingDanger += kingDangerWeights[ROOK] * count(genAttacksRook(all, Sq(b)) & kingRing);
+        pieces ^= b;
+    }
+
+    pieces = board.bb[getType(QUEEN, enemy)];
+    while (pieces) {
+        b = lsb(pieces);
+        kingDanger += kingDangerWeights[QUEEN] * count(genAttacksQueen(all, Sq(b)) & kingRing);
+        pieces ^= b;
+    }
+
+    return kingDanger;
+}
+
 int Search::quiesce(int alpha, int beta, bool useTT) {
     int ply = board.ply;
 
@@ -305,6 +348,10 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     }
 
     bool isCheck = (board.checkers != 0);
+    int kingDanger = (!isCheck ? getKingDanger(board, board.turn) : 0);
+
+    /*if (kingDanger >= 15)
+        cnt++;*/
 
     if (isCheck) {
         /// when in check, don't evaluate (king safety evaluation might break)
@@ -348,7 +395,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     if (!pvNode && !isCheck && !excluded && eval >= beta && eval >= Stack[ply].eval && depth >= 2 && Stack[ply - 1].move &&
         (board.pieces[board.turn] ^ board.bb[getType(PAWN, board.turn)] ^ board.bb[getType(KING, board.turn)]) &&
         (!ttHit || !(bound & UPPER) || ttValue >= beta)) {
-        int R = 4 + depth / 6 + std::min(3, (eval - beta) / 100);
+        int R = 4 + depth / 6 + std::min(3, (eval - beta) / 100) - kingDanger / 15;
 
         Stack[ply].move = NULLMOVE;
         Stack[ply].piece = 0;
@@ -424,7 +471,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
         bool isQuiet = !isNoisyMove(board, move), refutationMove = (picker.stage < STAGE_QUIETS);
         Heuristics H{}; /// history values for quiet moves
-        int captureHistory = capHist[board.piece_at(sqFrom(move))][sqTo(move)][board.piece_type_at(sqTo(move))];
 
         /// quiet move pruning
         if (!rootNode && best > -MATE) {
@@ -450,10 +496,11 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
                     continue;
             }
             else {
+                /*int captureHistory = capHist[board.piece_at(sqFrom(move))][sqTo(move)][board.piece_type_at(sqTo(move))];
                 //int newDepth = std::max(0, depth - lmrRed[std::min(63, depth)][std::min(63, played)]);
 
-                if (depth <= 3 && captureHistory < -2000 * depth)
-                    continue;
+                if (depth <= 3 && picker.stage > STAGE_GOOD_NOISY && captureHistory < -4096 * depth)
+                    continue;*/
 
 
                 if (depth <= 8 && !isCheck && picker.stage > STAGE_GOOD_NOISY && !see(board, move, -seeCoefNoisy * depth * depth))
@@ -745,7 +792,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
                 printPv();
                 std::cout << std::endl;
 
-                //std::cout << cnt << " " << cnt2 << "\n";
+                //std::cout << cnt << "\n";
                 //std::cout << "NMP Fail rate: " << 100.0 * nmpFail / nmpTries << "\n";
             }
 

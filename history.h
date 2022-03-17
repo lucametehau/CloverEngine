@@ -30,9 +30,16 @@ int histMax = 400; // 1000
 int histMult = 32; // 50
 int histUpdateDiv = 512; // 300
 
+int counterHistMult = 32;
+int counterHistUpdateDiv = 512;
+
 
 void updateHist(int& hist, int score) {
     hist += score * histMult - hist * abs(score) / histUpdateDiv;
+}
+
+void updateCounterHist(int& hist, int score) {
+    hist += score * counterHistMult - hist * abs(score) / counterHistUpdateDiv;
 }
 
 void updateHistory(Search* searcher, uint16_t* quiets, int nrQuiets, int ply, int bonus) {
@@ -62,10 +69,10 @@ void updateHistory(Search* searcher, uint16_t* quiets, int nrQuiets, int ply, in
         updateHist(searcher->hist[turn][from][to], score);
 
         if (counterMove)
-            updateHist(searcher->follow[0][counterPiece][counterTo][piece][to], score);
+            updateCounterHist(searcher->follow[0][counterPiece][counterTo][piece][to], score);
 
         if (followMove)
-            updateHist(searcher->follow[1][followPiece][followTo][piece][to], score);
+            updateCounterHist(searcher->follow[1][followPiece][followTo][piece][to], score);
     }
 }
 

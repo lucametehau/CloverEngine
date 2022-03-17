@@ -79,6 +79,8 @@ public:
     void _setFen(std::string fen);
     void _makeMove(uint16_t move);
 
+    int getKingDanger(Board& board, int color);
+
     std::pair <int, uint16_t> startSearch(Info* info);
     int quiesce(int alpha, int beta, bool useTT = true); /// for quiet position check (tuning)
     int search(int alpha, int beta, int depth, bool cutNode, uint16_t excluded = NULLMOVE);
