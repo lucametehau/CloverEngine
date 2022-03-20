@@ -426,7 +426,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
     if (!pvNode && !isCheck && depth >= 5 && abs(beta) < MATE) {
         int cutBeta = beta + 100;
-        Movepick noisyPicker((isNoisyMove(board, ttMove) ? ttMove : NULLMOVE), NULLMOVE, NULLMOVE, NULLMOVE, cutBeta - Stack[ply].eval);
+        Movepick noisyPicker(NULLMOVE, NULLMOVE, NULLMOVE, NULLMOVE, cutBeta - Stack[ply].eval);
 
         uint16_t move;
 
