@@ -25,7 +25,7 @@
 #include "perft.h"
 #include "generate.h"
 
-const std::string VERSION = "3.1-dev26"; /// 2.0 was "FM"
+const std::string VERSION = "3.1-dev27"; /// 2.0 was "FM"
 
 class UCI {
 public:
@@ -374,6 +374,14 @@ void UCI::Uci_Loop() {
 
                     iss >> val;
                     histUpdateDiv = val;
+                }
+                else if (name == "counterHistMult") {
+                    iss >> value;
+
+                    int val;
+
+                    iss >> val;
+                    counterHistMult = val;
                 }
 
             }

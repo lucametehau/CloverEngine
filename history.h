@@ -26,12 +26,16 @@ struct Heuristics {
 };
 
 
-int histMax = 400; // 1000
-int histMult = 32; // 50
+int histMax = 1024; // 1000
+
+int histMult = 16; // 50
 int histUpdateDiv = 512; // 300
 
-int counterHistMult = 64;
+int counterHistMult = 32;
 int counterHistUpdateDiv = 512;
+
+int capHistMult = 32;
+int capHistUpdateDiv = 512;
 
 
 void updateHist(int& hist, int score) {
@@ -40,6 +44,10 @@ void updateHist(int& hist, int score) {
 
 void updateCounterHist(int& hist, int score) {
     hist += score * counterHistMult - hist * abs(score) / counterHistUpdateDiv;
+}
+
+void updateCapHist(int& hist, int score) {
+    hist += score * capHistMult - hist * abs(score) / capHistUpdateDiv;
 }
 
 void updateHistory(Search* searcher, uint16_t* quiets, int nrQuiets, int ply, int bonus) {
@@ -90,7 +98,7 @@ void updateCapHistory(Search* searcher, uint16_t* captures, int nrCaptures, uint
         if (type(move) == ENPASSANT || type(move) == PROMOTION)
             cap = PAWN;
 
-        updateHist(searcher->capHist[piece][to][cap], score);
+        updateCapHist(searcher->capHist[piece][to][cap], score);
     }
 }
 

@@ -161,17 +161,17 @@ public:
         for (int j = 0; j < sz; j++)
             v[j] = *(gradData++);
 
-        for (int i = 0; i < INPUT_NEURONS; i++) {
-            floatData = (float*)gradData;
-            for (int j = 0; j < sz; j++) {
-                inputWeights[i][j] = *(floatData++);
-            }
+        floatData = (float*)gradData;
+        sz = INPUT_NEURONS * HIDDEN_NEURONS;
 
-            gradData = (Gradient*)floatData;
+        for (int i = 0; i < sz; i++) {
+            inputWeights[i / HIDDEN_NEURONS][i % HIDDEN_NEURONS] = *(floatData++);
+        }
 
-            for (int j = 0; j < sz; j++) {
-                v[j] = *(gradData++);
-            }
+        v.resize(sz);
+        gradData = (Gradient*)floatData;
+        for (int j = 0; j < sz; j++) {
+            v[j] = *(gradData++);
         }
 
         sz = 1;
