@@ -465,7 +465,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     Movepick picker(ttMove, killers[ply][0], killers[ply][1], counter, -10 * depth);
 
     uint16_t move;
-    int updateDepth = depth;
+    bool singular = false;
 
     while ((move = picker.nextMove(this, skip, 0)) != NULLMOVE) {
 
@@ -521,8 +521,10 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
             int score = search(rBeta - 1, rBeta, depth / 2, cutNode, move);
 
-            if (score < rBeta)
+            if (score < rBeta) {
                 ex = 1 + (!pvNode && rBeta - score > 100);
+                singular = true;
+            }
             else if (rBeta >= beta) /// multicut
                 return rBeta;
         }
@@ -563,6 +565,8 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
                 R += cutNode; // reduce more for cut nodes
 
                 R -= 2 * refutationMove; /// reduce for refutation moves
+
+                R += singular;
 
                 R -= std::max(-2, std::min(2, (H.h + H.ch + H.fh) / histDiv)); /// reduce based on move history
             }
@@ -631,7 +635,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
             killers[ply][0] = bestMove;
         }
 
-        updateHistory(this, quiets, nrQuiets, ply, updateDepth * updateDepth);
+        updateHistory(this, quiets, nrQuiets, ply, depth * depth);
     }
 
     if (best >= beta)
