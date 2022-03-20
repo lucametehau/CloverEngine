@@ -554,7 +554,7 @@ void UCI::Bench() {
         searcher._setFen(fen);
 
         info->timeset = 0;
-        info->depth = 11;
+        info->depth = 12;
         info->startTime = getTime();
         searcher.startSearch(info);
         totalNodes += searcher.nodes;

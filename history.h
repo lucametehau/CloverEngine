@@ -26,7 +26,7 @@ struct Heuristics {
 };
 
 
-int histMax = 1024; // 1000
+int histMax = 400; // 1000
 
 int histMult = 32; // 50
 int histUpdateDiv = 512; // 300
@@ -62,7 +62,7 @@ void updateHistory(Search* searcher, uint16_t* quiets, int nrQuiets, int ply, in
     bool turn = searcher->board.turn;
 
     if (counterMove)
-        searcher->cmTable[1 ^ turn][counterPiece][counterTo] = best; /// update counter move table
+        searcher->cmTable[1 ^ turn][searcher->Stack[ply - 1].piece][counterTo] = best; /// update counter move table
 
     bonus = std::min(bonus, histMax);
 
@@ -108,7 +108,7 @@ void getHistory(Search* searcher, uint16_t move, int ply, Heuristics& H) {
     H.h = searcher->hist[searcher->board.turn][from][to];
 
     uint16_t counterMove = searcher->Stack[ply - 1].move, followMove = (ply >= 2 ? searcher->Stack[ply - 2].move : NULLMOVE);
-    int counterPiece = searcher->Stack[ply - 1].piece, followPiece = (ply >= 2 ? searcher->Stack[ply - 2].piece : 0);
+    int counterPiece = searcher->Stack[ply - 1].piece, followPiece = ply >= 2 ? searcher->Stack[ply - 2].piece : 0;
     int counterTo = sqTo(counterMove), followTo = sqTo(followMove);
 
     H.ch = searcher->follow[0][counterPiece][counterTo][piece][to];

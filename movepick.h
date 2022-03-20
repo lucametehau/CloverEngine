@@ -178,7 +178,7 @@ public:
             int ply = searcher->board.ply;
 
             uint16_t counterMove = (ply >= 1 ? searcher->Stack[ply - 1].move : NULLMOVE), followMove = (ply >= 2 ? searcher->Stack[ply - 2].move : NULLMOVE);
-            int counterPiece = (ply >= 1 ? searcher->Stack[ply - 1].piece : 0), followPiece = (ply >= 2 ? searcher->Stack[ply - 2].piece : 0);
+            int counterPiece = (ply >= 1 ? searcher->Stack[ply - 1].piece : 0), followPiece = ply >= 2 ? searcher->Stack[ply - 2].piece : 0;
             int counterTo = sqTo(counterMove), followTo = sqTo(followMove);
 
             for (int i = 0; i < nrQuiets; i++) {
@@ -202,7 +202,6 @@ public:
                 }
                 scores[i] = score;
             }
-
             stage++;
         }
 
@@ -218,10 +217,12 @@ public:
                 quiets[ind] = quiets[nrQuiets];
                 scores[ind] = scores[nrQuiets];
 
-                if (best == hashMove || best == killer1 || best == killer2 || best == counter)
-                    return nextMove(searcher, skip, noisyPicker);
-
-                return best;
+                if (best == hashMove || best == killer1 || best == killer2 || best == counter) {
+                    stage++;
+                }
+                else {
+                    return best;
+                }
             }
             else {
                 stage++;
