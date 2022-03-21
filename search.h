@@ -71,11 +71,12 @@ const bool PROBE_ROOT = true; /// default true
 
 int Search::getKingDanger(Board& board, int color) {
     int enemy = 1 ^ color, king = board.king(color);
+    uint64_t att;
     uint64_t pieces, b, all = board.pieces[WHITE] | board.pieces[BLACK];
     uint64_t kingRing = kingRingMask[king] & 
                         ~(shift(color, NORTHEAST, board.bb[getType(PAWN, color)] & ~fileMask[(color == WHITE ? 7 : 0)]) &
                           shift(color, NORTHWEST, board.bb[getType(PAWN, color)] & ~fileMask[(color == WHITE ? 0 : 7)]));
-    int kingDanger = 0;
+    int kingDanger = 0, kingAttackersCount = 0;
 
     static const int kingDangerWeights[6] = {
         0, 0, 2, 2, 3, 5
@@ -84,32 +85,40 @@ int Search::getKingDanger(Board& board, int color) {
     pieces = board.bb[getType(KNIGHT, enemy)];
     while (pieces) {
         b = lsb(pieces);
-        kingDanger += kingDangerWeights[KNIGHT] * count(knightBBAttacks[Sq(b)] & kingRing);
+        att = knightBBAttacks[Sq(b)] & kingRing;
+        kingDanger += kingDangerWeights[KNIGHT] * count(att);
+        kingAttackersCount += (att != 0);
         pieces ^= b;
     }
 
     pieces = board.bb[getType(BISHOP, enemy)];
     while (pieces) {
         b = lsb(pieces);
-        kingDanger += kingDangerWeights[BISHOP] * count(genAttacksBishop(all, Sq(b)) & kingRing);
+        att = genAttacksBishop(all, Sq(b)) & kingRing;
+        kingDanger += kingDangerWeights[BISHOP] * count(att);
+        kingAttackersCount += (att != 0);
         pieces ^= b;
     }
 
     pieces = board.bb[getType(ROOK, enemy)];
     while (pieces) {
         b = lsb(pieces);
-        kingDanger += kingDangerWeights[ROOK] * count(genAttacksRook(all, Sq(b)) & kingRing);
+        att = genAttacksRook(all, Sq(b)) & kingRing;
+        kingDanger += kingDangerWeights[ROOK] * count(att);
+        kingAttackersCount += (att != 0);
         pieces ^= b;
     }
 
     pieces = board.bb[getType(QUEEN, enemy)];
     while (pieces) {
         b = lsb(pieces);
-        kingDanger += kingDangerWeights[QUEEN] * count(genAttacksQueen(all, Sq(b)) & kingRing);
+        att = genAttacksQueen(all, Sq(b)) & kingRing;
+        kingDanger += kingDangerWeights[QUEEN] * count(att);
+        kingAttackersCount += (att != 0);
         pieces ^= b;
     }
 
-    return kingDanger;
+    return (kingAttackersCount > 2 ? kingDanger : 0);
 }
 
 int Search::quiesce(int alpha, int beta, bool useTT) {
@@ -348,7 +357,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     }
 
     bool isCheck = (board.checkers != 0);
-    //int kingDanger = (!isCheck ? getKingDanger(board, board.turn) : 0);
+    int kingDanger = (!isCheck ? getKingDanger(board, board.turn) : 0);
 
     /*if (kingDanger > cnt) {
         cnt = kingDanger;
@@ -398,7 +407,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     if (!pvNode && !isCheck && !excluded && /*kingDanger < 25 &&*/ eval >= beta && eval >= Stack[ply].eval && depth >= 2 && Stack[ply - 1].move &&
         (board.pieces[board.turn] ^ board.bb[getType(PAWN, board.turn)] ^ board.bb[getType(KING, board.turn)]) &&
         (!ttHit || !(bound & UPPER) || ttValue >= beta)) {
-        int R = 4 + depth / 6 + std::min(3, (eval - beta) / 100);
+        int R = 4 + depth / 6 + std::min(3, (eval - beta) / 100) - std::min(2, kingDanger / 20);
 
         Stack[ply].move = NULLMOVE;
         Stack[ply].piece = 0;
@@ -465,7 +474,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     Movepick picker(ttMove, killers[ply][0], killers[ply][1], counter, -10 * depth);
 
     uint16_t move;
-    bool singular = false;
 
     while ((move = picker.nextMove(this, skip, 0)) != NULLMOVE) {
 
@@ -523,7 +531,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
             if (score < rBeta) {
                 ex = 1 + (!pvNode && rBeta - score > 100);
-                singular = true;
             }
             else if (rBeta >= beta) /// multicut
                 return rBeta;
@@ -565,8 +572,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
                 R += cutNode; // reduce more for cut nodes
 
                 R -= 2 * refutationMove; /// reduce for refutation moves
-
-                R += singular;
 
                 R -= std::max(-2, std::min(2, (H.h + H.ch + H.fh) / histDiv)); /// reduce based on move history
             }
