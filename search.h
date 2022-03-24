@@ -118,7 +118,7 @@ int Search::getKingDanger(Board& board, int color) {
         pieces ^= b;
     }
 
-    return (kingAttackersCount >= 2 ? kingDanger : 0);
+    return (kingAttackersCount > 2 ? kingDanger : 0);
 }
 
 int Search::quiesce(int alpha, int beta, bool useTT) {
