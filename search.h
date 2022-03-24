@@ -573,7 +573,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
                 R += cutNode; // reduce more for cut nodes
 
-                R -= kingDanger / kdDiv;
+                R -= (kingDanger >= 40);
 
                 R -= 2 * refutationMove; /// reduce for refutation moves
 
