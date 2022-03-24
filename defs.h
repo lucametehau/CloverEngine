@@ -89,6 +89,8 @@ uint64_t flankMask[2];
 int mirrorSq[2][64];
 int distance[64][64];
 
+int cntrrr;
+
 const std::pair <int, int> knightDir[] = { {-1, -2}, {-2, -1}, {-2, 1}, {-1, 2}, {1, 2}, {2, 1}, {2, -1}, {1, -2} };
 const std::pair <int, int> rookDir[] = { {-1, 0}, {1, 0}, {0, -1}, {0, 1} };
 const std::pair <int, int> bishopDir[] = { {-1, 1}, {-1, -1}, {1, -1}, {1, 1} };
@@ -135,8 +137,8 @@ inline int piece_type(int piece) {
     return (piece > 6 ? piece - 6 : piece);
 }
 
-inline int netInd(int piece, int sq) {
-    return 64 * (piece - 1) + sq;
+inline int netInd(int piece, int sq/*, int kingSide*/) {
+    return /*12 * 64 * kingSide + */64 * (piece - 1) + sq;
 }
 
 inline int hashVal(int value, int ply) {

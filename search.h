@@ -118,7 +118,7 @@ int Search::getKingDanger(Board& board, int color) {
         pieces ^= b;
     }
 
-    return (kingAttackersCount > 2 ? kingDanger : 0);
+    return (kingAttackersCount >= 2 ? kingDanger : 0);
 }
 
 int Search::quiesce(int alpha, int beta, bool useTT) {
@@ -359,6 +359,8 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     bool isCheck = (board.checkers != 0);
     int kingDanger = (!isCheck ? getKingDanger(board, board.turn) : 0);
 
+    //kekw[kingDanger]++;
+
     /*if (kingDanger > cnt) {
         cnt = kingDanger;
         std::cout << "KING DANGER IS : " << kingDanger << "\n";
@@ -404,10 +406,10 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     ///                    we have a good position and we don't have any idea if it's likely to fail)
     /// TO DO: tune nmp
 
-    if (!pvNode && !isCheck && !excluded && /*kingDanger < 25 &&*/ eval >= beta && eval >= Stack[ply].eval && depth >= 2 && Stack[ply - 1].move &&
+    if (!pvNode && !isCheck && !excluded && eval >= beta && eval >= Stack[ply].eval && depth >= 2 && Stack[ply - 1].move &&
         (board.pieces[board.turn] ^ board.bb[getType(PAWN, board.turn)] ^ board.bb[getType(KING, board.turn)]) &&
         (!ttHit || !(bound & UPPER) || ttValue >= beta)) {
-        int R = 4 + depth / 6 + std::min(3, (eval - beta) / 100) - std::min(2, kingDanger / 20);
+        int R = 4 + depth / 6 + std::min(3, (eval - beta) / 100);
 
         Stack[ply].move = NULLMOVE;
         Stack[ply].piece = 0;
@@ -570,6 +572,8 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
                 R += !pvNode + !improving; /// not on pv or not improving
 
                 R += cutNode; // reduce more for cut nodes
+
+                R -= kingDanger / kdDiv;
 
                 R -= 2 * refutationMove; /// reduce for refutation moves
 
@@ -803,6 +807,10 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
                 std::cout << "pv ";
                 printPv();
                 std::cout << std::endl;
+
+                /*for (int i = 20; i <= 60; i++)
+                    std::cout << "(" << i << ", " << kekw[i] << "), ";
+                std::cout << std::endl;*/
 
                 //std::cout << cnt << "\n";
                 //std::cout << "NMP Fail rate: " << 100.0 * nmpFail / nmpTries << "\n";

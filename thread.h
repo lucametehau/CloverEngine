@@ -43,6 +43,8 @@ int fhCoef = -2000;
 
 int fpHistDiv = 512;
 
+int kdDiv = 30;
+
 int nodesSearchedDiv = 10000;
 
 float lmrMargin = 1;
@@ -115,6 +117,8 @@ public:
     int lmrCnt[2][9];
     int lmrRed[64][64];
     StackEntry Stack[DEPTH + 5];
+
+    int kekw[500];
 
     int16_t contempt;
 

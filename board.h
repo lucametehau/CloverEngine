@@ -138,11 +138,15 @@ public:
     NetInput toNetInput() {
         NetInput ans;
 
+        /*int kingsSide[2] = {
+            (king(BLACK) >> 2) & 1, (king(WHITE) >> 2) & 1
+        };*/
+
         for (int i = 1; i <= 12; i++) {
             uint64_t b = bb[i];
             while (b) {
                 uint64_t b2 = lsb(b);
-                ans.ind.push_back(netInd(i, Sq(b2)));
+                ans.ind.push_back(netInd(i, Sq(b2)/*, kingsSide[i / 7]*/));
                 b ^= b2;
             }
         }

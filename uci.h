@@ -383,6 +383,14 @@ void UCI::Uci_Loop() {
                     iss >> val;
                     counterHistMult = val;
                 }
+                else if (name == "kdDiv") {
+                    iss >> value;
+
+                    int val;
+
+                    iss >> val;
+                    kdDiv = val;
+                }
 
             }
             else if (cmd == "generate") {

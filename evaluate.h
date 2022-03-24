@@ -24,9 +24,6 @@
 const int TEMPO = 20;
 
 int evaluate(Board &board) {
-
-    //float eval2 = board.NN.getOutput();
-
     //board.print();
     int eval = int(board.NN.getOutput());
 
