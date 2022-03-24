@@ -399,7 +399,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
     /// static null move pruning (don't prune when having a mate line, again stability)
 
-    if (!pvNode && !isCheck && depth <= 8 && eval - (SNMPCoef1 - SNMPCoef2 * improving) * depth > beta && eval < MATE)
+    if (!pvNode && !isCheck && depth <= 8 && eval - (SNMPCoef1 - SNMPCoef2 * improving) * (depth - (kingDanger >= 40))> beta && eval < MATE)
         return eval;
 
     /// null move pruning (when last move wasn't null, we still have non pawn material,
@@ -572,8 +572,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
                 R += !pvNode + !improving; /// not on pv or not improving
 
                 R += cutNode; // reduce more for cut nodes
-
-                R -= (kingDanger >= 40);
 
                 R -= 2 * refutationMove; /// reduce for refutation moves
 
