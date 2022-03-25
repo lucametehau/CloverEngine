@@ -95,7 +95,7 @@ void updateCapHistory(Search* searcher, uint16_t* captures, int nrCaptures, uint
         int score = (move == best ? bonus : -bonus);
         int from = sqFrom(move), to = sqTo(move), piece = searcher->board.piece_at(from), cap = searcher->board.piece_type_at(to);
 
-        if (type(move) == ENPASSANT || type(move) == PROMOTION)
+        if (type(move) == ENPASSANT)
             cap = PAWN;
 
         updateCapHist(searcher->capHist[piece][to][cap], score);

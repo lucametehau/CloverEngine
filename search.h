@@ -393,7 +393,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
     /// razoring (searching 1 more ply can't change the score much, drop in quiesce)
 
-    if (!pvNode && !isCheck && depth <= 1 && Stack[ply].eval + RazorCoef < alpha) {
+    if (!pvNode && !isCheck && depth <= 3 && Stack[ply].eval + RazorCoef * depth < alpha) {
         return quiesce(alpha, beta);
     }
 
