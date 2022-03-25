@@ -357,7 +357,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     }
 
     bool isCheck = (board.checkers != 0);
-    int kingDanger = (!isCheck ? getKingDanger(board, board.turn) : 0);
+    //int kingDanger = (!isCheck ? getKingDanger(board, board.turn) : 0);
 
     //kekw[kingDanger]++;
 
@@ -399,7 +399,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
     /// static null move pruning (don't prune when having a mate line, again stability)
 
-    if (!pvNode && !isCheck && depth <= 8 && eval - (SNMPCoef1 - SNMPCoef2 * improving) * (depth - (kingDanger >= 40))> beta && eval < MATE)
+    if (!pvNode && !isCheck && depth <= 8 && eval - (SNMPCoef1 - SNMPCoef2 * improving) * depth > beta && eval < MATE)
         return eval;
 
     /// null move pruning (when last move wasn't null, we still have non pawn material,

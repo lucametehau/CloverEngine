@@ -137,7 +137,7 @@ public:
         int* intData;
         float* floatData;
         Gradient* gradData;
-        std::vector <Gradient> v;
+        Gradient kekw;
         std::vector <float> w;
 
         int x;
@@ -157,21 +157,19 @@ public:
 
         gradData = (Gradient*)floatData;
 
-        v.resize(sz);
         for (int j = 0; j < sz; j++)
-            v[j] = *(gradData++);
+            kekw = *(gradData++);
 
-        for (int i = 0; i < INPUT_NEURONS; i++) {
-            floatData = (float*)gradData;
-            for (int j = 0; j < sz; j++) {
-                inputWeights[i][j] = *(floatData++);
-            }
+        floatData = (float*)gradData;
 
-            gradData = (Gradient*)floatData;
+        for (int i = 0; i < HIDDEN_NEURONS * INPUT_NEURONS; i++) {
+            inputWeights[i / HIDDEN_NEURONS][i % HIDDEN_NEURONS] = *(floatData++);
+        }
 
-            for (int j = 0; j < sz; j++) {
-                v[j] = *(gradData++);
-            }
+        gradData = (Gradient*)floatData;
+
+        for (int i = 0; i < HIDDEN_NEURONS * INPUT_NEURONS; i++) {
+            kekw = *(gradData++);
         }
 
         sz = 1;
@@ -181,7 +179,7 @@ public:
 
         gradData = (Gradient*)floatData;
 
-        v[0] = *(gradData++);
+        kekw = *(gradData++);
 
         floatData = (float*)gradData;
 
