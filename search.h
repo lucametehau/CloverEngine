@@ -393,7 +393,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
     /// razoring (searching 1 more ply can't change the score much, drop in quiesce)
 
-    if (!pvNode && !isCheck && depth <= 3 && Stack[ply].eval + RazorCoef * depth < alpha) {
+    if (!pvNode && !isCheck && depth <= 1 && Stack[ply].eval + RazorCoef < alpha) {
         return quiesce(alpha, beta);
     }
 
@@ -409,7 +409,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     if (!pvNode && !isCheck && !excluded && eval >= beta && eval >= Stack[ply].eval && depth >= 2 && Stack[ply - 1].move &&
         (board.pieces[board.turn] ^ board.bb[getType(PAWN, board.turn)] ^ board.bb[getType(KING, board.turn)]) &&
         (!ttHit || !(bound & UPPER) || ttValue >= beta)) {
-        int R = 4 + depth / 6 + std::min(3, (eval - beta) / 100);
+        int R = 4 + depth / 6 + std::min(3, (eval - beta) / 100) + improving;
 
         Stack[ply].move = NULLMOVE;
         Stack[ply].piece = 0;
