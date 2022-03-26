@@ -25,7 +25,7 @@
 #include "perft.h"
 #include "generate.h"
 
-const std::string VERSION = "3.1-dev3"; /// 2.0 was "FM"
+const std::string VERSION = "3.1-dev29"; /// 2.0 was "FM"
 
 class UCI {
 public:
@@ -242,7 +242,7 @@ void UCI::Uci_Loop() {
                     iss >> value;
 
                     iss >> ttSize;
-                    
+
                     TT->initTable(ttSize * MB);
 
                 }
@@ -319,6 +319,30 @@ void UCI::Uci_Loop() {
                     iss >> val;
                     fpCoef = val;
                 }
+                else if (name == "chCoef") {
+                    iss >> value;
+
+                    int val;
+
+                    iss >> val;
+                    chCoef = val;
+                }
+                else if (name == "fhCoef") {
+                    iss >> value;
+
+                    int val;
+
+                    iss >> val;
+                    fhCoef = val;
+                }
+                else if (name == "fpHistDiv") {
+                    iss >> value;
+
+                    int val;
+
+                    iss >> val;
+                    fpHistDiv = val;
+                }
                 else if (name == "histDiv") {
                     iss >> value;
 
@@ -326,6 +350,46 @@ void UCI::Uci_Loop() {
 
                     iss >> val;
                     histDiv = val;
+                }
+                else if (name == "histMax") {
+                    iss >> value;
+
+                    int val;
+
+                    iss >> val;
+                    histMax = val;
+                }
+                else if (name == "histMult") {
+                    iss >> value;
+
+                    int val;
+
+                    iss >> val;
+                    histMult = val;
+                }
+                else if (name == "histUpdateDiv") {
+                    iss >> value;
+
+                    int val;
+
+                    iss >> val;
+                    histUpdateDiv = val;
+                }
+                else if (name == "counterHistMult") {
+                    iss >> value;
+
+                    int val;
+
+                    iss >> val;
+                    counterHistMult = val;
+                }
+                else if (name == "kdDiv") {
+                    iss >> value;
+
+                    int val;
+
+                    iss >> val;
+                    kdDiv = val;
                 }
 
             }
@@ -387,6 +451,7 @@ void UCI::UciNewGame(uint64_t ttSize) {
 
 void UCI::Go(Info* info) {
     TT->age();
+    searcher.clearStack();
     searcher.clearBoard();
     searcher.startPrincipalSearch(info);
 }
@@ -497,7 +562,7 @@ void UCI::Bench() {
         searcher._setFen(fen);
 
         info->timeset = 0;
-        info->depth = 11;
+        info->depth = 12;
         info->startTime = getTime();
         searcher.startSearch(info);
         totalNodes += searcher.nodes;
@@ -518,4 +583,3 @@ void UCI::Bench() {
     std::cout << " time: " << t << "\n";
     std::cout << "  nps: " << int(totalNodes / t) << "\n";*/
 }
-

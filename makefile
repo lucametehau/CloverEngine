@@ -1,8 +1,7 @@
 CC  = g++
 SRC = *.cpp tbprobe.c
-
-EXE = Clover.3.1-dev3
-EVALFILE = Clover_323mil_e33_256.nn
+EXE = Clover.3.1-dev29
+EVALFILE = Clover_3_1_590mil_e32_512_eval.nn
 
 ifeq ($(OS), Windows_NT)
 	EXT = .exe
@@ -30,6 +29,8 @@ ob:
 	$(CC) $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(NATIVEFLAGS) -o Clover$(EXT)
 native:
 	$(CC) $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(NATIVEFLAGS) -o $(EXE)-native$(EXT)
+debug:
+	$(CC) $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(NATIVEFLAGS) -g -o $(EXE)-debug$(EXT)
 run:
 	$(CC) $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) -o $(EXE)$(EXT)
 	$(CC) $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(POPCNTFLAGS) -o $(EXE)-popcnt$(EXT)

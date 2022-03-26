@@ -23,20 +23,13 @@
 
 const int TEMPO = 20;
 
-int evaluate(Board& board) {
-
-    //float eval2 = board.NN.getOutput();
-
+int evaluate(Board &board) {
     //board.print();
+    int eval = int(board.NN.getOutput());
 
-    /*NetInput input = board.toNetInput();
-    float score = board.NN.calc(input);
+    bool turn = board.turn;
 
-    if (abs(eval2 - score) > 1e-1) {
-      board.print();
-      std::cout << eval2 << " " << score << "\n";
-      assert(0);
-    }*/
+    //eval += contempt;
 
-    return int(board.NN.getOutput()) * (board.turn == WHITE ? 1 : -1) + TEMPO;
+    return eval * (turn == WHITE ? 1 : -1) + TEMPO;
 }
