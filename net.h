@@ -188,6 +188,16 @@ public:
         }
     }
 
-  std::vector <Layer> layers;
+    int lg = sizeof(__m256) / sizeof(float);
+    int batches = HIDDEN_NEURONS / lg;
+
+    int histSz, updateSz;
+
+    float inputBiases[HIDDEN_NEURONS], outputBias __attribute__((aligned(32)));
+    float histOutput[1005][HIDDEN_NEURONS] __attribute__((aligned(32)));
+    float inputWeights[INPUT_NEURONS][HIDDEN_NEURONS] __attribute__((aligned(32)));
+    float outputWeights[HIDDEN_NEURONS] __attribute__((aligned(32)));
+
+    std::vector <Update> updates;
 };
 
