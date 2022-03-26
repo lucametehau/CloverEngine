@@ -1,3 +1,19 @@
+/*
+  Clover is a UCI chess playing engine authored by Luca Metehau.
+  <https://github.com/lucametehau/CloverEngine>
+
+  Clover is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  Clover is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 #pragma once
 #include "incbin.h"
 #include <fstream>
@@ -7,178 +23,170 @@
 #include <algorithm>
 #include <cmath>
 #include <random>
+#include <immintrin.h>
 
 INCBIN(Net, EVALFILE);
 
-const int NO_ACTIV   = 0;
-const int SIGMOID    = 1;
-const int RELU       = 2;
-
-struct LayerInfo {
-  int size;
-  int activationType;
-};
+const int INPUT_NEURONS = 768;
+const int HIDDEN_NEURONS = 512;
 
 struct NetInput {
-  std::vector <short> ind;
+    std::vector <short> ind;
+};
+
+struct Update {
+    int16_t ind;
+    int8_t coef;
 };
 
 class Gradient {
 public:
-  float m1, m2; /// momentums
+    //float grad;
+    float m1, m2; /// momentums
 
-  Gradient(float _m1, float _m2) {
-    m1 = _m1;
-    m2 = _m2;
-  }
-
-  Gradient() {
-    m1 = m2 = 0;
-  }
-};
-
-class Layer {
-public:
-  Layer(LayerInfo _info, int prevNumNeurons) {
-    info = _info;
-
-    int numNeurons = _info.size;
-
-    bias.resize(numNeurons);
-
-    output.resize(numNeurons);
-
-    if(prevNumNeurons) {
-      weights.resize(prevNumNeurons);
-      for(int i = 0; i < prevNumNeurons; i++) {
-        weights[i].resize(numNeurons);
-      }
+    Gradient(float _m1, float _m2) {
+        m1 = _m1;
+        m2 = _m2;
+        //grad = 0;
     }
-  }
 
-  LayerInfo info;
-  std::vector <float> bias;
-  std::vector <float> output;
-  std::vector <std::vector <float>> weights;
+    Gradient() {
+        m1 = m2 = 0;
+        //grad = 0;
+    }
 };
 
 class Network {
 public:
 
-  Network() {
-    std::vector <LayerInfo> topology;
+    Network() {
+        histSz = 0;
 
-    topology.push_back({768, NO_ACTIV});
-    topology.push_back({512, RELU});
-    topology.push_back({1, SIGMOID});
+        updateSz = 0;
+        updates.resize(5);
 
-    for(int i = 0; i < (int)topology.size(); i++) {
-      layers.push_back(Layer(topology[i], (i > 0 ? topology[i - 1].size : 0)));
+        load();
     }
 
-    load();
-  }
+    float calc(NetInput& input) { /// feed forward
+        float sum;
 
-  Network(std::vector <LayerInfo> &topology) {
-    for(int i = 0; i < (int)topology.size(); i++) {
-      layers.push_back(Layer(topology[i], (i > 0 ? topology[i - 1].size : 0)));
-    }
-  }
+        for (int n = 0; n < HIDDEN_NEURONS; n++) {
+            sum = inputBiases[n];
 
-  float calc(NetInput &input) { /// feed forward
-    float sum;
+            for (auto& prevN : input.ind) {
+                sum += inputWeights[prevN][n];
+            }
 
-    for(int n = 0; n < layers[1].info.size; n++) {
-      sum = layers[1].bias[n];
+            histOutput[0][n] = sum;
+        }
 
-      for(auto &prevN : input.ind) {
-        sum += layers[1].weights[prevN][n];
-      }
+        histSz = 1;
 
-      layers[1].output[n] = sum;
+        return getOutput();
     }
 
-    return getOutput();
-  }
-
-  void removeInput(int ind) {
-    for(int n = 0; n < layers[1].info.size; n++) {
-      layers[1].output[n] -= layers[1].weights[ind][n];
+    void removeInput(int16_t ind) {
+        updates[updateSz++] = { ind, -1 };
     }
-  }
 
-  void addInput(int ind) {
-    for(int n = 0; n < layers[1].info.size; n++) {
-      layers[1].output[n] += layers[1].weights[ind][n];
+    void addInput(int16_t ind) {
+        updates[updateSz++] = { ind, 1 };
     }
-  }
 
-  float getOutput() {
-    float sum = layers.back().bias[0];
+    void applyUpdates() {
+        memcpy(histOutput[histSz], histOutput[histSz - 1], sizeof(histOutput[histSz - 1]));
+        histSz++;
 
-    for(int n = 0; n < layers[1].info.size; n++)
-      sum += std::max(0.0f, layers[1].output[n]) * layers.back().weights[n][0];
+        for (int i = 0; i < updateSz; i++) {
+            __m256* v = (__m256*)inputWeights[updates[i].ind];
+            __m256* w = (__m256*)histOutput[histSz - 1];
+            __m256 ct = _mm256_set1_ps(updates[i].coef);
 
-    return sum;
-  }
+            for (int j = 0; j < batches; j++)
+                w[j] = _mm256_add_ps(_mm256_mul_ps(ct, v[j]), w[j]);
+        }
 
-  void checkRemoval() {
-    NetInput input;
-    input.ind.push_back(1);
-    addInput(1);
-    float ans = calc(input);
-    input.ind.push_back(2);
-    addInput(2);
-    calc(input);
-    removeInput(2);
-    input.ind.pop_back();
-    float ans2 = getOutput(), ans3 = calc(input);
-    std::cout << ans2 << " " << ans << " " << ans3 << "\n";
+        updateSz = 0;
+    }
 
-    assert(abs(ans2 - ans) < 1e-9);
-  }
+    void revertUpdates() {
+        histSz--;
+    }
 
-  void load() {
-    int *intData;
-    float *floatData;
-    Gradient *gradData;
-    std::vector <Gradient> v;
+    float getOutput() {
+        float sum = outputBias;
 
-    int x;
-    intData = (int*)gNetData;
+        __m256* v = (__m256*)outputWeights;
+        __m256* w = (__m256*)histOutput[histSz - 1];
+        __m256 zero = _mm256_setzero_ps();
 
-    x = *(intData++);
-    assert(x == (int)layers.size());
+        for (int j = 0; j < batches; j++) {
+            __m256 temp = _mm256_mul_ps(_mm256_max_ps(w[j], zero), v[j]);
+            float tempRes[8] __attribute__((aligned(16)));
+            _mm256_store_ps(tempRes, temp);
 
-    gradData = (Gradient*)intData;
+            sum += tempRes[0] + tempRes[1] + tempRes[2] + tempRes[3] + tempRes[4] + tempRes[5] + tempRes[6] + tempRes[7];
+        }
 
-    for(int i = 0; i < (int)layers.size(); i++) {
-      int sz = layers[i].info.size;
-      v.resize(sz);
 
-      floatData = (float*)gradData;
-      for(int j = 0; j < sz; j++) {
-        layers[i].bias[j] = *(floatData++);
-      }
+        return sum;
+    }
 
-      gradData = (Gradient*)floatData;
-      for(int j = 0; j < sz; j++) {
-        v[j] = *(gradData++);
-      }
+    void load() {
+        int* intData;
+        float* floatData;
+        Gradient* gradData;
+        Gradient kekw;
+        std::vector <float> w;
 
-      for(int j = 0; i && j < layers[i - 1].info.size; j++) {
+        int x;
+        intData = (int*)gNetData;
+
+        x = *(intData++);
+        assert(x == 3);
+
+        floatData = (float*)intData;
+
+        int sz;
+
+        sz = HIDDEN_NEURONS;
+
+        for (int j = 0; j < sz; j++)
+            inputBiases[j] = *(floatData++);
+
+        gradData = (Gradient*)floatData;
+
+        for (int j = 0; j < sz; j++)
+            kekw = *(gradData++);
+
         floatData = (float*)gradData;
-        for(int k = 0; k < sz; k++) {
-          layers[i].weights[j][k] = *(floatData++);
+
+        for (int i = 0; i < HIDDEN_NEURONS * INPUT_NEURONS; i++) {
+            inputWeights[i / HIDDEN_NEURONS][i % HIDDEN_NEURONS] = *(floatData++);
         }
 
         gradData = (Gradient*)floatData;
-        for(int k = 0; k < sz; k++) {
-          v[k] = *(gradData++);
+
+        for (int i = 0; i < HIDDEN_NEURONS * INPUT_NEURONS; i++) {
+            kekw = *(gradData++);
         }
-      }
+
+        sz = 1;
+        floatData = (float*)gradData;
+
+        outputBias = *(floatData++);
+
+        gradData = (Gradient*)floatData;
+
+        kekw = *(gradData++);
+
+        floatData = (float*)gradData;
+
+        for (int j = 0; j < HIDDEN_NEURONS; j++) {
+            outputWeights[j] = *(floatData++);
+        }
     }
-  }
 
   std::vector <Layer> layers;
 };

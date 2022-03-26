@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="1000"
+   height="500"
+   viewBox="0 0 264.58333 132.29167"
+   version="1.1"
+   id="svg5"
+   inkscape:export-filename="C:\Users\padaf\Desktop\Clover.png"
+   inkscape:export-xdpi="119.982"
+   inkscape:export-ydpi="119.982"
+   inkscape:version="1.1.1 (3bf5ae0d25, 2021-09-20)"
+   sodipodi:docname="Clover chess engine logo.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview7"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:document-units="mm"
+     showgrid="false"
+     width="1000mm"
+     units="px"
+     inkscape:zoom="0.45254834"
+     inkscape:cx="524.80582"
+     inkscape:cy="250.80194"
+     inkscape:window-width="1366"
+     inkscape:window-height="697"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs2">
+    <rect
+       x="521.49125"
+       y="83.968931"
+       width="514.86212"
+       height="342.50485"
+       id="rect2433" />
+    <linearGradient
+       inkscape:collect="always"
+       id="linearGradient1247">
+      <stop
+         style="stop-color:#0d8c14;stop-opacity:1"
+         offset="0"
+         id="stop1243" />
+      <stop
+         style="stop-color:#4fc535;stop-opacity:1"
+         offset="1"
+         id="stop1245" />
+    </linearGradient>
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient1247"
+       id="linearGradient1249"
+       x1="4.4025565"
+       y1="66.500913"
+       x2="124.48727"
+       y2="66.500913"
+       gradientUnits="userSpaceOnUse" />
+  </defs>
+  <g
+     inkscape:label="Capa 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <path
+       d="m 64.444475,1.3244855 c -5.588436,0 -10.647579,2.2653691 -14.310379,5.927626 -3.662257,3.6622545 -5.927418,8.7214665 -5.927418,14.3096985 0,3.424293 0.851708,8.61895 2.353013,14.175951 C 42.03147,32.183319 37.58363,29.368699 34.432059,28.029928 29.28839,25.84508 23.745783,25.951875 18.943746,27.890911 c -4.802577,1.939009 -8.865398,5.710368 -11.0501785,10.85397 -2.1847803,5.143672 -2.0777821,10.6856 -0.1387741,15.488312 0.6832717,1.692356 1.595134,3.292173 2.7133236,4.751052 -1.3106645,1.28873 -2.4366604,2.745909 -3.3492039,4.326516 -2.5896228,4.485381 -3.4681505,9.958467 -2.0217695,15.356597 1.4463815,5.397999 4.9438614,9.698443 9.4289074,12.288546 4.485385,2.589622 9.95847,3.468148 15.356601,2.021766 6.379517,-1.709398 18.294985,-8.178328 26.380984,-15.41227 -5.526655,9.978158 -13.35513,27.68385 -17.413065,53.18969 l 5.79747,0.92225 c 4.098806,-25.7652 11.928714,-42.938605 17.146927,-52.10273 1.932966,10.654369 7.314058,23.02166 11.273548,28.27858 3.362169,4.46393 8.215671,7.14297 13.344266,7.86467 5.128669,0.72203 10.532843,-0.51257 14.996768,-3.87469 4.46393,-3.36217 7.1423,-8.215 7.86399,-13.343603 0.25444,-1.807296 0.26491,-3.64874 0.026,-5.471314 1.77946,-0.460737 3.48302,-1.159675 5.06356,-2.072282 4.48538,-2.589629 7.9828,-6.89041 9.42959,-12.288545 1.44637,-5.398062 0.56785,-10.871622 -2.02178,-15.356598 -2.58962,-4.485386 -6.8904,-7.982802 -12.28786,-9.428911 -3.30765,-0.886267 -8.54563,-1.408088 -14.302226,-1.396412 4.60521,-3.453894 8.475016,-7.021441 10.583756,-9.719487 3.44168,-4.402962 4.77291,-9.783987 4.14293,-14.924805 -0.62998,-5.140818 -3.22118,-10.041299 -7.62435,-13.482769 -4.402975,-3.441672 -9.783993,-4.772638 -14.924812,-4.142731 -1.81158,0.222002 -3.593006,0.688634 -5.29154,1.391185 C 81.161254,10.007351 80.045238,8.542706 78.754735,7.252138 75.092455,3.5898139 70.033247,1.3245143 64.444333,1.3245143 Z"
+       color="#000000"
+       color-rendering="auto"
+       fill="#008000"
+       image-rendering="auto"
+       shape-rendering="auto"
+       solid-color="#000000"
+       style="isolation:auto;mix-blend-mode:normal;stroke-width:0.0678926;fill-opacity:1;fill:url(#linearGradient1249)"
+       id="path1213" />
+    <text
+       xml:space="preserve"
+       transform="matrix(0.47642367,0,0,0.47642367,-128.56895,-60.988673)"
+       id="text2431"
+       style="font-size:170.667px;line-height:1.25;font-family:'Segoe UI Variable';-inkscape-font-specification:'Segoe UI Variable';letter-spacing:0px;word-spacing:0px;white-space:pre;shape-inside:url(#rect2433)"><tspan
+         x="521.49219"
+         y="237.69781"
+         id="tspan39291"><tspan
+           style="font-weight:bold;font-size:93.0558px;font-family:Montserrat;-inkscape-font-specification:'Montserrat Bold';fill:#2ab228"
+           id="tspan39289">Clover</tspan></tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:10.5833px;line-height:1.25;font-family:'Segoe UI Variable';-inkscape-font-specification:'Segoe UI Variable';letter-spacing:0px;word-spacing:0px;stroke-width:0.264583"
+       x="171.88771"
+       y="-15.785606"
+       id="text10775"><tspan
+         sodipodi:role="line"
+         id="tspan10773"
+         style="stroke-width:0.264583"
+         x="171.88771"
+         y="-15.785606" /></text>
+    <text
+       xml:space="preserve"
+       style="font-size:23.0786px;line-height:1.25;font-family:'Segoe UI Variable';-inkscape-font-specification:'Segoe UI Variable';letter-spacing:0px;word-spacing:0px;stroke-width:0.266291;fill:#0f8e15;fill-opacity:1"
+       x="135.60823"
+       y="83.837967"
+       id="text12929"><tspan
+         sodipodi:role="line"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:23.0786px;font-family:'Berlin Sans FB Demi';-inkscape-font-specification:'Berlin Sans FB Demi';stroke-width:0.266291;fill:#0f8e15;fill-opacity:1"
+         x="135.60823"
+         y="83.837967"
+         id="tspan21541">By Luca </tspan><tspan
+         sodipodi:role="line"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:23.0786px;font-family:'Berlin Sans FB Demi';-inkscape-font-specification:'Berlin Sans FB Demi';stroke-width:0.266291;fill:#0f8e15;fill-opacity:1"
+         x="135.60823"
+         y="113.67899"
+         id="tspan28481">Metehau</tspan></text>
+  </g>
+</svg>
