@@ -114,20 +114,42 @@ public:
         histSz--;
     }
 
+    // the below functions are taken from here and are used to compute the dot product
+    // https://stackoverflow.com/questions/6996764/fastest-way-to-do-horizontal-sse-vector-sum-or-other-reduction
+
+    float hsum_ps_sse3(__m128 v) {
+        __m128 shuf = _mm_movehdup_ps(v);
+        __m128 sums = _mm_add_ps(v, shuf);
+        shuf = _mm_movehl_ps(shuf, sums);
+        sums = _mm_add_ss(sums, shuf);
+        return _mm_cvtss_f32(sums);
+    }
+
+    float hsum256_ps_avx(__m256 v) {
+        __m128 vlow = _mm256_castps256_ps128(v);
+        __m128 vhigh = _mm256_extractf128_ps(v, 1);
+        vlow = _mm_add_ps(vlow, vhigh);
+        return hsum_ps_sse3(vlow);
+    }
+
     float getOutput() {
         float sum = outputBias;
 
         __m256* v = (__m256*)outputWeights;
         __m256* w = (__m256*)histOutput[histSz - 1];
         __m256 zero = _mm256_setzero_ps();
+        __m256 acc = _mm256_setzero_ps();
 
         for (int j = 0; j < batches; j++) {
-            __m256 temp = _mm256_mul_ps(_mm256_max_ps(w[j], zero), v[j]);
-            float tempRes[8] __attribute__((aligned(16)));
-            _mm256_store_ps(tempRes, temp);
+            //__m256 temp = _mm256_mul_ps(_mm256_max_ps(w[j], zero), v[j]);
+            //float tempRes[8] __attribute__((aligned(16)));
+            //_mm256_store_ps(tempRes, temp);
 
-            sum += tempRes[0] + tempRes[1] + tempRes[2] + tempRes[3] + tempRes[4] + tempRes[5] + tempRes[6] + tempRes[7];
+            //sum += tempRes[0] + tempRes[1] + tempRes[2] + tempRes[3] + tempRes[4] + tempRes[5] + tempRes[6] + tempRes[7];
+            acc = _mm256_add_ps(acc, _mm256_mul_ps(_mm256_max_ps(w[j], zero), v[j]));
         }
+
+        sum += hsum256_ps_avx(acc);
 
 
         return sum;
