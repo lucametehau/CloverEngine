@@ -141,11 +141,6 @@ public:
         __m256 acc = _mm256_setzero_ps();
 
         for (int j = 0; j < batches; j++) {
-            //__m256 temp = _mm256_mul_ps(_mm256_max_ps(w[j], zero), v[j]);
-            //float tempRes[8] __attribute__((aligned(16)));
-            //_mm256_store_ps(tempRes, temp);
-
-            //sum += tempRes[0] + tempRes[1] + tempRes[2] + tempRes[3] + tempRes[4] + tempRes[5] + tempRes[6] + tempRes[7];
             acc = _mm256_add_ps(acc, _mm256_mul_ps(_mm256_max_ps(w[j], zero), v[j]));
         }
 

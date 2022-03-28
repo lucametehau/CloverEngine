@@ -450,12 +450,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
             makeMove(board, move);
 
-            /// do we have a good sequence of captures that beats cutBeta ?
-
-            int score = -quiesce(-cutBeta, -cutBeta + 1);
-
-            if (score >= cutBeta) /// then we should try searching this capture
-                score = -search(-cutBeta, -cutBeta + 1, depth - 4, !cutNode);
+            int score = -search(-cutBeta, -cutBeta + 1, depth - 4, !cutNode);
 
             undoMove(board, move);
 
