@@ -446,7 +446,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
     killers[ply + 1][0] = killers[ply + 1][1] = NULLMOVE;
 
-    if (!pvNode && eval - (1 - quiet) * 200 >= beta)
+    if (!pvNode && eval - (2 - quiet) * seeVal[KNIGHT] >= beta)
         depth--;
 
     /// razoring (searching 1 more ply can't change the score much, drop in quiesce)
