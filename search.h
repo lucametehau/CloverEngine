@@ -121,6 +121,60 @@ int Search::getKingDanger(Board& board, int color) {
     return (kingAttackersCount > 2 ? kingDanger : 0);
 }
 
+enum {
+    NOISY = 0, QUIET
+};
+
+int quietness(Board& board) {
+    if (board.checkers)
+        return NOISY;
+
+    uint64_t att;
+    int us = board.turn, enemy = 1 ^ board.turn;
+    uint64_t pieces, b, all = board.pieces[WHITE] | board.pieces[BLACK];
+
+    pieces = board.bb[getType(KNIGHT, enemy)];
+    att = 0;
+    while (pieces) {
+        b = lsb(pieces);
+        att |= knightBBAttacks[Sq(b)];
+        pieces ^= b;
+    }
+
+    if (att & (board.bb[getType(QUEEN, us)] | board.bb[getType(ROOK, us)]))
+        return NOISY;
+
+    pieces = board.bb[getType(BISHOP, enemy)];
+    att = 0;
+    while (pieces) {
+        b = lsb(pieces);
+        att |= genAttacksBishop(all, Sq(b));
+        pieces ^= b;
+    }
+
+    if (att & (board.bb[getType(QUEEN, us)] | board.bb[getType(ROOK, us)]))
+        return NOISY;
+
+    pieces = board.bb[getType(ROOK, enemy)];
+    att = 0;
+    while (pieces) {
+        b = lsb(pieces);
+        att |= genAttacksRook(all, Sq(b));
+        pieces ^= b;
+    }
+
+    if (att & board.bb[getType(QUEEN, us)])
+        return NOISY;
+
+    /*pieces = board.bb[getType(QUEEN, enemy)];
+    while (pieces) {
+        b = lsb(pieces);
+        att |= genAttacksQueen(all, Sq(b));
+        pieces ^= b;
+    }*/
+    return QUIET;
+}
+
 int Search::quiesce(int alpha, int beta, bool useTT) {
     int ply = board.ply;
 
@@ -357,6 +411,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     }
 
     bool isCheck = (board.checkers != 0);
+    int quiet = quietness(board);
     //int kingDanger = (!isCheck ? getKingDanger(board, board.turn) : 0);
 
     //kekw[kingDanger]++;
@@ -390,6 +445,9 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     bool improving = (!isCheck && ply >= 2 && Stack[ply].eval > Stack[ply - 2].eval); /// (TO DO: make all pruning dependent of this variable?)
 
     killers[ply + 1][0] = killers[ply + 1][1] = NULLMOVE;
+
+    if (!pvNode && eval - (1 - quiet) * 200 >= beta)
+        depth--;
 
     /// razoring (searching 1 more ply can't change the score much, drop in quiesce)
 
@@ -450,7 +508,12 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
             makeMove(board, move);
 
-            int score = -search(-cutBeta, -cutBeta + 1, depth - 4, !cutNode);
+            /// do we have a good sequence of captures that beats cutBeta ?
+
+            int score = -quiesce(-cutBeta, -cutBeta + 1);
+
+            if (score >= cutBeta) /// then we should try searching this capture
+                score = -search(-cutBeta, -cutBeta + 1, depth - 4, !cutNode);
 
             undoMove(board, move);
 

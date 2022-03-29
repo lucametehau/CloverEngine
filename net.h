@@ -98,9 +98,10 @@ public:
         memcpy(histOutput[histSz], histOutput[histSz - 1], sizeof(histOutput[histSz - 1]));
         histSz++;
 
+        __m256* w = (__m256*)histOutput[histSz - 1];
+
         for (int i = 0; i < updateSz; i++) {
             __m256* v = (__m256*)inputWeights[updates[i].ind];
-            __m256* w = (__m256*)histOutput[histSz - 1];
             __m256 ct = _mm256_set1_ps(updates[i].coef);
 
             for (int j = 0; j < batches; j++)
@@ -145,7 +146,6 @@ public:
         }
 
         sum += hsum256_ps_avx(acc);
-
 
         return sum;
     }
