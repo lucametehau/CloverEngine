@@ -446,9 +446,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
     killers[ply + 1][0] = killers[ply + 1][1] = NULLMOVE;
 
-    if (!pvNode && depth <= 3 && eval - (2 - quiet) * seeVal[KNIGHT] >= beta)
-        return eval;
-
     /// razoring (searching 1 more ply can't change the score much, drop in quiesce)
 
     if (!pvNode && !isCheck && depth <= 1 && Stack[ply].eval + RazorCoef < alpha) {
@@ -457,7 +454,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
     /// static null move pruning (don't prune when having a mate line, again stability)
 
-    if (!pvNode && !isCheck && depth <= 8 && eval - (SNMPCoef1 - SNMPCoef2 * improving) * depth > beta && eval < MATE)
+    if (!pvNode && !isCheck && depth <= 8 && eval - (SNMPCoef1 - SNMPCoef2 * improving) * (depth - quiet) > beta && eval < MATE)
         return eval;
 
     /// null move pruning (when last move wasn't null, we still have non pawn material,
