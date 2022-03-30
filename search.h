@@ -626,7 +626,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
                 R += !pvNode + !improving; /// not on pv or not improving
 
-                R += (quiet && eval - 100 > beta);
+                R += (quiet && eval - seeVal[KNIGHT] > beta);
 
                 R += cutNode; // reduce more for cut nodes
 
