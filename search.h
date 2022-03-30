@@ -464,7 +464,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     if (!pvNode && !isCheck && !excluded && eval >= beta && eval >= Stack[ply].eval && depth >= 2 && Stack[ply - 1].move &&
         (board.pieces[board.turn] ^ board.bb[getType(PAWN, board.turn)] ^ board.bb[getType(KING, board.turn)]) &&
         (!ttHit || !(bound & UPPER) || ttValue >= beta)) {
-        int R = 4 + depth / 6 + std::min(3, (eval - beta) / 100) + improving + quiet;
+        int R = 4 + depth / 6 + std::min(3, (eval - beta) / 100) + improving;
 
         Stack[ply].move = NULLMOVE;
         Stack[ply].piece = 0;
@@ -625,6 +625,8 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
                 R = lmrRed[std::min(63, depth)][std::min(63, played)];
 
                 R += !pvNode + !improving; /// not on pv or not improving
+
+                R += (quiet && eval - 100 > beta);
 
                 R += cutNode; // reduce more for cut nodes
 
