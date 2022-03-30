@@ -461,7 +461,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     ///                    we have a good position and we don't have any idea if it's likely to fail)
     /// TO DO: tune nmp
 
-    if (!pvNode && !isCheck && !excluded && eval >= beta && eval >= Stack[ply].eval && depth >= 2 && Stack[ply - 1].move &&
+    if (!pvNode && !isCheck && !excluded && quiet && eval >= beta && eval >= Stack[ply].eval && depth >= 2 && Stack[ply - 1].move &&
         (board.pieces[board.turn] ^ board.bb[getType(PAWN, board.turn)] ^ board.bb[getType(KING, board.turn)]) &&
         (!ttHit || !(bound & UPPER) || ttValue >= beta)) {
         int R = 4 + depth / 6 + std::min(3, (eval - beta) / 100) + improving;
@@ -479,12 +479,10 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
         undoNullMove(board);
 
-        //nmpTries++;
-
         if (score >= beta) /// don't trust mate scores
             return (abs(score) > MATE ? beta : score);
         else {
-            //nmpFail++;
+
         }
     }
 
