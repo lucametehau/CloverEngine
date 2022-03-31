@@ -461,7 +461,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     ///                    we have a good position and we don't have any idea if it's likely to fail)
     /// TO DO: tune nmp
 
-    if (!pvNode && !isCheck && !excluded && (quiet || eval - 100 > beta) && eval >= beta && eval >= Stack[ply].eval && depth >= 2 && Stack[ply - 1].move &&
+    if (!pvNode && !isCheck && !excluded && (quiet || eval - 100 * depth > beta) && eval >= beta && eval >= Stack[ply].eval && depth >= 2 && Stack[ply - 1].move &&
         (board.pieces[board.turn] ^ board.bb[getType(PAWN, board.turn)] ^ board.bb[getType(KING, board.turn)]) &&
         (!ttHit || !(bound & UPPER) || ttValue >= beta)) {
         int R = 4 + depth / 6 + std::min(3, (eval - beta) / 100) + improving;
@@ -477,12 +477,13 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
         /// TO DO: (verification search?)
 
+        //cnt2 += !quiet;
+
         undoNullMove(board);
 
-        if (score >= beta) /// don't trust mate scores
-            return (abs(score) > MATE ? beta : score);
-        else {
-
+        if (score >= beta) {
+            //cnt += !quiet;
+            return (abs(score) > MATE ? beta : score); /// don't trust mate scores
         }
     }
 
@@ -860,6 +861,8 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
                 std::cout << "pv ";
                 printPv();
                 std::cout << std::endl;
+
+                //std::cout << cnt << " out of " << cnt2 << ", " << 100.0 * cnt / cnt2 << "%\n";
 
                 /*for (int i = 20; i <= 60; i++)
                     std::cout << "(" << i << ", " << kekw[i] << "), ";
