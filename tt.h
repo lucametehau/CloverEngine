@@ -179,7 +179,7 @@ inline void tt::HashTable::save(uint64_t hash, int score, int depth, int ply, in
     temp.hash = hash ^ temp.data;
 
     if ((bucket->hash ^ bucket->data) == hash) {
-        if (bound == EXACT || depth >= bucket->depth() - 4)
+        if (bound == EXACT || depth >= bucket->depth() - 3)
             *bucket = temp;
         return;
     }
@@ -190,7 +190,7 @@ inline void tt::HashTable::save(uint64_t hash, int score, int depth, int ply, in
         //if((bucket + i)->hash)
         //cout << (bucket + i)->hash << " " << (bucket + i)->data << " " << hash << "\n";
         if (((bucket + i)->hash ^ (bucket + i)->data) == hash) {
-            if (bound == EXACT || depth >= bucket->depth() - 4) {
+            if (bound == EXACT || depth >= bucket->depth() - 3) {
                 *(bucket + i) = temp;
             }
             return;
