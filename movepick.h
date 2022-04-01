@@ -203,8 +203,8 @@ public:
                     if (followMove)
                         score += searcher->follow[1][followPiece][followTo][piece][to];
 
-                    if (!see(searcher->board, move, 0))
-                        score -= 100000;
+                    /*if (!see(searcher->board, move, 0))
+                        score -= 100000;*/
 
                     score += searcher->nodesSearched[from][to] / nodesSearchedDiv; // the longer it takes a move to be refuted, the higher its chance to become the best move
                 }

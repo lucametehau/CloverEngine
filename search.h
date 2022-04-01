@@ -132,7 +132,8 @@ int quietness(Board& board) {
 
     uint64_t att;
     int enemy = 1 ^ us;
-    uint64_t pieces, b, all = board.pieces[WHITE] | board.pieces[BLACK];
+    uint64_t pieces, b;
+    uint64_t all = board.bb[getType(KNIGHT, us)] | board.bb[getType(BISHOP, us)] | board.bb[getType(ROOK, us)] | board.bb[getType(QUEEN, us)];
 
     pieces = board.bb[getType(KNIGHT, enemy)];
     att = 0;
@@ -142,7 +143,7 @@ int quietness(Board& board) {
         pieces ^= b;
     }
 
-    if (att & (board.bb[getType(QUEEN, us)] | board.bb[getType(ROOK, us)]))
+    if (att & all)
         return NOISY;
 
     pieces = board.bb[getType(BISHOP, enemy)];
@@ -153,7 +154,7 @@ int quietness(Board& board) {
         pieces ^= b;
     }
 
-    if (att & (board.bb[getType(QUEEN, us)] | board.bb[getType(ROOK, us)]))
+    if (att & all)
         return NOISY;
 
     pieces = board.bb[getType(ROOK, enemy)];
