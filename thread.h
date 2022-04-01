@@ -56,7 +56,7 @@ const int TERMINATED_SEARCH = 3; /// 1 | 2
 
 class Search {
 
-    friend class Movepick;
+    //friend class Movepick;
     friend class History;
 
 public:

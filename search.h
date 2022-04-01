@@ -252,7 +252,7 @@ int Search::quiesce(int alpha, int beta, bool useTT) {
 
     alpha = std::max(alpha, best);
 
-    Movepick noisyPicker(ttMove, NULLMOVE, NULLMOVE, NULLMOVE, 0);
+    Movepick noisyPicker(ttMove, NULLMOVE, NULLMOVE, NULLMOVE, 0, NORMAL_MP);
 
     uint16_t move;
 
@@ -412,13 +412,16 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     }
 
     bool isCheck = (board.checkers != 0);
-    int quietUs, quietEnemy;
+    int quietUs;
+    int quietEnemy;
 
     if (board.turn == WHITE) {
-        quietUs = quietness<WHITE>(board), quietEnemy = quietness<BLACK>(board);
+        quietUs = quietness<WHITE>(board);
+        quietEnemy = quietness<BLACK>(board);
     }
     else {
-        quietUs = quietness<BLACK>(board), quietEnemy = quietness<WHITE>(board);
+        quietUs = quietness<BLACK>(board);
+        quietEnemy = quietness<WHITE>(board);
     }
 
     if (isCheck) {
@@ -491,9 +494,9 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     /// probcut
     /// no point in trying if enemy's position is quiet
 
-    if (!pvNode && !isCheck && !quietEnemy && depth >= 5 && abs(beta) < MATE) {
+    if (!pvNode && !isCheck && depth >= 5 && abs(beta) < MATE) {
         int cutBeta = beta + 100;
-        Movepick noisyPicker(NULLMOVE, NULLMOVE, NULLMOVE, NULLMOVE, cutBeta - Stack[ply].eval);
+        Movepick noisyPicker(NULLMOVE, NULLMOVE, NULLMOVE, NULLMOVE, cutBeta - Stack[ply].eval, NORMAL_MP);
 
         uint16_t move;
 
@@ -528,8 +531,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     /// get counter move for move picker
 
     uint16_t counter = (ply == 0 || !Stack[ply - 1].move ? NULLMOVE : cmTable[1 ^ board.turn][Stack[ply - 1].piece][sqTo(Stack[ply - 1].move)]);
-
-    Movepick picker(ttMove, killers[ply][0], killers[ply][1], counter, -10 * depth);
+    Movepick picker(ttMove, killers[ply][0], killers[ply][1], counter, -10 * depth, (quietEnemy && quietUs ? QUIET_MP : NORMAL_MP));
 
     uint16_t move;
 
