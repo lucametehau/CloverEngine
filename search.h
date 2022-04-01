@@ -255,7 +255,6 @@ int Search::quiesce(int alpha, int beta, bool useTT) {
     Movepick<NOISY_MP> noisyPicker(ttMove, NULLMOVE, NULLMOVE, NULLMOVE, 0);
 
     uint16_t move;
-    uint64_t nodesBefore = nodes;
 
     while ((move = noisyPicker.nextMove(this, !isCheck))) {
 
@@ -309,7 +308,7 @@ int Search::quiesce(int alpha, int beta, bool useTT) {
     /// store info in transposition table
 
     bound = (best >= beta ? LOWER : (best > alphaOrig ? EXACT : UPPER));
-    TT->save(key, nodes - nodesBefore, best, 0, ply, bound, bestMove, Stack[ply].eval);
+    TT->save(key, best, 0, ply, bound, bestMove, Stack[ply].eval);
 
     return best;
 }
@@ -405,7 +404,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
                 }
 
                 if (type == EXACT || (type == UPPER && score <= alpha) || (type == LOWER && score >= beta)) {
-                    TT->save(key, (uint64_t)1e18, score, DEPTH, 0, type, NULLMOVE, 0);
+                    TT->save(key, score, DEPTH, 0, type, NULLMOVE, 0);
                     return score;
                 }
             }
@@ -534,7 +533,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     Movepick<NORMAL_MP> picker(ttMove, killers[ply][0], killers[ply][1], counter, -10 * depth);
 
     uint16_t move;
-    uint64_t nodesBefore = nodes;
 
     while ((move = picker.nextMove(this, skip)) != NULLMOVE) {
 
@@ -713,7 +711,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
     if (!excluded) {
         bound = (best >= beta ? LOWER : (best > alphaOrig ? EXACT : UPPER));
-        TT->save(key, nodes - nodesBefore, best, depth, ply, bound, bestMove, Stack[ply].eval);
+        TT->save(key, best, depth, ply, bound, bestMove, Stack[ply].eval);
     }
 
     return best;

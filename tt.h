@@ -29,7 +29,6 @@ namespace tt {
                 int16_t score;
                 int16_t eval;
                 uint16_t move;
-                uint64_t nodes;
             } info;
 
             uint64_t data;
@@ -59,10 +58,6 @@ namespace tt {
         int generation() {
             return info.about >> 10u;
         }
-
-        uint64_t nodes() {
-            return info.nodes;
-        }
     };
 
     class HashTable {
@@ -83,7 +78,7 @@ namespace tt {
 
         bool probe(uint64_t hash, Entry& entry);
 
-        void save(uint64_t hash, uint64_t nodes, int score, int depth, int ply, int bound, uint16_t move, int eval);
+        void save(uint64_t hash, int score, int depth, int ply, int bound, uint16_t move, int eval);
 
         void resetAge();
 
@@ -168,7 +163,7 @@ inline bool tt::HashTable::probe(uint64_t hash, Entry& entry) {
     return 0;
 }
 
-inline void tt::HashTable::save(uint64_t hash, uint64_t nodes, int score, int depth, int ply, int bound, uint16_t move, int eval) {
+inline void tt::HashTable::save(uint64_t hash, int score, int depth, int ply, int bound, uint16_t move, int eval) {
     uint64_t ind = (hash & entries) * BUCKET;
     Entry* bucket = table + ind;
 
@@ -181,11 +176,10 @@ inline void tt::HashTable::save(uint64_t hash, uint64_t nodes, int score, int de
 
     temp.info.move = move; temp.info.eval = short(eval); temp.info.score = short(score);
     temp.info.about = uint16_t(bound | (depth << 2u) | (generation << 10u));
-    temp.info.nodes = nodes;
     temp.hash = hash ^ temp.data;
 
     if ((bucket->hash ^ bucket->data) == hash) {
-        if (bound == EXACT || depth >= bucket->depth() - 3 || nodes >= bucket->nodes())
+        if (bound == EXACT || depth >= bucket->depth() - 4)
             *bucket = temp;
         return;
     }
@@ -196,11 +190,12 @@ inline void tt::HashTable::save(uint64_t hash, uint64_t nodes, int score, int de
         //if((bucket + i)->hash)
         //cout << (bucket + i)->hash << " " << (bucket + i)->data << " " << hash << "\n";
         if (((bucket + i)->hash ^ (bucket + i)->data) == hash) {
-            if (bound == EXACT || depth >= bucket->depth() - 3 || nodes >= bucket->nodes())
+            if (bound == EXACT || depth >= bucket->depth() - 4) {
                 *(bucket + i) = temp;
+            }
             return;
         }
-        else if ((bucket + i)->info.about < replace->info.about || (bucket + i)->nodes() * 1.5 <= nodes) {
+        else if ((bucket + i)->info.about < replace->info.about) {
             replace = (bucket + i);
         }
     }
