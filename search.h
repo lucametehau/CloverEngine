@@ -125,12 +125,13 @@ enum {
     NOISY = 0, QUIET
 };
 
+template <bool us>
 int quietness(Board& board) {
     if (board.checkers)
         return NOISY;
 
     uint64_t att;
-    int us = board.turn, enemy = 1 ^ board.turn;
+    int enemy = 1 ^ us;
     uint64_t pieces, b, all = board.pieces[WHITE] | board.pieces[BLACK];
 
     pieces = board.bb[getType(KNIGHT, enemy)];
@@ -411,16 +412,14 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     }
 
     bool isCheck = (board.checkers != 0);
-    int quiet = quietness(board);
-    //int kingDanger = (!isCheck ? getKingDanger(board, board.turn) : 0);
+    int quietUs, quietEnemy;
 
-    //kekw[kingDanger]++;
-
-    /*if (kingDanger > cnt) {
-        cnt = kingDanger;
-        std::cout << "KING DANGER IS : " << kingDanger << "\n";
-        board.print();
-    }*/
+    if (board.turn == WHITE) {
+        quietUs = quietness<WHITE>(board), quietEnemy = quietness<BLACK>(board);
+    }
+    else {
+        quietUs = quietness<BLACK>(board), quietEnemy = quietness<WHITE>(board);
+    }
 
     if (isCheck) {
         /// when in check, don't evaluate (king safety evaluation might break)
@@ -453,15 +452,17 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     }
 
     /// static null move pruning (don't prune when having a mate line, again stability)
+    /// lower margin when position is quiet, because there is a lower chance that the score changes
 
-    if (!pvNode && !isCheck && depth <= 8 && eval - (SNMPCoef1 - SNMPCoef2 * improving) * (depth - quiet) > beta && eval < MATE)
+    if (!pvNode && !isCheck && depth <= 8 && eval - (SNMPCoef1 - SNMPCoef2 * improving) * (depth - quietUs) > beta && eval < MATE)
         return eval;
 
-    /// null move pruning (when last move wasn't null, we still have non pawn material,
-    ///                    we have a good position and we don't have any idea if it's likely to fail)
+    /// null move pruning :when last move wasn't null, we still have non pawn material,
+    /// we have a good position, we don't have any idea if it's likely to fail
+    /// and only in quiet positions and some noisy positions where eval is bigger than beta by a margin
     /// TO DO: tune nmp
 
-    if (!pvNode && !isCheck && !excluded && (quiet || eval - 100 * depth > beta) && eval >= beta && eval >= Stack[ply].eval && depth >= 2 && Stack[ply - 1].move &&
+    if (!pvNode && !isCheck && !excluded && (quietUs || eval - 100 * depth > beta) && eval >= beta && eval >= Stack[ply].eval && depth >= 2 && Stack[ply - 1].move &&
         (board.pieces[board.turn] ^ board.bb[getType(PAWN, board.turn)] ^ board.bb[getType(KING, board.turn)]) &&
         (!ttHit || !(bound & UPPER) || ttValue >= beta)) {
         int R = 4 + depth / 6 + std::min(3, (eval - beta) / 100) + improving;
@@ -488,8 +489,9 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     }
 
     /// probcut
+    /// no point in trying if enemy's position is quiet
 
-    if (!pvNode && !isCheck && depth >= 5 && abs(beta) < MATE) {
+    if (!pvNode && !isCheck && !quietEnemy && depth >= 5 && abs(beta) < MATE) {
         int cutBeta = beta + 100;
         Movepick noisyPicker(NULLMOVE, NULLMOVE, NULLMOVE, NULLMOVE, cutBeta - Stack[ply].eval);
 
@@ -625,7 +627,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
                 R += !pvNode + !improving; /// not on pv or not improving
 
-                R += (quiet && eval - seeVal[KNIGHT] > beta);
+                R += (quietUs && eval - seeVal[KNIGHT] > beta);
 
                 R += cutNode; // reduce more for cut nodes
 
