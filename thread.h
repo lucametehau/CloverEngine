@@ -57,7 +57,7 @@ const int TERMINATED_SEARCH = 3; /// 1 | 2
 class Search {
 
     //friend class Movepick;
-    friend class History;
+    //friend class History;
 
 public:
     Search();
@@ -91,20 +91,16 @@ public:
         info = tInfo;
     }
 
-private:
     void startWorkerThreads(Info* info);
     void flagWorkersStop();
     void stopWorkerThreads();
     void lazySMPSearcher();
     void releaseThreads();
-    void waitUntilDone();
 
     void printPv();
     void updatePv(int ply, int move);
 
     bool checkForStop();
-
-public:
 
     uint64_t nodesSearched[64][64];
     uint16_t pvTable[DEPTH + 5][DEPTH + 5];
@@ -124,7 +120,6 @@ public:
 
     volatile int flag;
 
-private:
     uint64_t tbHits;
     uint64_t t0;
     Info* info;
@@ -142,14 +137,12 @@ private:
     std::unique_ptr <std::thread> principalThread;
     std::mutex readyMutex;
 
-public:
     uint64_t nodes, qsNodes;
     bool principalSearcher;
     Board board;
 
     tt::HashTable* threadTT;
 
-private:
     std::unique_ptr <std::thread[]> threads;
     std::unique_ptr <Search[]> params;
     std::condition_variable lazyCV;

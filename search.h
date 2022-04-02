@@ -73,9 +73,9 @@ int Search::getKingDanger(Board& board, int color) {
     int enemy = 1 ^ color, king = board.king(color);
     uint64_t att;
     uint64_t pieces, b, all = board.pieces[WHITE] | board.pieces[BLACK];
-    uint64_t kingRing = kingRingMask[king] & 
-                        ~(shift(color, NORTHEAST, board.bb[getType(PAWN, color)] & ~fileMask[(color == WHITE ? 7 : 0)]) &
-                          shift(color, NORTHWEST, board.bb[getType(PAWN, color)] & ~fileMask[(color == WHITE ? 0 : 7)]));
+    uint64_t kingRing = kingRingMask[king] &
+        ~(shift(color, NORTHEAST, board.bb[getType(PAWN, color)] & ~fileMask[(color == WHITE ? 7 : 0)]) &
+            shift(color, NORTHWEST, board.bb[getType(PAWN, color)] & ~fileMask[(color == WHITE ? 0 : 7)]));
     int kingDanger = 0, kingAttackersCount = 0;
 
     static const int kingDangerWeights[6] = {
@@ -129,11 +129,9 @@ template <bool us>
 int quietness(Board& board) {
     if (board.checkers)
         return NOISY;
-
     uint64_t att;
     int enemy = 1 ^ us;
-    uint64_t pieces, b;
-    uint64_t all = board.bb[getType(KNIGHT, us)] | board.bb[getType(BISHOP, us)] | board.bb[getType(ROOK, us)] | board.bb[getType(QUEEN, us)];
+    uint64_t pieces, b, all = board.pieces[WHITE] | board.pieces[BLACK];
 
     pieces = board.bb[getType(KNIGHT, enemy)];
     att = 0;
@@ -143,7 +141,7 @@ int quietness(Board& board) {
         pieces ^= b;
     }
 
-    if (att & all)
+    if (att & (board.bb[getType(QUEEN, us)] | board.bb[getType(ROOK, us)]))
         return NOISY;
 
     pieces = board.bb[getType(BISHOP, enemy)];
@@ -154,7 +152,7 @@ int quietness(Board& board) {
         pieces ^= b;
     }
 
-    if (att & all)
+    if (att & (board.bb[getType(QUEEN, us)] | board.bb[getType(ROOK, us)]))
         return NOISY;
 
     pieces = board.bb[getType(ROOK, enemy)];
@@ -260,7 +258,7 @@ int Search::quiesce(int alpha, int beta, bool useTT) {
     while ((move = noisyPicker.nextMove(this, !isCheck))) {
 
         // futility pruning
-        
+
         if (best > -MATE) {
             if (futilityValue > -MATE) {
                 int value = futilityValue + seeVal[board.piece_type_at(sqTo(move))]/* - seeVal[board.piece_type_at(sqFrom(move))]*/;
@@ -273,9 +271,9 @@ int Search::quiesce(int alpha, int beta, bool useTT) {
             if (isCheck && !isNoisyMove(board, move) && !see(board, move, 0)) {
                 continue;
             }
-            
+
         }
-        
+
 
         // update stack info
         Stack[ply].move = move;
@@ -414,15 +412,14 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
     bool isCheck = (board.checkers != 0);
     int quietUs;
-    //int quietEnemy;
-
+    //int quietEnemy;	
     if (board.turn == WHITE) {
         quietUs = quietness<WHITE>(board);
-        //quietEnemy = quietness<BLACK>(board);
+        //quietEnemy = quietness<BLACK>(board);	
     }
     else {
         quietUs = quietness<BLACK>(board);
-        //quietEnemy = quietness<WHITE>(board);
+        //quietEnemy = quietness<WHITE>(board);	
     }
 
     if (isCheck) {
@@ -456,14 +453,12 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     }
 
     /// static null move pruning (don't prune when having a mate line, again stability)
-    /// lower margin when position is quiet, because there is a lower chance that the score changes
 
     if (!pvNode && !isCheck && depth <= 8 && eval - (SNMPCoef1 - SNMPCoef2 * improving) * (depth - quietUs) > beta && eval < MATE)
         return eval;
 
-    /// null move pruning :when last move wasn't null, we still have non pawn material,
-    /// we have a good position, we don't have any idea if it's likely to fail
-    /// and only in quiet positions and some noisy positions where eval is bigger than beta by a margin
+    /// null move pruning (when last move wasn't null, we still have non pawn material,
+    ///                    we have a good position and we don't have any idea if it's likely to fail)
     /// TO DO: tune nmp
 
     if (!pvNode && !isCheck && !excluded && (quietUs || eval - 100 * depth > beta) && eval >= beta && eval >= Stack[ply].eval && depth >= 2 && Stack[ply - 1].move &&
@@ -531,6 +526,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     /// get counter move for move picker
 
     uint16_t counter = (ply == 0 || !Stack[ply - 1].move ? NULLMOVE : cmTable[1 ^ board.turn][Stack[ply - 1].piece][sqTo(Stack[ply - 1].move)]);
+
     Movepick<NORMAL_MP> picker(ttMove, killers[ply][0], killers[ply][1], counter, -10 * depth);
 
     uint16_t move;
@@ -617,7 +613,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         if (isQuiet)
             quiets[nrQuiets++] = move;
         else
-          captures[nrCaptures++] = move;
+            captures[nrCaptures++] = move;
 
         int newDepth = depth + (rootNode ? 0 : ex), R = 1;
 
@@ -637,11 +633,9 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
                 R -= std::max(-2, std::min(2, (H.h + H.ch + H.fh) / histDiv)); /// reduce based on move history
             }
-            /*else {
-                R = std::max(0, -captureHistory / 4096);
-
-                R -= (board.checkers != 0);
-            }*/
+            else {
+                R = 1 + (picker.stage == STAGE_BAD_NOISY);
+            }
 
             R = std::min(depth - 1, std::max(R, 1)); /// clamp R
         }
