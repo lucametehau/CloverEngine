@@ -267,24 +267,20 @@ public:
 
 
 bool see(Board& board, uint16_t move, int threshold) {
-    int from = sqFrom(move), to = sqTo(move), t = type(move), col, nextVictim, score = -threshold;
+    if (type(move) != NEUT)
+        return (threshold <= 0);
+
+    int from = sqFrom(move), to = sqTo(move), col, score;
     uint64_t diag, orth, occ, att, myAtt;
 
-    nextVictim = (t != PROMOTION ? board.piece_type_at(from) : promoted(move) + KNIGHT);
-
-    score += seeVal[board.piece_type_at(to)];
-
-    if (t == PROMOTION)
-        score += seeVal[promoted(move) + KNIGHT] - seeVal[PAWN];
-    else if (t == ENPASSANT)
-        score = seeVal[PAWN];
+    score = seeVal[board.piece_type_at(to)] - threshold;
 
     if (score < 0)
         return 0;
 
-    score -= seeVal[nextVictim];
+    score = seeVal[board.piece_type_at(from)] - score;
 
-    if (score >= 0)
+    if (score <= 0)
         return 1;
 
     diag = board.diagSliders(WHITE) | board.diagSliders(BLACK);
@@ -292,9 +288,6 @@ bool see(Board& board, uint16_t move, int threshold) {
 
     occ = board.pieces[WHITE] | board.pieces[BLACK];
     occ = (occ ^ (1ULL << from)) | (1ULL << to);
-
-    if (t == ENPASSANT)
-        occ ^= (1ULL << board.enPas);
 
     att = (getAttackers(board, WHITE, occ, to) | getAttackers(board, BLACK, occ, to)) & occ;
 
@@ -306,28 +299,45 @@ bool see(Board& board, uint16_t move, int threshold) {
         if (!myAtt)
             break;
 
-        for (nextVictim = PAWN; nextVictim <= QUEEN; nextVictim++) {
-            if (myAtt & board.bb[getType(nextVictim, col)])
-                break;
-        }
-
-        occ ^= (1ULL << Sq(lsb(myAtt & board.bb[getType(nextVictim, col)])));
-
-        if (nextVictim == PAWN || nextVictim == BISHOP || nextVictim == QUEEN)
+        if (myAtt & board.bb[getType(PAWN, col)]) {
+            occ ^= lsb(myAtt & board.bb[getType(PAWN, col)]);
             att |= genAttacksBishop(occ, to) & diag;
 
-        if (nextVictim == ROOK || nextVictim == QUEEN)
+            score = seeVal[PAWN] - score;
+        }
+        else if (myAtt & board.bb[getType(KNIGHT, col)]) {
+            occ ^= lsb(myAtt & board.bb[getType(KNIGHT, col)]);
+
+            score = seeVal[KNIGHT] - score;
+        }
+        else if(myAtt & board.bb[getType(BISHOP, col)]) {
+            occ ^= lsb(myAtt & board.bb[getType(BISHOP, col)]);
+            att |= genAttacksBishop(occ, to) & diag;
+
+            score = seeVal[BISHOP] - score;
+        }
+        else if (myAtt & board.bb[getType(ROOK, col)]) {
+            occ ^= lsb(myAtt & board.bb[getType(ROOK, col)]);
             att |= genAttacksRook(occ, to) & orth;
+
+            score = seeVal[ROOK] - score;
+        }
+        else if (myAtt & board.bb[getType(QUEEN, col)]) {
+            occ ^= lsb(myAtt & board.bb[getType(QUEEN, col)]);
+            att |= (genAttacksBishop(occ, to) & diag) | (genAttacksRook(occ, to) & orth);
+
+            score = seeVal[QUEEN] - score;
+        }
+        else {
+            if (att & board.pieces[1 ^ col])
+                col ^= 1;
+            break;
+        }
 
         att &= occ;
         col ^= 1;
 
-        score = -score - 1 - seeVal[nextVictim];
-
         if (score >= 0) {
-            if (nextVictim == KING && (att & board.pieces[col]))
-                col ^= 1;
-
             break;
         }
     }

@@ -421,6 +421,15 @@ void UCI::Uci_Loop() {
 
                 Bench();
             }
+            else if (cmd == "see") {
+                std::string mv;
+                int th;
+                iss >> mv >> th;
+
+                uint16_t move = ParseMove(searcher.board, mv);
+
+                std::cout << see(searcher.board, move, th) << std::endl;
+            }
             if (info->quit)
                 break;
         }

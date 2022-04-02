@@ -33,6 +33,7 @@ int main(int argc, char** argv) {
         uci.Bench();
         return 0;
     }
+
     uci.Uci_Loop();
     return 0;
 }
