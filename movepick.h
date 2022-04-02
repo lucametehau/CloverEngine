@@ -289,15 +289,21 @@ bool see(Board& board, uint16_t move, int threshold) {
     occ = board.pieces[WHITE] | board.pieces[BLACK];
     occ = (occ ^ (1ULL << from)) | (1ULL << to);
 
-    att = (getAttackers(board, WHITE, occ, to) | getAttackers(board, BLACK, occ, to)) & occ;
+    att = getAttackers(board, WHITE, occ, to) | getAttackers(board, BLACK, occ, to);
 
-    col = 1 ^ board.turn;
+    col = board.turn;
+
+    bool val = 1;
 
     while (true) {
+        att &= occ;
+        col ^= 1;
         myAtt = att & board.pieces[col];
 
         if (!myAtt)
             break;
+
+        val ^= 1;
 
         if (myAtt & board.bb[getType(PAWN, col)]) {
             occ ^= lsb(myAtt & board.bb[getType(PAWN, col)]);
@@ -330,17 +336,14 @@ bool see(Board& board, uint16_t move, int threshold) {
         }
         else {
             if (att & board.pieces[1 ^ col])
-                col ^= 1;
+                val ^= 1;
             break;
         }
 
-        att &= occ;
-        col ^= 1;
-
-        if (score >= 0) {
+        if (score < val) {
             break;
         }
     }
 
-    return board.turn != col;
+    return val;
 }
