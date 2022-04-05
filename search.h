@@ -320,7 +320,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     if (depth <= 0)
         return quiesce(alpha, beta);
 
-    int pvNode = (alpha < beta - 1), rootNode = (board.ply == 0);
+    int pvNode = (alpha < beta - 1);
     uint16_t ttMove = NULLMOVE;
     int ply = board.ply;
     int alphaOrig = alpha;
@@ -338,15 +338,13 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     TT->prefetch(key);
     pvTableLen[ply] = 0;
 
-    if (!rootNode) {
-        if (isRepetition(board, ply) || board.halfMoves >= 100 || board.isMaterialDraw())
-            return 1 - (nodes & 2); /// beal effect apparently, credit to Ethereal for this
+    if (isRepetition(board, ply) || board.halfMoves >= 100 || board.isMaterialDraw())
+        return 1 - (nodes & 2); /// beal effect apparently, credit to Ethereal for this
 
-          /// mate distance pruning
-        alpha = std::max(alpha, -INF + ply), beta = std::min(beta, INF - ply - 1);
-        if (alpha >= beta)
-            return alpha;
-    }
+        /// mate distance pruning
+    alpha = std::max(alpha, -INF + ply), beta = std::min(beta, INF - ply - 1);
+    if (alpha >= beta)
+        return alpha;
 
     tt::Entry entry = {};
 
@@ -368,7 +366,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
     /// tablebase probing
 
-    if (!rootNode && TB_LARGEST && depth >= 2 && !board.halfMoves && !board.castleRights) {
+    if (TB_LARGEST && depth >= 2 && !board.halfMoves && !board.castleRights) {
         unsigned pieces = count(board.pieces[WHITE] | board.pieces[BLACK]);
 
         if (pieces <= TB_LARGEST) {
@@ -540,7 +538,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         Heuristics H{}; /// history values for quiet moves
 
         /// quiet move pruning
-        if (!rootNode && best > -MATE) {
+        if (best > -MATE) {
             if (isQuiet) {
                 getHistory(this, move, ply, H);
 
@@ -580,7 +578,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         /// singular extension (look if the tt move is better than the rest)
 
 
-        if (!rootNode && !excluded && move == ttMove && abs(ttValue) < MATE && depth >= 8 && entry.depth() >= depth - 3 && (bound & LOWER)) { /// had best instead of ttValue lol
+        if (!excluded && move == ttMove && abs(ttValue) < MATE && depth >= 8 && entry.depth() >= depth - 3 && (bound & LOWER)) { /// had best instead of ttValue lol
             int rBeta = ttValue - depth;
 
             int score = search(rBeta - 1, rBeta, depth / 2, cutNode, move);
@@ -602,12 +600,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         makeMove(board, move);
         played++;
 
-        /// current root move info
-
-        if (rootNode && principalSearcher && printStats && getTime() > info->startTime + 2500) {
-            std::cout << "info depth " << depth << " currmove " << toString(move) << " currmovenumber " << played << std::endl;
-        }
-
         /// store quiets for history
 
         if (isQuiet)
@@ -615,11 +607,11 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         else
             captures[nrCaptures++] = move;
 
-        int newDepth = depth + (rootNode ? 0 : ex), R = 1;
+        int newDepth = depth + ex, R = 1;
 
         /// quiet late move reduction
 
-        if (depth >= 3 && played > 1 + 2 * rootNode) { /// first few moves we don't reduce
+        if (depth >= 3 && played > 1) { /// first few moves we don't reduce
             if (isQuiet) {
                 R = lmrRed[std::min(63, depth)][std::min(63, played)];
 
@@ -708,6 +700,211 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         bound = (best >= beta ? LOWER : (best > alphaOrig ? EXACT : UPPER));
         TT->save(key, best, depth, ply, bound, bestMove, Stack[ply].eval);
     }
+
+    return best;
+}
+
+int Search::rootSearch(int alpha, int beta, int depth) {
+
+    if (checkForStop())
+        return ABORT;
+
+    if (depth <= 0)
+        return quiesce(alpha, beta);
+
+    uint16_t ttMove = NULLMOVE;
+    int ply = board.ply;
+    int alphaOrig = alpha;
+    uint64_t key = board.key;
+    uint16_t quiets[256], nrQuiets = 0;
+    uint16_t captures[256], nrCaptures = 0;
+    int played = 0, bound = NONE, skip = 0;
+    int best = -INF;
+    uint16_t bestMove = NULLMOVE;
+    int ttHit = 0, ttValue = 0;
+
+    nodes++;
+    selDepth = std::max(selDepth, ply);
+
+    TT->prefetch(key);
+    pvTableLen[ply] = 0;
+
+    tt::Entry entry = {};
+
+    /// transposition table probing
+
+    int eval = INF;
+
+    if (TT->probe(key, entry)) {
+        int score = entry.value(ply);
+        ttHit = 1;
+        ttValue = score;
+        bound = entry.bound(), ttMove = entry.info.move;
+        eval = entry.info.eval;
+    }
+
+    bool isCheck = (board.checkers != 0);
+    int quietUs;
+    //int quietEnemy;	
+    if (board.turn == WHITE) {
+        quietUs = quietness<WHITE>(board);
+        //quietEnemy = quietness<BLACK>(board);	
+    }
+    else {
+        quietUs = quietness<BLACK>(board);
+        //quietEnemy = quietness<WHITE>(board);	
+    }
+
+    if (isCheck) {
+        /// when in check, don't evaluate (king safety evaluation might break)
+        Stack[ply].eval = eval = INF;
+    }
+    else if (eval == INF) {
+        /// if last move was null or we are in a singular search, we already know the evaluation
+        Stack[ply].eval = eval = evaluate(board);
+    }
+    else {
+        /// ttValue might be a better evaluation
+
+        Stack[ply].eval = eval;
+
+        if (bound == EXACT || (bound == LOWER && ttValue > eval) || (bound == UPPER && ttValue < eval))
+            eval = ttValue;
+    }
+
+    bool improving = false; /// (TO DO: make all pruning dependent of this variable?)
+
+    killers[ply + 1][0] = killers[ply + 1][1] = NULLMOVE;
+
+    /// internal iterative deepening (search at reduced depth to find a ttMove) (Rebel like)
+
+    if (!isCheck && depth >= 4 && !ttHit)
+        depth--;
+
+    /// get counter move for move picker
+
+    uint16_t counter = NULLMOVE;
+
+    Movepick<NORMAL_MP> picker(ttMove, killers[ply][0], killers[ply][1], counter, -10 * depth);
+
+    uint16_t move;
+
+    while ((move = picker.nextMove(this, skip)) != NULLMOVE) {
+        bool isQuiet = !isNoisyMove(board, move), refutationMove = (picker.stage < STAGE_QUIETS);
+        Heuristics H{}; /// history values for quiet moves
+
+        if (isQuiet)
+            getHistory(this, move, ply, H);
+
+        /// update stack info
+        Stack[ply].move = move;
+        Stack[ply].piece = board.piece_at(sqFrom(move));
+
+        makeMove(board, move);
+        played++;
+
+        /// current root move info
+
+        if (principalSearcher && printStats && getTime() > info->startTime + 2500) {
+            std::cout << "info depth " << depth << " currmove " << toString(move) << " currmovenumber " << played << std::endl;
+        }
+
+        /// store quiets for history
+
+        if (isQuiet)
+            quiets[nrQuiets++] = move;
+        else
+            captures[nrCaptures++] = move;
+
+        int newDepth = depth, R = 1;
+
+        /// quiet late move reduction
+
+        if (depth >= 3 && played > 3) { /// first few moves we don't reduce
+            if (isQuiet) {
+                R = lmrRed[std::min(63, depth)][std::min(63, played)];
+
+                R += !improving; /// not on pv or not improving
+
+                R += (quietUs && eval - seeVal[KNIGHT] > beta);
+
+                R -= 2 * refutationMove; /// reduce for refutation moves
+
+                R -= std::max(-2, std::min(2, (H.h + H.ch + H.fh) / histDiv)); /// reduce based on move history
+            }
+            /*else {
+                R = 1 + (!pvNode && picker.stage == STAGE_BAD_NOISY);
+            }*/
+
+            R = std::min(depth - 1, std::max(R, 1)); /// clamp R
+        }
+
+        int score = -INF;
+
+        /// principal variation search
+
+        uint64_t initNodes = nodes;
+
+        if (R != 1) {
+            score = -search(-alpha - 1, -alpha, newDepth - R, true);
+        }
+
+        if ((R != 1 && score > alpha) || (R == 1 && played > 1)) {
+            score = -search(-alpha - 1, -alpha, newDepth - 1, true);
+        }
+
+        if (played == 1 || score > alpha) {
+            score = -search(-beta, -alpha, newDepth - 1, false);
+        }
+
+        nodesSearched[sqFrom(move)][sqTo(move)] += nodes - initNodes;
+
+        undoMove(board, move);
+
+        if (flag & TERMINATED_SEARCH) /// stop search
+            return ABORT;
+
+        if (score > best) {
+            best = score;
+            bestMove = move;
+
+            if (score > alpha) {
+                alpha = score;
+
+                updatePv(ply, move);
+
+                if (alpha >= beta) {
+                    //std::cout << nodes << " " << initNodes << " " << nodes << " " << nodesBefore << '\n';
+                    break;
+                }
+            }
+        }
+    }
+
+    TT->prefetch(key);
+
+    if (!played) {
+        return (isCheck ? -INF + ply : 0);
+    }
+
+    /// update killers and history heuristics
+
+    if (best >= beta && !isNoisyMove(board, bestMove)) {
+        if (killers[ply][0] != bestMove) {
+            killers[ply][1] = killers[ply][0];
+            killers[ply][0] = bestMove;
+        }
+
+        updateHistory(this, quiets, nrQuiets, ply, depth * depth);
+    }
+
+    if (best >= beta)
+        updateCapHistory(this, captures, nrCaptures, bestMove, ply, depth * depth);
+
+    /// update tt only if we aren't in a singular search
+
+    bound = (best >= beta ? LOWER : (best > alphaOrig ? EXACT : UPPER));
+    TT->save(key, best, depth, ply, bound, bestMove, Stack[ply].eval);
 
     return best;
 }
@@ -825,7 +1022,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
 
             selDepth = 0;
 
-            score = search(alpha, beta, depth, false);
+            score = rootSearch(alpha, beta, depth);
 
             if (flag & TERMINATED_SEARCH)
                 break;
