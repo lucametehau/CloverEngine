@@ -72,367 +72,403 @@ void UCI::Uci_Loop() {
 
         std::istringstream iss(input);
 
-        {
+        std::string cmd;
 
-            std::string cmd;
+        iss >> std::skipws >> cmd;
 
-            iss >> std::skipws >> cmd;
+        if (cmd == "isready") {
 
-            if (cmd == "isready") {
+            IsReady();
 
-                IsReady();
+        }
+        else if (cmd == "position") {
 
+            std::string type;
+
+            while (iss >> type) {
+
+                if (type == "startpos") {
+
+                    searcher._setFen(START_POS_FEN);
+
+                }
+                else if (type == "fen") {
+
+                    std::string fen;
+
+                    for (int i = 0; i < 6; i++) {
+                        std::string component;
+                        iss >> component;
+                        fen += component + " ";
+                    }
+
+                    searcher._setFen(fen);
+
+                }
+                else if (type == "moves") {
+
+                    std::string movestr;
+
+                    while (iss >> movestr) {
+
+                        int move = ParseMove(searcher.board, movestr);
+
+                        searcher._makeMove(move);
+                    }
+
+                }
             }
-            else if (cmd == "position") {
 
-                std::string type;
+            searcher.board.print(); /// just to be sure
 
-                while (iss >> type) {
+        }
+        else if (cmd == "ucinewgame") {
 
-                    if (type == "startpos") {
+            UciNewGame(ttSize);
 
-                        searcher._setFen(START_POS_FEN);
+        }
+        else if (cmd == "go") {
 
-                    }
-                    else if (type == "fen") {
+            int depth = -1, movestogo = 30, movetime = -1;
+            int time = -1, inc = 0;
+            bool turn = searcher.board.turn;
+            info->timeset = 0;
 
-                        std::string fen;
+            std::string param;
 
-                        for (int i = 0; i < 6; i++) {
-                            std::string component;
-                            iss >> component;
-                            fen += component + " ";
-                        }
+            ///
 
-                        searcher._setFen(fen);
+            while (iss >> param) {
 
-                    }
-                    else if (type == "moves") {
+                if (param == "infinite") {
+                    ;
+                }
+                else if (param == "binc" && turn == BLACK) {
 
-                        std::string movestr;
+                    iss >> inc;
 
-                        while (iss >> movestr) {
+                }
+                else if (param == "winc" && turn == WHITE) {
 
-                            int move = ParseMove(searcher.board, movestr);
+                    iss >> inc;
 
-                            searcher._makeMove(move);
-                        }
+                }
+                else if (param == "wtime" && turn == WHITE) {
 
-                    }
+                    iss >> time;
+
+                }
+                else if (param == "btime" && turn == BLACK) {
+
+                    iss >> time;
+
+                }
+                else if (param == "movestogo") {
+
+                    iss >> movestogo;
+
+                }
+                else if (param == "movetime") {
+
+                    iss >> movetime;
+
+                }
+                else if (param == "depth") {
+
+                    iss >> depth;
+
                 }
 
-                searcher.board.print(); /// just to be sure
+            }
+
+            if (movetime != -1) {
+                time = movetime;
+                movestogo = 60;
+            }
+
+            info->startTime = getTime();
+            info->depth = depth;
+
+            int goodTimeLim, hardTimeLim;
+
+            if (time != -1) {
+
+                goodTimeLim = time / (movestogo + 1) + inc;
+                hardTimeLim = std::min(goodTimeLim * 5, time / std::min(4, movestogo));
+
+                hardTimeLim = std::max(10, std::min(hardTimeLim, time));
+                goodTimeLim = std::max(1, std::min(hardTimeLim, goodTimeLim));
+                info->goodTimeLim = goodTimeLim;
+                info->hardTimeLim = hardTimeLim;
+                info->timeset = 1;
+                info->stopTime = info->startTime + goodTimeLim;
+                //std::cout << info->goodTimeLim << " " << info->hardTimeLim << "\n";
+            }
+
+            if (depth == -1)
+                info->depth = DEPTH;
+
+            Go(info);
+
+        }
+        else if (cmd == "quit") {
+
+            return;
+
+        }
+        else if (cmd == "stop") {
+
+            Stop();
+
+        }
+        else if (cmd == "uci") {
+
+            Uci();
+
+        }
+        else if (cmd == "setoption") {
+
+            std::string name, value;
+
+            iss >> name;
+
+            if (name == "name")
+                iss >> name;
+
+            if (name == "Hash") {
+
+                iss >> value;
+
+                iss >> ttSize;
+
+                TT->initTable(ttSize * MB);
 
             }
-            else if (cmd == "ucinewgame") {
+            else if (name == "Threads") {
+                int nrThreads;
 
+                iss >> value;
+
+                iss >> nrThreads;
+
+                searcher.setThreadCount(nrThreads - 1);
                 UciNewGame(ttSize);
 
             }
-            else if (cmd == "go") {
-
-                int depth = -1, movestogo = 30, movetime = -1;
-                int time = -1, inc = 0;
-                bool turn = searcher.board.turn;
-                info->timeset = 0;
-
-                std::string param;
-
-                ///
-
-                while (iss >> param) {
-
-                    if (param == "infinite") {
-                        ;
-                    }
-                    else if (param == "binc" && turn == BLACK) {
-
-                        iss >> inc;
-
-                    }
-                    else if (param == "winc" && turn == WHITE) {
-
-                        iss >> inc;
-
-                    }
-                    else if (param == "wtime" && turn == WHITE) {
-
-                        iss >> time;
-
-                    }
-                    else if (param == "btime" && turn == BLACK) {
-
-                        iss >> time;
-
-                    }
-                    else if (param == "movestogo") {
-
-                        iss >> movestogo;
-
-                    }
-                    else if (param == "movetime") {
-
-                        iss >> movetime;
-
-                    }
-                    else if (param == "depth") {
-
-                        iss >> depth;
-
-                    }
-
-                }
-
-                if (movetime != -1) {
-                    time = movetime;
-                    movestogo = 60;
-                }
-
-                info->startTime = getTime();
-                info->depth = depth;
-
-                int goodTimeLim, hardTimeLim;
-
-                if (time != -1) {
-
-                    goodTimeLim = time / (movestogo + 1) + inc;
-                    hardTimeLim = std::min(goodTimeLim * 5, time / std::min(4, movestogo));
-
-                    hardTimeLim = std::max(10, std::min(hardTimeLim, time));
-                    goodTimeLim = std::max(1, std::min(hardTimeLim, goodTimeLim));
-                    info->goodTimeLim = goodTimeLim;
-                    info->hardTimeLim = hardTimeLim;
-                    info->timeset = 1;
-                    info->stopTime = info->startTime + goodTimeLim;
-                    //std::cout << info->goodTimeLim << " " << info->hardTimeLim << "\n";
-                }
-
-                if (depth == -1)
-                    info->depth = DEPTH;
-
-                Go(info);
-
-            }
-            else if (cmd == "quit") {
-
-                return;
-
-            }
-            else if (cmd == "stop") {
-
-                Stop();
-
-            }
-            else if (cmd == "uci") {
-
-                Uci();
-
-            }
-            else if (cmd == "setoption") {
-
-                std::string name, value;
-
-                iss >> name;
-
-                if (name == "name")
-                    iss >> name;
-
-                if (name == "Hash") {
-
-                    iss >> value;
-
-                    iss >> ttSize;
-
-                    TT->initTable(ttSize * MB);
-
-                }
-                else if (name == "Threads") {
-                    int nrThreads;
-
-                    iss >> value;
-
-                    iss >> nrThreads;
-
-                    searcher.setThreadCount(nrThreads - 1);
-                    UciNewGame(ttSize);
-
-                }
-                else if (name == "SyzygyPath") {
-                    std::string path;
-
-                    iss >> value;
-
-                    iss >> path;
-
-                    tb_init(path.c_str());
-
-                    //cout << "Set TB path to " << path << "\n";
-                }
-
-                /// search params, used by ctt
-
-                if (name == "RazorCoef") {
-                    iss >> value;
-
-                    int val;
-
-                    iss >> val;
-                    RazorCoef = val;
-                }
-                else if (name == "SNMPCoef1") {
-                    iss >> value;
-
-                    int val;
-
-                    iss >> val;
-                    SNMPCoef1 = val;
-                }
-                else if (name == "SNMPCoef2") {
-                    iss >> value;
-
-                    int val;
-
-                    iss >> val;
-                    SNMPCoef2 = val;
-                }
-                else if (name == "seeCoefQuiet") {
-                    iss >> value;
-
-                    int val;
-
-                    iss >> val;
-                    seeCoefQuiet = val;
-                }
-                else if (name == "seeCoefNoisy") {
-                    iss >> value;
-
-                    int val;
-
-                    iss >> val;
-                    seeCoefNoisy = val;
-                }
-                else if (name == "fpCoef") {
-                    iss >> value;
-
-                    int val;
-
-                    iss >> val;
-                    fpCoef = val;
-                }
-                else if (name == "chCoef") {
-                    iss >> value;
-
-                    int val;
-
-                    iss >> val;
-                    chCoef = val;
-                }
-                else if (name == "fhCoef") {
-                    iss >> value;
-
-                    int val;
-
-                    iss >> val;
-                    fhCoef = val;
-                }
-                else if (name == "fpHistDiv") {
-                    iss >> value;
-
-                    int val;
-
-                    iss >> val;
-                    fpHistDiv = val;
-                }
-                else if (name == "histDiv") {
-                    iss >> value;
-
-                    int val;
-
-                    iss >> val;
-                    histDiv = val;
-                }
-                else if (name == "histMax") {
-                    iss >> value;
-
-                    int val;
-
-                    iss >> val;
-                    histMax = val;
-                }
-                else if (name == "histMult") {
-                    iss >> value;
-
-                    int val;
-
-                    iss >> val;
-                    histMult = val;
-                }
-                else if (name == "histUpdateDiv") {
-                    iss >> value;
-
-                    int val;
-
-                    iss >> val;
-                    histUpdateDiv = val;
-                }
-                else if (name == "counterHistMult") {
-                    iss >> value;
-
-                    int val;
-
-                    iss >> val;
-                    counterHistMult = val;
-                }
-                else if (name == "kdDiv") {
-                    iss >> value;
-
-                    int val;
-
-                    iss >> val;
-                    kdDiv = val;
-                }
-
-            }
-            else if (cmd == "generate") {
-
-                int nrThreads, nrFens;
+            else if (name == "SyzygyPath") {
                 std::string path;
 
-                iss >> nrFens >> nrThreads >> path;
+                iss >> value;
 
-                generateData(nrFens, nrThreads, path);
+                iss >> path;
 
+                tb_init(path.c_str());
+
+                //cout << "Set TB path to " << path << "\n";
             }
-            else if (cmd == "eval") {
 
-                Eval();
+            /// search params, used by ctt
 
+            if (name == "RazorCoef") {
+                iss >> value;
+
+                int val;
+
+                iss >> val;
+                RazorCoef = val;
             }
-            else if (cmd == "perft") {
+            else if (name == "SNMPCoef1") {
+                iss >> value;
 
-                int depth;
+                int val;
 
-                iss >> depth;
-
-                Perft(depth);
-
+                iss >> val;
+                SNMPCoef1 = val;
             }
-            else if (cmd == "bench") {
+            else if (name == "SNMPCoef2") {
+                iss >> value;
 
-                Bench();
+                int val;
+
+                iss >> val;
+                SNMPCoef2 = val;
             }
-            else if (cmd == "see") {
-                std::string mv;
-                int th;
-                iss >> mv >> th;
+            else if (name == "seeCoefQuiet") {
+                iss >> value;
 
-                uint16_t move = ParseMove(searcher.board, mv);
+                int val;
 
-                std::cout << see(searcher.board, move, th) << std::endl;
+                iss >> val;
+                seeCoefQuiet = val;
             }
-            if (info->quit)
-                break;
+            else if (name == "seeCoefNoisy") {
+                iss >> value;
+
+                int val;
+
+                iss >> val;
+                seeCoefNoisy = val;
+            }
+            else if (name == "fpCoef") {
+                iss >> value;
+
+                int val;
+
+                iss >> val;
+                fpCoef = val;
+            }
+            else if (name == "chCoef") {
+                iss >> value;
+
+                int val;
+
+                iss >> val;
+                chCoef = val;
+            }
+            else if (name == "fhCoef") {
+                iss >> value;
+
+                int val;
+
+                iss >> val;
+                fhCoef = val;
+            }
+            else if (name == "fpHistDiv") {
+                iss >> value;
+
+                int val;
+
+                iss >> val;
+                fpHistDiv = val;
+            }
+            else if (name == "histDiv") {
+                iss >> value;
+
+                int val;
+
+                iss >> val;
+                histDiv = val;
+            }
+            else if (name == "histMax") {
+                iss >> value;
+
+                int val;
+
+                iss >> val;
+                histMax = val;
+            }
+            else if (name == "histMult") {
+                iss >> value;
+
+                int val;
+
+                iss >> val;
+                histMult = val;
+            }
+            else if (name == "histUpdateDiv") {
+                iss >> value;
+
+                int val;
+
+                iss >> val;
+                histUpdateDiv = val;
+            }
+            else if (name == "counterHistMult") {
+                iss >> value;
+
+                int val;
+
+                iss >> val;
+                counterHistMult = val;
+            }
+            else if (name == "kdDiv") {
+                iss >> value;
+
+                int val;
+
+                iss >> val;
+                kdDiv = val;
+            }
+            else if (name == "tmScoreDiv") {
+                iss >> value;
+
+                int val;
+
+                iss >> val;
+                tmScoreDiv = val;
+            }
+            else if (name == "tmScoreDiv") {
+                iss >> value;
+
+                int val;
+
+                iss >> val;
+                tmScoreDiv = val;
+            }
+            else if (name == "tmBestMoveStep") {
+                iss >> value;
+
+                float val;
+
+                iss >> val;
+                tmBestMoveStep = val;
+            }
+            else if (name == "tmBestMoveMax") {
+                iss >> value;
+
+                float val;
+
+                iss >> val;
+                tmBestMoveMax = val;
+            }
+            else if (name == "tmNodesSearchedMaxPercentage") {
+                iss >> value;
+
+                float val;
+
+                iss >> val;
+                tmNodesSearchedMaxPercentage = val;
+            }
         }
+        else if (cmd == "generate") {
+
+            int nrThreads, nrFens;
+            std::string path;
+
+            iss >> nrFens >> nrThreads >> path;
+
+            generateData(nrFens, nrThreads, path);
+
+        }
+        else if (cmd == "eval") {
+
+            Eval();
+
+        }
+        else if (cmd == "perft") {
+
+            int depth;
+
+            iss >> depth;
+
+            Perft(depth);
+
+        }
+        else if (cmd == "bench") {
+
+            Bench();
+        }
+        else if (cmd == "see") {
+            std::string mv;
+            int th;
+            iss >> mv >> th;
+
+            uint16_t move = ParseMove(searcher.board, mv);
+
+            std::cout << see(searcher.board, move, th) << std::endl;
+        }
+        if (info->quit)
+            break;
 
 
     }
