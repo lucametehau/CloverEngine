@@ -713,21 +713,19 @@ int Search::rootSearch(int alpha, int beta, int depth) {
         return quiesce(alpha, beta);
 
     uint16_t ttMove = NULLMOVE;
-    int ply = board.ply;
     int alphaOrig = alpha;
     uint64_t key = board.key;
     uint16_t quiets[256], nrQuiets = 0;
     uint16_t captures[256], nrCaptures = 0;
-    int played = 0, bound = NONE, skip = 0;
+    int played = 0, bound = NONE;
     int best = -INF;
     uint16_t bestMove = NULLMOVE;
     int ttHit = 0, ttValue = 0;
 
     nodes++;
-    selDepth = std::max(selDepth, ply);
 
     TT->prefetch(key);
-    pvTableLen[ply] = 0;
+    pvTableLen[0] = 0;
 
     tt::Entry entry = {};
 
@@ -736,7 +734,7 @@ int Search::rootSearch(int alpha, int beta, int depth) {
     int eval = INF;
 
     if (TT->probe(key, entry)) {
-        int score = entry.value(ply);
+        int score = entry.value(0);
         ttHit = 1;
         ttValue = score;
         bound = entry.bound(), ttMove = entry.info.move;
@@ -757,16 +755,16 @@ int Search::rootSearch(int alpha, int beta, int depth) {
 
     if (isCheck) {
         /// when in check, don't evaluate (king safety evaluation might break)
-        Stack[ply].eval = eval = INF;
+        Stack[0].eval = eval = INF;
     }
     else if (eval == INF) {
         /// if last move was null or we are in a singular search, we already know the evaluation
-        Stack[ply].eval = eval = evaluate(board);
+        Stack[0].eval = eval = evaluate(board);
     }
     else {
         /// ttValue might be a better evaluation
 
-        Stack[ply].eval = eval;
+        Stack[0].eval = eval;
 
         if (bound == EXACT || (bound == LOWER && ttValue > eval) || (bound == UPPER && ttValue < eval))
             eval = ttValue;
@@ -774,7 +772,7 @@ int Search::rootSearch(int alpha, int beta, int depth) {
 
     bool improving = false; /// (TO DO: make all pruning dependent of this variable?)
 
-    killers[ply + 1][0] = killers[ply + 1][1] = NULLMOVE;
+    killers[1][0] = killers[1][1] = NULLMOVE;
 
     /// internal iterative deepening (search at reduced depth to find a ttMove) (Rebel like)
 
@@ -785,20 +783,16 @@ int Search::rootSearch(int alpha, int beta, int depth) {
 
     uint16_t counter = NULLMOVE;
 
-    Movepick<NORMAL_MP> picker(ttMove, killers[ply][0], killers[ply][1], counter, -10 * depth);
+    Movepick<NORMAL_MP> picker(ttMove, killers[0][0], killers[0][1], counter, -10 * depth);
 
     uint16_t move;
 
-    while ((move = picker.nextMove(this, skip)) != NULLMOVE) {
+    while ((move = picker.nextMove(this, false)) != NULLMOVE) {
         bool isQuiet = !isNoisyMove(board, move), refutationMove = (picker.stage < STAGE_QUIETS);
-        Heuristics H{}; /// history values for quiet moves
-
-        if (isQuiet)
-            getHistory(this, move, ply, H);
 
         /// update stack info
-        Stack[ply].move = move;
-        Stack[ply].piece = board.piece_at(sqFrom(move));
+        Stack[0].move = move;
+        Stack[0].piece = board.piece_at(sqFrom(move));
 
         makeMove(board, move);
         played++;
@@ -824,17 +818,10 @@ int Search::rootSearch(int alpha, int beta, int depth) {
             if (isQuiet) {
                 R = lmrRed[std::min(63, depth)][std::min(63, played)];
 
-                R += !improving; /// not on pv or not improving
-
                 R += (quietUs && eval - seeVal[KNIGHT] > beta);
 
                 R -= 2 * refutationMove; /// reduce for refutation moves
-
-                R -= std::max(-2, std::min(2, (H.h + H.ch + H.fh) / histDiv)); /// reduce based on move history
             }
-            /*else {
-                R = 1 + (!pvNode && picker.stage == STAGE_BAD_NOISY);
-            }*/
 
             R = std::min(depth - 1, std::max(R, 1)); /// clamp R
         }
@@ -871,7 +858,7 @@ int Search::rootSearch(int alpha, int beta, int depth) {
             if (score > alpha) {
                 alpha = score;
 
-                updatePv(ply, move);
+                updatePv(0, move);
 
                 if (alpha >= beta) {
                     //std::cout << nodes << " " << initNodes << " " << nodes << " " << nodesBefore << '\n';
@@ -884,27 +871,27 @@ int Search::rootSearch(int alpha, int beta, int depth) {
     TT->prefetch(key);
 
     if (!played) {
-        return (isCheck ? -INF + ply : 0);
+        return (isCheck ? -INF : 0);
     }
 
     /// update killers and history heuristics
 
     if (best >= beta && !isNoisyMove(board, bestMove)) {
-        if (killers[ply][0] != bestMove) {
-            killers[ply][1] = killers[ply][0];
-            killers[ply][0] = bestMove;
+        if (killers[0][0] != bestMove) {
+            killers[0][1] = killers[0][0];
+            killers[0][0] = bestMove;
         }
 
-        updateHistory(this, quiets, nrQuiets, ply, depth * depth);
+        updateHistory(this, quiets, nrQuiets, 0, depth * depth);
     }
 
     if (best >= beta)
-        updateCapHistory(this, captures, nrCaptures, bestMove, ply, depth * depth);
+        updateCapHistory(this, captures, nrCaptures, bestMove, 0, depth * depth);
 
     /// update tt only if we aren't in a singular search
 
     bound = (best >= beta ? LOWER : (best > alphaOrig ? EXACT : UPPER));
-    TT->save(key, best, depth, ply, bound, bestMove, Stack[ply].eval);
+    TT->save(key, best, depth, 0, bound, bestMove, Stack[0].eval);
 
     return best;
 }
