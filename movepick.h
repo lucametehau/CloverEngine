@@ -38,7 +38,6 @@ enum {
     NORMAL_MP = 0, NOISY_MP
 };
 
-template <bool noisyPicker>
 class Movepick {
 public:
     int stage;
@@ -75,7 +74,7 @@ public:
         return ind;
     }
 
-    uint16_t nextMove(Search* searcher, bool skip) {
+    uint16_t nextMove(Search* searcher, bool skip, bool noisyPicker) {
         if (stage == STAGE_HASHMOVE) {
             stage++;
             if (hashMove) {
@@ -123,7 +122,7 @@ public:
                     if (!see(searcher->board, best, threshold)) {
                         badNoisy[nrBadNoisy++] = best;
                         scores[ind] = BAD_CAP_SCORE; /// mark capture as bad
-                        return nextMove(searcher, skip);
+                        return nextMove(searcher, skip, noisyPicker);
                     }
 
                     nrNoisy--;
@@ -131,7 +130,7 @@ public:
                     scores[ind] = scores[nrNoisy];
 
                     if (best == hashMove) /// don't play the same move
-                        return nextMove(searcher, skip);
+                        return nextMove(searcher, skip, noisyPicker);
 
                     if (best == killer1)
                         killer1 = NULLMOVE;
@@ -145,7 +144,7 @@ public:
             }
             if (skip) { /// no need to go through quiets
                 stage = STAGE_BAD_NOISY;
-                return nextMove(searcher, skip);
+                return nextMove(searcher, skip, noisyPicker);
             }
             stage++;
         }
@@ -244,7 +243,7 @@ public:
                 uint16_t move = badNoisy[nrBadNoisy];
 
                 if (move == hashMove || move == killer1 || move == killer2 || move == counter)
-                    return nextMove(searcher, skip);
+                    return nextMove(searcher, skip, noisyPicker);
 
                 return move;
             }
@@ -265,15 +264,17 @@ public:
 };
 
 bool see(Board& board, uint16_t move, int threshold) {
-    if (type(move) != NEUT)
-        return 1;
-
-    int from = sqFrom(move), to = sqTo(move), col, nextVictim, score = -threshold;
+    int from = sqFrom(move), to = sqTo(move), t = type(move), col, nextVictim, score = -threshold;
     uint64_t diag, orth, occ, att, myAtt;
 
-    nextVictim = board.piece_type_at(from);
+    nextVictim = (t != PROMOTION ? board.piece_type_at(from) : promoted(move) + KNIGHT);
 
     score += seeVal[board.piece_type_at(to)];
+
+    if (t == PROMOTION)
+        score += seeVal[promoted(move) + KNIGHT] - seeVal[PAWN];
+    else if (t == ENPASSANT)
+        score = seeVal[PAWN];
 
     if (score < 0)
         return 0;
@@ -288,6 +289,9 @@ bool see(Board& board, uint16_t move, int threshold) {
 
     occ = board.pieces[WHITE] | board.pieces[BLACK];
     occ = (occ ^ (1ULL << from)) | (1ULL << to);
+
+    if (t == ENPASSANT)
+        occ ^= (1ULL << board.enPas);
 
     att = (getAttackers(board, WHITE, occ, to) | getAttackers(board, BLACK, occ, to)) & occ;
 

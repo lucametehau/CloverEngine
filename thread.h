@@ -50,10 +50,10 @@ int nodesSearchedDiv = 10000;
 float lmrMargin = 1;
 float lmrDiv = 2.5;
 
-int tmScoreDiv = 100;
-float tmBestMoveStep = 0.1;
-float tmBestMoveMax = 1.5;
-float tmNodesSearchedMaxPercentage = 1.5;
+int tmScoreDiv = 111;
+float tmBestMoveStep = 0.205;
+float tmBestMoveMax = 2.25;
+float tmNodesSearchedMaxPercentage = 1.57;
 
 const int TERMINATED_BY_USER = 1;
 const int TERMINATED_BY_TIME = 2;

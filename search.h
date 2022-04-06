@@ -125,12 +125,11 @@ enum {
     NOISY = 0, QUIET
 };
 
-template <bool us>
 int quietness(Board& board) {
     if (board.checkers)
         return NOISY;
     uint64_t att;
-    int enemy = 1 ^ us;
+    int us = board.turn, enemy = 1 ^ us;
     uint64_t pieces, b, all = board.pieces[WHITE] | board.pieces[BLACK];
 
     pieces = board.bb[getType(KNIGHT, enemy)];
@@ -251,11 +250,11 @@ int Search::quiesce(int alpha, int beta, bool useTT) {
 
     alpha = std::max(alpha, best);
 
-    Movepick<NOISY_MP> noisyPicker(ttMove, NULLMOVE, NULLMOVE, NULLMOVE, 0);
+    Movepick noisyPicker(ttMove, NULLMOVE, NULLMOVE, NULLMOVE, 0);
 
     uint16_t move;
 
-    while ((move = noisyPicker.nextMove(this, !isCheck))) {
+    while ((move = noisyPicker.nextMove(this, !isCheck, true))) {
 
         // futility pruning
 
@@ -409,16 +408,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     }
 
     bool isCheck = (board.checkers != 0);
-    int quietUs;
-    //int quietEnemy;	
-    if (board.turn == WHITE) {
-        quietUs = quietness<WHITE>(board);
-        //quietEnemy = quietness<BLACK>(board);	
-    }
-    else {
-        quietUs = quietness<BLACK>(board);
-        //quietEnemy = quietness<WHITE>(board);	
-    }
+    int quietUs = quietness(board);
 
     if (isCheck) {
         /// when in check, don't evaluate (king safety evaluation might break)
@@ -489,11 +479,11 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
     if (!pvNode && !isCheck && depth >= 5 && abs(beta) < MATE) {
         int cutBeta = beta + 100;
-        Movepick<NOISY_MP> noisyPicker(NULLMOVE, NULLMOVE, NULLMOVE, NULLMOVE, cutBeta - Stack[ply].eval);
+        Movepick noisyPicker(NULLMOVE, NULLMOVE, NULLMOVE, NULLMOVE, cutBeta - Stack[ply].eval);
 
         uint16_t move;
 
-        while ((move = noisyPicker.nextMove(this, 1)) != NULLMOVE) {
+        while ((move = noisyPicker.nextMove(this, true, true)) != NULLMOVE) {
             if (move == excluded)
                 continue;
 
@@ -525,11 +515,11 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
     uint16_t counter = (ply == 0 || !Stack[ply - 1].move ? NULLMOVE : cmTable[1 ^ board.turn][Stack[ply - 1].piece][sqTo(Stack[ply - 1].move)]);
 
-    Movepick<NORMAL_MP> picker(ttMove, killers[ply][0], killers[ply][1], counter, -10 * depth);
+    Movepick picker(ttMove, killers[ply][0], killers[ply][1], counter, -10 * depth);
 
     uint16_t move;
 
-    while ((move = picker.nextMove(this, skip)) != NULLMOVE) {
+    while ((move = picker.nextMove(this, skip, false)) != NULLMOVE) {
 
         if (move == excluded)
             continue;
@@ -742,16 +732,7 @@ int Search::rootSearch(int alpha, int beta, int depth) {
     }
 
     bool isCheck = (board.checkers != 0);
-    int quietUs;
-    //int quietEnemy;	
-    if (board.turn == WHITE) {
-        quietUs = quietness<WHITE>(board);
-        //quietEnemy = quietness<BLACK>(board);	
-    }
-    else {
-        quietUs = quietness<BLACK>(board);
-        //quietEnemy = quietness<WHITE>(board);	
-    }
+    int quietUs = quietness(board);
 
     if (isCheck) {
         /// when in check, don't evaluate (king safety evaluation might break)
@@ -783,11 +764,11 @@ int Search::rootSearch(int alpha, int beta, int depth) {
 
     uint16_t counter = NULLMOVE;
 
-    Movepick<NORMAL_MP> picker(ttMove, killers[0][0], killers[0][1], counter, -10 * depth);
+    Movepick picker(ttMove, killers[0][0], killers[0][1], counter, -10 * depth);
 
     uint16_t move;
 
-    while ((move = picker.nextMove(this, false)) != NULLMOVE) {
+    while ((move = picker.nextMove(this, false, false)) != NULLMOVE) {
         bool isQuiet = !isNoisyMove(board, move), refutationMove = (picker.stage < STAGE_QUIETS);
 
         /// update stack info
