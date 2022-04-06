@@ -818,6 +818,8 @@ int Search::rootSearch(int alpha, int beta, int depth) {
             if (isQuiet) {
                 R = lmrRed[std::min(63, depth)][std::min(63, played)];
 
+                R += !improving; /// not on pv or not improving
+
                 R += (quietUs && eval - seeVal[KNIGHT] > beta);
 
                 R -= 2 * refutationMove; /// reduce for refutation moves
