@@ -615,9 +615,13 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
                 R -= std::max(-2, std::min(2, (H.h + H.ch + H.fh) / histDiv)); /// reduce based on move history
             }
-            /*else {
-                R = 1 + (!pvNode && picker.stage == STAGE_BAD_NOISY);
-            }*/
+            else if(!pvNode) {
+                R = lmrRed[std::min(63, depth)][std::min(63, played)];
+
+                R += !improving; /// not on pv or not improving
+
+                R += cutNode; // reduce more for cut nodes
+            }
 
             R = std::min(depth - 1, std::max(R, 1)); /// clamp R
         }
