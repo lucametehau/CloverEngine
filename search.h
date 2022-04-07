@@ -622,9 +622,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
                 R += cutNode; // reduce more for cut nodes
 
-                int captureHistory = capHist[board.piece_at(sqFrom(move))][sqTo(move)][board.piece_type_at(sqTo(move))];
-
-                R -= std::max(-2, std::min(2, captureHistory / 4096)); /// reduce based on move history
+                R -= (picker.stage == STAGE_GOOD_NOISY);
             }
 
             R = std::min(depth - 1, std::max(R, 1)); /// clamp R
