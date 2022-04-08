@@ -533,7 +533,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
                 getHistory(this, move, ply, H);
 
                 /// approximately the new depth for the next search
-                int newDepth = std::max(0, depth - lmrRed[std::min(63, depth)][std::min(63, played)]);
+                int newDepth = std::max(0, depth - lmrRed[std::min(63, depth)][std::min(63, played)] - !improving);
 
                 /// counter move and follow move pruning
                 if (newDepth <= 3 && !refutationMove && (H.ch < chCoef * newDepth || H.fh < fhCoef * newDepth))
@@ -551,13 +551,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
                     continue;
             }
             else {
-                /*int captureHistory = capHist[board.piece_at(sqFrom(move))][sqTo(move)][board.piece_type_at(sqTo(move))];
-                //int newDepth = std::max(0, depth - lmrRed[std::min(63, depth)][std::min(63, played)]);
-
-                if (depth <= 3 && picker.stage > STAGE_GOOD_NOISY && captureHistory < -4096 * depth)
-                    continue;*/
-
-
                 if (depth <= 8 && !isCheck && picker.stage > STAGE_GOOD_NOISY && !see(board, move, -seeCoefNoisy * depth * depth))
                     continue;
             }
