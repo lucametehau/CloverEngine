@@ -533,7 +533,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
                 getHistory(this, move, ply, H);
 
                 /// approximately the new depth for the next search
-                int newDepth = std::max(0, depth - lmrRed[std::min(63, depth)][std::min(63, played)] - !improving);
+                int newDepth = std::max(0, depth - lmrRed[std::min(63, depth)][std::min(63, played)]);
 
                 /// counter move and follow move pruning
                 if (newDepth <= 3 && !refutationMove && (H.ch < chCoef * newDepth || H.fh < fhCoef * newDepth))
