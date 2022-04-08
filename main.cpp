@@ -34,6 +34,8 @@ int main(int argc, char** argv) {
         return 0;
     }
 
+    std::cout << "hm\n";
+
     uci.Uci_Loop();
     return 0;
 }

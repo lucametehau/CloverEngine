@@ -23,7 +23,7 @@
 #include <atomic>
 #include "search.h"
 
-/*
+
 struct FenData {
     int score;
     std::string fen;
@@ -112,7 +112,7 @@ void generateFens(std::atomic <int>& sumFens, int nrFens, std::string path, uint
 
                 searcher->flag = 0;
 
-                if (!inCheck(searcher->board) && searcher->quiesce(-INF, INF, false) == searcher->Stack[0].eval) { /// relatively quiet position
+                if (!searcher->board.checkers && !isNoisyMove(searcher->board, move)) { /// relatively quiet position
                     data.fen = searcher->board.fen();
                     data.score = score;
                     fens.push_back(data);
@@ -155,10 +155,10 @@ void generateFens(std::atomic <int>& sumFens, int nrFens, std::string path, uint
         gameInd++;
     }
 }
-*/
+
 
 void generateData(int nrFens, int nrThreads, std::string rootPath) {
-    /*
+    
     std::string path[100];
 
     srand(time(0));
@@ -198,5 +198,5 @@ void generateData(int nrFens, int nrThreads, std::string rootPath) {
 
     for (auto& t : threads)
         t.join();
-     */
+     
 }

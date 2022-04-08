@@ -147,7 +147,7 @@ public:
     bool principalSearcher;
     Board board;
 
-    tt::HashTable* threadTT;
+    tt::HashTable* TT;
 
     std::unique_ptr <std::thread[]> threads;
     std::unique_ptr <Search[]> params;

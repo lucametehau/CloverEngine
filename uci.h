@@ -25,7 +25,7 @@
 #include "perft.h"
 #include "generate.h"
 
-const std::string VERSION = "3.2-dev6"; /// 2.0 was "FM"
+const std::string VERSION = "3.2-generation"; /// 2.0 was "FM"
 
 class UCI {
 public:
@@ -57,7 +57,7 @@ void UCI::Uci_Loop() {
 
     std::cout << "Clover " << VERSION << " by Luca Metehau" << std::endl;
 
-    TT = new tt::HashTable();
+    //TT = new tt::HashTable();
 
     Info info[1];
 
@@ -241,7 +241,7 @@ void UCI::Uci_Loop() {
 
                 iss >> ttSize;
 
-                TT->initTable(ttSize * MB);
+                //TT->initTable(ttSize * MB);
 
             }
             else if (name == "Threads") {
@@ -437,6 +437,8 @@ void UCI::Uci_Loop() {
 
             iss >> nrFens >> nrThreads >> path;
 
+            printStats = false;
+
             generateData(nrFens, nrThreads, path);
 
         }
@@ -490,12 +492,12 @@ void UCI::UciNewGame(uint64_t ttSize) {
     searcher.clearKillers();
     searcher.clearStack();
 
-    TT->resetAge();
-    TT->initTable(ttSize * MB);
+    //TT->resetAge();
+    //TT->initTable(ttSize * MB);
 }
 
 void UCI::Go(Info* info) {
-    TT->age();
+    //TT->age();
     searcher.clearStack();
     searcher.clearBoard();
     searcher.startPrincipalSearch(info);
@@ -586,7 +588,7 @@ std::string benchPos[] = {
 void UCI::Bench() {
     Info info[1];
 
-    TT = new tt::HashTable();
+    //TT = new tt::HashTable();
 
     init(info);
 
