@@ -611,8 +611,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
             else if(!pvNode) {
                 R = lmrRed[std::min(63, depth)][std::min(63, played)] / 1.5;
 
-                R += !improving; /// not on pv or not improving
-
                 R += cutNode; // reduce more for cut nodes
             }
 
