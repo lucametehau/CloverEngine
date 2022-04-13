@@ -45,7 +45,7 @@ int fpHistDiv = 512;
 
 int kdDiv = 30;
 
-int nodesSearchedDiv = 10000;
+int nodesSearchedDiv = 5000;
 
 float lmrMargin = 1;
 float lmrDiv = 2.5;
