@@ -611,6 +611,8 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
             else if(!pvNode) {
                 R = lmrRed[std::min(63, depth)][std::min(63, played)] / 1.5;
 
+                R += !improving; /// not on pv or not improving
+
                 R += cutNode; // reduce more for cut nodes
             }
 
@@ -635,9 +637,9 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
             score = -search(-beta, -alpha, newDepth - 1, false);
         }
 
-        nodesSearched[sqFrom(move)][sqTo(move)] += nodes - initNodes;
-
         undoMove(board, move);
+
+        nodesSearched[board.turn][sqFrom(move)][sqTo(move)] += nodes - initNodes;
 
         if (flag & TERMINATED_SEARCH) /// stop search
             return ABORT;
@@ -822,9 +824,9 @@ int Search::rootSearch(int alpha, int beta, int depth) {
             score = -search(-beta, -alpha, newDepth - 1, false);
         }
 
-        nodesSearched[sqFrom(move)][sqTo(move)] += nodes - initNodes;
-
         undoMove(board, move);
+
+        nodesSearched[board.turn][sqFrom(move)][sqTo(move)] += nodes - initNodes;
 
         if (flag & TERMINATED_SEARCH) /// stop search
             return ABORT;
@@ -1063,7 +1065,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
 
                 bestMoveCnt = (bestMove == mainThreadBestMove ? bestMoveCnt + 1 : 1);
 
-                nodesSearchedPercentage = 1.0 * nodesSearched[sqFrom(bestMove)][sqTo(bestMove)] / nodes;
+                nodesSearchedPercentage = 1.0 * nodesSearched[board.turn][sqFrom(bestMove)][sqTo(bestMove)] / nodes;
                 nodesSearchedPercentage = tmNodesSearchedMaxPercentage - nodesSearchedPercentage;
 
                 bestMoveStreak = tmBestMoveMax - tmBestMoveStep * std::min(10, bestMoveCnt);
