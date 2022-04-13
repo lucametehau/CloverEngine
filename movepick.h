@@ -205,7 +205,7 @@ public:
                     /*if (!see(searcher->board, move, 0))
                         score -= 100000;*/
 
-                    score += searcher->nodesSearched[searcher->board.turn][from][to] / nodesSearchedDiv; // the longer it takes a move to be refuted, the higher its chance to become the best move
+                    score += searcher->nodesSearched[from][to] / nodesSearchedDiv; // the longer it takes a move to be refuted, the higher its chance to become the best move
                 }
                 scores[i] = score;
             }
