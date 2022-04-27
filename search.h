@@ -518,6 +518,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     Movepick picker(ttMove, killers[ply][0], killers[ply][1], counter, -20 * depth);
 
     uint16_t move;
+    bool singular = false;
 
     while ((move = picker.nextMove(this, skip, false)) != NULLMOVE) {
 
@@ -557,17 +558,17 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         }
 
         int ex = 0;
-
         /// singular extension (look if the tt move is better than the rest)
 
 
-        if (!excluded && move == ttMove && abs(ttValue) < MATE && depth >= 8 && entry.depth() >= depth - 3 && (bound & LOWER)) { /// had best instead of ttValue lol
+        if (!excluded && move == ttMove && abs(ttValue) < MATE && depth >= 6 && entry.depth() >= depth - 3 && (bound & LOWER)) { /// had best instead of ttValue lol
             int rBeta = ttValue - depth;
 
             int score = search(rBeta - 1, rBeta, depth / 2, cutNode, move);
 
             if (score < rBeta) {
                 ex = 1 + (!pvNode && rBeta - score > 100);
+                singular = true;
             }
             else if (rBeta >= beta) /// multicut
                 return rBeta;
@@ -602,8 +603,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
                 R += (quietUs && eval - seeVal[KNIGHT] > beta);
 
-                R += cutNode; // reduce more for cut nodes
-
                 R -= 2 * refutationMove; /// reduce for refutation moves
 
                 R -= std::max(-2, std::min(2, (H.h + H.ch + H.fh) / histDiv)); /// reduce based on move history
@@ -612,9 +611,11 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
                 R = lmrRed[std::min(63, depth)][std::min(63, played)] / 1.5;
 
                 R += !improving; /// not on pv or not improving
-
-                R += cutNode; // reduce more for cut nodes
             }
+
+            R += cutNode;
+
+            R += 2 * singular;
 
             R = std::min(depth - 1, std::max(R, 1)); /// clamp R
         }
@@ -1030,7 +1031,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
                     std::cout << "(" << i << ", " << kekw[i] << "), ";
                 std::cout << std::endl;*/
 
-                //std::cout << cnt << "\n";
+                //std::cout << cnt << " " << cnt2 << ", " << 1.0 * cnt2 / cnt * 100 << "%\n";
                 //std::cout << "NMP Fail rate: " << 100.0 * nmpFail / nmpTries << "\n";
             }
 
