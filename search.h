@@ -562,7 +562,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
 
         if (!excluded && move == ttMove && abs(ttValue) < MATE && depth >= 6 && entry.depth() >= depth - 3 && (bound & LOWER)) { /// had best instead of ttValue lol
-            int rBeta = ttValue - depth;
+            int rBeta = ttValue - 3 * depth / 2;
 
             int score = search(rBeta - 1, rBeta, depth / 2, cutNode, move);
 
