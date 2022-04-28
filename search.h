@@ -518,7 +518,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     Movepick picker(ttMove, killers[ply][0], killers[ply][1], counter, -20 * depth);
 
     uint16_t move;
-    bool singular = false;
+    //bool singular = false;
 
     while ((move = picker.nextMove(this, skip, false)) != NULLMOVE) {
 
@@ -561,14 +561,14 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         /// singular extension (look if the tt move is better than the rest)
 
 
-        if (!excluded && move == ttMove && abs(ttValue) < MATE && depth >= 8 && entry.depth() >= depth - 3 && (bound & LOWER)) { /// had best instead of ttValue lol
+        if (!excluded && move == ttMove && abs(ttValue) < MATE && depth >= 6 && entry.depth() >= depth - 3 && (bound & LOWER)) { /// had best instead of ttValue lol
             int rBeta = ttValue - depth;
 
             int score = search(rBeta - 1, rBeta, depth / 2, cutNode, move);
 
             if (score < rBeta) {
                 ex = 1 + (!pvNode && rBeta - score > 100);
-                singular = true;
+                //singular = true;
             }
             else if (rBeta >= beta) /// multicut
                 return rBeta;
@@ -615,7 +615,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
             R += cutNode;
 
-            R += 2 * singular;
+            //R += 2 * singular;
 
             R = std::min(depth - 1, std::max(R, 1)); /// clamp R
         }
