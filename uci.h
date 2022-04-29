@@ -266,6 +266,15 @@ void UCI::Uci_Loop() {
 
                 //cout << "Set TB path to " << path << "\n";
             }
+            else if (name == "MultiPV") {
+                iss >> value;
+
+                int multipv;
+
+                iss >> multipv;
+
+                info->multipv = multipv;
+            }
 
             /// search params, used by ctt
 
@@ -480,6 +489,7 @@ void UCI::Uci() {
     std::cout << "option name Hash type spin default 128 min 2 max 131072" << std::endl;
     std::cout << "option name Threads type spin default 1 min 1 max 256" << std::endl;
     std::cout << "option name SyzygyPath type string default <empty>" << std::endl;
+    std::cout << "option name MultiPV type spin default 1 min 1 max 255" << std::endl;
     std::cout << "uciok" << std::endl;
 }
 

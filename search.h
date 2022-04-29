@@ -562,7 +562,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
 
         if (!excluded && move == ttMove && abs(ttValue) < MATE && depth >= 6 && entry.depth() >= depth - 3 && (bound & LOWER)) { /// had best instead of ttValue lol
-            int rBeta = ttValue - 3 * depth / 2;
+            int rBeta = ttValue - depth;
 
             int score = search(rBeta - 1, rBeta, depth / 2, cutNode, move);
 
@@ -692,7 +692,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     return best;
 }
 
-int Search::rootSearch(int alpha, int beta, int depth) {
+int Search::rootSearch(int alpha, int beta, int depth, int multipv) {
 
     if (checkForStop())
         return ABORT;
@@ -767,6 +767,18 @@ int Search::rootSearch(int alpha, int beta, int depth) {
     uint16_t move;
 
     while ((move = picker.nextMove(this, false, false)) != NULLMOVE) {
+        bool searched = false;
+
+        for (int i = 1; i < multipv; i++) {
+            if (move == bestMoves[i]) {
+                searched = true;
+                break;
+            }
+        }
+
+        if (searched)
+            continue;
+
         bool isQuiet = !isNoisyMove(board, move), refutationMove = (picker.stage < STAGE_QUIETS);
 
         /// update stack info
@@ -960,7 +972,6 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
         startWorkerThreads(info);
 
     uint64_t totalNodes = 0, totalHits = 0;
-    int lastScore = 0;
     int limitDepth = (principalSearcher ? info->depth : DEPTH); /// when limited by depth, allow helper threads to pass the fixed depth
     int mainThreadScore = 0;
     uint16_t mainThreadBestMove = NULLMOVE;
@@ -968,105 +979,110 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
     //contempt = 0;
 
     for (tDepth = 1; tDepth <= limitDepth; tDepth++) {
+        memset(bestMoves, 0, sizeof(bestMoves));
 
-        int window = 10;
+        for (int i = 1; i <= info->multipv; i++) {
+            int window = 10;
 
-        if (tDepth >= 6) {
-            alpha = std::max(-INF, lastScore - window);
-            beta = std::min(INF, lastScore + window);
-        }
-        else {
-            alpha = -INF;
-            beta = INF;
-        }
-
-        //contempt = (board.turn == WHITE ? lastScore / 20 : -lastScore / 20);
-        //std::cout << "CONTEMPT = " << contempt << "\n";
-
-        int depth = tDepth;
-        while (true) {
-
-            depth = std::max(depth, 1);
-
-            selDepth = 0;
-
-            score = rootSearch(alpha, beta, depth);
-
-            if (flag & TERMINATED_SEARCH)
-                break;
-
-            if (principalSearcher && printStats && ((alpha < score && score < beta) || getTime() > t0 + 3000)) {
-                if (principalSearcher) {
-                    totalNodes = nodes;
-                    totalHits = tbHits;
-                    for (int i = 0; i < threadCount; i++) {
-                        totalNodes += params[i].nodes;
-                        totalHits += params[i].tbHits;
-                    }
-                }
-                uint64_t t = (uint64_t)getTime() - t0;
-                std::cout << "info score ";
-                if (score > MATE)
-                    std::cout << "mate " << (INF - score + 1) / 2;
-                else if (score < -MATE)
-                    std::cout << "mate -" << (INF + score + 1) / 2;
-                else
-                    std::cout << "cp " << score;
-                if (score >= beta)
-                    std::cout << " lowerbound";
-                else if (score <= alpha)
-                    std::cout << " upperbound";
-                std::cout << " depth " << depth << " seldepth " << selDepth << " nodes " << totalNodes << " qsNodes " << qsNodes;
-                if (t)
-                    std::cout << " nps " << totalNodes * 1000 / t;
-                std::cout << " time " << t << " ";
-                std::cout << "tbhits " << totalHits << " hashfull " << TT->tableFull() << " ";
-                std::cout << "pv ";
-                printPv();
-                std::cout << std::endl;
-
-                //std::cout << cnt << " out of " << cnt2 << ", " << 100.0 * cnt / cnt2 << "%\n";
-
-                /*for (int i = 20; i <= 60; i++)
-                    std::cout << "(" << i << ", " << kekw[i] << "), ";
-                std::cout << std::endl;*/
-
-                //std::cout << cnt << " " << cnt2 << ", " << 1.0 * cnt2 / cnt * 100 << "%\n";
-                //std::cout << "NMP Fail rate: " << 100.0 * nmpFail / nmpTries << "\n";
-            }
-
-            if (score <= alpha) {
-                beta = (beta + alpha) / 2;
-                alpha = std::max(-INF, alpha - window);
-                depth = tDepth;
-            }
-            else if (beta <= score) {
-                beta = std::min(INF, beta + window);
-                /// reduce depth if failing high
-                /// don't reduce when finding tb wins / mate scores
-                depth -= (abs(score) < TB_WIN_SCORE / 2);
-
-                if (pvTableLen[0])
-                    bestMove = pvTable[0][0];
+            if (tDepth >= 6) {
+                alpha = std::max(-INF, scores[i] - window);
+                beta = std::min(INF, scores[i] + window);
             }
             else {
-                if (pvTableLen[0])
-                    bestMove = pvTable[0][0];
-                break;
+                alpha = -INF;
+                beta = INF;
             }
 
-            window += window / 2;
+            //contempt = (board.turn == WHITE ? lastScore / 20 : -lastScore / 20);
+            //std::cout << "CONTEMPT = " << contempt << "\n";
+
+            int depth = tDepth;
+            while (true) {
+
+                depth = std::max(depth, 1);
+
+                selDepth = 0;
+
+                scores[i] = rootSearch(alpha, beta, depth, i);
+
+                if (flag & TERMINATED_SEARCH)
+                    break;
+
+                if (principalSearcher && printStats && ((alpha < scores[i] && scores[i] < beta) || (i == 1 && getTime() > t0 + 3000))) {
+                    if (principalSearcher) {
+                        totalNodes = nodes;
+                        totalHits = tbHits;
+                        for (int i = 0; i < threadCount; i++) {
+                            totalNodes += params[i].nodes;
+                            totalHits += params[i].tbHits;
+                        }
+                    }
+                    uint64_t t = (uint64_t)getTime() - t0;
+                    std::cout << "info ";
+                    std::cout << "multipv " << i << " ";
+                    std::cout << "score ";
+                    if (scores[i] > MATE)
+                        std::cout << "mate " << (INF - scores[i] + 1) / 2;
+                    else if (scores[i] < -MATE)
+                        std::cout << "mate -" << (INF + scores[i] + 1) / 2;
+                    else
+                        std::cout << "cp " << scores[i];
+                    if (scores[i] >= beta)
+                        std::cout << " lowerbound";
+                    else if (scores[i] <= alpha)
+                        std::cout << " upperbound";
+                    std::cout << " depth " << depth << " seldepth " << selDepth << " nodes " << totalNodes << " qsNodes " << qsNodes;
+                    if (t)
+                        std::cout << " nps " << totalNodes * 1000 / t;
+                    std::cout << " time " << t << " ";
+                    std::cout << "tbhits " << totalHits << " hashfull " << TT->tableFull() << " ";
+                    std::cout << "pv ";
+                    printPv();
+                    std::cout << std::endl;
+
+                    //std::cout << cnt << " out of " << cnt2 << ", " << 100.0 * cnt / cnt2 << "%\n";
+
+                    /*for (int i = 20; i <= 60; i++)
+                        std::cout << "(" << i << ", " << kekw[i] << "), ";
+                    std::cout << std::endl;*/
+
+                    //std::cout << cnt << " " << cnt2 << ", " << 1.0 * cnt2 / cnt * 100 << "%\n";
+                    //std::cout << "NMP Fail rate: " << 100.0 * nmpFail / nmpTries << "\n";
+                }
+
+                if (scores[i] <= alpha) {
+                    beta = (beta + alpha) / 2;
+                    alpha = std::max(-INF, alpha - window);
+                    depth = tDepth;
+                }
+                else if (beta <= scores[i]) {
+                    beta = std::min(INF, beta + window);
+                    /// reduce depth if failing high
+                    /// don't reduce when finding tb wins / mate scores
+                    depth -= (abs(score) < TB_WIN_SCORE / 2);
+
+                    if (pvTableLen[0])
+                        bestMoves[i] = pvTable[0][0];
+                }
+                else {
+                    if (pvTableLen[0])
+                        bestMoves[i] = pvTable[0][0];
+                    break;
+                }
+
+                window += window / 2;
+            }
         }
 
         if (principalSearcher) {
             /// adjust time if score is dropping (and maybe if it's jumping)
             double scoreChange = 1.0, bestMoveStreak = 1.0, nodesSearchedPercentage = 1.0;
             if (tDepth >= 9) {
-                scoreChange = std::max(0.5, std::min(1.0 + 1.0 * (mainThreadScore - score) / tmScoreDiv, 1.5));
+                scoreChange = std::max(0.5, std::min(1.0 + 1.0 * (mainThreadScore - scores[1]) / tmScoreDiv, 1.5));
 
-                bestMoveCnt = (bestMove == mainThreadBestMove ? bestMoveCnt + 1 : 1);
+                bestMoveCnt = (bestMoves[1] == mainThreadBestMove ? bestMoveCnt + 1 : 1);
 
-                nodesSearchedPercentage = 1.0 * nodesSearched[sqFrom(bestMove)][sqTo(bestMove)] / nodes;
+                nodesSearchedPercentage = 1.0 * nodesSearched[sqFrom(bestMoves[1])][sqTo(bestMoves[1])] / nodes;
                 nodesSearchedPercentage = tmNodesSearchedMaxPercentage - nodesSearchedPercentage;
 
                 bestMoveStreak = tmBestMoveMax - tmBestMoveStep * std::min(10, bestMoveCnt);
@@ -1074,11 +1090,9 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
 
             info->stopTime = info->startTime + info->goodTimeLim * scoreChange * bestMoveStreak * nodesSearchedPercentage;
 
-            mainThreadScore = score;
-            mainThreadBestMove = bestMove;
+            mainThreadScore = scores[1];
+            mainThreadBestMove = bestMoves[1];
         }
-
-        lastScore = score;
 
         if (flag & TERMINATED_SEARCH)
             break;
@@ -1097,12 +1111,14 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
     if (threadCount)
         stopWorkerThreads();
 
+    int bm = (bestMoves[1] ? bestMoves[1] : mainThreadBestMove);
+
     if (principalSearcher && printStats)
-        std::cout << "bestmove " << toString(bestMove) << std::endl;
+        std::cout << "bestmove " << toString(bm) << std::endl;
 
     //TT->age();
 
-    return std::make_pair(score, bestMove);
+    return std::make_pair(score, bm);
 }
 
 void Search::clearHistory() {

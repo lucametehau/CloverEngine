@@ -91,7 +91,7 @@ public:
     std::pair <int, uint16_t> startSearch(Info* info);
     int quiesce(int alpha, int beta, bool useTT = true); /// for quiet position check (tuning)
     int search(int alpha, int beta, int depth, bool cutNode, uint16_t excluded = NULLMOVE);
-    int rootSearch(int alpha, int beta, int depth);
+    int rootSearch(int alpha, int beta, int depth, int multipv);
 
     void setTime(Info* tInfo) {
         info = tInfo;
@@ -119,6 +119,7 @@ public:
     int lmrCnt[2][9];
     int lmrRed[64][64];
     StackEntry Stack[DEPTH + 5];
+    int bestMoves[256], scores[256];
 
     int kekw[500];
 
