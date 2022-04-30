@@ -71,7 +71,7 @@ const bool PROBE_ROOT = true; /// default true
 
 int quietness(Board& board) {
     if (board.checkers)
-        return NOISY;
+        return 0;
     uint64_t att;
     int us = board.turn, enemy = 1 ^ us;
     uint64_t pieces, b, all = board.pieces[WHITE] | board.pieces[BLACK];
@@ -85,7 +85,7 @@ int quietness(Board& board) {
     }
 
     if (att & (board.bb[getType(QUEEN, us)] | board.bb[getType(ROOK, us)]))
-        return NOISY;
+        return 0;
 
     pieces = board.bb[getType(BISHOP, enemy)];
     att = 0;
@@ -96,7 +96,7 @@ int quietness(Board& board) {
     }
 
     if (att & (board.bb[getType(QUEEN, us)] | board.bb[getType(ROOK, us)]))
-        return NOISY;
+        return 0;
 
     pieces = board.bb[getType(ROOK, enemy)];
     att = 0;
