@@ -69,62 +69,6 @@ bool Search::checkForStop() {
 bool printStats = true; /// default true
 const bool PROBE_ROOT = true; /// default true
 
-int Search::getKingDanger(Board& board, int color) {
-    int enemy = 1 ^ color, king = board.king(color);
-    uint64_t att;
-    uint64_t pieces, b, all = board.pieces[WHITE] | board.pieces[BLACK];
-    uint64_t kingRing = kingRingMask[king] &
-        ~(shift(color, NORTHEAST, board.bb[getType(PAWN, color)] & ~fileMask[(color == WHITE ? 7 : 0)]) &
-            shift(color, NORTHWEST, board.bb[getType(PAWN, color)] & ~fileMask[(color == WHITE ? 0 : 7)]));
-    int kingDanger = 0, kingAttackersCount = 0;
-
-    static const int kingDangerWeights[6] = {
-        0, 0, 2, 2, 3, 5
-    };
-
-    pieces = board.bb[getType(KNIGHT, enemy)];
-    while (pieces) {
-        b = lsb(pieces);
-        att = knightBBAttacks[Sq(b)] & kingRing;
-        kingDanger += kingDangerWeights[KNIGHT] * count(att);
-        kingAttackersCount += (att != 0);
-        pieces ^= b;
-    }
-
-    pieces = board.bb[getType(BISHOP, enemy)];
-    while (pieces) {
-        b = lsb(pieces);
-        att = genAttacksBishop(all, Sq(b)) & kingRing;
-        kingDanger += kingDangerWeights[BISHOP] * count(att);
-        kingAttackersCount += (att != 0);
-        pieces ^= b;
-    }
-
-    pieces = board.bb[getType(ROOK, enemy)];
-    while (pieces) {
-        b = lsb(pieces);
-        att = genAttacksRook(all, Sq(b)) & kingRing;
-        kingDanger += kingDangerWeights[ROOK] * count(att);
-        kingAttackersCount += (att != 0);
-        pieces ^= b;
-    }
-
-    pieces = board.bb[getType(QUEEN, enemy)];
-    while (pieces) {
-        b = lsb(pieces);
-        att = genAttacksQueen(all, Sq(b)) & kingRing;
-        kingDanger += kingDangerWeights[QUEEN] * count(att);
-        kingAttackersCount += (att != 0);
-        pieces ^= b;
-    }
-
-    return (kingAttackersCount > 2 ? kingDanger : 0);
-}
-
-enum {
-    NOISY = 0, QUIET
-};
-
 int quietness(Board& board) {
     if (board.checkers)
         return NOISY;
@@ -163,15 +107,9 @@ int quietness(Board& board) {
     }
 
     if (att & board.bb[getType(QUEEN, us)])
-        return NOISY;
+        return 0;
 
-    /*pieces = board.bb[getType(QUEEN, enemy)];
-    while (pieces) {
-        b = lsb(pieces);
-        att |= genAttacksQueen(all, Sq(b));
-        pieces ^= b;
-    }*/
-    return QUIET;
+    return 1;
 }
 
 int Search::quiesce(int alpha, int beta, bool useTT) {
@@ -573,7 +511,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
             else if (rBeta >= beta) /// multicut
                 return rBeta;
         }
-        else if (isCheck) {
+        else if (isCheck && abs(Stack[ply].eval) >= 100) {
             ex = 1;
         }
 
