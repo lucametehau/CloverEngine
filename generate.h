@@ -180,14 +180,15 @@ void generateData(int nrFens, int nrThreads, std::string rootPath) {
 
     std::cout << batch << "\n";
 
-    std::random_device rd;
+    std::mt19937 gen(time(0));
+    std::uniform_int_distribution <uint64_t> rng;
     std::atomic <int> sumFens{ 0 };
     double startTime = getTime();
 
     for (auto& t : threads) {
         std::string pth = path[i];
         std::cout << "Starting thread " << i << std::endl;
-        t = std::thread{ generateFens, std::ref(sumFens), batch, pth, rd() };
+        t = std::thread{ generateFens, std::ref(sumFens), batch, pth, rng(gen) };
         i++;
     }
 
