@@ -1004,7 +1004,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
             }
         }
 
-        if (principalSearcher) {
+        if (principalSearcher && !(flag & TERMINATED_SEARCH)) {
             /// adjust time if score is dropping (and maybe if it's jumping)
             double scoreChange = 1.0, bestMoveStreak = 1.0, nodesSearchedPercentage = 1.0;
             if (tDepth >= 9) {
