@@ -978,15 +978,6 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
                     std::cout << "pv ";
                     printPv();
                     std::cout << std::endl;
-
-                    //std::cout << cnt << " out of " << cnt2 << ", " << 100.0 * cnt / cnt2 << "%\n";
-
-                    /*for (int i = 20; i <= 60; i++)
-                        std::cout << "(" << i << ", " << kekw[i] << "), ";
-                    std::cout << std::endl;*/
-
-                    //std::cout << cnt << " " << cnt2 << ", " << 1.0 * cnt2 / cnt * 100 << "%\n";
-                    //std::cout << "NMP Fail rate: " << 100.0 * nmpFail / nmpTries << "\n";
                 }
 
                 if (scores[i] <= alpha) {
