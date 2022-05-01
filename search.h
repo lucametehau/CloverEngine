@@ -828,8 +828,7 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv) {
 }
 
 std::pair <int, uint16_t> Search::startSearch(Info* _info) {
-    int alpha, beta, score = 0;
-    int bestMove = NULLMOVE;
+    int alpha, beta;
 
     nodes = qsNodes = selDepth = tbHits = 0;
     t0 = getTime();
@@ -914,6 +913,8 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
     int mainThreadScore = 0;
     uint16_t mainThreadBestMove = NULLMOVE;
 
+    memset(scores, 0, sizeof(scores));
+
     //contempt = 0;
 
     for (tDepth = 1; tDepth <= limitDepth; tDepth++) {
@@ -997,7 +998,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
                     beta = std::min(INF, beta + window);
                     /// reduce depth if failing high
                     /// don't reduce when finding tb wins / mate scores
-                    depth -= (abs(score) < TB_WIN_SCORE / 2);
+                    depth -= (abs(scores[i]) < TB_WIN_SCORE / 2);
 
                     if (pvTableLen[0])
                         bestMoves[i] = pvTable[0][0];
@@ -1056,7 +1057,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
 
     //TT->age();
 
-    return std::make_pair(score, bm);
+    return std::make_pair(scores[1], bm);
 }
 
 void Search::clearHistory() {
