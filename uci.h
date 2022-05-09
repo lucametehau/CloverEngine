@@ -202,7 +202,6 @@ void UCI::Uci_Loop() {
                 info->hardTimeLim = hardTimeLim;
                 info->timeset = 1;
                 info->stopTime = info->startTime + goodTimeLim;
-                //std::cout << info->goodTimeLim << " " << info->hardTimeLim << "\n";
             }
 
             if (depth == -1)
