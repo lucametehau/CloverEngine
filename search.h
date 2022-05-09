@@ -511,7 +511,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
             else if (rBeta >= beta) /// multicut
                 return rBeta;
         }
-        else if (isCheck && abs(Stack[ply].eval) >= 50) {
+        else if (isCheck) {
             ex = 1;
         }
 

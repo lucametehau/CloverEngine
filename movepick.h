@@ -184,6 +184,8 @@ public:
             uint16_t counterMove = (ply >= 1 ? searcher->Stack[ply - 1].move : NULLMOVE), followMove = (ply >= 2 ? searcher->Stack[ply - 2].move : NULLMOVE);
             int counterPiece = (ply >= 1 ? searcher->Stack[ply - 1].piece : 0), followPiece = ply >= 2 ? searcher->Stack[ply - 2].piece : 0;
             int counterTo = sqTo(counterMove), followTo = sqTo(followMove);
+            bool turn = searcher->board.turn;
+            uint64_t pawnAttacks = getPawnAttacks(turn ^ 1, searcher->board.bb[getType(PAWN, turn ^ 1)]);
 
             for (int i = 0; i < nrQuiets; i++) {
                 uint16_t move = quiets[i];
@@ -202,8 +204,8 @@ public:
                     if (followMove)
                         score += searcher->follow[1][followPiece][followTo][piece][to];
 
-                    /*if (!see(searcher->board, move, 0))
-                        score -= 100000;*/
+                    if ((pawnAttacks & (1ULL << to)) && piece_type(piece) != PAWN)
+                        score -= 10 * seeVal[piece_type(piece)];
 
                     score += searcher->nodesSearched[from][to] / nodesSearchedDiv; // the longer it takes a move to be refuted, the higher its chance to become the best move
                 }
