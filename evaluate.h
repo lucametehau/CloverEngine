@@ -31,15 +31,14 @@ int evaluate(Board &board) {
     int eval = int(board.NN.getOutput());
 
     bool turn = board.turn;
-    int phase = count(board.bb[WP] | board.bb[BP]) * phaseVal[PAWN] +
-        count(board.bb[WN] | board.bb[BN]) * phaseVal[KNIGHT] +
+    int phase = count(board.bb[WN] | board.bb[BN]) * phaseVal[KNIGHT] +
         count(board.bb[WB] | board.bb[BB]) * phaseVal[BISHOP] +
         count(board.bb[WR] | board.bb[BR]) * phaseVal[ROOK] +
         count(board.bb[WQ] | board.bb[BQ]) * phaseVal[QUEEN];
 
     //eval += contempt;
 
-    eval = eval * (maxPhase / 2 + phase) / maxPhase;
+    eval = eval * (128 + phase) / 128;
 
     return eval * (turn == WHITE ? 1 : -1) + TEMPO;
 }
