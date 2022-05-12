@@ -23,22 +23,11 @@
 
 const int TEMPO = 20;
 
-const int phaseVal[] = { 0, 0, 1, 1, 2, 4 };
-const int maxPhase = 16 * phaseVal[PAWN] + 4 * phaseVal[KNIGHT] + 4 * phaseVal[BISHOP] + 4 * phaseVal[ROOK] + 2 * phaseVal[QUEEN];
-
 int evaluate(Board &board) {
     //board.print();
     int eval = int(board.NN.getOutput());
 
     bool turn = board.turn;
-    int phase = count(board.bb[WN] | board.bb[BN]) * phaseVal[KNIGHT] +
-        count(board.bb[WB] | board.bb[BB]) * phaseVal[BISHOP] +
-        count(board.bb[WR] | board.bb[BR]) * phaseVal[ROOK] +
-        count(board.bb[WQ] | board.bb[BQ]) * phaseVal[QUEEN];
-
-    //eval += contempt;
-
-    eval = eval * (128 + phase) / 128;
 
     return eval * (turn == WHITE ? 1 : -1) + TEMPO;
 }
