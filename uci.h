@@ -25,7 +25,7 @@
 #include "perft.h"
 #include "generate.h"
 
-const std::string VERSION = "3.2-dev8"; /// 2.0 was "FM"
+const std::string VERSION = "3.2-dev8-bis"; /// 2.0 was "FM"
 
 class UCI {
 public:
@@ -389,14 +389,6 @@ void UCI::Uci_Loop() {
                 iss >> val;
                 counterHistMult = val;
             }
-            else if (name == "kdDiv") {
-                iss >> value;
-
-                int val;
-
-                iss >> val;
-                kdDiv = val;
-            }
             else if (name == "tmScoreDiv") {
                 iss >> value;
 
@@ -436,6 +428,13 @@ void UCI::Uci_Loop() {
 
                 iss >> val;
                 tmNodesSearchedMaxPercentage = val;
+            }
+            else if (name == "lmrCapDiv") {
+                iss >> value;
+                float val;
+
+                iss >> val;
+                lmrCapDiv = val;
             }
         }
         else if (cmd == "generate") {

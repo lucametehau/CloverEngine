@@ -546,7 +546,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
                 R -= std::max(-2, std::min(2, (H.h + H.ch + H.fh) / histDiv)); /// reduce based on move history
             }
             else if(!pvNode) {
-                R = lmrRed[std::min(63, depth)][std::min(63, played)] / 1.5;
+                R = lmrRed[std::min(63, depth)][std::min(63, played)] / lmrCapDiv;
 
                 R += !improving; /// not on pv or not improving
             }
@@ -563,13 +563,15 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         /// principal variation search
 
         uint64_t initNodes = nodes;
+        bool interesting = false;
 
         if (R != 1) {
             score = -search(-alpha - 1, -alpha, newDepth - R, true);
+            interesting = (score > alpha + 50);
         }
 
         if ((R != 1 && score > alpha) || (R == 1 && (!pvNode || played > 1))) {
-            score = -search(-alpha - 1, -alpha, newDepth - 1, !cutNode);
+            score = -search(-alpha - 1, -alpha, newDepth + interesting - 1, !cutNode);
         }
 
         if (pvNode && (played == 1 || score > alpha)) {

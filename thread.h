@@ -43,12 +43,11 @@ int fhCoef = -2000;
 
 int fpHistDiv = 512;
 
-int kdDiv = 30;
-
 int nodesSearchedDiv = 10000;
 
 float lmrMargin = 1;
 float lmrDiv = 2.5;
+float lmrCapDiv = 1.5;
 
 int tmScoreDiv = 111;
 float tmBestMoveStep = 0.205;
