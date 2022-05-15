@@ -25,7 +25,7 @@
 
 /// search params
 
-int RazorCoef = 325;
+int RazorCoef = 381;
 
 int SNMPCoef1 = 97;
 int SNMPCoef2 = 25;
@@ -47,7 +47,7 @@ int nodesSearchedDiv = 10000;
 
 float lmrMargin = 1;
 float lmrDiv = 2.5;
-float lmrCapDiv = 1.5;
+float lmrCapDiv = 1.413112889583191;
 
 int tmScoreDiv = 111;
 float tmBestMoveStep = 0.205;
