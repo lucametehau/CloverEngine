@@ -595,7 +595,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
                 updatePv(ply, move);
 
                 if (alpha >= beta) {
-                    //std::cout << nodes << " " << initNodes << " " << nodes << " " << nodesBefore << '\n';
                     break;
                 }
             }
@@ -616,11 +615,11 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
             killers[ply][0] = bestMove;
         }
 
-        updateHistory(this, quiets, nrQuiets, ply, depth * depth);
+        updateHistory(this, quiets, nrQuiets, ply, getHistoryBonus(depth + pvNode));
     }
 
     if (best >= beta)
-        updateCapHistory(this, captures, nrCaptures, bestMove, ply, depth * depth);
+        updateCapHistory(this, captures, nrCaptures, bestMove, ply, getHistoryBonus(depth));
 
     /// update tt only if we aren't in a singular search
 

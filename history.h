@@ -50,6 +50,10 @@ void updateCapHist(int& hist, int score) {
     hist += score * capHistMult - hist * abs(score) / capHistUpdateDiv;
 }
 
+int getHistoryBonus(int depth) {
+    return std::min(depth * depth, histMax);
+}
+
 void updateHistory(Search* searcher, uint16_t* quiets, int nrQuiets, int ply, int bonus) {
     if (ply < 2 || !nrQuiets) /// we can't update if we don't have a follow move or no quiets
         return;
@@ -63,8 +67,6 @@ void updateHistory(Search* searcher, uint16_t* quiets, int nrQuiets, int ply, in
 
     if (counterMove)
         searcher->cmTable[1 ^ turn][counterPiece][counterTo] = best; /// update counter move table
-
-    bonus = std::min(bonus, histMax);
 
     for (int i = 0; i < nrQuiets; i++) {
         /// increase value for best move, decrease value for the other moves
@@ -85,8 +87,6 @@ void updateHistory(Search* searcher, uint16_t* quiets, int nrQuiets, int ply, in
 }
 
 void updateCapHistory(Search* searcher, uint16_t* captures, int nrCaptures, uint16_t best, int ply, int bonus) {
-    bonus = std::min(bonus, histMax);
-
     for (int i = 0; i < nrCaptures; i++) {
         /// increase value for best move, decrease value for the other moves
         /// so we have an early cut-off

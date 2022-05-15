@@ -47,7 +47,7 @@ int nodesSearchedDiv = 10000;
 
 float lmrMargin = 1;
 float lmrDiv = 2.5;
-float lmrCapDiv = 1.413112889583191;
+float lmrCapDiv = 1.5;
 
 int tmScoreDiv = 111;
 float tmBestMoveStep = 0.205;
