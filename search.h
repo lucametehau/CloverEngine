@@ -486,11 +486,11 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
                 if (newDepth <= 8 && nrQuiets >= lmrCnt[improving][newDepth])
                     skip = 1;
 
-                if (depth <= 8 && !isCheck && !see(board, move, -seeCoefQuiet * depth))
+                if (depth <= 8 && !see(board, move, -seeCoefQuiet * depth))
                     continue;
             }
             else {
-                if (depth <= 8 && !isCheck && picker.stage > STAGE_GOOD_NOISY && !see(board, move, -seeCoefNoisy * depth * depth))
+                if (depth <= 8 && picker.stage > STAGE_GOOD_NOISY && !see(board, move, -seeCoefNoisy * depth * depth))
                     continue;
             }
         }
@@ -615,7 +615,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
             killers[ply][0] = bestMove;
         }
 
-        updateHistory(this, quiets, nrQuiets, ply, getHistoryBonus(depth + pvNode));
+        updateHistory(this, quiets, nrQuiets, ply, getHistoryBonus(depth));
     }
 
     if (best >= beta)
