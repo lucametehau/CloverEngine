@@ -77,7 +77,8 @@ public:
     uint16_t nextMove(Search* searcher, bool skip, bool noisyPicker) {
         if (stage == STAGE_HASHMOVE) {
             stage++;
-            if (hashMove /* && isLegalMove(searcher->board, hashMove)*/) {
+
+            if (hashMove && isLegalMove(searcher->board, hashMove)) {
                 return hashMove;
             }
         }

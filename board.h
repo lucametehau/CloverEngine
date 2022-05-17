@@ -32,7 +32,7 @@ public:
     uint8_t castleRights;
     uint8_t captured;
     uint16_t halfMoves, moveIndex;
-    uint64_t checkers;
+    uint64_t checkers, pinnedPieces;
     uint64_t key;
 };
 
@@ -48,7 +48,7 @@ public:
     uint16_t ply, gamePly;
     uint16_t halfMoves, moveIndex;
     
-    uint64_t checkers;
+    uint64_t checkers, pinnedPieces;
     uint64_t bb[13];
     uint64_t pieces[2];
     uint64_t key;
@@ -66,7 +66,7 @@ public:
             board[i] = 0;
         castleRights = 0;
         captured = 0;
-        checkers = 0;
+        checkers = pinnedPieces = 0;
     }
 
     Board(const Board& other) {
@@ -87,6 +87,7 @@ public:
         captured = other.captured;
         NN = other.NN;
         checkers = other.checkers;
+        pinnedPieces = other.pinnedPieces;
     }
 
     uint64_t diagSliders(int color) {
