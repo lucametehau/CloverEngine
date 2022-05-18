@@ -23,7 +23,7 @@
 #include <atomic>
 #include "search.h"
 
-/*
+
 struct FenData {
     int score;
     std::string fen;
@@ -41,6 +41,7 @@ void generateFens(std::atomic <int>& sumFens, int nrFens, std::string path, uint
     info->timeset = false;
     info->depth = 9;
     info->startTime = getTime();
+    info->multipv = 1;
     searcher->setTime(info);
 
     std::mutex M;
@@ -81,7 +82,7 @@ void generateFens(std::atomic <int>& sumFens, int nrFens, std::string path, uint
             int nrMoves = genLegal(searcher->board, moves);
 
             if (!nrMoves) {
-                if (inCheck(searcher->board)) {
+                if (searcher->board.checkers) {
                     result = (searcher->board.turn == WHITE ? 0.0 : 1.0);
                 }
                 else {
@@ -112,7 +113,7 @@ void generateFens(std::atomic <int>& sumFens, int nrFens, std::string path, uint
 
                 searcher->flag = 0;
 
-                if (!inCheck(searcher->board) && searcher->quiesce(-INF, INF, false) == searcher->Stack[0].eval) { /// relatively quiet position
+                if (!searcher->board.checkers && !isNoisyMove(searcher->board, move)) { /// relatively quiet position
                     data.fen = searcher->board.fen();
                     data.score = score;
                     fens.push_back(data);
@@ -155,10 +156,10 @@ void generateFens(std::atomic <int>& sumFens, int nrFens, std::string path, uint
         gameInd++;
     }
 }
-*/
+
 
 void generateData(int nrFens, int nrThreads, std::string rootPath) {
-    /*
+
     std::string path[100];
 
     srand(time(0));
@@ -170,7 +171,7 @@ void generateData(int nrFens, int nrThreads, std::string rootPath) {
             path[i] += char(i + '0');
         else
             path[i] += char(i / 10 + '0'), path[i] += char(i % 10 + '0');
-            
+
         path[i] += ".txt";
         std::cout << path[i] << "\n";
     }
@@ -180,14 +181,15 @@ void generateData(int nrFens, int nrThreads, std::string rootPath) {
 
     std::cout << batch << "\n";
 
-    std::random_device rd;
+    std::mt19937 gen(time(0));
+    std::uniform_int_distribution <uint64_t> rng;
     std::atomic <int> sumFens{ 0 };
     double startTime = getTime();
 
     for (auto& t : threads) {
         std::string pth = path[i];
         std::cout << "Starting thread " << i << std::endl;
-        t = std::thread{ generateFens, std::ref(sumFens), batch, pth, rd() };
+        t = std::thread{ generateFens, std::ref(sumFens), batch, pth, rng(gen) };
         i++;
     }
 
@@ -198,5 +200,5 @@ void generateData(int nrFens, int nrThreads, std::string rootPath) {
 
     for (auto& t : threads)
         t.join();
-     */
+
 }

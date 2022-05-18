@@ -34,10 +34,6 @@ bool see(Board& board, uint16_t move, int threshold);
 
 const int seeVal[] = { 0, 100, 310, 330, 500, 1000, 20000 };
 
-enum {
-    NORMAL_MP = 0, NOISY_MP
-};
-
 class Movepick {
 public:
     int stage;
