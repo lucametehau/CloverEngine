@@ -850,8 +850,9 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
 
         /// only 1 move legal
 
-        if (PROBE_ROOT && printStats && nrMoves == 1) {
-            std::cout << "bestmove " << toString(moves[0]) << std::endl;
+        if (PROBE_ROOT && nrMoves == 1) {
+            if(printStats)
+                std::cout << "bestmove " << toString(moves[0]) << std::endl;
             return { 0, moves[0] };
         }
 
@@ -898,8 +899,9 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
             }
 
             for (auto& mv : moves) {
-                if (mv == move && printStats) {
-                    std::cout << "bestmove " << toString(move) << std::endl;
+                if (mv == move) {
+                    if(printStats)
+                        std::cout << "bestmove " << toString(move) << std::endl;
                     return { 0, move };
                 }
             }
