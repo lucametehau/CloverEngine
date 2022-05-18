@@ -112,7 +112,7 @@ int quietness(Board& board) {
     return 1;
 }
 
-int Search::quiesce(int alpha, int beta, bool useTT) {
+int Search::quiesce(int alpha, int beta) {
     int ply = board.ply;
 
     pvTableLen[ply] = 0;
@@ -278,7 +278,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     if (isRepetition(board, ply) || board.halfMoves >= 100 || board.isMaterialDraw())
         return 1 - (nodes & 2); /// beal effect apparently, credit to Ethereal for this
 
-        /// mate distance pruning
+     /// mate distance pruning
     alpha = std::max(alpha, -INF + ply), beta = std::min(beta, INF - ply - 1);
     if (alpha >= beta)
         return alpha;
@@ -357,7 +357,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         if (excluded)
             eval = Stack[ply].eval;
         else
-            Stack[ply].eval = eval = (ply >= 1 && !Stack[ply - 1].move ? -Stack[ply - 1].eval + 2 * TEMPO : evaluate(board));
+            Stack[ply].eval = eval = (!Stack[ply - 1].move ? -Stack[ply - 1].eval + 2 * TEMPO : evaluate(board));
     }
     else {
         /// ttValue might be a better evaluation
@@ -850,8 +850,9 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
 
         /// only 1 move legal
 
-        if (PROBE_ROOT && printStats && nrMoves == 1) {
-            std::cout << "bestmove " << toString(moves[0]) << std::endl;
+        if (PROBE_ROOT && nrMoves == 1) {
+            if(printStats)
+                std::cout << "bestmove " << toString(moves[0]) << std::endl;
             return { 0, moves[0] };
         }
 

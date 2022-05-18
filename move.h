@@ -549,7 +549,7 @@ inline int genLegal(Board& board, uint16_t* moves) {
 
         /// for pinned pieces they move on the same line with the king
 
-        b1 = ~notPinned & board.diagSliders(color);
+        b1 = pinned & board.diagSliders(color);
         while (b1) {
             b = lsb(b1);
             int sq = Sq(b);
@@ -558,7 +558,7 @@ inline int genLegal(Board& board, uint16_t* moves) {
             moves = addCaps(moves, nrMoves, sq, b2 & capMask);
             b1 ^= b;
         }
-        b1 = ~notPinned & board.orthSliders(color);
+        b1 = pinned & board.orthSliders(color);
         while (b1) {
             b = lsb(b1);
             int sq = Sq(b);
@@ -570,7 +570,7 @@ inline int genLegal(Board& board, uint16_t* moves) {
 
         /// pinned pawns
 
-        b1 = ~notPinned & board.bb[getType(PAWN, color)];
+        b1 = pinned & board.bb[getType(PAWN, color)];
         while (b1) {
             b = lsb(b1);
             int sq = Sq(b), rank7 = (color == WHITE ? 6 : 1), rank3 = (color == WHITE ? 2 : 5);

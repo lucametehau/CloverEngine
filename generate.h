@@ -63,7 +63,7 @@ void generateFens(std::atomic <int>& sumFens, int nrFens, std::string path, uint
         searcher->clearKillers();
         searcher->clearStack();
 
-        searcher->TT->initTable(4 * MB);
+        searcher->TT->initTable(MB / 128);
         searcher->TT->resetAge();
 
         while (true) {
