@@ -52,7 +52,7 @@ public:
     uint64_t bb[13];
     uint64_t pieces[2];
     uint64_t key;
-    Undo history[1000]; /// fuck it
+    Undo history[2000]; /// fuck it
 
     Network NN;
 

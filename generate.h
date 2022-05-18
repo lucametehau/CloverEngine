@@ -29,8 +29,9 @@ struct FenData {
     std::string fen;
 };
 
-void generateFens(std::atomic <int>& sumFens, int nrFens, std::string path, uint64_t seed) {
+void generateFens(std::atomic <int>& sumFens, int nrFens, std::string path, std::string logPath, uint64_t seed) {
     std::ofstream out(path);
+    std::ofstream log(logPath);
     std::mt19937_64 gn(seed);
 
     Info info[1];
@@ -63,7 +64,7 @@ void generateFens(std::atomic <int>& sumFens, int nrFens, std::string path, uint
         searcher->clearKillers();
         searcher->clearStack();
 
-        searcher->TT->initTable(MB / 128);
+        searcher->TT->initTable(4 * MB);
         searcher->TT->resetAge();
 
         while (true) {
@@ -104,6 +105,8 @@ void generateFens(std::atomic <int>& sumFens, int nrFens, std::string path, uint
                 //searcher->board.print();
                 std::pair <int, uint16_t> res = searcher->startSearch(info);
                 score = res.first, move = res.second;
+
+                log << searcher->board.fen() << " " << toString(move) << "\n";
 
                 if (nrMoves == 1) { /// in this case, engine reports score 0, which might be misleading
                     searcher->_makeMove(move);
@@ -160,7 +163,7 @@ void generateFens(std::atomic <int>& sumFens, int nrFens, std::string path, uint
 
 void generateData(int nrFens, int nrThreads, std::string rootPath) {
 
-    std::string path[100];
+    std::string path[100], logPath[100];
 
     srand(time(0));
 
@@ -171,7 +174,7 @@ void generateData(int nrFens, int nrThreads, std::string rootPath) {
             path[i] += char(i + '0');
         else
             path[i] += char(i / 10 + '0'), path[i] += char(i % 10 + '0');
-
+        logPath[i] = path[i] + "_log.txt";
         path[i] += ".txt";
         std::cout << path[i] << "\n";
     }
@@ -187,9 +190,9 @@ void generateData(int nrFens, int nrThreads, std::string rootPath) {
     double startTime = getTime();
 
     for (auto& t : threads) {
-        std::string pth = path[i];
+        std::string pth = path[i], lgpth = logPath[i];
         std::cout << "Starting thread " << i << std::endl;
-        t = std::thread{ generateFens, std::ref(sumFens), batch, pth, rng(gen) };
+        t = std::thread{ generateFens, std::ref(sumFens), batch, pth, lgpth, rng(gen) };
         i++;
     }
 
