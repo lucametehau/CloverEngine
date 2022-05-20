@@ -31,7 +31,7 @@ struct FenData {
 
 void generateFens(std::atomic <int>& sumFens, int nrFens, std::string path, std::string logPath, uint64_t seed) {
     std::ofstream out(path);
-    std::ofstream log(logPath);
+    //std::ofstream log(logPath);
     std::mt19937_64 gn(seed);
 
     Info info[1];
@@ -106,7 +106,7 @@ void generateFens(std::atomic <int>& sumFens, int nrFens, std::string path, std:
                 std::pair <int, uint16_t> res = searcher->startSearch(info);
                 score = res.first, move = res.second;
 
-                log << searcher->board.fen() << " " << toString(move) << "\n";
+                //log << searcher->board.fen() << " " << toString(move) << "\n";
 
                 if (nrMoves == 1) { /// in this case, engine reports score 0, which might be misleading
                     searcher->_makeMove(move);
