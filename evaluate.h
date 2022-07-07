@@ -24,10 +24,23 @@
 const int TEMPO = 20;
 
 int evaluate(Board &board) {
+    int eval = int(board.NN.getOutput(board.turn));
+
     //board.print();
-    int eval = int(board.NN.getOutput());
+    //std::cout << board.turn << " " << eval << "\n";
 
-    bool turn = board.turn;
+    /*NetInput inp = board.toNetInput();
 
-    return eval * (turn == WHITE ? 1 : -1) + TEMPO;
+    int amogus = int(board.NN.kekw(inp));
+
+    if (abs(eval - amogus) > 1) {
+        board.print();
+        std::cout << board.NN.getOutput() << " " << board.NN.kekw(inp) << "\n";
+        std::cout << eval << " " << amogus << "\n";
+        exit(0);
+    }*/
+
+    //bool turn = board.turn;
+
+    return eval + TEMPO;
 }

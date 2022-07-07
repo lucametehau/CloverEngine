@@ -27,11 +27,14 @@
 
 INCBIN(Net, EVALFILE);
 
-const int INPUT_NEURONS = 768;
-const int HIDDEN_NEURONS = 512;
+const int INPUT_NEURONS = 1536;
+const int SIDE_NEURONS = 512;
+const int HIDDEN_NEURONS = 2 * SIDE_NEURONS;
+
+const int Q = 32;
 
 struct NetInput {
-    std::vector <short> ind;
+    std::vector <short> ind[2];
 };
 
 struct Update {
@@ -62,57 +65,9 @@ public:
     Network() {
         histSz = 0;
 
-        updateSz = 0;
-        updates.resize(5);
+        updateSz[WHITE] = updateSz[BLACK] = 0;
 
         load();
-    }
-
-    float calc(NetInput& input) { /// feed forward
-        float sum;
-
-        for (int n = 0; n < HIDDEN_NEURONS; n++) {
-            sum = inputBiases[n];
-
-            for (auto& prevN : input.ind) {
-                sum += inputWeights[prevN][n];
-            }
-
-            histOutput[0][n] = sum;
-        }
-
-        histSz = 1;
-
-        return getOutput();
-    }
-
-    void removeInput(int16_t ind) {
-        updates[updateSz++] = { ind, -1 };
-    }
-
-    void addInput(int16_t ind) {
-        updates[updateSz++] = { ind, 1 };
-    }
-
-    void applyUpdates() {
-        memcpy(histOutput[histSz], histOutput[histSz - 1], sizeof(histOutput[histSz - 1]));
-        histSz++;
-
-        __m256* w = (__m256*)histOutput[histSz - 1];
-
-        for (int i = 0; i < updateSz; i++) {
-            __m256* v = (__m256*)inputWeights[updates[i].ind];
-            __m256 ct = _mm256_set1_ps(updates[i].coef);
-
-            for (int j = 0; j < batches; j++)
-                w[j] = _mm256_add_ps(_mm256_mul_ps(ct, v[j]), w[j]);
-        }
-
-        updateSz = 0;
-    }
-
-    void revertUpdates() {
-        histSz--;
     }
 
     // the below functions are taken from here and are used to compute the dot product
@@ -133,16 +88,150 @@ public:
         return hsum_ps_sse3(vlow);
     }
 
-    float getOutput() {
-        float sum = outputBias;
+    float calc(NetInput& input, bool stm) {
+        float sum;
 
-        __m256* v = (__m256*)outputWeights;
-        __m256* w = (__m256*)histOutput[histSz - 1];
+        for (int n = 0; n < SIDE_NEURONS; n++) {
+            sum = inputBiases[n];
+
+            for (auto& prevN : input.ind[WHITE]) {
+                sum += inputWeights[prevN][n];
+            }
+
+            histOutput[WHITE][0][n] = sum;
+
+            sum = inputBiases[n];
+
+            for (auto& prevN : input.ind[BLACK]) {
+                sum += inputWeights[prevN][n];
+            }
+
+            histOutput[BLACK][0][n] = sum;
+        }
+
+        histSz = 1;
+
+        return getOutput(stm);
+    }
+
+    float getOutput(NetInput& input, bool stm) { /// feed forward
+        float sum;
+
+        for (int n = 0; n < SIDE_NEURONS; n++) {
+            sum = inputBiases[n];
+
+            for (auto& prevN : input.ind[WHITE]) {
+                sum += inputWeights[prevN][n];
+            }
+
+            histOutput[WHITE][0][n] = sum;
+
+            sum = inputBiases[n];
+
+            for (auto& prevN : input.ind[BLACK]) {
+                sum += inputWeights[prevN][n];
+            }
+
+            histOutput[BLACK][0][n] = sum;
+
+            if (stm == WHITE)
+                deeznuts[n] = histOutput[WHITE][0][n], deeznuts[n + SIDE_NEURONS] = histOutput[BLACK][0][n];
+            else
+                deeznuts[n] = histOutput[BLACK][0][n], deeznuts[n + SIDE_NEURONS] = histOutput[WHITE][0][n];
+        }
+
+        sum = outputBias;
+
         __m256 zero = _mm256_setzero_ps();
         __m256 acc = _mm256_setzero_ps();
 
+        __m256* v = (__m256*)outputWeights;
+        __m256* w = (__m256*)histOutput[stm][histSz - 1];
+
         for (int j = 0; j < batches; j++) {
             acc = _mm256_add_ps(acc, _mm256_mul_ps(_mm256_max_ps(w[j], zero), v[j]));
+        }
+
+        __m256* w2 = (__m256*)histOutput[stm ^ 1][histSz - 1];
+
+        for (int j = 0; j < batches; j++) {
+            acc = _mm256_add_ps(acc, _mm256_mul_ps(_mm256_max_ps(w2[j], zero), v[j + batches]));
+        }
+
+        sum += hsum256_ps_avx(acc);
+
+        return sum;
+    }
+
+    void removeInput(int side, int16_t ind) {
+        updates[side][updateSz[side]++] = { ind, -1 };
+    }
+
+    void removeInput(int piece, int sq, int kingWhite, int kingBlack) {
+        updates[WHITE][updateSz[WHITE]++] = { netInd(piece, sq, kingWhite, WHITE), -1 };
+        updates[BLACK][updateSz[BLACK]++] = { netInd(piece, sq, kingBlack, BLACK), -1 };
+    }
+
+    void addInput(int side, int16_t ind) {
+        updates[side][updateSz[side]++] = { ind, 1 };
+    }
+
+    void addInput(int piece, int sq, int kingWhite, int kingBlack) {
+        updates[WHITE][updateSz[WHITE]++] = { netInd(piece, sq, kingWhite, WHITE), 1 };
+        updates[BLACK][updateSz[BLACK]++] = { netInd(piece, sq, kingBlack, BLACK), 1 };
+    }
+
+    void applyUpdates(int c) {
+        memcpy(histOutput[c][histSz], histOutput[c][histSz - 1], sizeof(histOutput[c][histSz - 1]));
+
+        __m256* w = (__m256*)histOutput[c][histSz];
+
+        for (int i = 0; i < updateSz[c]; i++) {
+            __m256* v = (__m256*)inputWeights[updates[c][i].ind];
+            __m256 ct = _mm256_set1_ps(updates[c][i].coef);
+
+            for (int j = 0; j < batches; j++)
+                w[j] = _mm256_add_ps(_mm256_mul_ps(ct, v[j]), w[j]);
+        }
+
+        updateSz[c] = 0;
+    }
+
+    void applyInitUpdates(int c) {
+        memcpy(histOutput[c][histSz], inputBiases, sizeof(histOutput[c][histSz]));
+        __m256* w = (__m256*)histOutput[c][histSz];
+
+        for (int i = 0; i < updateSz[c]; i++) {
+            __m256* v = (__m256*)inputWeights[updates[c][i].ind];
+            __m256 ct = _mm256_set1_ps(updates[c][i].coef);
+
+            for (int j = 0; j < batches; j++)
+                w[j] = _mm256_add_ps(_mm256_mul_ps(ct, v[j]), w[j]);
+        }
+
+        updateSz[c] = 0;
+    }
+
+    void revertUpdates() {
+        histSz--;
+    }
+
+    float getOutput(bool stm) {
+        float sum = outputBias;
+
+        __m256 zero = _mm256_setzero_ps();
+        __m256 acc = _mm256_setzero_ps();
+
+        __m256* w = (__m256*)histOutput[stm][histSz - 1];
+
+        for (int j = 0; j < batches; j++) {
+            acc = _mm256_add_ps(acc, _mm256_mul_ps(_mm256_max_ps(w[j], zero), v[j]));
+        }
+
+        __m256* w2 = (__m256*)histOutput[stm ^ 1][histSz - 1];
+
+        for (int j = 0; j < batches; j++) {
+            acc = _mm256_add_ps(acc, _mm256_mul_ps(_mm256_max_ps(w2[j], zero), v[j + batches]));
         }
 
         sum += hsum256_ps_avx(acc);
@@ -167,7 +256,7 @@ public:
 
         int sz;
 
-        sz = HIDDEN_NEURONS;
+        sz = SIDE_NEURONS;
 
         for (int j = 0; j < sz; j++)
             inputBiases[j] = *(floatData++);
@@ -179,13 +268,13 @@ public:
 
         floatData = (float*)gradData;
 
-        for (int i = 0; i < HIDDEN_NEURONS * INPUT_NEURONS; i++) {
-            inputWeights[i / HIDDEN_NEURONS][i % HIDDEN_NEURONS] = *(floatData++);
+        for (int i = 0; i < SIDE_NEURONS * INPUT_NEURONS; i++) {
+            inputWeights[i / SIDE_NEURONS][i % SIDE_NEURONS] = *(floatData++);
         }
 
         gradData = (Gradient*)floatData;
 
-        for (int i = 0; i < HIDDEN_NEURONS * INPUT_NEURONS; i++) {
+        for (int i = 0; i < SIDE_NEURONS * INPUT_NEURONS; i++) {
             kekw = *(gradData++);
         }
 
@@ -206,14 +295,18 @@ public:
     }
 
     int lg = sizeof(__m256) / sizeof(float);
-    int batches = HIDDEN_NEURONS / lg;
+    int batches = SIDE_NEURONS / lg;
 
-    int histSz, updateSz;
+    int histSz, updateSz[2];
 
-    float inputBiases[HIDDEN_NEURONS], outputBias __attribute__((aligned(32)));
-    float histOutput[1005][HIDDEN_NEURONS] __attribute__((aligned(32)));
-    float inputWeights[INPUT_NEURONS][HIDDEN_NEURONS] __attribute__((aligned(32)));
+    float inputBiases[SIDE_NEURONS] __attribute__((aligned(32)));
+    float outputBias;
+    float histOutput[2][2005][SIDE_NEURONS] __attribute__((aligned(32)));
+    float inputWeights[INPUT_NEURONS][SIDE_NEURONS] __attribute__((aligned(32)));
     float outputWeights[HIDDEN_NEURONS] __attribute__((aligned(32)));
+    float deeznuts[HIDDEN_NEURONS] __attribute__((aligned(32)));
 
-    std::vector <Update> updates;
+    __m256* v = (__m256*)outputWeights;
+
+    Update updates[2][105];
 };

@@ -16,6 +16,7 @@
 */
 #pragma once
 #include <cassert>
+#include <iomanip>
 #include "board.h"
 #include "defs.h"
 #include "attacks.h"
@@ -65,7 +66,7 @@ inline uint16_t* addMoves(uint16_t* moves, int& nrMoves, int pos, uint64_t att) 
 inline void makeMove(Board& board, uint16_t mv) { /// assuming move is at least pseudo-legal
     int posFrom = sqFrom(mv), posTo = sqTo(mv);
     int pieceFrom = board.board[posFrom], pieceTo = board.board[posTo];
-    //bool ks = (board.king(board.turn) >> 2) & 1, ksenemy = (board.king(1 ^ board.turn) >> 2) & 1;
+    int kw = board.king(WHITE), kb = board.king(BLACK);
 
     int ply = board.gamePly;
     board.history[ply].enPas = board.enPas;
@@ -94,8 +95,8 @@ inline void makeMove(Board& board, uint16_t mv) { /// assuming move is at least 
 
         board.key ^= hashKey[pieceFrom][posFrom] ^ hashKey[pieceFrom][posTo];
 
-        board.NN.removeInput(netInd(pieceFrom, posFrom/*, ks*/));
-        board.NN.addInput(netInd(pieceFrom, posTo/*, ks*/));
+        board.NN.removeInput(pieceFrom, posFrom, kw, kb);
+        board.NN.addInput(pieceFrom, posTo, kw, kb);
 
         /// i moved a castle rook
 
@@ -111,7 +112,7 @@ inline void makeMove(Board& board, uint16_t mv) { /// assuming move is at least 
             board.bb[pieceTo] ^= (1ULL << posTo);
             board.key ^= hashKey[pieceTo][posTo];
 
-            board.NN.removeInput(netInd(pieceTo, posTo/*, ksenemy*/));
+            board.NN.removeInput(pieceTo, posTo, kw, kb);
 
             /// special case: captured rook might have been a castle rook
 
@@ -153,9 +154,9 @@ inline void makeMove(Board& board, uint16_t mv) { /// assuming move is at least 
 
         board.key ^= hashKey[pieceFrom][posFrom] ^ hashKey[pieceFrom][posTo] ^ hashKey[pieceCap][pos];
 
-        board.NN.removeInput(netInd(pieceFrom, posFrom/*, ks*/));
-        board.NN.addInput(netInd(pieceFrom, posTo/*, ks*/));
-        board.NN.removeInput(netInd(pieceCap, pos/*, ksenemy*/));
+        board.NN.removeInput(pieceFrom, posFrom, kw, kb);
+        board.NN.addInput(pieceFrom, posTo, kw, kb);
+        board.NN.removeInput(pieceCap, pos, kw, kb);
 
         board.pieces[1 ^ board.turn] ^= (1ULL << pos);
         board.bb[pieceCap] ^= (1ULL << pos);
@@ -184,10 +185,10 @@ inline void makeMove(Board& board, uint16_t mv) { /// assuming move is at least 
         board.bb[pieceFrom] ^= (1ULL << posFrom) ^ (1ULL << posTo);
         board.bb[rPiece] ^= (1ULL << rFrom) ^ (1ULL << rTo);
 
-        board.NN.removeInput(netInd(pieceFrom, posFrom/*, ks*/));
-        board.NN.addInput(netInd(pieceFrom, posTo/*, ks*/));
-        board.NN.removeInput(netInd(rPiece, rFrom/*, ks*/));
-        board.NN.addInput(netInd(rPiece, rTo/*, ks*/));
+        board.NN.removeInput(pieceFrom, posFrom, kw, kb);
+        board.NN.addInput(pieceFrom, posTo, kw, kb);
+        board.NN.removeInput(rPiece, rFrom, kw, kb);
+        board.NN.addInput(rPiece, rTo, kw, kb);
 
         board.key ^= hashKey[pieceFrom][posFrom] ^ hashKey[pieceFrom][posTo] ^
             hashKey[rPiece][rFrom] ^ hashKey[rPiece][rTo];
@@ -212,15 +213,15 @@ inline void makeMove(Board& board, uint16_t mv) { /// assuming move is at least 
         board.bb[pieceFrom] ^= (1ULL << posFrom);
         board.bb[promPiece] ^= (1ULL << posTo);
 
-        board.NN.removeInput(netInd(pieceFrom, posFrom/*, ks*/));
-        board.NN.addInput(netInd(promPiece, posTo/*, ks*/));
+        board.NN.removeInput(pieceFrom, posFrom, kw, kb);
+        board.NN.addInput(promPiece, posTo, kw, kb);
 
         if (pieceTo) {
             board.bb[pieceTo] ^= (1ULL << posTo);
             board.pieces[1 ^ board.turn] ^= (1ULL << posTo);
             board.key ^= hashKey[pieceTo][posTo];
 
-            board.NN.removeInput(netInd(pieceTo, posTo/*, ksenemy*/));
+            board.NN.removeInput(pieceTo, posTo, kw, kb);
 
             /// special case: captured rook might have been a castle rook
 
@@ -241,19 +242,43 @@ inline void makeMove(Board& board, uint16_t mv) { /// assuming move is at least 
     }
 
     // recalculate if king changes sides
-    /*if (piece_type(pieceFrom) == KING && ((posFrom >> 2) & 1) != ((posTo >> 2) & 1)) {
-        uint64_t b = board.pieces[board.turn];
-        while (b) {
-            uint64_t b2 = lsb(b);
-            int sq = Sq(b2);
-            board.NN.removeInput(netInd(board.piece_at(sq), sq, ks));
-            board.NN.addInput(netInd(board.piece_at(sq), sq, ks ^ 1));
-            b ^= b2;
-        }
-    }*/
+    if (piece_type(pieceFrom) == KING && (posFrom & 4) != (posTo & 4)) {
+        uint64_t b = board.pieces[WHITE] | board.pieces[BLACK];
+        kw = board.king(WHITE), kb = board.king(BLACK);
 
-    board.NN.applyUpdates();
-    
+        if (board.turn == WHITE) {
+            board.NN.applyUpdates(BLACK);
+            board.NN.updateSz[WHITE] = 0;
+            while (b) {
+                uint64_t b2 = lsb(b);
+                int sq = Sq(b2);
+                //board.NN.removeInput(WHITE, netInd(board.piece_at(sq), sq, kw, WHITE));
+                board.NN.addInput(WHITE, netInd(board.piece_at(sq), sq, kw, WHITE));
+                b ^= b2;
+            }
+            
+            board.NN.applyInitUpdates(WHITE);
+        }
+        else {
+            board.NN.applyUpdates(WHITE);
+            board.NN.updateSz[BLACK] = 0;
+            while (b) {
+                uint64_t b2 = lsb(b);
+                int sq = Sq(b2);
+                //board.NN.removeInput(BLACK, netInd(board.piece_at(sq), sq, kb, BLACK));
+                board.NN.addInput(BLACK, netInd(board.piece_at(sq), sq, kb, BLACK));
+                b ^= b2;
+            }
+            board.NN.applyInitUpdates(BLACK);
+        }
+    }
+    else {
+        board.NN.applyUpdates(BLACK);
+        board.NN.applyUpdates(WHITE);
+    }
+
+    board.NN.histSz++;
+
     /// dirty trick
 
     int temp = board.castleRights ^ board.history[ply].castleRights;
