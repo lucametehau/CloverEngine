@@ -90,11 +90,11 @@ public:
     }
 
     int32_t get_sum(__m256i x) {
-        __m128i r4 = _mm_add_epi32(_mm256_castsi256_si128(x), _mm256_extractf128_si256(x, 1));
-        __m128i r2 = _mm_add_epi32(r4, _mm_srli_si128(r4, 8));
-        __m128i r1 = _mm_add_epi32(r2, _mm_srli_si128(r2, 4));
+        __m128i a = _mm_add_epi32(_mm256_castsi256_si128(x), _mm256_extractf128_si256(x, 1));
+        __m128i b = _mm_add_epi32(a, _mm_srli_si128(a, 8));
+        __m128i c = _mm_add_epi32(b, _mm_srli_si128(b, 4));
 
-        return _mm_cvtsi128_si32(r1);
+        return _mm_cvtsi128_si32(c);
     }
 
     int32_t calc(NetInput& input, bool stm) {
