@@ -1343,19 +1343,19 @@ bool isLegalMove(Board& board, int move) {
     return ((board.checkers & (board.checkers - 1)) ? false : (1ULL << to) & (board.checkers | between[king][Sq(board.checkers)]));
 }
 
-inline uint16_t ParseMove(Board& board, std::string movestr) {
+inline uint16_t parseMove(Board& board, std::string moveStr) {
 
-    if (movestr[1] > '8' || movestr[1] < '1') 
+    if (moveStr[1] > '8' || moveStr[1] < '1')
         return NULLMOVE;
-    if (movestr[3] > '8' || movestr[3] < '1') 
+    if (moveStr[3] > '8' || moveStr[3] < '1')
         return NULLMOVE;
-    if (movestr[0] > 'h' || movestr[0] < 'a') 
+    if (moveStr[0] > 'h' || moveStr[0] < 'a')
         return NULLMOVE;
-    if (movestr[2] > 'h' || movestr[2] < 'a') 
+    if (moveStr[2] > 'h' || moveStr[2] < 'a')
         return NULLMOVE;
 
-    int from = getSq(movestr[1] - '1', movestr[0] - 'a');
-    int to = getSq(movestr[3] - '1', movestr[2] - 'a');
+    int from = getSq(moveStr[1] - '1', moveStr[0] - 'a');
+    int to = getSq(moveStr[3] - '1', moveStr[2] - 'a');
 
     uint16_t moves[256];
     int nrMoves = genLegal(board, moves);
@@ -1365,16 +1365,16 @@ inline uint16_t ParseMove(Board& board, std::string movestr) {
         if (sqFrom(move) == from && sqTo(move) == to) {
             int prom = promoted(move) + KNIGHT;
             if (type(move) == PROMOTION) {
-                if (prom == ROOK && movestr[4] == 'r') {
+                if (prom == ROOK && moveStr[4] == 'r') {
                     return move;
                 }
-                else if (prom == BISHOP && movestr[4] == 'b') {
+                else if (prom == BISHOP && moveStr[4] == 'b') {
                     return move;
                 }
-                else if (prom == QUEEN && movestr[4] == 'q') {
+                else if (prom == QUEEN && moveStr[4] == 'q') {
                     return move;
                 }
-                else if (prom == KNIGHT && movestr[4] == 'n') {
+                else if (prom == KNIGHT && moveStr[4] == 'n') {
                     return move;
                 }
                 continue;

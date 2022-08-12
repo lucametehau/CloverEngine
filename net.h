@@ -31,7 +31,8 @@ const int INPUT_NEURONS = 1536;
 const int SIDE_NEURONS = 512;
 const int HIDDEN_NEURONS = 2 * SIDE_NEURONS;
 
-const int Q = 32;
+const int Q_IN = 4;
+const int Q_HIDDEN = 512;
 
 struct NetInput {
     std::vector <short> ind[2];
@@ -88,8 +89,16 @@ public:
         return hsum_ps_sse3(vlow);
     }
 
-    float calc(NetInput& input, bool stm) {
-        float sum;
+    int32_t get_sum(__m256i x) {
+        __m128i r4 = _mm_add_epi32(_mm256_castsi256_si128(x), _mm256_extractf128_si256(x, 1));
+        __m128i r2 = _mm_add_epi32(r4, _mm_srli_si128(r4, 8));
+        __m128i r1 = _mm_add_epi32(r2, _mm_srli_si128(r2, 4));
+
+        return _mm_cvtsi128_si32(r1);
+    }
+
+    int32_t calc(NetInput& input, bool stm) {
+        int16_t sum;
 
         for (int n = 0; n < SIDE_NEURONS; n++) {
             sum = inputBiases[n];
@@ -114,8 +123,8 @@ public:
         return getOutput(stm);
     }
 
-    float getOutput(NetInput& input, bool stm) { /// feed forward
-        float sum;
+    int32_t getOutput(NetInput& input, bool stm) { /// feed forward
+        int32_t sum;
 
         for (int n = 0; n < SIDE_NEURONS; n++) {
             sum = inputBiases[n];
@@ -134,33 +143,34 @@ public:
 
             histOutput[BLACK][0][n] = sum;
 
-            if (stm == WHITE)
-                deeznuts[n] = histOutput[WHITE][0][n], deeznuts[n + SIDE_NEURONS] = histOutput[BLACK][0][n];
-            else
-                deeznuts[n] = histOutput[BLACK][0][n], deeznuts[n + SIDE_NEURONS] = histOutput[WHITE][0][n];
+            assert(-32768 <= sum && sum <= 32767);
         }
 
-        sum = outputBias;
+        sum = outputBias * Q_IN;
 
-        __m256 zero = _mm256_setzero_ps();
-        __m256 acc = _mm256_setzero_ps();
+        __m256i zero = _mm256_setzero_si256();
+        __m256i acc = _mm256_setzero_si256(), acc2 = _mm256_setzero_si256();
 
-        __m256* v = (__m256*)outputWeights;
-        __m256* w = (__m256*)histOutput[stm][histSz - 1];
+        __m256i* v = (__m256i*)outputWeights;
+        __m256i* w = (__m256i*)histOutput[stm][0];
 
-        for (int j = 0; j < batches; j++) {
-            acc = _mm256_add_ps(acc, _mm256_mul_ps(_mm256_max_ps(w[j], zero), v[j]));
+        for (int j = 0; j < batches / 2; j++) {
+            acc = _mm256_add_epi32(acc, _mm256_madd_epi16(_mm256_max_epi16(w[2 * j], zero), v[2 * j]));
+            acc2 = _mm256_add_epi32(acc2, _mm256_madd_epi16(_mm256_max_epi16(w[2 * j + 1], zero), v[2 * j + 1]));
         }
 
-        __m256* w2 = (__m256*)histOutput[stm ^ 1][histSz - 1];
+        __m256i* w2 = (__m256i*)histOutput[stm ^ 1][0];
 
-        for (int j = 0; j < batches; j++) {
-            acc = _mm256_add_ps(acc, _mm256_mul_ps(_mm256_max_ps(w2[j], zero), v[j + batches]));
+        for (int j = 0; j < batches / 2; j++) {
+            acc = _mm256_add_epi32(acc, _mm256_madd_epi16(_mm256_max_epi16(w2[2 * j], zero), v[2 * j + batches]));
+            acc2 = _mm256_add_epi32(acc2, _mm256_madd_epi16(_mm256_max_epi16(w2[2 * j + 1], zero), v[2 * j + 1 + batches]));
         }
 
-        sum += hsum256_ps_avx(acc);
+        acc = _mm256_add_epi32(acc, acc2);
 
-        return sum;
+        sum += get_sum(acc);
+
+        return sum / Q_IN / Q_HIDDEN;
     }
 
     void removeInput(int side, int16_t ind) {
@@ -184,14 +194,19 @@ public:
     void applyUpdates(int c) {
         memcpy(histOutput[c][histSz], histOutput[c][histSz - 1], sizeof(histOutput[c][histSz - 1]));
 
-        __m256* w = (__m256*)histOutput[c][histSz];
+        __m256i* w = (__m256i*)histOutput[c][histSz];
 
         for (int i = 0; i < updateSz[c]; i++) {
-            __m256* v = (__m256*)inputWeights[updates[c][i].ind];
-            __m256 ct = _mm256_set1_ps(updates[c][i].coef);
+            __m256i* v = (__m256i*)inputWeights[updates[c][i].ind];
 
-            for (int j = 0; j < batches; j++)
-                w[j] = _mm256_add_ps(_mm256_mul_ps(ct, v[j]), w[j]);
+            if (updates[c][i].coef == 1) {
+                for (int j = 0; j < batches; j++)
+                    w[j] = _mm256_add_epi16(w[j], v[j]);
+            }
+            else {
+                for (int j = 0; j < batches; j++)
+                    w[j] = _mm256_sub_epi16(w[j], v[j]);
+            }
         }
 
         updateSz[c] = 0;
@@ -199,14 +214,19 @@ public:
 
     void applyInitUpdates(int c) {
         memcpy(histOutput[c][histSz], inputBiases, sizeof(histOutput[c][histSz]));
-        __m256* w = (__m256*)histOutput[c][histSz];
+        __m256i* w = (__m256i*)histOutput[c][histSz];
 
         for (int i = 0; i < updateSz[c]; i++) {
-            __m256* v = (__m256*)inputWeights[updates[c][i].ind];
-            __m256 ct = _mm256_set1_ps(updates[c][i].coef);
+            __m256i* v = (__m256i*)inputWeights[updates[c][i].ind];
 
-            for (int j = 0; j < batches; j++)
-                w[j] = _mm256_add_ps(_mm256_mul_ps(ct, v[j]), w[j]);
+            if (updates[c][i].coef == 1) {
+                for (int j = 0; j < batches; j++)
+                    w[j] = _mm256_add_epi16(w[j], v[j]);
+            }
+            else {
+                for (int j = 0; j < batches; j++)
+                    w[j] = _mm256_sub_epi16(w[j], v[j]);
+            }
         }
 
         updateSz[c] = 0;
@@ -216,27 +236,27 @@ public:
         histSz--;
     }
 
-    float getOutput(bool stm) {
-        float sum = outputBias;
+    int32_t getOutput(bool stm) {
+        int32_t sum = outputBias * Q_IN;
 
-        __m256 zero = _mm256_setzero_ps();
-        __m256 acc = _mm256_setzero_ps();
+        __m256i zero = _mm256_setzero_si256();
+        __m256i acc = _mm256_setzero_si256();
 
-        __m256* w = (__m256*)histOutput[stm][histSz - 1];
-
-        for (int j = 0; j < batches; j++) {
-            acc = _mm256_add_ps(acc, _mm256_mul_ps(_mm256_max_ps(w[j], zero), v[j]));
-        }
-
-        __m256* w2 = (__m256*)histOutput[stm ^ 1][histSz - 1];
+        __m256i* w = (__m256i*)histOutput[stm][histSz - 1];
 
         for (int j = 0; j < batches; j++) {
-            acc = _mm256_add_ps(acc, _mm256_mul_ps(_mm256_max_ps(w2[j], zero), v[j + batches]));
+            acc = _mm256_add_epi32(acc, _mm256_madd_epi16(_mm256_max_epi16(w[j], zero), v[j]));
         }
 
-        sum += hsum256_ps_avx(acc);
+        __m256i* w2 = (__m256i*)histOutput[stm ^ 1][histSz - 1];
 
-        return sum;
+        for (int j = 0; j < batches; j++) {
+            acc = _mm256_add_epi32(acc, _mm256_madd_epi16(_mm256_max_epi16(w2[j], zero), v[j + batches]));
+        }
+
+        sum += get_sum(acc);
+
+        return sum / Q_IN / Q_HIDDEN;
     }
 
     void load() {
@@ -258,8 +278,10 @@ public:
 
         sz = SIDE_NEURONS;
 
-        for (int j = 0; j < sz; j++)
-            inputBiases[j] = *(floatData++);
+        for (int j = 0; j < sz; j++) {
+            float val = *(floatData++);
+            inputBiases[j] = round(val * Q_IN);
+        }
 
         gradData = (Gradient*)floatData;
 
@@ -268,8 +290,10 @@ public:
 
         floatData = (float*)gradData;
 
+        int mn = (int)1e9, mx = (int)-1e9;
         for (int i = 0; i < SIDE_NEURONS * INPUT_NEURONS; i++) {
-            inputWeights[i / SIDE_NEURONS][i % SIDE_NEURONS] = *(floatData++);
+            float val = *(floatData++);
+            inputWeights[i / SIDE_NEURONS][i % SIDE_NEURONS] = round(val * Q_IN);
         }
 
         gradData = (Gradient*)floatData;
@@ -281,7 +305,7 @@ public:
         sz = 1;
         floatData = (float*)gradData;
 
-        outputBias = *(floatData++);
+        outputBias = round(*(floatData++) * Q_HIDDEN);
 
         gradData = (Gradient*)floatData;
 
@@ -290,23 +314,24 @@ public:
         floatData = (float*)gradData;
 
         for (int j = 0; j < HIDDEN_NEURONS; j++) {
-            outputWeights[j] = *(floatData++);
+            float val = *(floatData++);
+            outputWeights[j] = round(val * Q_HIDDEN);
         }
     }
 
-    int lg = sizeof(__m256) / sizeof(float);
+    int lg = sizeof(__m256i) / sizeof(int16_t);
     int batches = SIDE_NEURONS / lg;
 
     int histSz, updateSz[2];
 
-    float inputBiases[SIDE_NEURONS] __attribute__((aligned(32)));
-    float outputBias;
-    float histOutput[2][2005][SIDE_NEURONS] __attribute__((aligned(32)));
-    float inputWeights[INPUT_NEURONS][SIDE_NEURONS] __attribute__((aligned(32)));
-    float outputWeights[HIDDEN_NEURONS] __attribute__((aligned(32)));
-    float deeznuts[HIDDEN_NEURONS] __attribute__((aligned(32)));
+    int16_t inputBiases[SIDE_NEURONS] __attribute__((aligned(32)));
+    int32_t outputBias;
+    int16_t histOutput[2][2005][SIDE_NEURONS] __attribute__((aligned(32)));
+    int16_t inputWeights[INPUT_NEURONS][SIDE_NEURONS] __attribute__((aligned(32)));
+    int16_t outputWeights[HIDDEN_NEURONS] __attribute__((aligned(32)));
+    int16_t deeznuts[HIDDEN_NEURONS] __attribute__((aligned(32)));
 
-    __m256* v = (__m256*)outputWeights;
+    __m256i* v = (__m256i*)outputWeights;
 
     Update updates[2][105];
 };

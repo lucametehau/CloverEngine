@@ -53,7 +53,7 @@ private:
 
 void UCI::Uci_Loop() {
 
-    uint64_t ttSize = 128;
+    uint64_t ttSize = 8;
 
     std::cout << "Clover " << VERSION << " by Luca Metehau" << std::endl;
 
@@ -107,11 +107,11 @@ void UCI::Uci_Loop() {
                 }
                 else if (type == "moves") {
 
-                    std::string movestr;
+                    std::string moveStr;
 
-                    while (iss >> movestr) {
+                    while (iss >> moveStr) {
 
-                        int move = ParseMove(searcher.board, movestr);
+                        int move = parseMove(searcher.board, moveStr);
 
                         searcher._makeMove(move);
                     }
@@ -470,7 +470,7 @@ void UCI::Uci_Loop() {
             int th;
             iss >> mv >> th;
 
-            uint16_t move = ParseMove(searcher.board, mv);
+            uint16_t move = parseMove(searcher.board, mv);
 
             std::cout << see(searcher.board, move, th) << std::endl;
         }
