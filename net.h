@@ -71,24 +71,6 @@ public:
         load();
     }
 
-    // the below functions are taken from here and are used to compute the dot product
-    // https://stackoverflow.com/questions/6996764/fastest-way-to-do-horizontal-sse-vector-sum-or-other-reduction
-
-    float hsum_ps_sse3(__m128 v) {
-        __m128 shuf = _mm_movehdup_ps(v);
-        __m128 sums = _mm_add_ps(v, shuf);
-        shuf = _mm_movehl_ps(shuf, sums);
-        sums = _mm_add_ss(sums, shuf);
-        return _mm_cvtss_f32(sums);
-    }
-
-    float hsum256_ps_avx(__m256 v) {
-        __m128 vlow = _mm256_castps256_ps128(v);
-        __m128 vhigh = _mm256_extractf128_ps(v, 1);
-        vlow = _mm_add_ps(vlow, vhigh);
-        return hsum_ps_sse3(vlow);
-    }
-
     int32_t get_sum(__m256i x) {
         __m128i a = _mm_add_epi32(_mm256_castsi256_si128(x), _mm256_extractf128_si256(x, 1));
         __m128i b = _mm_add_epi32(a, _mm_srli_si128(a, 8));
@@ -290,7 +272,6 @@ public:
 
         floatData = (float*)gradData;
 
-        int mn = (int)1e9, mx = (int)-1e9;
         for (int i = 0; i < SIDE_NEURONS * INPUT_NEURONS; i++) {
             float val = *(floatData++);
             inputWeights[i / SIDE_NEURONS][i % SIDE_NEURONS] = round(val * Q_IN);

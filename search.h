@@ -545,7 +545,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
                 R -= std::max(-2, std::min(2, (H.h + H.ch + H.fh) / histDiv)); /// reduce based on move history
             }
-            else if(!pvNode) {
+            else if (!pvNode) {
                 R = lmrRed[std::min(63, depth)][std::min(63, played)] / lmrCapDiv;
 
                 R += !improving; /// not on pv or not improving
@@ -851,7 +851,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
         /// only 1 move legal
 
         if (PROBE_ROOT && nrMoves == 1) {
-            if(printStats)
+            if (printStats)
                 std::cout << "bestmove " << toString(moves[0]) << std::endl;
             return { 0, moves[0] };
         }
@@ -900,7 +900,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
 
             for (auto& mv : moves) {
                 if (mv == move) {
-                    if(printStats)
+                    if (printStats)
                         std::cout << "bestmove " << toString(move) << std::endl;
                     return { 0, move };
                 }
