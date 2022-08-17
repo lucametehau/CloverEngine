@@ -249,7 +249,7 @@ int Search::quiesce(int alpha, int beta, bool useTT) {
     return best;
 }
 
-int Search::search(int alpha, int beta, int depth, int distanceFromPv, bool cutNode, uint16_t excluded) {
+int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t excluded) {
 
     if (checkForStop())
         return ABORT;
@@ -399,7 +399,7 @@ int Search::search(int alpha, int beta, int depth, int distanceFromPv, bool cutN
 
         makeNullMove(board);
 
-        int score = -search(-beta, -beta + 1, depth - R, distanceFromPv + 1, !cutNode);
+        int score = -search(-beta, -beta + 1, depth - R, !cutNode);
 
         /// TO DO: (verification search?)
 
@@ -435,7 +435,7 @@ int Search::search(int alpha, int beta, int depth, int distanceFromPv, bool cutN
             int score = -quiesce(-cutBeta, -cutBeta + 1);
 
             if (score >= cutBeta) /// then we should try searching this capture
-                score = -search(-cutBeta, -cutBeta + 1, depth - 4, distanceFromPv + 1, !cutNode);
+                score = -search(-cutBeta, -cutBeta + 1, depth - 4, !cutNode);
 
             undoMove(board, move);
 
@@ -502,7 +502,7 @@ int Search::search(int alpha, int beta, int depth, int distanceFromPv, bool cutN
         if (!excluded && move == ttMove && abs(ttValue) < MATE && depth >= 6 && entry.depth() >= depth - 3 && (bound & LOWER)) { /// had best instead of ttValue lol
             int rBeta = ttValue - depth;
 
-            int score = search(rBeta - 1, rBeta, depth / 2, (pvNode ? 1 : distanceFromPv + 1), cutNode, move);
+            int score = search(rBeta - 1, rBeta, depth / 2, cutNode, move);
 
             if (score < rBeta) {
                 ex = 1 + (!pvNode && rBeta - score > 100);
@@ -535,7 +535,7 @@ int Search::search(int alpha, int beta, int depth, int distanceFromPv, bool cutN
 
         if (depth >= 3 && played > 1) { /// first few moves we don't reduce
             if (isQuiet) {
-                R = lmrRed[std::min(63, depth + distanceFromPv)][std::min(63, played)];
+                R = lmrRed[std::min(63, depth)][std::min(63, played)];
 
                 R += !pvNode + !improving; /// not on pv or not improving
 
@@ -566,16 +566,16 @@ int Search::search(int alpha, int beta, int depth, int distanceFromPv, bool cutN
         bool interesting = false;
 
         if (R != 1) {
-            score = -search(-alpha - 1, -alpha, newDepth - R, (pvNode ? 1 : distanceFromPv + 1), true);
+            score = -search(-alpha - 1, -alpha, newDepth - R, true);
             interesting = (score > alpha + 50);
         }
 
         if ((R != 1 && score > alpha) || (R == 1 && (!pvNode || played > 1))) {
-            score = -search(-alpha - 1, -alpha, newDepth + interesting - 1, (pvNode ? 1 : distanceFromPv + 1), !cutNode);
+            score = -search(-alpha - 1, -alpha, newDepth + interesting - 1, !cutNode);
         }
 
         if (pvNode && (played == 1 || score > alpha)) {
-            score = -search(-beta, -alpha, newDepth - 1, 0, false);
+            score = -search(-beta, -alpha, newDepth - 1, false);
         }
 
         undoMove(board, move);

@@ -51,7 +51,7 @@ void updateCapHist(int& hist, int score) {
 }
 
 int getHistoryBonus(int depth) {
-    return std::min(depth * depth, histMax);
+    return (depth <= 20 ? depth * depth + depth : 400);
 }
 
 void updateHistory(Search* searcher, uint16_t* quiets, int nrQuiets, int ply, int bonus) {
