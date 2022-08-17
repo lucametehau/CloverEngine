@@ -436,6 +436,34 @@ void UCI::Uci_Loop() {
                 iss >> val;
                 lmrCapDiv = val;
             }
+            else if (name == "nmpR") {
+                iss >> value;
+                int val;
+
+                iss >> val;
+                nmpR = val;
+            }
+            else if (name == "nmpDepthDiv") {
+                iss >> value;
+                int val;
+
+                iss >> val;
+                nmpDepthDiv = val;
+            }
+            else if (name == "nmpEvalDiv") {
+                iss >> value;
+                int val;
+
+                iss >> val;
+                nmpEvalDiv = val;
+            }
+            else if (name == "nmpEvalLim") {
+                iss >> value;
+                int val;
+
+                iss >> val;
+                nmpEvalLim = val;
+            }
         }
         else if (cmd == "generate") {
 

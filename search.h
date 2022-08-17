@@ -390,7 +390,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     if (!pvNode && !isCheck && !excluded && (quietUs || eval - 100 * depth > beta) && eval >= beta && eval >= Stack[ply].eval && depth >= 2 && Stack[ply - 1].move &&
         (board.pieces[board.turn] ^ board.bb[getType(PAWN, board.turn)] ^ board.bb[getType(KING, board.turn)]) &&
         (!ttHit || !(bound & UPPER) || ttValue >= beta)) {
-        int R = 4 + depth / 6 + std::min(3, (eval - beta) / 100) + improving;
+        int R = nmpR + depth / nmpDepthDiv + std::min(nmpEvalLim, (eval - beta) / nmpEvalDiv) + improving;
 
         Stack[ply].move = NULLMOVE;
         Stack[ply].piece = 0;
@@ -765,15 +765,15 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv) {
         uint64_t initNodes = nodes;
 
         if (R != 1) {
-            score = -search(-alpha - 1, -alpha, newDepth - R, 1, true);
+            score = -search(-alpha - 1, -alpha, newDepth - R, true);
         }
 
         if ((R != 1 && score > alpha) || (R == 1 && played > 1)) {
-            score = -search(-alpha - 1, -alpha, newDepth - 1, 1, true);
+            score = -search(-alpha - 1, -alpha, newDepth - 1, true);
         }
 
         if (played == 1 || score > alpha) {
-            score = -search(-beta, -alpha, newDepth - 1, 0, false);
+            score = -search(-beta, -alpha, newDepth - 1, false);
         }
 
         undoMove(board, move);

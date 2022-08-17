@@ -25,6 +25,11 @@
 
 /// search params
 
+int nmpR = 4;
+int nmpDepthDiv = 4;
+int nmpEvalDiv = 423;
+int nmpEvalLim = 3;
+
 int RazorCoef = 381;
 
 int SNMPCoef1 = 97;
@@ -92,9 +97,7 @@ public:
     int search(int alpha, int beta, int depth, bool cutNode, uint16_t excluded = NULLMOVE);
     int rootSearch(int alpha, int beta, int depth, int multipv);
 
-    void setTime(Info* tInfo) {
-        info = tInfo;
-    }
+    void setTime(Info* tInfo) { info = tInfo; }
 
     void startWorkerThreads(Info* info);
     void flagWorkersStop();
