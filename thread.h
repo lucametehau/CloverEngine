@@ -26,8 +26,8 @@
 /// search params
 
 
-int nmpR = 3;
-int nmpDepthDiv = 4;
+int nmpR = 4;
+int nmpDepthDiv = 6;
 int nmpEvalDiv = 100;
 int nmpEvalLim = 3;
 
