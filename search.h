@@ -76,6 +76,10 @@ int quietness(Board& board) {
     int us = board.turn, enemy = 1 ^ us;
     uint64_t pieces, b, all = board.pieces[WHITE] | board.pieces[BLACK];
 
+    if (getPawnAttacks(enemy, board.bb[getType(PAWN, enemy)]) &
+        (board.bb[getType(KNIGHT, us)] | board.bb[getType(BISHOP, us)] | board.bb[getType(ROOK, us)] | board.bb[getType(QUEEN, us)]))
+        return 0;
+
     pieces = board.bb[getType(KNIGHT, enemy)];
     att = 0;
     while (pieces) {
