@@ -9,6 +9,7 @@ else
 	EXT = 
 endif
 
+
 WFLAGS = -Wall
 RFLAGS = $(WFLAGS) -std=c++17 -O3
 
