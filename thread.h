@@ -26,10 +26,10 @@
 /// search params
 
 
-int nmpR = 2;
-int nmpDepthDiv = 2;
-int nmpEvalDiv = 500;
-int nmpEvalLim = 5;
+int nmpR = 3;
+int nmpDepthDiv = 4;
+int nmpEvalDiv = 100;
+int nmpEvalLim = 3;
 
 int RazorCoef = 381;
 

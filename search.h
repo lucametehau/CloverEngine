@@ -549,6 +549,8 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
                 R = lmrRed[std::min(63, depth)][std::min(63, played)] / lmrCapDiv;
 
                 R += !improving; /// not on pv or not improving
+
+                R += quietUs && !see(board, move, -seeVal[BISHOP] - 1);
             }
 
             R += cutNode;
