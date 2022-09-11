@@ -27,7 +27,7 @@ const int BAD_CAP_SCORE = (int)-1e9;
 enum {
     STAGE_NONE = 0, STAGE_HASHMOVE, STAGE_GEN_NOISY, STAGE_GOOD_NOISY,
     STAGE_KILLER_1, STAGE_KILLER_2, STAGE_COUNTER,
-    STAGE_GEN_QUIETS, STAGE_QUIETS, STAGE_BAD_NOISY, STAGE_DONE
+    STAGE_GEN_QUIETS, STAGE_QUIETS, STAGE_BAD_NOISY,
 }; /// move picker stages
 
 bool see(Board& board, uint16_t move, int threshold);
@@ -45,6 +45,7 @@ public:
 
     uint16_t hashMove, killer1, killer2, counter, possibleCounter;
     int nrNoisy, nrQuiets, nrBadNoisy;
+    int index;
 
     int threshold;
 
@@ -74,17 +75,27 @@ public:
         return ind;
     }
 
+    void sortMoves(int nrMoves, uint16_t moves[], int scores[]) {
+        for (int i = 1; i < nrMoves; i++) {
+            int sc = scores[i], mv = moves[i], j;
+            for (j = i - 1; scores[j] < sc && j >= 0; j--) {
+                std::swap(scores[j], scores[j + 1]);
+                std::swap(moves[j], moves[j + 1]);
+            }
+            scores[j + 1] = sc;
+            moves[j + 1] = mv;
+        }
+    }
+
     uint16_t nextMove(Search* searcher, bool skip, bool noisyPicker) {
-        if (stage == STAGE_HASHMOVE) {
+        switch (stage) {
+        case STAGE_HASHMOVE:
             stage++;
 
             if (hashMove && isLegalMove(searcher->board, hashMove)) {
                 return hashMove;
             }
-        }
-
-        if (stage == STAGE_GEN_NOISY) {
-            /// good noisy
+        case STAGE_GEN_NOISY:
             nrNoisy = genLegalNoisy(searcher->board, noisy);
 
             for (int i = 0; i < nrNoisy; i++) {
@@ -107,40 +118,24 @@ public:
 
                 //assert(score >= 0);
             }
+
+            sortMoves(nrNoisy, noisy, scores);
+
+            index = 0;
             stage++;
-        }
-
-        if (stage == STAGE_GOOD_NOISY) {
-
-            if (nrNoisy) {
-
-                int ind = getBestMoveInd(nrNoisy, 0);
-
-                uint16_t best = noisy[ind];
-
-                if (scores[ind] != BAD_CAP_SCORE) {
-
-                    if (!see(searcher->board, best, threshold)) {
-                        badNoisy[nrBadNoisy++] = best;
-                        scores[ind] = BAD_CAP_SCORE; /// mark capture as bad
-                        return nextMove(searcher, skip, noisyPicker);
+        case STAGE_GOOD_NOISY:
+            if (index < nrNoisy) {
+                while (index < nrNoisy) {
+                    if (noisy[index] != hashMove && noisy[index] != killer1 && noisy[index] != killer2 && noisy[index] != counter) {
+                        if (see(searcher->board, noisy[index], threshold))
+                            return noisy[index++];
+                        else {
+                            badNoisy[nrBadNoisy++] = noisy[index++];
+                        }
                     }
-
-                    nrNoisy--;
-                    noisy[ind] = noisy[nrNoisy];
-                    scores[ind] = scores[nrNoisy];
-
-                    if (best == hashMove) /// don't play the same move
-                        return nextMove(searcher, skip, noisyPicker);
-
-                    if (best == killer1)
-                        killer1 = NULLMOVE;
-                    if (best == killer2)
-                        killer2 = NULLMOVE;
-                    if (best == counter)
-                        counter = NULLMOVE;
-
-                    return best;
+                    else {
+                        index++;
+                    }
                 }
             }
             if (skip) { /// no need to go through quiets
@@ -148,36 +143,24 @@ public:
                 return nextMove(searcher, skip, noisyPicker);
             }
             stage++;
-        }
 
-        if (stage == STAGE_KILLER_1) {
-
+        case STAGE_KILLER_1:
             stage++;
 
             if (!skip && killer1 && killer1 != hashMove && isLegalMove(searcher->board, killer1))
                 return killer1;
-        }
-
-        if (stage == STAGE_KILLER_2) {
-
+        case STAGE_KILLER_2:
             stage++;
 
             if (!skip && killer2 && killer2 != hashMove && isLegalMove(searcher->board, killer2))
                 return killer2;
-        }
-
-        if (stage == STAGE_COUNTER) {
-
+        case STAGE_COUNTER:
             stage++;
 
             if (!skip && counter && counter != hashMove && counter != killer1 && counter != killer2 && isLegalMove(searcher->board, counter))
                 return counter;
-        }
-
-        if (stage == STAGE_GEN_QUIETS) {
-            /// quiet moves
-            /// TO DO: don't generate all quiets to validate refutation moves, add fast isLegal(move) function ? - done
-
+        case STAGE_GEN_QUIETS:
+        {
             nrQuiets = genLegalQuiets(searcher->board, quiets);
 
             int ply = searcher->board.ply;
@@ -212,51 +195,40 @@ public:
                 }
                 scores[i] = score;
             }
+
+            sortMoves(nrQuiets, quiets, scores);
+
+            index = 0;
             stage++;
         }
+        case STAGE_QUIETS:
+            if (!skip) {
+                while (index < nrQuiets &&
+                    !(quiets[index] != hashMove && quiets[index] != killer1 && quiets[index] != killer2 && quiets[index] != counter))
+                    index++;
 
-        if (stage == STAGE_QUIETS) {
-
-            if (!skip && nrQuiets) {
-
-                int ind = getBestMoveInd(nrQuiets, 0);
-
-                uint16_t best = quiets[ind];
-
-                nrQuiets--;
-                quiets[ind] = quiets[nrQuiets];
-                scores[ind] = scores[nrQuiets];
-
-                if (best == hashMove || best == killer1 || best == killer2 || best == counter) {
+                if (index >= nrQuiets) {
                     stage++;
                 }
                 else {
-                    return best;
+                    return quiets[index++];
                 }
             }
             else {
                 stage++;
             }
-        }
-
-        if (stage == STAGE_BAD_NOISY) {
-            /// bad noisy moves
+        case STAGE_BAD_NOISY:
             if (nrBadNoisy && !noisyPicker) { /// bad captures can't improve the current position in quiesce search
                 nrBadNoisy--;
                 uint16_t move = badNoisy[nrBadNoisy];
 
-                if (move == hashMove || move == killer1 || move == killer2 || move == counter)
-                    return nextMove(searcher, skip, noisyPicker);
-
                 return move;
             }
             else {
-                stage++;
+                return NULLMOVE;
             }
-        }
-
-        if (stage == STAGE_DONE) {
-            return NULLMOVE;
+        default:
+            assert(0);
         }
 
         assert(0);
