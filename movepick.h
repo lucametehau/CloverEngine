@@ -24,6 +24,10 @@
 
 const int BAD_CAP_SCORE = (int)-1e9;
 
+int totalMoves;
+long long totalOp;
+int totalMP;
+
 enum {
     STAGE_NONE = 0, STAGE_HASHMOVE, STAGE_GEN_NOISY, STAGE_GOOD_NOISY,
     STAGE_KILLER_1, STAGE_KILLER_2, STAGE_COUNTER,
@@ -51,40 +55,39 @@ public:
 
     uint16_t noisy[256], quiets[256], badNoisy[256];
     int scores[256];
+    long long v[256];
 
     Movepick(const uint16_t HashMove, const uint16_t Killer1, const uint16_t Killer2, const uint16_t Counter, const int Threshold) {
         stage = STAGE_HASHMOVE;
 
         hashMove = HashMove;
-        killer1 = Killer1;
-        killer2 = Killer2;
-        counter = Counter;
+        killer1 = (Killer1 != hashMove ? Killer1 : NULLMOVE);
+        killer2 = (Killer2 != hashMove ? Killer2 : NULLMOVE);
+        counter = (Counter != hashMove && Counter != killer1 && Counter != killer2 ? Counter : NULLMOVE);
 
         nrNoisy = nrQuiets = nrBadNoisy = 0;
         threshold = Threshold;
+
+        totalMP++;
     }
 
-    int getBestMoveInd(int nrMoves, int start) {
-        int ind = start;
-
-        for (int i = start + 1; i < nrMoves; i++) {
-            if (scores[i] > scores[ind])
-                ind = i;
-        }
-
-        return ind;
+    long long codify(int move_ind, int score) {
+        return ((1LL * score) << 16) | move_ind;
     }
 
     void sortMoves(int nrMoves, uint16_t moves[], int scores[]) {
+        for (int i = 0; i < nrMoves; i++)
+            v[i] = codify(moves[i], scores[i]);
         for (int i = 1; i < nrMoves; i++) {
-            int sc = scores[i], mv = moves[i], j;
-            for (j = i - 1; scores[j] < sc && j >= 0; j--) {
-                std::swap(scores[j], scores[j + 1]);
-                std::swap(moves[j], moves[j + 1]);
+            long long sc = v[i];
+            int j;
+            for (j = i - 1; v[j] < sc && j >= 0; j--) {
+                std::swap(v[j], v[j + 1]);
             }
-            scores[j + 1] = sc;
-            moves[j + 1] = mv;
+            v[j + 1] = sc;
         }
+        for (int i = 0; i < nrMoves; i++)
+            moves[i] = v[i] & 65535;
     }
 
     uint16_t nextMove(Search* searcher, bool skip, bool noisyPicker) {
@@ -96,10 +99,19 @@ public:
                 return hashMove;
             }
         case STAGE_GEN_NOISY:
+        {
             nrNoisy = genLegalNoisy(searcher->board, noisy);
+
+            int m = 0;
 
             for (int i = 0; i < nrNoisy; i++) {
                 uint16_t move = noisy[i];
+
+                if (move == hashMove || move == killer1 || move == killer2 || move == counter)
+                    continue;
+
+                noisy[m] = move;
+
                 int p = searcher->board.piece_at(sqFrom(move)), cap = searcher->board.piece_type_at(sqTo(move));
                 int score = 0; // so that move score isn't negative
 
@@ -110,31 +122,27 @@ public:
                 if (promoted(move) == QUEEN)
                     score += 10000;
 
-                score += searcher->capHist[p][sqTo(move)][cap];
+                score += searcher->capHist[p][sqTo(move)][cap] + 100000;
 
                 //score += searcher->nodesSearched[sqFrom(move)][sqTo(move)] / 10000;
 
-                scores[i] = score;
-
-                //assert(score >= 0);
+                scores[m++] = score;
             }
+
+            nrNoisy = m;
 
             sortMoves(nrNoisy, noisy, scores);
 
             index = 0;
             stage++;
+        }
         case STAGE_GOOD_NOISY:
             if (index < nrNoisy) {
                 while (index < nrNoisy) {
-                    if (noisy[index] != hashMove && noisy[index] != killer1 && noisy[index] != killer2 && noisy[index] != counter) {
-                        if (see(searcher->board, noisy[index], threshold))
-                            return noisy[index++];
-                        else {
-                            badNoisy[nrBadNoisy++] = noisy[index++];
-                        }
-                    }
+                    if (see(searcher->board, noisy[index], threshold))
+                        return noisy[index++];
                     else {
-                        index++;
+                        badNoisy[nrBadNoisy++] = noisy[index++];
                     }
                 }
             }
@@ -147,17 +155,17 @@ public:
         case STAGE_KILLER_1:
             stage++;
 
-            if (!skip && killer1 && killer1 != hashMove && isLegalMove(searcher->board, killer1))
+            if (!skip && killer1 && isLegalMove(searcher->board, killer1))
                 return killer1;
         case STAGE_KILLER_2:
             stage++;
 
-            if (!skip && killer2 && killer2 != hashMove && isLegalMove(searcher->board, killer2))
+            if (!skip && killer2 && isLegalMove(searcher->board, killer2))
                 return killer2;
         case STAGE_COUNTER:
             stage++;
 
-            if (!skip && counter && counter != hashMove && counter != killer1 && counter != killer2 && isLegalMove(searcher->board, counter))
+            if (!skip && counter && isLegalMove(searcher->board, counter))
                 return counter;
         case STAGE_GEN_QUIETS:
         {
@@ -170,31 +178,34 @@ public:
             int counterTo = sqTo(counterMove), followTo = sqTo(followMove);
             bool turn = searcher->board.turn;
             uint64_t pawnAttacks = getPawnAttacks(turn ^ 1, searcher->board.bb[getType(PAWN, turn ^ 1)]);
+            int m = 0;
 
             for (int i = 0; i < nrQuiets; i++) {
                 uint16_t move = quiets[i];
-                int score = 0;
 
                 if (move == hashMove || move == killer1 || move == killer2 || move == counter)
-                    score = -1000000000;
-                else {
-                    int from = sqFrom(move), to = sqTo(move), piece = searcher->board.piece_at(from);
+                    continue;
 
-                    score = searcher->hist[searcher->board.turn][from][to];
+                quiets[m] = move;
+                int score = 0;
+                int from = sqFrom(move), to = sqTo(move), piece = searcher->board.piece_at(from);
 
-                    if (counterMove)
-                        score += searcher->follow[0][counterPiece][counterTo][piece][to];
+                score = searcher->hist[searcher->board.turn][from][to];
 
-                    if (followMove)
-                        score += searcher->follow[1][followPiece][followTo][piece][to];
+                if (counterMove)
+                    score += searcher->follow[0][counterPiece][counterTo][piece][to];
 
-                    if ((pawnAttacks & (1ULL << to)) && piece_type(piece) != PAWN)
-                        score -= 10 * seeVal[piece_type(piece)];
+                if (followMove)
+                    score += searcher->follow[1][followPiece][followTo][piece][to];
 
-                    score += searcher->nodesSearched[from][to] / nodesSearchedDiv; // the longer it takes a move to be refuted, the higher its chance to become the best move
-                }
-                scores[i] = score;
+                if ((pawnAttacks & (1ULL << to)) && piece_type(piece) != PAWN)
+                    score -= 10 * seeVal[piece_type(piece)];
+
+                score += searcher->nodesSearched[from][to] / nodesSearchedDiv + 1000000; // the longer it takes a move to be refuted, the higher its chance to become the best move
+                scores[m++] = score;
             }
+
+            nrQuiets = m;
 
             sortMoves(nrQuiets, quiets, scores);
 
@@ -202,17 +213,8 @@ public:
             stage++;
         }
         case STAGE_QUIETS:
-            if (!skip) {
-                while (index < nrQuiets &&
-                    !(quiets[index] != hashMove && quiets[index] != killer1 && quiets[index] != killer2 && quiets[index] != counter))
-                    index++;
-
-                if (index >= nrQuiets) {
-                    stage++;
-                }
-                else {
-                    return quiets[index++];
-                }
+            if (!skip && index < nrQuiets) {
+                return quiets[index++];
             }
             else {
                 stage++;
