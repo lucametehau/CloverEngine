@@ -23,9 +23,12 @@
 #include <cassert>
 
 enum {
-    STAGE_NONE = 0, STAGE_HASHMOVE, STAGE_GEN_NOISY, STAGE_GOOD_NOISY,
+    STAGE_NONE = 0, 
+    STAGE_HASHMOVE, 
+    STAGE_GEN_NOISY, STAGE_GOOD_NOISY,
     STAGE_KILLER_1, STAGE_KILLER_2, STAGE_COUNTER,
-    STAGE_GEN_QUIETS, STAGE_QUIETS, STAGE_BAD_NOISY,
+    STAGE_GEN_QUIETS, STAGE_QUIETS, 
+    STAGE_PRE_BAD_NOISY, STAGE_BAD_NOISY,
 }; /// move picker stages
 
 bool see(Board& board, uint16_t move, int threshold);
@@ -156,26 +159,11 @@ public:
                 int ply = searcher->board.ply;
 
                 bool turn = searcher->board.turn, enemy = 1 ^ turn;
-                uint64_t pawnAttacks = getPawnAttacks(enemy, searcher->board.bb[getType(PAWN, turn ^ 1)]), minorAttacks = 0;
-                uint64_t all = searcher->board.pieces[WHITE] | searcher->board.pieces[BLACK], pieces, b;
+                uint64_t pawnAttacks = getPawnAttacks(enemy, searcher->board.bb[getType(PAWN, turn ^ 1)]);
                 uint16_t counterMove = (ply >= 1 ? searcher->Stack[ply - 1].move : NULLMOVE), followMove = (ply >= 2 ? searcher->Stack[ply - 2].move : NULLMOVE);
                 int counterPiece = (ply >= 1 ? searcher->Stack[ply - 1].piece : 0), followPiece = ply >= 2 ? searcher->Stack[ply - 2].piece : 0;
                 int counterTo = sqTo(counterMove), followTo = sqTo(followMove);
                 int m = 0;
-
-                pieces = searcher->board.bb[getType(KNIGHT, enemy)];
-                while (pieces) {
-                    b = lsb(pieces);
-                    minorAttacks |= knightBBAttacks[Sq(b)];
-                    pieces ^= b;
-                }
-
-                pieces = searcher->board.bb[getType(BISHOP, enemy)];
-                while (pieces) {
-                    b = lsb(pieces);
-                    minorAttacks |= genAttacksBishop(all, Sq(b));
-                    pieces ^= b;
-                }
 
                 for (int i = 0; i < nrQuiets; i++) {
                     uint16_t move = quiets[i];
@@ -198,9 +186,6 @@ public:
                     if (piece_type(piece) != PAWN && (pawnAttacks & (1ULL << to)))
                         score -= 10 * seeVal[piece_type(piece)];
 
-                    if (piece_type(piece) >= ROOK && (minorAttacks & (1ULL << to)))
-                        score -= 10 * seeVal[piece_type(piece)];
-
                     score += searcher->nodesSearched[from][to] / nodesSearchedDiv + 1000000; // the longer it takes a move to be refuted, the higher its chance to become the best move
                     scores[m++] = score;
                 }
@@ -221,13 +206,17 @@ public:
             else {
                 stage++;
             }
-        case STAGE_BAD_NOISY:
-            if (nrBadNoisy && !noisyPicker) { /// bad captures can't improve the current position in quiesce search
-                return badNoisy[--nrBadNoisy];
-            }
-            else {
+        case STAGE_PRE_BAD_NOISY:
+            if (noisyPicker) {
                 return NULLMOVE;
             }
+            index = 0;
+            stage++;
+        case STAGE_BAD_NOISY:
+            if (index < nrBadNoisy) { /// bad captures can't improve the current position in quiesce search
+                return badNoisy[index++];
+            }
+            return NULLMOVE;
         default:
             assert(0);
         }
