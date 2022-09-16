@@ -182,12 +182,20 @@ public:
             __m256i* v = (__m256i*)inputWeights[updates[c][i].ind];
 
             if (updates[c][i].coef == 1) {
-                for (int j = 0; j < batches; j++)
+                for (int j = 0; j < batches; j += 4) {
                     w[j] = _mm256_add_epi16(w[j], v[j]);
+                    w[j + 1] = _mm256_add_epi16(w[j + 1], v[j + 1]);
+                    w[j + 2] = _mm256_add_epi16(w[j + 2], v[j + 2]);
+                    w[j + 3] = _mm256_add_epi16(w[j + 3], v[j + 3]);
+                }
             }
             else {
-                for (int j = 0; j < batches; j++)
+                for (int j = 0; j < batches; j += 4) {
                     w[j] = _mm256_sub_epi16(w[j], v[j]);
+                    w[j + 1] = _mm256_sub_epi16(w[j + 1], v[j + 1]);
+                    w[j + 2] = _mm256_sub_epi16(w[j + 2], v[j + 2]);
+                    w[j + 3] = _mm256_sub_epi16(w[j + 3], v[j + 3]);
+                }
             }
         }
 
@@ -202,12 +210,20 @@ public:
             __m256i* v = (__m256i*)inputWeights[updates[c][i].ind];
 
             if (updates[c][i].coef == 1) {
-                for (int j = 0; j < batches; j++)
+                for (int j = 0; j < batches; j += 4) {
                     w[j] = _mm256_add_epi16(w[j], v[j]);
+                    w[j + 1] = _mm256_add_epi16(w[j + 1], v[j + 1]);
+                    w[j + 2] = _mm256_add_epi16(w[j + 2], v[j + 2]);
+                    w[j + 3] = _mm256_add_epi16(w[j + 3], v[j + 3]);
+                }
             }
             else {
-                for (int j = 0; j < batches; j++)
+                for (int j = 0; j < batches; j += 4) {
                     w[j] = _mm256_sub_epi16(w[j], v[j]);
+                    w[j + 1] = _mm256_sub_epi16(w[j + 1], v[j + 1]);
+                    w[j + 2] = _mm256_sub_epi16(w[j + 2], v[j + 2]);
+                    w[j + 3] = _mm256_sub_epi16(w[j + 3], v[j + 3]);
+                }
             }
         }
 
@@ -222,21 +238,32 @@ public:
         int32_t sum = outputBias * Q_IN;
 
         __m256i zero = _mm256_setzero_si256();
-        __m256i acc = _mm256_setzero_si256();
+        __m256i acc0 = _mm256_setzero_si256(), acc1 = _mm256_setzero_si256();
+        __m256i acc2 = _mm256_setzero_si256(), acc3 = _mm256_setzero_si256();
 
         __m256i* w = (__m256i*)histOutput[stm][histSz - 1];
 
-        for (int j = 0; j < batches; j++) {
-            acc = _mm256_add_epi32(acc, _mm256_madd_epi16(_mm256_max_epi16(w[j], zero), v[j]));
+        for (int j = 0; j < batches; j += 4) {
+            acc0 = _mm256_add_epi32(acc0, _mm256_madd_epi16(_mm256_max_epi16(w[j], zero), v[j]));
+            acc1 = _mm256_add_epi32(acc1, _mm256_madd_epi16(_mm256_max_epi16(w[j + 1], zero), v[j + 1]));
+            acc2 = _mm256_add_epi32(acc2, _mm256_madd_epi16(_mm256_max_epi16(w[j + 2], zero), v[j + 2]));
+            acc3 = _mm256_add_epi32(acc3, _mm256_madd_epi16(_mm256_max_epi16(w[j + 3], zero), v[j + 3]));
         }
 
         __m256i* w2 = (__m256i*)histOutput[stm ^ 1][histSz - 1];
 
-        for (int j = 0; j < batches; j++) {
-            acc = _mm256_add_epi32(acc, _mm256_madd_epi16(_mm256_max_epi16(w2[j], zero), v[j + batches]));
+        for (int j = 0; j < batches; j += 4) {
+            acc0 = _mm256_add_epi32(acc0, _mm256_madd_epi16(_mm256_max_epi16(w2[j], zero), v[j + batches]));
+            acc1 = _mm256_add_epi32(acc1, _mm256_madd_epi16(_mm256_max_epi16(w2[j + 1], zero), v[j + 1 + batches]));
+            acc2 = _mm256_add_epi32(acc2, _mm256_madd_epi16(_mm256_max_epi16(w2[j + 2], zero), v[j + 2 + batches]));
+            acc3 = _mm256_add_epi32(acc3, _mm256_madd_epi16(_mm256_max_epi16(w2[j + 3], zero), v[j + 3 + batches]));
         }
 
-        sum += get_sum(acc);
+        acc0 = _mm256_add_epi32(acc0, acc1);
+        acc2 = _mm256_add_epi32(acc2, acc3);
+        acc0 = _mm256_add_epi32(acc0, acc2);
+
+        sum += get_sum(acc0);
 
         return sum / Q_IN / Q_HIDDEN;
     }

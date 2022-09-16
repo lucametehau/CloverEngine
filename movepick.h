@@ -22,12 +22,6 @@
 #include "history.h"
 #include <cassert>
 
-const int BAD_CAP_SCORE = (int)-1e9;
-
-int totalMoves;
-long long totalOp;
-int totalMP;
-
 enum {
     STAGE_NONE = 0, STAGE_HASHMOVE, STAGE_GEN_NOISY, STAGE_GOOD_NOISY,
     STAGE_KILLER_1, STAGE_KILLER_2, STAGE_COUNTER,
@@ -37,10 +31,6 @@ enum {
 bool see(Board& board, uint16_t move, int threshold);
 
 const int seeVal[] = { 0, 100, 310, 330, 500, 1000, 20000 };
-
-enum {
-    NORMAL_MP = 0, NOISY_MP
-};
 
 class Movepick {
 public:
@@ -55,7 +45,7 @@ public:
 
     uint16_t noisy[256], quiets[256], badNoisy[256];
     int scores[256];
-    long long v[256], temp[256];
+    long long v[256];
 
     Movepick(const uint16_t HashMove, const uint16_t Killer1, const uint16_t Killer2, const uint16_t Counter, const int Threshold) {
         stage = STAGE_HASHMOVE;
@@ -131,13 +121,11 @@ public:
             stage++;
         }
         case STAGE_GOOD_NOISY:
-            if (index < nrNoisy) {
-                while (index < nrNoisy) {
-                    if (see(searcher->board, noisy[index], threshold))
-                        return noisy[index++];
-                    else {
-                        badNoisy[nrBadNoisy++] = noisy[index++];
-                    }
+            while (index < nrNoisy) {
+                if (see(searcher->board, noisy[index], threshold))
+                    return noisy[index++];
+                else {
+                    badNoisy[nrBadNoisy++] = noisy[index++];
                 }
             }
             if (skip) { /// no need to go through quiets
@@ -145,7 +133,6 @@ public:
                 return nextMove(searcher, skip, noisyPicker);
             }
             stage++;
-
         case STAGE_KILLER_1:
             stage++;
 
