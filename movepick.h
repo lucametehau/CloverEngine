@@ -155,12 +155,27 @@ public:
 
                 int ply = searcher->board.ply;
 
+                bool turn = searcher->board.turn, enemy = 1 ^ turn;
+                uint64_t pawnAttacks = getPawnAttacks(enemy, searcher->board.bb[getType(PAWN, turn ^ 1)]), minorAttacks = 0;
+                uint64_t all = searcher->board.pieces[WHITE] | searcher->board.pieces[BLACK], pieces, b;
                 uint16_t counterMove = (ply >= 1 ? searcher->Stack[ply - 1].move : NULLMOVE), followMove = (ply >= 2 ? searcher->Stack[ply - 2].move : NULLMOVE);
                 int counterPiece = (ply >= 1 ? searcher->Stack[ply - 1].piece : 0), followPiece = ply >= 2 ? searcher->Stack[ply - 2].piece : 0;
                 int counterTo = sqTo(counterMove), followTo = sqTo(followMove);
-                bool turn = searcher->board.turn;
-                uint64_t pawnAttacks = getPawnAttacks(turn ^ 1, searcher->board.bb[getType(PAWN, turn ^ 1)]);
                 int m = 0;
+
+                pieces = searcher->board.bb[getType(KNIGHT, enemy)];
+                while (pieces) {
+                    b = lsb(pieces);
+                    minorAttacks |= knightBBAttacks[Sq(b)];
+                    pieces ^= b;
+                }
+
+                pieces = searcher->board.bb[getType(BISHOP, enemy)];
+                while (pieces) {
+                    b = lsb(pieces);
+                    minorAttacks |= genAttacksBishop(all, Sq(b));
+                    pieces ^= b;
+                }
 
                 for (int i = 0; i < nrQuiets; i++) {
                     uint16_t move = quiets[i];
@@ -180,7 +195,10 @@ public:
                     if (followMove)
                         score += searcher->follow[1][followPiece][followTo][piece][to];
 
-                    if ((pawnAttacks & (1ULL << to)) && piece_type(piece) != PAWN)
+                    if (piece_type(piece) != PAWN && (pawnAttacks & (1ULL << to)))
+                        score -= 10 * seeVal[piece_type(piece)];
+
+                    if (piece_type(piece) >= ROOK && (minorAttacks & (1ULL << to)))
                         score -= 10 * seeVal[piece_type(piece)];
 
                     score += searcher->nodesSearched[from][to] / nodesSearchedDiv + 1000000; // the longer it takes a move to be refuted, the higher its chance to become the best move
