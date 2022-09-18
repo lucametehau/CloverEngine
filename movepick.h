@@ -117,9 +117,7 @@ public:
             }
 
             nrNoisy = m;
-
             sortMoves(nrNoisy, noisy, scores);
-
             index = 0;
             stage++;
         }
@@ -191,9 +189,7 @@ public:
                 }
 
                 nrQuiets = m;
-
                 sortMoves(nrQuiets, quiets, scores);
-
                 index = 0;
             }
 

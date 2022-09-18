@@ -27,9 +27,15 @@
 
 const std::string VERSION = "3.2-dev14"; /// 2.0 was "FM"
 
+struct Option {
+    std::string name;
+    float value;
+    int min, max;
+};
+
 class UCI {
 public:
-    UCI(Search& _searcher) : searcher(_searcher) {}
+    UCI(Search& _searcher);
     ~UCI() {}
 
 public:
@@ -37,6 +43,8 @@ public:
     void Bench();
 
 private:
+    std::vector <Option> options;
+
     void Uci();
     void UciNewGame(uint64_t ttSize);
     void IsReady();
@@ -46,10 +54,62 @@ private:
     void SetOption();
     void Eval();
     void Perft(int depth);
+    void addOption(std::string name, float value);
+    void setOptionF(std::istringstream &iss, float &value);
+    void setOptionI(std::istringstream &iss, int &value);
 
 private:
     Search& searcher;
 };
+
+UCI::UCI(Search& _searcher) : searcher(_searcher) {
+    addOption("RazorCoef", RazorCoef);
+    addOption("SNMPCoef1", SNMPCoef1);
+    addOption("SNMPCoef2", SNMPCoef2);
+    addOption("seeCoefQuiet", seeCoefQuiet);
+    addOption("seeCoefNoisy", seeCoefNoisy);
+    addOption("fpCoef", fpCoef);
+    addOption("chCoef", chCoef);
+    addOption("fhCoef", fhCoef);
+    addOption("fpHistDiv", fpHistDiv);
+    addOption("histDiv", histDiv);
+    addOption("histMax", histMax);
+    addOption("histMult", histMult);
+    addOption("histUpdateDiv", histUpdateDiv);
+    addOption("counterHistMult", counterHistMult);
+    addOption("tmScoreDiv", tmScoreDiv);
+    addOption("tmBestMoveStep", tmBestMoveStep);
+    addOption("tmBestMoveMax", tmBestMoveMax);
+    addOption("tmNodesSearchedMaxPercentage", tmNodesSearchedMaxPercentage);
+    addOption("lmrCapDiv", lmrCapDiv);
+    addOption("nmpR", nmpR);
+    addOption("nmpDepthDiv", nmpDepthDiv);
+    addOption("nmpEvalDiv", nmpEvalDiv);
+    addOption("nmpEvalLim", nmpEvalLim);
+    addOption("seeDepthCoef", seeDepthCoef);
+}
+
+void UCI::addOption(std::string name, float value) {
+    options.push_back({ name, value, -5000, 5000 });
+}
+
+void UCI::setOptionF(std::istringstream& iss, float& value) {
+    std::string valuestr;
+    iss >> valuestr;
+
+    float newValue;
+    iss >> newValue;
+    value = newValue;
+}
+
+void UCI::setOptionI(std::istringstream& iss, int& value) {
+    std::string valuestr;
+    iss >> valuestr;
+
+    int newValue;
+    iss >> newValue;
+    value = newValue;
+}
 
 void UCI::Uci_Loop() {
 
@@ -77,23 +137,16 @@ void UCI::Uci_Loop() {
         iss >> std::skipws >> cmd;
 
         if (cmd == "isready") {
-
             IsReady();
-
         }
         else if (cmd == "position") {
-
             std::string type;
 
             while (iss >> type) {
-
                 if (type == "startpos") {
-
                     searcher._setFen(START_POS_FEN);
-
                 }
                 else if (type == "fen") {
-
                     std::string fen;
 
                     for (int i = 0; i < 6; i++) {
@@ -103,32 +156,24 @@ void UCI::Uci_Loop() {
                     }
 
                     searcher._setFen(fen);
-
                 }
                 else if (type == "moves") {
-
                     std::string moveStr;
 
                     while (iss >> moveStr) {
-
                         int move = parseMove(searcher.board, moveStr);
 
                         searcher._makeMove(move);
                     }
-
                 }
             }
 
             searcher.board.print(); /// just to be sure
-
         }
         else if (cmd == "ucinewgame") {
-
             UciNewGame(ttSize);
-
         }
         else if (cmd == "go") {
-
             int depth = -1, movestogo = 30, movetime = -1;
             int time = -1, inc = 0;
             bool turn = searcher.board.turn;
@@ -136,49 +181,31 @@ void UCI::Uci_Loop() {
 
             std::string param;
 
-            ///
-
             while (iss >> param) {
-
                 if (param == "infinite") {
                     ;
                 }
                 else if (param == "binc" && turn == BLACK) {
-
                     iss >> inc;
-
                 }
                 else if (param == "winc" && turn == WHITE) {
-
                     iss >> inc;
-
                 }
                 else if (param == "wtime" && turn == WHITE) {
-
                     iss >> time;
-
                 }
                 else if (param == "btime" && turn == BLACK) {
-
                     iss >> time;
-
                 }
                 else if (param == "movestogo") {
-
                     iss >> movestogo;
-
                 }
                 else if (param == "movetime") {
-
                     iss >> movetime;
-
                 }
                 else if (param == "depth") {
-
                     iss >> depth;
-
                 }
-
             }
 
             if (movetime != -1) {
@@ -192,7 +219,6 @@ void UCI::Uci_Loop() {
             int goodTimeLim, hardTimeLim;
 
             if (time != -1) {
-
                 goodTimeLim = time / (movestogo + 1) + inc;
                 hardTimeLim = std::min(goodTimeLim * 5, time / std::min(4, movestogo));
 
@@ -208,25 +234,17 @@ void UCI::Uci_Loop() {
                 info->depth = DEPTH;
 
             Go(info);
-
         }
         else if (cmd == "quit") {
-
             return;
-
         }
         else if (cmd == "stop") {
-
             Stop();
-
         }
         else if (cmd == "uci") {
-
             Uci();
-
         }
         else if (cmd == "setoption") {
-
             std::string name, value;
 
             iss >> name;
@@ -235,13 +253,11 @@ void UCI::Uci_Loop() {
                 iss >> name;
 
             if (name == "Hash") {
-
                 iss >> value;
 
                 iss >> ttSize;
 
                 TT->initTable(ttSize * MB);
-
             }
             else if (name == "Threads") {
                 int nrThreads;
@@ -252,7 +268,6 @@ void UCI::Uci_Loop() {
 
                 searcher.setThreadCount(nrThreads - 1);
                 UciNewGame(ttSize);
-
             }
             else if (name == "SyzygyPath") {
                 std::string path;
@@ -262,8 +277,6 @@ void UCI::Uci_Loop() {
                 iss >> path;
 
                 tb_init(path.c_str());
-
-                //cout << "Set TB path to " << path << "\n";
             }
             else if (name == "MultiPV") {
                 iss >> value;
@@ -278,219 +291,97 @@ void UCI::Uci_Loop() {
             /// search params, used by ctt
 
             if (name == "RazorCoef") {
-                iss >> value;
-
-                int val;
-
-                iss >> val;
-                RazorCoef = val;
+                setOptionI(iss, RazorCoef);
             }
             else if (name == "SNMPCoef1") {
-                iss >> value;
-
-                int val;
-
-                iss >> val;
-                SNMPCoef1 = val;
+                setOptionI(iss, SNMPCoef1);
             }
             else if (name == "SNMPCoef2") {
-                iss >> value;
-
-                int val;
-
-                iss >> val;
-                SNMPCoef2 = val;
+                setOptionI(iss, SNMPCoef2);
             }
             else if (name == "seeCoefQuiet") {
-                iss >> value;
-
-                int val;
-
-                iss >> val;
-                seeCoefQuiet = val;
+                setOptionI(iss, seeCoefQuiet);
             }
             else if (name == "seeCoefNoisy") {
-                iss >> value;
-
-                int val;
-
-                iss >> val;
-                seeCoefNoisy = val;
+                setOptionI(iss, seeCoefNoisy);
             }
             else if (name == "fpCoef") {
-                iss >> value;
-
-                int val;
-
-                iss >> val;
-                fpCoef = val;
+                setOptionI(iss, fpCoef);
             }
             else if (name == "chCoef") {
-                iss >> value;
-
-                int val;
-
-                iss >> val;
-                chCoef = val;
+                setOptionI(iss, chCoef);
             }
             else if (name == "fhCoef") {
-                iss >> value;
-
-                int val;
-
-                iss >> val;
-                fhCoef = val;
+                setOptionI(iss, fhCoef);
             }
             else if (name == "fpHistDiv") {
-                iss >> value;
-
-                int val;
-
-                iss >> val;
-                fpHistDiv = val;
+                setOptionI(iss, fpHistDiv);
             }
             else if (name == "histDiv") {
-                iss >> value;
-
-                int val;
-
-                iss >> val;
-                histDiv = val;
+                setOptionI(iss, histDiv);
             }
             else if (name == "histMax") {
-                iss >> value;
-
-                int val;
-
-                iss >> val;
-                histMax = val;
+                setOptionI(iss, histMax);
             }
             else if (name == "histMult") {
-                iss >> value;
-
-                int val;
-
-                iss >> val;
-                histMult = val;
+                setOptionI(iss, histMult);
             }
             else if (name == "histUpdateDiv") {
-                iss >> value;
-
-                int val;
-
-                iss >> val;
-                histUpdateDiv = val;
+                setOptionI(iss, histUpdateDiv);
             }
             else if (name == "counterHistMult") {
-                iss >> value;
-
-                int val;
-
-                iss >> val;
-                counterHistMult = val;
+                setOptionI(iss, counterHistMult);
             }
             else if (name == "tmScoreDiv") {
-                iss >> value;
-
-                int val;
-
-                iss >> val;
-                tmScoreDiv = val;
-            }
-            else if (name == "tmScoreDiv") {
-                iss >> value;
-
-                int val;
-
-                iss >> val;
-                tmScoreDiv = val;
+                setOptionI(iss, tmScoreDiv);
             }
             else if (name == "tmBestMoveStep") {
-                iss >> value;
-
-                float val;
-
-                iss >> val;
-                tmBestMoveStep = val;
+                setOptionF(iss, tmBestMoveStep);
             }
             else if (name == "tmBestMoveMax") {
-                iss >> value;
-
-                float val;
-
-                iss >> val;
-                tmBestMoveMax = val;
+                setOptionF(iss, tmBestMoveMax);
             }
             else if (name == "tmNodesSearchedMaxPercentage") {
-                iss >> value;
-
-                float val;
-
-                iss >> val;
-                tmNodesSearchedMaxPercentage = val;
+                setOptionF(iss, tmNodesSearchedMaxPercentage);
             }
             else if (name == "lmrCapDiv") {
-                iss >> value;
-                float val;
-
-                iss >> val;
-                lmrCapDiv = val;
+                setOptionF(iss, lmrCapDiv);
             }
             else if (name == "nmpR") {
-                iss >> value;
-                int val;
-
-                iss >> val;
-                nmpR = val;
+                setOptionI(iss, nmpR);
             }
             else if (name == "nmpDepthDiv") {
-                iss >> value;
-                int val;
-
-                iss >> val;
-                nmpDepthDiv = val;
+                setOptionI(iss, nmpDepthDiv);
             }
             else if (name == "nmpEvalDiv") {
-                iss >> value;
-                int val;
-
-                iss >> val;
-                nmpEvalDiv = val;
+                setOptionI(iss, nmpEvalDiv);
             }
             else if (name == "nmpEvalLim") {
-                iss >> value;
-                int val;
-
-                iss >> val;
-                nmpEvalLim = val;
+                setOptionI(iss, nmpEvalLim);
+            }
+            else if (name == "seeDepthCoef") {
+                setOptionI(iss, seeDepthCoef);
             }
         }
         else if (cmd == "generate") {
-
             int nrThreads, nrFens;
             std::string path;
 
             iss >> nrFens >> nrThreads >> path;
 
             generateData(nrFens, nrThreads, path);
-
         }
         else if (cmd == "eval") {
-
             Eval();
-
         }
         else if (cmd == "perft") {
-
             int depth;
 
             iss >> depth;
 
             Perft(depth);
-
         }
         else if (cmd == "bench") {
-
             Bench();
         }
         else if (cmd == "see") {
@@ -502,10 +393,9 @@ void UCI::Uci_Loop() {
 
             std::cout << see(searcher.board, move, th) << std::endl;
         }
+
         if (info->quit)
             break;
-
-
     }
 }
 
@@ -516,6 +406,8 @@ void UCI::Uci() {
     std::cout << "option name Threads type spin default 1 min 1 max 256" << std::endl;
     std::cout << "option name SyzygyPath type string default <empty>" << std::endl;
     std::cout << "option name MultiPV type spin default 1 min 1 max 255" << std::endl;
+    for (auto& option : options)
+        std::cout << "option name " << option.name << " type spin default " << option.value << " min " << option.min << " max " << option.max << std::endl;
     std::cout << "uciok" << std::endl;
 }
 

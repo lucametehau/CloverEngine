@@ -223,11 +223,11 @@ static void unmap_file(char *data, uint64 mapping)
         return;
     if (!UnmapViewOfFile(data))
     {
-        fprintf(stderr, "unmap failed, error code %d", GetLastError());
+        fprintf(stderr, "unmap failed, error code %lu", GetLastError());
     }
     if (!CloseHandle((HANDLE)mapping))
     {
-        fprintf(stderr, "CloseHandle failed, error code %d", GetLastError());
+        fprintf(stderr, "CloseHandle failed, error code %lu", GetLastError());
     }
 }
 #endif

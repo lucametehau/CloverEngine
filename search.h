@@ -56,11 +56,11 @@ bool Search::checkForStop() {
     }
 
     checkCount++;
-    checkCount &= 1023;
 
-    if (!checkCount) {
+    if (checkCount == (1 << 10)) {
         if (info->timeset && getTime() > info->startTime + info->hardTimeLim)
             flag |= TERMINATED_BY_TIME;
+        checkCount = 0;
     }
 
     return (flag & TERMINATED_SEARCH);
@@ -457,7 +457,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
     uint16_t counter = (ply == 0 || !Stack[ply - 1].move ? NULLMOVE : cmTable[1 ^ board.turn][Stack[ply - 1].piece][sqTo(Stack[ply - 1].move)]);
 
-    Movepick picker(ttMove, killers[ply][0], killers[ply][1], counter, -20 * depth);
+    Movepick picker(ttMove, killers[ply][0], killers[ply][1], counter, -seeDepthCoef * depth);
 
     uint16_t move;
     //bool singular = false;

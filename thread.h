@@ -39,6 +39,7 @@ int SNMPCoef2 = 25;
 
 int seeCoefQuiet = 80;
 int seeCoefNoisy = 18;
+int seeDepthCoef = 20;
 
 int fpMargin = 100;
 int fpCoef = 103;
