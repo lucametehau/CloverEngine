@@ -41,6 +41,7 @@ int seeCoefQuiet = 71;
 int seeCoefNoisy = 10;
 int seeDepthCoef = 15;
 
+
 int fpMargin = 100;
 int fpCoef = 103;
 
