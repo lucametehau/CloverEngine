@@ -37,9 +37,9 @@ int RazorCoef = 381;
 int SNMPCoef1 = 97;
 int SNMPCoef2 = 25;
 
-int seeCoefQuiet = 73;
-int seeCoefNoisy = 11;
-int seeDepthCoef = 17;
+int seeCoefQuiet = 71;
+int seeCoefNoisy = 10;
+int seeDepthCoef = 15;
 
 int fpMargin = 100;
 int fpCoef = 103;
