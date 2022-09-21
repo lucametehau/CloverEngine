@@ -29,8 +29,7 @@ int seeVal[] = { 0, 93, 308, 346, 521, 994, 20000 };
 
 int nmpR = 4;
 int nmpDepthDiv = 6;
-int nmpEvalDiv = 100;
-int nmpEvalLim = 3;
+int nmpEvalDiv = 130;
 
 int RazorCoef = 381;
 
@@ -54,14 +53,14 @@ int fpHistDiv = 512;
 
 int nodesSearchedDiv = 10000;
 
-float lmrMargin = 1;
-float lmrDiv = 2.5;
-float lmrCapDiv = 1.5;
+int lmrMargin = 10;
+int lmrDiv = 25;
+int lmrCapDiv = 15;
 
 int tmScoreDiv = 111;
-float tmBestMoveStep = 0.205;
-float tmBestMoveMax = 2.25;
-float tmNodesSearchedMaxPercentage = 1.57;
+int tmBestMoveStep = 205;
+int tmBestMoveMax = 2250;
+int tmNodesSearchedMaxPercentage = 1570;
 
 int quiesceFutilityCoef = 200;
 
@@ -91,12 +90,9 @@ public:
     void startPrincipalSearch(Info* info);
     void stopPrincipalSearch();
     void isReady();
-    int getThreadCount();
 
     void _setFen(std::string fen);
     void _makeMove(uint16_t move);
-
-    int getKingDanger(Board& board, int color);
 
     std::pair <int, uint16_t> startSearch(Info* info);
     int quiesce(int alpha, int beta, bool useTT = true); /// for quiet position check (tuning)

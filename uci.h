@@ -29,7 +29,7 @@ const std::string VERSION = "3.2-dev14"; /// 2.0 was "FM"
 
 struct Option {
     std::string name;
-    float value;
+    int value;
     int min, max;
 };
 
@@ -54,8 +54,7 @@ private:
     void SetOption();
     void Eval();
     void Perft(int depth);
-    void addOption(std::string name, float value);
-    void setOptionF(std::istringstream &iss, float &value);
+    void addOption(std::string name, int value);
     void setOptionI(std::istringstream &iss, int &value);
 
 private:
@@ -86,7 +85,6 @@ UCI::UCI(Search& _searcher) : searcher(_searcher) {
     addOption("nmpR", nmpR);
     addOption("nmpDepthDiv", nmpDepthDiv);
     addOption("nmpEvalDiv", nmpEvalDiv);
-    addOption("nmpEvalLim", nmpEvalLim);
     addOption("seeDepthCoef", seeDepthCoef);
     addOption("nodesSearchedDiv", nodesSearchedDiv);
     addOption("quiesceFutilityCoef", quiesceFutilityCoef);
@@ -97,17 +95,8 @@ UCI::UCI(Search& _searcher) : searcher(_searcher) {
     addOption("seeValQueen", seeVal[QUEEN]);
 }
 
-void UCI::addOption(std::string name, float value) {
+void UCI::addOption(std::string name, int value) {
     options.push_back({ name, value, -1000000, 1000000 });
-}
-
-void UCI::setOptionF(std::istringstream& iss, float& value) {
-    std::string valuestr;
-    iss >> valuestr;
-
-    float newValue;
-    iss >> newValue;
-    value = newValue;
 }
 
 void UCI::setOptionI(std::istringstream& iss, int& value) {
@@ -347,16 +336,16 @@ void UCI::Uci_Loop() {
                 setOptionI(iss, tmScoreDiv);
             }
             else if (name == "tmBestMoveStep") {
-                setOptionF(iss, tmBestMoveStep);
+                setOptionI(iss, tmBestMoveStep);
             }
             else if (name == "tmBestMoveMax") {
-                setOptionF(iss, tmBestMoveMax);
+                setOptionI(iss, tmBestMoveMax);
             }
             else if (name == "tmNodesSearchedMaxPercentage") {
-                setOptionF(iss, tmNodesSearchedMaxPercentage);
+                setOptionI(iss, tmNodesSearchedMaxPercentage);
             }
             else if (name == "lmrCapDiv") {
-                setOptionF(iss, lmrCapDiv);
+                setOptionI(iss, lmrCapDiv);
             }
             else if (name == "nmpR") {
                 setOptionI(iss, nmpR);
@@ -366,9 +355,6 @@ void UCI::Uci_Loop() {
             }
             else if (name == "nmpEvalDiv") {
                 setOptionI(iss, nmpEvalDiv);
-            }
-            else if (name == "nmpEvalLim") {
-                setOptionI(iss, nmpEvalLim);
             }
             else if (name == "seeDepthCoef") {
                 setOptionI(iss, seeDepthCoef);

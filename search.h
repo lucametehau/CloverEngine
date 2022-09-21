@@ -34,7 +34,7 @@ Search::Search() : threads(nullptr), params(nullptr)
 
     for (int i = 0; i < 64; i++) { /// depth
         for (int j = 0; j < 64; j++) /// moves played
-            lmrRed[i][j] = lmrMargin + log(i) * log(j) / lmrDiv;
+            lmrRed[i][j] = 1.0 * lmrMargin / 10 + log(i) * log(j) / (1.0 * lmrDiv / 10);
     }
     for (int i = 1; i < 9; i++) {
         lmrCnt[0][i] = (3 + i * i) / 2;
@@ -394,7 +394,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     if (!pvNode && !isCheck && !excluded && (quietUs || eval - 100 * depth > beta) && eval >= beta && eval >= Stack[ply].eval && depth >= 2 && Stack[ply - 1].move &&
         (board.pieces[board.turn] ^ board.bb[getType(PAWN, board.turn)] ^ board.bb[getType(KING, board.turn)]) &&
         (!ttHit || !(bound & UPPER) || ttValue >= beta)) {
-        int R = nmpR + depth / nmpDepthDiv + std::min(nmpEvalLim, (eval - beta) / nmpEvalDiv) + improving;
+        int R = nmpR + depth / nmpDepthDiv + (eval - beta) / nmpEvalDiv + improving;
 
         Stack[ply].move = NULLMOVE;
         Stack[ply].piece = 0;
@@ -550,7 +550,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
                 R -= std::max(-2, std::min(2, (H.h + H.ch + H.fh) / histDiv)); /// reduce based on move history
             }
             else if (!pvNode) {
-                R = lmrRed[std::min(63, depth)][std::min(63, played)] / lmrCapDiv;
+                R = lmrRed[std::min(63, depth)][std::min(63, played)] / (1.0 * lmrCapDiv / 10);
 
                 R += !improving; /// not on pv or not improving
 
@@ -820,11 +820,11 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv) {
             killers[0][0] = bestMove;
         }
 
-        updateHistory(this, quiets, nrQuiets, 0, depth * depth);
+        updateHistory(this, quiets, nrQuiets, 0, getHistoryBonus(depth));
     }
 
     if (best >= beta)
-        updateCapHistory(this, captures, nrCaptures, bestMove, 0, depth * depth);
+        updateCapHistory(this, captures, nrCaptures, bestMove, 0, getHistoryBonus(depth));
 
     /// update tt only if we aren't in a singular search
 
@@ -941,9 +941,6 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
                 beta = INF;
             }
 
-            //contempt = (board.turn == WHITE ? lastScore / 20 : -lastScore / 20);
-            //std::cout << "CONTEMPT = " << contempt << "\n";
-
             int depth = tDepth;
             while (true) {
 
@@ -1016,15 +1013,19 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
         if (principalSearcher && !(flag & TERMINATED_SEARCH)) {
             /// adjust time if score is dropping (and maybe if it's jumping)
             double scoreChange = 1.0, bestMoveStreak = 1.0, nodesSearchedPercentage = 1.0;
+
+            float _tmNodesSearchedMaxPercentage = 1.0 * tmNodesSearchedMaxPercentage / 1000;
+            float _tmBestMoveMax = 1.0 * tmBestMoveMax / 1000, _tmBestMoveStep = 1.0 * tmBestMoveStep / 1000;
+
             if (tDepth >= 9) {
                 scoreChange = std::max(0.5, std::min(1.0 + 1.0 * (mainThreadScore - scores[1]) / tmScoreDiv, 1.5));
 
                 bestMoveCnt = (bestMoves[1] == mainThreadBestMove ? bestMoveCnt + 1 : 1);
 
                 nodesSearchedPercentage = 1.0 * nodesSearched[sqFrom(bestMoves[1])][sqTo(bestMoves[1])] / nodes;
-                nodesSearchedPercentage = tmNodesSearchedMaxPercentage - nodesSearchedPercentage;
+                nodesSearchedPercentage = _tmNodesSearchedMaxPercentage - nodesSearchedPercentage;
 
-                bestMoveStreak = tmBestMoveMax - tmBestMoveStep * std::min(10, bestMoveCnt);
+                bestMoveStreak = _tmBestMoveMax - _tmBestMoveStep * std::min(10, bestMoveCnt);
             }
 
             info->stopTime = info->startTime + info->goodTimeLim * scoreChange * bestMoveStreak * nodesSearchedPercentage;
@@ -1180,10 +1181,6 @@ void Search::setThreadCount(int nrThreads) {
 
     for (int i = 0; i < nrThreads; i++)
         threads[i] = std::thread(&Search::lazySMPSearcher, &params[i]);
-}
-
-int Search::getThreadCount() { /// for debugging (i got a crash related to threadCount)
-    return threadCount + 1;
 }
 
 void Search::lazySMPSearcher() {
