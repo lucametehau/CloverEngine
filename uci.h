@@ -77,6 +77,7 @@ UCI::UCI(Search& _searcher) : searcher(_searcher) {
     addOption("histMult", histMult);
     addOption("histUpdateDiv", histUpdateDiv);
     addOption("counterHistMult", counterHistMult);
+    addOption("counterHistUpdateDiv", counterHistUpdateDiv);
     addOption("tmScoreDiv", tmScoreDiv);
     addOption("tmBestMoveStep", tmBestMoveStep);
     addOption("tmBestMoveMax", tmBestMoveMax);
@@ -87,10 +88,17 @@ UCI::UCI(Search& _searcher) : searcher(_searcher) {
     addOption("nmpEvalDiv", nmpEvalDiv);
     addOption("nmpEvalLim", nmpEvalLim);
     addOption("seeDepthCoef", seeDepthCoef);
+    addOption("nodesSearchedDiv", nodesSearchedDiv);
+    addOption("quiesceFutilityCoef", quiesceFutilityCoef);
+    addOption("seeValPawn", seeVal[PAWN]);
+    addOption("seeValKnight", seeVal[KNIGHT]);
+    addOption("seeValBishop", seeVal[BISHOP]);
+    addOption("seeValRook", seeVal[ROOK]);
+    addOption("seeValQueen", seeVal[QUEEN]);
 }
 
 void UCI::addOption(std::string name, float value) {
-    options.push_back({ name, value, -5000, 5000 });
+    options.push_back({ name, value, -1000000, 1000000 });
 }
 
 void UCI::setOptionF(std::istringstream& iss, float& value) {
@@ -332,6 +340,9 @@ void UCI::Uci_Loop() {
             else if (name == "counterHistMult") {
                 setOptionI(iss, counterHistMult);
             }
+            else if (name == "counterHistUpdateDiv") {
+                setOptionI(iss, counterHistUpdateDiv);
+            }
             else if (name == "tmScoreDiv") {
                 setOptionI(iss, tmScoreDiv);
             }
@@ -361,6 +372,24 @@ void UCI::Uci_Loop() {
             }
             else if (name == "seeDepthCoef") {
                 setOptionI(iss, seeDepthCoef);
+            }
+            else if (name == "nodesSearchedDiv") {
+                setOptionI(iss, nodesSearchedDiv);
+            }
+            else if (name == "seeValPawn") {
+                setOptionI(iss, seeVal[PAWN]);
+            }
+            else if (name == "seeValKnight") {
+                setOptionI(iss, seeVal[KNIGHT]);
+            }
+            else if (name == "seeValBishop") {
+                setOptionI(iss, seeVal[BISHOP]);
+            }
+            else if (name == "seeValRook") {
+                setOptionI(iss, seeVal[ROOK]);
+            }
+            else if (name == "seeValQueen") {
+                setOptionI(iss, seeVal[QUEEN]);
             }
         }
         else if (cmd == "generate") {

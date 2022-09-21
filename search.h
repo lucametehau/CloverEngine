@@ -175,7 +175,7 @@ int Search::quiesce(int alpha, int beta, bool useTT) {
         if (bound == EXACT || (bound == LOWER && ttValue > eval) || (bound == UPPER && ttValue < eval))
             best = ttValue;
 
-        futilityValue = best + 200;
+        futilityValue = best + quiesceFutilityCoef;
     }
 
     /// stand-pat

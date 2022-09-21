@@ -25,7 +25,7 @@
 
 /// search params
 
-
+int seeVal[] = { 0, 93, 308, 346, 521, 994, 20000 };
 
 int nmpR = 4;
 int nmpDepthDiv = 6;
@@ -62,6 +62,8 @@ int tmScoreDiv = 111;
 float tmBestMoveStep = 0.205;
 float tmBestMoveMax = 2.25;
 float tmNodesSearchedMaxPercentage = 1.57;
+
+int quiesceFutilityCoef = 200;
 
 const int TERMINATED_BY_USER = 1;
 const int TERMINATED_BY_TIME = 2;
