@@ -25,7 +25,7 @@
 #include "perft.h"
 #include "generate.h"
 
-const std::string VERSION = "3.2-dev14"; /// 2.0 was "FM"
+const std::string VERSION = "3.2-dev15"; /// 2.0 was "FM"
 
 struct Option {
     std::string name;
@@ -93,6 +93,9 @@ UCI::UCI(Search& _searcher) : searcher(_searcher) {
     addOption("seeValBishop", seeVal[BISHOP]);
     addOption("seeValRook", seeVal[ROOK]);
     addOption("seeValQueen", seeVal[QUEEN]);
+    addOption("probcutDepth", probcutDepth);
+    addOption("probcutMargin", probcutMargin);
+    addOption("probcutR", probcutR);
 }
 
 void UCI::addOption(std::string name, int value) {
@@ -376,6 +379,15 @@ void UCI::Uci_Loop() {
             }
             else if (name == "seeValQueen") {
                 setOptionI(iss, seeVal[QUEEN]);
+            }
+            else if (name == "probcutDepth") {
+                setOptionI(iss, probcutDepth);
+            }
+            else if (name == "probcutMargin") {
+                setOptionI(iss, probcutMargin);
+            }
+            else if (name == "probcutR") {
+                setOptionI(iss, probcutR);
             }
         }
         else if (cmd == "generate") {

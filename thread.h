@@ -40,6 +40,9 @@ int seeCoefQuiet = 71;
 int seeCoefNoisy = 10;
 int seeDepthCoef = 15;
 
+int probcutDepth = 10;
+int probcutMargin = 100;
+int probcutR = 3;
 
 int fpMargin = 100;
 int fpCoef = 103;

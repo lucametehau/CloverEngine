@@ -419,8 +419,8 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
     /// probcut
 
-    if (!pvNode && !isCheck && depth >= 5 && abs(beta) < MATE) {
-        int cutBeta = beta + 100;
+    if (!pvNode && !isCheck && depth >= probcutDepth && abs(beta) < MATE) {
+        int cutBeta = beta + probcutMargin;
         Movepick noisyPicker(NULLMOVE, NULLMOVE, NULLMOVE, NULLMOVE, cutBeta - Stack[ply].eval);
 
         uint16_t move;
@@ -439,7 +439,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
             int score = -quiesce(-cutBeta, -cutBeta + 1);
 
             if (score >= cutBeta) /// then we should try searching this capture
-                score = -search(-cutBeta, -cutBeta + 1, depth - 4, !cutNode);
+                score = -search(-cutBeta, -cutBeta + 1, depth - probcutR, !cutNode);
 
             undoMove(board, move);
 
