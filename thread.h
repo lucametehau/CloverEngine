@@ -58,8 +58,8 @@ int fpHistDiv = 512;
 int nodesSearchedDiv = 10000;
 
 int lmrMargin = 10;
-int lmrDiv = 25;
-int lmrCapDiv = 15;
+int lmrDiv = 23;
+int lmrCapDiv = 13;
 
 int tmScoreDiv = 111;
 int tmBestMoveStep = 205;

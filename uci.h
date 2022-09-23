@@ -96,6 +96,9 @@ UCI::UCI(Search& _searcher) : searcher(_searcher) {
     addOption("probcutDepth", probcutDepth);
     addOption("probcutMargin", probcutMargin);
     addOption("probcutR", probcutR);
+    addOption("lmrMargin", lmrMargin);
+    addOption("lmrDiv", lmrDiv);
+    addOption("lmrCapDiv", lmrCapDiv);
 }
 
 void UCI::addOption(std::string name, int value) {
