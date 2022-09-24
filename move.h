@@ -522,7 +522,6 @@ inline int genLegal(Board& board, uint16_t* moves) {
                     mask ^= b;
                 }
             }
-            /// intentional fall through
         case KNIGHT:
             capMask = board.checkers;
             quietMask = 0;
@@ -745,14 +744,7 @@ inline int genLegal(Board& board, uint16_t* moves) {
     return nrMoves;
 }
 
-
-
-
-
-
-
 /// noisy moves generator
-
 
 inline int genLegalNoisy(Board& board, uint16_t* moves) {
     int nrMoves = 0;
@@ -826,7 +818,6 @@ inline int genLegalNoisy(Board& board, uint16_t* moves) {
                     mask ^= b;
                 }
             }
-            /// intentional fall through
         case KNIGHT:
             capMask = board.checkers;
             quietMask = 0;
@@ -996,9 +987,6 @@ inline int genLegalNoisy(Board& board, uint16_t* moves) {
 
     return nrMoves;
 }
-
-
-
 
 /// generate quiet moves
 
