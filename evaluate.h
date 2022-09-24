@@ -24,9 +24,7 @@
 const int TEMPO = 20;
 
 int evaluate(Board &board) {
-    //NetInput input = board.toNetInput();
     int eval = int(board.NN.getOutput(board.turn));
-
     //board.print();
     //std::cout << board.turn << " " << eval << "\n";
 

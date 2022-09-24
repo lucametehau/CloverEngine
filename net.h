@@ -22,6 +22,7 @@
 #include <random>
 #include <algorithm>
 #include <cmath>
+#include <cstring>
 #include <random>
 #include <immintrin.h>
 
