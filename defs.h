@@ -123,6 +123,12 @@ const int castleRightsDelta[2][64] = {
   }
 };
 
+const int oppositePiece[13] = {
+    0,
+    WP, WN, WB, WR, WQ, WK,
+    BP, BN, BB, BR, BQ, BK
+};
+
 inline long double getTime() { /// thanks Terje!
     struct timespec time;
     clock_gettime(CLOCK_MONOTONIC, &time);
@@ -137,8 +143,13 @@ inline int piece_type(int piece) {
     return (piece > 6 ? piece - 6 : piece);
 }
 
-inline int netInd(int piece, int sq/*, int kingSide*/) {
-    return /*12 * 64 * kingSide + */64 * (piece - 1) + sq;
+inline int16_t netInd(int piece, int sq, int kingSq, int side) {
+    if (side == BLACK) {
+        //kingSq ^= 56;
+        sq ^= 56;
+        piece = oppositePiece[piece];
+    }
+    return 2 * 64 * (piece - 1) + 64 * ((kingSq & 4) > 0) + sq;
 }
 
 inline int hashVal(int value, int ply) {

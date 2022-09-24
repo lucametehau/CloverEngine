@@ -25,11 +25,17 @@
 #include "perft.h"
 #include "generate.h"
 
-const std::string VERSION = "3.1"; /// 2.0 was "FM"
+const std::string VERSION = "3.2-dev15"; /// 2.0 was "FM"
+
+struct Option {
+    std::string name;
+    int value;
+    int min, max;
+};
 
 class UCI {
 public:
-    UCI(Search& _searcher) : searcher(_searcher) {}
+    UCI(Search& _searcher);
     ~UCI() {}
 
 public:
@@ -37,6 +43,8 @@ public:
     void Bench();
 
 private:
+    std::vector <Option> options;
+
     void Uci();
     void UciNewGame(uint64_t ttSize);
     void IsReady();
@@ -46,14 +54,69 @@ private:
     void SetOption();
     void Eval();
     void Perft(int depth);
+    void addOption(std::string name, int value);
+    void setOptionI(std::istringstream &iss, int &value);
 
 private:
     Search& searcher;
 };
 
+UCI::UCI(Search& _searcher) : searcher(_searcher) {
+    addOption("RazorCoef", RazorCoef);
+    addOption("SNMPCoef1", SNMPCoef1);
+    addOption("SNMPCoef2", SNMPCoef2);
+    addOption("seeCoefQuiet", seeCoefQuiet);
+    addOption("seeCoefNoisy", seeCoefNoisy);
+    addOption("fpCoef", fpCoef);
+    addOption("chCoef", chCoef);
+    addOption("fhCoef", fhCoef);
+    addOption("fpHistDiv", fpHistDiv);
+    addOption("histDiv", histDiv);
+    addOption("histMax", histMax);
+    addOption("histMult", histMult);
+    addOption("histUpdateDiv", histUpdateDiv);
+    addOption("counterHistMult", counterHistMult);
+    addOption("counterHistUpdateDiv", counterHistUpdateDiv);
+    addOption("tmScoreDiv", tmScoreDiv);
+    addOption("tmBestMoveStep", tmBestMoveStep);
+    addOption("tmBestMoveMax", tmBestMoveMax);
+    addOption("tmNodesSearchedMaxPercentage", tmNodesSearchedMaxPercentage);
+    addOption("lmrCapDiv", lmrCapDiv);
+    addOption("nmpR", nmpR);
+    addOption("nmpDepthDiv", nmpDepthDiv);
+    addOption("nmpEvalDiv", nmpEvalDiv);
+    addOption("seeDepthCoef", seeDepthCoef);
+    addOption("nodesSearchedDiv", nodesSearchedDiv);
+    addOption("quiesceFutilityCoef", quiesceFutilityCoef);
+    addOption("seeValPawn", seeVal[PAWN]);
+    addOption("seeValKnight", seeVal[KNIGHT]);
+    addOption("seeValBishop", seeVal[BISHOP]);
+    addOption("seeValRook", seeVal[ROOK]);
+    addOption("seeValQueen", seeVal[QUEEN]);
+    addOption("probcutDepth", probcutDepth);
+    addOption("probcutMargin", probcutMargin);
+    addOption("probcutR", probcutR);
+    addOption("lmrMargin", lmrMargin);
+    addOption("lmrDiv", lmrDiv);
+    addOption("lmrCapDiv", lmrCapDiv);
+}
+
+void UCI::addOption(std::string name, int value) {
+    options.push_back({ name, value, -1000000, 1000000 });
+}
+
+void UCI::setOptionI(std::istringstream& iss, int& value) {
+    std::string valuestr;
+    iss >> valuestr;
+
+    int newValue;
+    iss >> newValue;
+    value = newValue;
+}
+
 void UCI::Uci_Loop() {
 
-    uint64_t ttSize = 128;
+    uint64_t ttSize = 8;
 
     std::cout << "Clover " << VERSION << " by Luca Metehau" << std::endl;
 
@@ -72,360 +135,297 @@ void UCI::Uci_Loop() {
 
         std::istringstream iss(input);
 
-        {
+        std::string cmd;
 
-            std::string cmd;
+        iss >> std::skipws >> cmd;
 
-            iss >> std::skipws >> cmd;
+        if (cmd == "isready") {
+            IsReady();
+        }
+        else if (cmd == "position") {
+            std::string type;
 
-            if (cmd == "isready") {
+            while (iss >> type) {
+                if (type == "startpos") {
+                    searcher._setFen(START_POS_FEN);
+                }
+                else if (type == "fen") {
+                    std::string fen;
 
-                IsReady();
-
-            }
-            else if (cmd == "position") {
-
-                std::string type;
-
-                while (iss >> type) {
-
-                    if (type == "startpos") {
-
-                        searcher._setFen(START_POS_FEN);
-
+                    for (int i = 0; i < 6; i++) {
+                        std::string component;
+                        iss >> component;
+                        fen += component + " ";
                     }
-                    else if (type == "fen") {
 
-                        std::string fen;
+                    searcher._setFen(fen);
+                }
+                else if (type == "moves") {
+                    std::string moveStr;
 
-                        for (int i = 0; i < 6; i++) {
-                            std::string component;
-                            iss >> component;
-                            fen += component + " ";
-                        }
+                    while (iss >> moveStr) {
+                        int move = parseMove(searcher.board, moveStr);
 
-                        searcher._setFen(fen);
-
-                    }
-                    else if (type == "moves") {
-
-                        std::string movestr;
-
-                        while (iss >> movestr) {
-
-                            int move = ParseMove(searcher.board, movestr);
-
-                            searcher._makeMove(move);
-                        }
-
+                        searcher._makeMove(move);
                     }
                 }
-
-                searcher.board.print(); /// just to be sure
-
             }
-            else if (cmd == "ucinewgame") {
 
-                UciNewGame(ttSize);
+            searcher.board.print(); /// just to be sure
+        }
+        else if (cmd == "ucinewgame") {
+            UciNewGame(ttSize);
+        }
+        else if (cmd == "go") {
+            int depth = -1, movestogo = 30, movetime = -1;
+            int time = -1, inc = 0;
+            bool turn = searcher.board.turn;
+            info->timeset = 0;
 
-            }
-            else if (cmd == "go") {
+            std::string param;
 
-                int depth = -1, movestogo = 30, movetime = -1;
-                int time = -1, inc = 0;
-                bool turn = searcher.board.turn;
-                info->timeset = 0;
-
-                std::string param;
-
-                ///
-
-                while (iss >> param) {
-
-                    if (param == "infinite") {
-                        ;
-                    }
-                    else if (param == "binc" && turn == BLACK) {
-
-                        iss >> inc;
-
-                    }
-                    else if (param == "winc" && turn == WHITE) {
-
-                        iss >> inc;
-
-                    }
-                    else if (param == "wtime" && turn == WHITE) {
-
-                        iss >> time;
-
-                    }
-                    else if (param == "btime" && turn == BLACK) {
-
-                        iss >> time;
-
-                    }
-                    else if (param == "movestogo") {
-
-                        iss >> movestogo;
-
-                    }
-                    else if (param == "movetime") {
-
-                        iss >> movetime;
-
-                    }
-                    else if (param == "depth") {
-
-                        iss >> depth;
-
-                    }
-
+            while (iss >> param) {
+                if (param == "infinite") {
+                    ;
                 }
-
-                if (movetime != -1) {
-                    time = movetime;
-                    movestogo = 60;
+                else if (param == "binc" && turn == BLACK) {
+                    iss >> inc;
                 }
-
-                info->startTime = getTime();
-                info->depth = depth;
-
-                int goodTimeLim, hardTimeLim;
-
-                if (time != -1) {
-
-                    goodTimeLim = time / (movestogo + 1) + inc;
-                    hardTimeLim = std::min(goodTimeLim * 5, time / std::min(4, movestogo));
-
-                    hardTimeLim = std::max(10, std::min(hardTimeLim, time));
-                    goodTimeLim = std::max(1, std::min(hardTimeLim, goodTimeLim));
-                    info->goodTimeLim = goodTimeLim;
-                    info->hardTimeLim = hardTimeLim;
-                    info->timeset = 1;
-                    info->stopTime = info->startTime + goodTimeLim;
-                    //std::cout << info->goodTimeLim << " " << info->hardTimeLim << "\n";
+                else if (param == "winc" && turn == WHITE) {
+                    iss >> inc;
                 }
-
-                if (depth == -1)
-                    info->depth = DEPTH;
-
-                Go(info);
-
+                else if (param == "wtime" && turn == WHITE) {
+                    iss >> time;
+                }
+                else if (param == "btime" && turn == BLACK) {
+                    iss >> time;
+                }
+                else if (param == "movestogo") {
+                    iss >> movestogo;
+                }
+                else if (param == "movetime") {
+                    iss >> movetime;
+                }
+                else if (param == "depth") {
+                    iss >> depth;
+                }
             }
-            else if (cmd == "quit") {
 
-                return;
-
+            if (movetime != -1) {
+                time = movetime;
+                movestogo = 60;
             }
-            else if (cmd == "stop") {
 
-                Stop();
+            info->startTime = getTime();
+            info->depth = depth;
 
+            int goodTimeLim, hardTimeLim;
+
+            if (time != -1) {
+                goodTimeLim = time / (movestogo + 1) + inc;
+                hardTimeLim = std::min(goodTimeLim * 5, time / std::min(4, movestogo));
+
+                hardTimeLim = std::max(10, std::min(hardTimeLim, time));
+                goodTimeLim = std::max(1, std::min(hardTimeLim, goodTimeLim));
+                info->goodTimeLim = goodTimeLim;
+                info->hardTimeLim = hardTimeLim;
+                info->timeset = 1;
+                info->stopTime = info->startTime + goodTimeLim;
             }
-            else if (cmd == "uci") {
 
-                Uci();
+            if (depth == -1)
+                info->depth = DEPTH;
 
-            }
-            else if (cmd == "setoption") {
+            Go(info);
+        }
+        else if (cmd == "quit") {
+            return;
+        }
+        else if (cmd == "stop") {
+            Stop();
+        }
+        else if (cmd == "uci") {
+            Uci();
+        }
+        else if (cmd == "setoption") {
+            std::string name, value;
 
-                std::string name, value;
+            iss >> name;
 
+            if (name == "name")
                 iss >> name;
 
-                if (name == "name")
-                    iss >> name;
+            if (name == "Hash") {
+                iss >> value;
 
-                if (name == "Hash") {
+                iss >> ttSize;
 
-                    iss >> value;
-
-                    iss >> ttSize;
-
-                    TT->initTable(ttSize * MB);
-
-                }
-                else if (name == "Threads") {
-                    int nrThreads;
-
-                    iss >> value;
-
-                    iss >> nrThreads;
-
-                    searcher.setThreadCount(nrThreads - 1);
-                    UciNewGame(ttSize);
-
-                }
-                else if (name == "SyzygyPath") {
-                    std::string path;
-
-                    iss >> value;
-
-                    iss >> path;
-
-                    tb_init(path.c_str());
-
-                    //cout << "Set TB path to " << path << "\n";
-                }
-
-                /// search params, used by ctt
-
-                if (name == "RazorCoef") {
-                    iss >> value;
-
-                    int val;
-
-                    iss >> val;
-                    RazorCoef = val;
-                }
-                else if (name == "SNMPCoef1") {
-                    iss >> value;
-
-                    int val;
-
-                    iss >> val;
-                    SNMPCoef1 = val;
-                }
-                else if (name == "SNMPCoef2") {
-                    iss >> value;
-
-                    int val;
-
-                    iss >> val;
-                    SNMPCoef2 = val;
-                }
-                else if (name == "seeCoefQuiet") {
-                    iss >> value;
-
-                    int val;
-
-                    iss >> val;
-                    seeCoefQuiet = val;
-                }
-                else if (name == "seeCoefNoisy") {
-                    iss >> value;
-
-                    int val;
-
-                    iss >> val;
-                    seeCoefNoisy = val;
-                }
-                else if (name == "fpCoef") {
-                    iss >> value;
-
-                    int val;
-
-                    iss >> val;
-                    fpCoef = val;
-                }
-                else if (name == "chCoef") {
-                    iss >> value;
-
-                    int val;
-
-                    iss >> val;
-                    chCoef = val;
-                }
-                else if (name == "fhCoef") {
-                    iss >> value;
-
-                    int val;
-
-                    iss >> val;
-                    fhCoef = val;
-                }
-                else if (name == "fpHistDiv") {
-                    iss >> value;
-
-                    int val;
-
-                    iss >> val;
-                    fpHistDiv = val;
-                }
-                else if (name == "histDiv") {
-                    iss >> value;
-
-                    int val;
-
-                    iss >> val;
-                    histDiv = val;
-                }
-                else if (name == "histMax") {
-                    iss >> value;
-
-                    int val;
-
-                    iss >> val;
-                    histMax = val;
-                }
-                else if (name == "histMult") {
-                    iss >> value;
-
-                    int val;
-
-                    iss >> val;
-                    histMult = val;
-                }
-                else if (name == "histUpdateDiv") {
-                    iss >> value;
-
-                    int val;
-
-                    iss >> val;
-                    histUpdateDiv = val;
-                }
-                else if (name == "counterHistMult") {
-                    iss >> value;
-
-                    int val;
-
-                    iss >> val;
-                    counterHistMult = val;
-                }
-                else if (name == "kdDiv") {
-                    iss >> value;
-
-                    int val;
-
-                    iss >> val;
-                    kdDiv = val;
-                }
-
+                TT->initTable(ttSize * MB);
             }
-            else if (cmd == "generate") {
+            else if (name == "Threads") {
+                int nrThreads;
 
-                int nrThreads, nrFens;
+                iss >> value;
+
+                iss >> nrThreads;
+
+                searcher.setThreadCount(nrThreads - 1);
+                UciNewGame(ttSize);
+            }
+            else if (name == "SyzygyPath") {
                 std::string path;
 
-                iss >> nrFens >> nrThreads >> path;
+                iss >> value;
 
-                generateData(nrFens, nrThreads, path);
+                iss >> path;
 
+                tb_init(path.c_str());
             }
-            else if (cmd == "eval") {
+            else if (name == "MultiPV") {
+                iss >> value;
 
-                Eval();
+                int multipv;
 
+                iss >> multipv;
+
+                info->multipv = multipv;
             }
-            else if (cmd == "perft") {
 
-                int depth;
+            /// search params, used by ctt
 
-                iss >> depth;
-
-                Perft(depth);
-
+            if (name == "RazorCoef") {
+                setOptionI(iss, RazorCoef);
             }
-            else if (cmd == "bench") {
-
-                Bench();
+            else if (name == "SNMPCoef1") {
+                setOptionI(iss, SNMPCoef1);
             }
-            if (info->quit)
-                break;
+            else if (name == "SNMPCoef2") {
+                setOptionI(iss, SNMPCoef2);
+            }
+            else if (name == "seeCoefQuiet") {
+                setOptionI(iss, seeCoefQuiet);
+            }
+            else if (name == "seeCoefNoisy") {
+                setOptionI(iss, seeCoefNoisy);
+            }
+            else if (name == "fpCoef") {
+                setOptionI(iss, fpCoef);
+            }
+            else if (name == "chCoef") {
+                setOptionI(iss, chCoef);
+            }
+            else if (name == "fhCoef") {
+                setOptionI(iss, fhCoef);
+            }
+            else if (name == "fpHistDiv") {
+                setOptionI(iss, fpHistDiv);
+            }
+            else if (name == "histDiv") {
+                setOptionI(iss, histDiv);
+            }
+            else if (name == "histMax") {
+                setOptionI(iss, histMax);
+            }
+            else if (name == "histMult") {
+                setOptionI(iss, histMult);
+            }
+            else if (name == "histUpdateDiv") {
+                setOptionI(iss, histUpdateDiv);
+            }
+            else if (name == "counterHistMult") {
+                setOptionI(iss, counterHistMult);
+            }
+            else if (name == "counterHistUpdateDiv") {
+                setOptionI(iss, counterHistUpdateDiv);
+            }
+            else if (name == "tmScoreDiv") {
+                setOptionI(iss, tmScoreDiv);
+            }
+            else if (name == "tmBestMoveStep") {
+                setOptionI(iss, tmBestMoveStep);
+            }
+            else if (name == "tmBestMoveMax") {
+                setOptionI(iss, tmBestMoveMax);
+            }
+            else if (name == "tmNodesSearchedMaxPercentage") {
+                setOptionI(iss, tmNodesSearchedMaxPercentage);
+            }
+            else if (name == "lmrCapDiv") {
+                setOptionI(iss, lmrCapDiv);
+            }
+            else if (name == "nmpR") {
+                setOptionI(iss, nmpR);
+            }
+            else if (name == "nmpDepthDiv") {
+                setOptionI(iss, nmpDepthDiv);
+            }
+            else if (name == "nmpEvalDiv") {
+                setOptionI(iss, nmpEvalDiv);
+            }
+            else if (name == "seeDepthCoef") {
+                setOptionI(iss, seeDepthCoef);
+            }
+            else if (name == "nodesSearchedDiv") {
+                setOptionI(iss, nodesSearchedDiv);
+            }
+            else if (name == "seeValPawn") {
+                setOptionI(iss, seeVal[PAWN]);
+            }
+            else if (name == "seeValKnight") {
+                setOptionI(iss, seeVal[KNIGHT]);
+            }
+            else if (name == "seeValBishop") {
+                setOptionI(iss, seeVal[BISHOP]);
+            }
+            else if (name == "seeValRook") {
+                setOptionI(iss, seeVal[ROOK]);
+            }
+            else if (name == "seeValQueen") {
+                setOptionI(iss, seeVal[QUEEN]);
+            }
+            else if (name == "probcutDepth") {
+                setOptionI(iss, probcutDepth);
+            }
+            else if (name == "probcutMargin") {
+                setOptionI(iss, probcutMargin);
+            }
+            else if (name == "probcutR") {
+                setOptionI(iss, probcutR);
+            }
+        }
+        else if (cmd == "generate") {
+            int nrThreads, nrFens;
+            std::string path;
+
+            iss >> nrFens >> nrThreads >> path;
+
+            generateData(nrFens, nrThreads, path);
+        }
+        else if (cmd == "eval") {
+            Eval();
+        }
+        else if (cmd == "perft") {
+            int depth;
+
+            iss >> depth;
+
+            Perft(depth);
+        }
+        else if (cmd == "bench") {
+            Bench();
+        }
+        else if (cmd == "see") {
+            std::string mv;
+            int th;
+            iss >> mv >> th;
+
+            uint16_t move = parseMove(searcher.board, mv);
+
+            std::cout << see(searcher.board, move, th) << std::endl;
         }
 
-
+        if (info->quit)
+            break;
     }
 }
 
@@ -435,6 +435,9 @@ void UCI::Uci() {
     std::cout << "option name Hash type spin default 128 min 2 max 131072" << std::endl;
     std::cout << "option name Threads type spin default 1 min 1 max 256" << std::endl;
     std::cout << "option name SyzygyPath type string default <empty>" << std::endl;
+    std::cout << "option name MultiPV type spin default 1 min 1 max 255" << std::endl;
+    for (auto& option : options)
+        std::cout << "option name " << option.name << " type spin default " << option.value << " min " << option.min << " max " << option.max << std::endl;
     std::cout << "uciok" << std::endl;
 }
 

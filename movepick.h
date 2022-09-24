@@ -22,68 +22,81 @@
 #include "history.h"
 #include <cassert>
 
-const int BAD_CAP_SCORE = (int)-1e9;
-
 enum {
-    STAGE_NONE = 0, STAGE_HASHMOVE, STAGE_GEN_NOISY, STAGE_GOOD_NOISY,
+    STAGE_NONE = 0, 
+    STAGE_HASHMOVE, 
+    STAGE_GEN_NOISY, STAGE_GOOD_NOISY,
     STAGE_KILLER_1, STAGE_KILLER_2, STAGE_COUNTER,
-    STAGE_GEN_QUIETS, STAGE_QUIETS, STAGE_BAD_NOISY, STAGE_DONE
+    STAGE_GEN_QUIETS, STAGE_QUIETS, 
+    STAGE_PRE_BAD_NOISY, STAGE_BAD_NOISY,
 }; /// move picker stages
 
 bool see(Board& board, uint16_t move, int threshold);
 
-const int seeVal[] = { 0, 100, 310, 330, 500, 1000, 0 };
-
 class Movepick {
 public:
     int stage;
+    //int mp_type;
 
     uint16_t hashMove, killer1, killer2, counter, possibleCounter;
     int nrNoisy, nrQuiets, nrBadNoisy;
+    int index;
 
     int threshold;
 
     uint16_t noisy[256], quiets[256], badNoisy[256];
     int scores[256];
+    long long v[256];
 
     Movepick(const uint16_t HashMove, const uint16_t Killer1, const uint16_t Killer2, const uint16_t Counter, const int Threshold) {
         stage = STAGE_HASHMOVE;
 
         hashMove = HashMove;
-        killer1 = Killer1;
-        killer2 = Killer2;
-        counter = Counter;
+        killer1 = (Killer1 != hashMove ? Killer1 : NULLMOVE);
+        killer2 = (Killer2 != hashMove ? Killer2 : NULLMOVE);
+        counter = (Counter != hashMove && Counter != killer1 && Counter != killer2 ? Counter : NULLMOVE);
 
         nrNoisy = nrQuiets = nrBadNoisy = 0;
         threshold = Threshold;
     }
 
-    int getBestMoveInd(int nrMoves, int start) {
-        int ind = start;
+    long long codify(uint16_t move, int score) {
+        return ((-1LL * score) << 16) | move;
+    }
 
-        for (int i = start + 1; i < nrMoves; i++) {
-            if (scores[i] > scores[ind])
-                ind = i;
+    void sortMoves(int nrMoves, uint16_t moves[], int scores[]) {
+        for (int i = 0; i < nrMoves; i++)
+            v[i] = codify(moves[i], scores[i]);
+
+        std::sort(v, v + nrMoves);
+
+        for (int i = 0; i < nrMoves; i++) {
+            moves[i] = v[i] & 65535;
         }
-
-        return ind;
     }
 
     uint16_t nextMove(Search* searcher, bool skip, bool noisyPicker) {
-
-        if (stage == STAGE_HASHMOVE) {
+        switch (stage) {
+        case STAGE_HASHMOVE:
             stage++;
-            if (hashMove) {
+
+            if (hashMove && isLegalMove(searcher->board, hashMove)) {
                 return hashMove;
             }
-        }
-
-        if (stage == STAGE_GEN_NOISY) {
-            /// good noisy
+        case STAGE_GEN_NOISY:
+        {
             nrNoisy = genLegalNoisy(searcher->board, noisy);
+
+            int m = 0;
 
             for (int i = 0; i < nrNoisy; i++) {
                 uint16_t move = noisy[i];
+
+                if (move == hashMove || move == killer1 || move == killer2 || move == counter)
+                    continue;
+
+                noisy[m] = move;
+
                 int p = searcher->board.piece_at(sqFrom(move)), cap = searcher->board.piece_type_at(sqTo(move));
                 int score = 0; // so that move score isn't negative
 
@@ -94,48 +107,24 @@ public:
                 if (promoted(move) == QUEEN)
                     score += 10000;
 
-                score += searcher->capHist[p][sqTo(move)][cap];
+                score += searcher->capHist[p][sqTo(move)][cap] + 1000000;
 
                 //score += searcher->nodesSearched[sqFrom(move)][sqTo(move)] / 10000;
 
-                scores[i] = score;
-
-                //assert(score >= 0);
+                scores[m++] = score;
             }
+
+            nrNoisy = m;
+            sortMoves(nrNoisy, noisy, scores);
+            index = 0;
             stage++;
         }
-
-        if (stage == STAGE_GOOD_NOISY) {
-
-            if (nrNoisy) {
-
-                int ind = getBestMoveInd(nrNoisy, 0);
-
-                uint16_t best = noisy[ind];
-
-                if (scores[ind] != BAD_CAP_SCORE) {
-
-                    if (!see(searcher->board, best, threshold)) {
-                        badNoisy[nrBadNoisy++] = best;
-                        scores[ind] = BAD_CAP_SCORE; /// mark capture as bad
-                        return nextMove(searcher, skip, noisyPicker);
-                    }
-
-                    nrNoisy--;
-                    noisy[ind] = noisy[nrNoisy];
-                    scores[ind] = scores[nrNoisy];
-
-                    if (best == hashMove) /// don't play the same move
-                        return nextMove(searcher, skip, noisyPicker);
-
-                    if (best == killer1)
-                        killer1 = NULLMOVE;
-                    if (best == killer2)
-                        killer2 = NULLMOVE;
-                    if (best == counter)
-                        counter = NULLMOVE;
-
-                    return best;
+        case STAGE_GOOD_NOISY:
+            while (index < nrNoisy) {
+                if (see(searcher->board, noisy[index], threshold))
+                    return noisy[index++];
+                else {
+                    badNoisy[nrBadNoisy++] = noisy[index++];
                 }
             }
             if (skip) { /// no need to go through quiets
@@ -143,51 +132,43 @@ public:
                 return nextMove(searcher, skip, noisyPicker);
             }
             stage++;
-        }
-
-        if (stage == STAGE_KILLER_1) {
-
+        case STAGE_KILLER_1:
             stage++;
 
-            if (!skip && killer1 && killer1 != hashMove && isLegalMove(searcher->board, killer1))
+            if (!skip && killer1 && isLegalMove(searcher->board, killer1))
                 return killer1;
-        }
-
-        if (stage == STAGE_KILLER_2) {
-
+        case STAGE_KILLER_2:
             stage++;
 
-            if (!skip && killer2 && killer2 != hashMove && isLegalMove(searcher->board, killer2))
+            if (!skip && killer2 && isLegalMove(searcher->board, killer2))
                 return killer2;
-        }
-
-        if (stage == STAGE_COUNTER) {
-
+        case STAGE_COUNTER:
             stage++;
 
-            if (!skip && counter && counter != hashMove && counter != killer1 && counter != killer2 && isLegalMove(searcher->board, counter))
+            if (!skip && counter && isLegalMove(searcher->board, counter))
                 return counter;
-        }
+        case STAGE_GEN_QUIETS:
+        {
+            if (!skip) {
+                nrQuiets = genLegalQuiets(searcher->board, quiets);
 
-        if (stage == STAGE_GEN_QUIETS) {
-            /// quiet moves
-            /// TO DO: don't generate all quiets to validate refutation moves, add fast isLegal(move) function ? - done
+                int ply = searcher->board.ply;
 
-            nrQuiets = genLegalQuiets(searcher->board, quiets);
+                bool turn = searcher->board.turn, enemy = 1 ^ turn;
+                uint64_t pawnAttacks = getPawnAttacks(enemy, searcher->board.bb[getType(PAWN, turn ^ 1)]);
+                uint16_t counterMove = (ply >= 1 ? searcher->Stack[ply - 1].move : NULLMOVE), followMove = (ply >= 2 ? searcher->Stack[ply - 2].move : NULLMOVE);
+                int counterPiece = (ply >= 1 ? searcher->Stack[ply - 1].piece : 0), followPiece = ply >= 2 ? searcher->Stack[ply - 2].piece : 0;
+                int counterTo = sqTo(counterMove), followTo = sqTo(followMove);
+                int m = 0;
 
-            int ply = searcher->board.ply;
+                for (int i = 0; i < nrQuiets; i++) {
+                    uint16_t move = quiets[i];
 
-            uint16_t counterMove = (ply >= 1 ? searcher->Stack[ply - 1].move : NULLMOVE), followMove = (ply >= 2 ? searcher->Stack[ply - 2].move : NULLMOVE);
-            int counterPiece = (ply >= 1 ? searcher->Stack[ply - 1].piece : 0), followPiece = ply >= 2 ? searcher->Stack[ply - 2].piece : 0;
-            int counterTo = sqTo(counterMove), followTo = sqTo(followMove);
+                    if (move == hashMove || move == killer1 || move == killer2 || move == counter)
+                        continue;
 
-            for (int i = 0; i < nrQuiets; i++) {
-                uint16_t move = quiets[i];
-                int score = 0;
-
-                if (move == hashMove || move == killer1 || move == killer2 || move == counter)
-                    score = -1000000000;
-                else {
+                    quiets[m] = move;
+                    int score = 0;
                     int from = sqFrom(move), to = sqTo(move), piece = searcher->board.piece_at(from);
 
                     score = searcher->hist[searcher->board.turn][from][to];
@@ -198,64 +179,48 @@ public:
                     if (followMove)
                         score += searcher->follow[1][followPiece][followTo][piece][to];
 
-                    score += searcher->nodesSearched[from][to] / nodesSearchedDiv; // the longer it takes a move to be refuted, the higher its chance to become the best move
+                    if (piece_type(piece) != PAWN && (pawnAttacks & (1ULL << to)))
+                        score -= 10 * seeVal[piece_type(piece)];
+
+                    score += searcher->nodesSearched[from][to] / nodesSearchedDiv + 1000000; // the longer it takes a move to be refuted, the higher its chance to become the best move
+                    scores[m++] = score;
                 }
-                scores[i] = score;
+
+                nrQuiets = m;
+                sortMoves(nrQuiets, quiets, scores);
+                index = 0;
             }
+
             stage++;
         }
-
-        if (stage == STAGE_QUIETS) {
-
-            if (!skip && nrQuiets) {
-
-                int ind = getBestMoveInd(nrQuiets, 0);
-
-                uint16_t best = quiets[ind];
-
-                nrQuiets--;
-                quiets[ind] = quiets[nrQuiets];
-                scores[ind] = scores[nrQuiets];
-
-                if (best == hashMove || best == killer1 || best == killer2 || best == counter) {
-                    stage++;
-                }
-                else {
-                    return best;
-                }
+        case STAGE_QUIETS:
+            if (!skip && index < nrQuiets) {
+                return quiets[index++];
             }
             else {
                 stage++;
             }
-        }
-
-        if (stage == STAGE_BAD_NOISY) {
-            /// bad noisy moves
-            if (nrBadNoisy && !noisyPicker) { /// bad captures can't improve the current position in quiesce search
-                nrBadNoisy--;
-                uint16_t move = badNoisy[nrBadNoisy];
-
-                if (move == hashMove || move == killer1 || move == killer2 || move == counter)
-                    return nextMove(searcher, skip, noisyPicker);
-
-                return move;
+        case STAGE_PRE_BAD_NOISY:
+            if (noisyPicker) {
+                return NULLMOVE;
             }
-            else {
-                stage++;
+            index = 0;
+            stage++;
+        case STAGE_BAD_NOISY:
+            if (index < nrBadNoisy) { /// bad captures can't improve the current position in quiesce search
+                return badNoisy[index++];
             }
-        }
-
-        if (stage == STAGE_DONE) {
             return NULLMOVE;
+        default:
+            assert(0);
         }
 
         assert(0);
 
         return NULLMOVE;
+
     }
 };
-
-
 
 bool see(Board& board, uint16_t move, int threshold) {
     int from = sqFrom(move), to = sqTo(move), t = type(move), col, nextVictim, score = -threshold;

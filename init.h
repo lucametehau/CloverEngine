@@ -129,5 +129,5 @@ void Board::setFen(const std::string fen) {
 
     checkers = getAttackers(*this, 1 ^ turn, pieces[WHITE] | pieces[BLACK], king(turn));
 
-    NN.calc(input);
+    NN.calc(input, turn);
 }

@@ -32,7 +32,7 @@ public:
     uint8_t castleRights;
     uint8_t captured;
     uint16_t halfMoves, moveIndex;
-    uint64_t checkers;
+    uint64_t checkers, pinnedPieces;
     uint64_t key;
 };
 
@@ -48,11 +48,11 @@ public:
     uint16_t ply, gamePly;
     uint16_t halfMoves, moveIndex;
     
-    uint64_t checkers;
+    uint64_t checkers, pinnedPieces;
     uint64_t bb[13];
     uint64_t pieces[2];
     uint64_t key;
-    Undo history[1000]; /// fuck it
+    Undo history[2000]; /// fuck it
 
     Network NN;
 
@@ -66,7 +66,7 @@ public:
             board[i] = 0;
         castleRights = 0;
         captured = 0;
-        checkers = 0;
+        checkers = pinnedPieces = 0;
     }
 
     Board(const Board& other) {
@@ -87,6 +87,7 @@ public:
         captured = other.captured;
         NN = other.NN;
         checkers = other.checkers;
+        pinnedPieces = other.pinnedPieces;
     }
 
     uint64_t diagSliders(int color) {
@@ -124,7 +125,7 @@ public:
 
         NetInput input = toNetInput();
 
-        NN.calc(input);
+        NN.calc(input, turn);
     }
 
     void print() {
@@ -138,15 +139,16 @@ public:
     NetInput toNetInput() {
         NetInput ans;
 
-        /*int kingsSide[2] = {
-            (king(BLACK) >> 2) & 1, (king(WHITE) >> 2) & 1
-        };*/
+        int kingsSide[2] = {
+            king(BLACK), king(WHITE)
+        };
 
         for (int i = 1; i <= 12; i++) {
             uint64_t b = bb[i];
             while (b) {
                 uint64_t b2 = lsb(b);
-                ans.ind.push_back(netInd(i, Sq(b2)/*, kingsSide[i / 7]*/));
+                ans.ind[WHITE].push_back(netInd(i, Sq(b2), kingsSide[WHITE], WHITE));
+                ans.ind[BLACK].push_back(netInd(i, Sq(b2), kingsSide[BLACK], BLACK));
                 b ^= b2;
             }
         }

@@ -23,32 +23,50 @@
 #include <condition_variable>
 #include <functional>
 
+
 /// search params
 
-int RazorCoef = 325;
+int seeVal[] = { 0, 93, 308, 346, 521, 994, 20000 };
+
+int nmpR = 4;
+int nmpDepthDiv = 6;
+int nmpEvalDiv = 130;
+
+int RazorCoef = 381;
 
 int SNMPCoef1 = 97;
 int SNMPCoef2 = 25;
 
-int seeCoefQuiet = 80;
-int seeCoefNoisy = 18;
+int seeCoefQuiet = 71;
+int seeCoefNoisy = 10;
+int seeDepthCoef = 15;
+
+int probcutDepth = 10;
+int probcutMargin = 100;
+int probcutR = 3;
 
 int fpMargin = 100;
 int fpCoef = 103;
 
-int histDiv = 4766;
+int histDiv = 4875;
 
 int chCoef = -2000;
 int fhCoef = -2000;
 
 int fpHistDiv = 512;
 
-int kdDiv = 30;
-
 int nodesSearchedDiv = 10000;
 
-float lmrMargin = 1;
-float lmrDiv = 2.5;
+int lmrMargin = 10;
+int lmrDiv = 25;
+int lmrCapDiv = 15;
+
+int tmScoreDiv = 111;
+int tmBestMoveStep = 205;
+int tmBestMoveMax = 2250;
+int tmNodesSearchedMaxPercentage = 1570;
+
+int quiesceFutilityCoef = 200;
 
 const int TERMINATED_BY_USER = 1;
 const int TERMINATED_BY_TIME = 2;
@@ -56,8 +74,8 @@ const int TERMINATED_SEARCH = 3; /// 1 | 2
 
 class Search {
 
-    friend class Movepick;
-    friend class History;
+    //friend class Movepick;
+    //friend class History;
 
 public:
     Search();
@@ -76,35 +94,27 @@ public:
     void startPrincipalSearch(Info* info);
     void stopPrincipalSearch();
     void isReady();
-    int getThreadCount();
 
     void _setFen(std::string fen);
     void _makeMove(uint16_t move);
 
-    int getKingDanger(Board& board, int color);
-
     std::pair <int, uint16_t> startSearch(Info* info);
     int quiesce(int alpha, int beta, bool useTT = true); /// for quiet position check (tuning)
     int search(int alpha, int beta, int depth, bool cutNode, uint16_t excluded = NULLMOVE);
+    int rootSearch(int alpha, int beta, int depth, int multipv);
 
-    void setTime(Info* tInfo) {
-        info = tInfo;
-    }
+    void setTime(Info* tInfo) { info = tInfo; }
 
-private:
     void startWorkerThreads(Info* info);
     void flagWorkersStop();
     void stopWorkerThreads();
     void lazySMPSearcher();
     void releaseThreads();
-    void waitUntilDone();
 
     void printPv();
     void updatePv(int ply, int move);
 
     bool checkForStop();
-
-public:
 
     uint64_t nodesSearched[64][64];
     uint16_t pvTable[DEPTH + 5][DEPTH + 5];
@@ -117,6 +127,7 @@ public:
     int lmrCnt[2][9];
     int lmrRed[64][64];
     StackEntry Stack[DEPTH + 5];
+    int bestMoves[256], scores[256];
 
     int kekw[500];
 
@@ -124,7 +135,6 @@ public:
 
     volatile int flag;
 
-private:
     uint64_t tbHits;
     uint64_t t0;
     Info* info;
@@ -142,14 +152,12 @@ private:
     std::unique_ptr <std::thread> principalThread;
     std::mutex readyMutex;
 
-public:
     uint64_t nodes, qsNodes;
     bool principalSearcher;
     Board board;
 
     tt::HashTable* threadTT;
 
-private:
     std::unique_ptr <std::thread[]> threads;
     std::unique_ptr <Search[]> params;
     std::condition_variable lazyCV;

@@ -1,13 +1,14 @@
 CC  = g++
 SRC = *.cpp tbprobe.c
-EXE = Clover.3.1
-EVALFILE = Clover_3_1_590mil_e32_512_eval.nn
+EXE = Clover.3.2-dev15
+EVALFILE = Clover_3_2_410mil_e41.nn
 
 ifeq ($(OS), Windows_NT)
 	EXT = .exe
 else
 	EXT = 
 endif
+
 
 WFLAGS = -Wall
 RFLAGS = $(WFLAGS) -std=c++17 -O3
