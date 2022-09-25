@@ -20,23 +20,16 @@ Clover is UCI compatible, but doesn't have a GUI, so, in order to play with it, 
 git clone https://github.com/lucametehau/CloverEngine.git
 make run 
 ```
-This will create 5 executables and you can choose which one fits your PC the best.
-For the best performance, you should try ``make native``, because it uses all compiler flags supported by your PC.
+This will create an avx2 executable, any CPU that supports avx2 can run it. If you don't have avx2, then it will probably crash.
 
 To run it's pretty easy:
 ```
-./Clover.2.2-bmi2.exe
+./Clover.3.1-avx2.exe
 ```
 
 # Testing
-
-These are the versions sorted by speed, the ones at the top being the fastest:
-
-- -native, use this if it doesn't crash and if you have at least the same CPU specs as my I5 8250U :)
-- -bmi2, supported on any CPU that supports bmi2 and popcnt
-- -avx2, supported on any CPU that supports avx2 and popcnt
-- -popcnt, supported by most non-ancient CPUs
-- normal version, no additional compile flags
+The only version supported for now is avx2 (any CPU that supports avx2 can run it), because I use simd and avx2 code.
+I plan on doing something for the non-avx2 CPU users in the future.
 
 # UCI
 
