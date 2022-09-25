@@ -37,8 +37,8 @@ Search::Search() : threads(nullptr), params(nullptr)
             lmrRed[i][j] = 1.0 * lmrMargin / 10 + log(i) * log(j) / (1.0 * lmrDiv / 10);
     }
     for (int i = 1; i < 9; i++) {
-        lmrCnt[0][i] = (3 + i * i) / 2;
-        lmrCnt[1][i] = 3 + i * i;
+        lmrCnt[0][i] = (lmpStart1 + lmpMult1 * i * i) / lmpDiv1;
+        lmrCnt[1][i] = (lmpStart2 + lmpMult2 * i * i) / lmpDiv2;
     }
 }
 
@@ -547,7 +547,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
                 R -= 2 * refutationMove; /// reduce for refutation moves
 
-                R -= (H.h + H.ch + H.fh) / histDiv; /// reduce based on move history
+                R -= std::max(-2, std::min(2, (H.h + H.ch + H.fh) / histDiv)); /// reduce based on move history
             }
             else if (!pvNode) {
                 R = lmrRed[std::min(63, depth)][std::min(63, played)] / (1.0 * lmrCapDiv / 10);

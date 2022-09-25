@@ -48,7 +48,7 @@ int probcutR = 3;
 int fpMargin = 100;
 int fpCoef = 103;
 
-int histDiv = 4875;
+int histDiv = 4766;
 
 int chCoef = -2000;
 int fhCoef = -2000;
@@ -60,6 +60,9 @@ int nodesSearchedDiv = 10000;
 int lmrMargin = 10;
 int lmrDiv = 25;
 int lmrCapDiv = 15;
+
+int lmpStart1 = 3, lmpMult1 = 2, lmpDiv1 = 1;
+int lmpStart2 = 3, lmpMult2 = 2, lmpDiv2 = 3;
 
 int tmScoreDiv = 111;
 int tmBestMoveStep = 205;

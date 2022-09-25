@@ -104,7 +104,7 @@ public:
                     cap = PAWN;
 
                 score = 10 * seeVal[cap];
-                if (promoted(move) == QUEEN)
+                if (promoted(move) + KNIGHT == QUEEN)
                     score += 10000;
 
                 score += searcher->capHist[p][sqTo(move)][cap] + 1000000;
@@ -265,6 +265,10 @@ bool see(Board& board, uint16_t move, int threshold) {
         for (nextVictim = PAWN; nextVictim <= QUEEN; nextVictim++) {
             if (myAtt & board.bb[getType(nextVictim, col)])
                 break;
+        }
+
+        if ((myAtt & board.bb[getType(nextVictim, col)]) == 0) {
+            std::cout << lsb(0) << " " << Sq(lsb(0)) << "\n";
         }
 
         occ ^= (1ULL << Sq(lsb(myAtt & board.bb[getType(nextVictim, col)])));
