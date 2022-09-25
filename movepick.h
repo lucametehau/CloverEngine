@@ -128,7 +128,7 @@ public:
                 }
             }
             if (skip) { /// no need to go through quiets
-                stage = STAGE_BAD_NOISY;
+                stage = STAGE_PRE_BAD_NOISY;
                 return nextMove(searcher, skip, noisyPicker);
             }
             stage++;
@@ -267,11 +267,7 @@ bool see(Board& board, uint16_t move, int threshold) {
                 break;
         }
 
-        if ((myAtt & board.bb[getType(nextVictim, col)]) == 0) {
-            std::cout << lsb(0) << " " << Sq(lsb(0)) << "\n";
-        }
-
-        occ ^= (1ULL << Sq(lsb(myAtt & board.bb[getType(nextVictim, col)])));
+        occ ^= lsb(myAtt & board.bb[getType(nextVictim, col)]);
 
         if (nextVictim == PAWN || nextVictim == BISHOP || nextVictim == QUEEN)
             att |= genAttacksBishop(occ, to) & diag;
