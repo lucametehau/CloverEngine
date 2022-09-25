@@ -165,7 +165,7 @@ int Search::quiesce(int alpha, int beta, bool useTT) {
     else if (eval == INF) {
         /// if last move was null, we already know the evaluation
         Stack[ply].eval = best = eval = (!Stack[ply - 1].move ? -Stack[ply - 1].eval + 2 * TEMPO : evaluate(board));
-        futilityValue = best + 200;
+        futilityValue = best + quiesceFutilityCoef;
     }
     else {
         /// ttValue might be a better evaluation
@@ -197,12 +197,10 @@ int Search::quiesce(int alpha, int beta, bool useTT) {
     uint16_t move;
 
     while ((move = noisyPicker.nextMove(this, !isCheck, true))) {
-
         // futility pruning
-
         if (best > -MATE) {
             if (futilityValue > -MATE) {
-                int value = futilityValue + seeVal[board.piece_type_at(sqTo(move))]/* - seeVal[board.piece_type_at(sqFrom(move))]*/;
+                int value = futilityValue + seeVal[board.piece_type_at(sqTo(move))];
                 if (type(move) != PROMOTION && value <= alpha) {
                     best = std::max(best, value);
                     continue;
@@ -212,10 +210,7 @@ int Search::quiesce(int alpha, int beta, bool useTT) {
             if (isCheck && !isNoisyMove(board, move) && !see(board, move, 0)) {
                 continue;
             }
-
         }
-
-
         // update stack info
         Stack[ply].move = move;
         Stack[ply].piece = board.piece_at(sqFrom(move));
@@ -455,7 +450,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
     /// get counter move for move picker
 
-    uint16_t counter = (ply == 0 || !Stack[ply - 1].move ? NULLMOVE : cmTable[1 ^ board.turn][Stack[ply - 1].piece][sqTo(Stack[ply - 1].move)]);
+    uint16_t counter = (!Stack[ply - 1].move ? NULLMOVE : cmTable[1 ^ board.turn][Stack[ply - 1].piece][sqTo(Stack[ply - 1].move)]);
 
     Movepick picker(ttMove, killers[ply][0], killers[ply][1], counter, -seeDepthCoef * depth);
 

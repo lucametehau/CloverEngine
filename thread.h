@@ -61,8 +61,8 @@ int lmrMargin = 10;
 int lmrDiv = 25;
 int lmrCapDiv = 15;
 
-int lmpStart1 = 3, lmpMult1 = 2, lmpDiv1 = 1;
-int lmpStart2 = 3, lmpMult2 = 2, lmpDiv2 = 3;
+int lmpStart1 = 3, lmpMult1 = 1, lmpDiv1 = 2;
+int lmpStart2 = 3, lmpMult2 = 1, lmpDiv2 = 1;
 
 int tmScoreDiv = 111;
 int tmBestMoveStep = 205;
