@@ -24,6 +24,7 @@
 #include "init.h"
 #include "perft.h"
 #include "generate.h"
+#include "tune.h"
 
 const std::string VERSION = "3.2-dev15"; /// 2.0 was "FM"
 
@@ -105,6 +106,7 @@ UCI::UCI(Search& _searcher) : searcher(_searcher) {
     addOption("lmpStart2", lmpStart2);
     addOption("lmpMult2", lmpMult2);
     addOption("lmpDiv2", lmpDiv2);
+    addOption("quiesceFutilityCoef", quiesceFutilityCoef);
 }
 
 void UCI::addOption(std::string name, int value) {
@@ -416,6 +418,9 @@ void UCI::Uci_Loop() {
             else if (name == "lmpDiv2") {
                 setOptionI(iss, lmpDiv2);
             }
+            else if (name == "quiesceFutilityCoef") {
+                setOptionI(iss, quiesceFutilityCoef);
+            }
         }
         else if (cmd == "generate") {
             int nrThreads, nrFens;
@@ -446,6 +451,12 @@ void UCI::Uci_Loop() {
             uint16_t move = parseMove(searcher.board, mv);
 
             std::cout << see(searcher.board, move, th) << std::endl;
+        }
+        else if (cmd == "tune") {
+            int dataSize, epochs;
+            iss >> dataSize >> epochs;
+
+            tune(dataSize, epochs);
         }
 
         if (info->quit)

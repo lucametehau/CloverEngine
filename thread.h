@@ -28,7 +28,7 @@
 
 int seeVal[] = { 0, 93, 308, 346, 521, 994, 20000 };
 
-int nmpR = 4;
+int nmpR = 5;
 int nmpDepthDiv = 6;
 int nmpEvalDiv = 130;
 

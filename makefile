@@ -11,7 +11,7 @@ endif
 
 
 WFLAGS = -Wall
-RFLAGS = $(WFLAGS) -std=c++17 -O3
+RFLAGS = $(WFLAGS) -std=c++17 -O3 -fopenmp
 
 ifeq ($(EXT), .exe)
 	RFLAGS += -static -static-libgcc -static-libstdc++
