@@ -51,7 +51,7 @@ int evaluate(Board &board) {
 
     //bool turn = board.turn;
 
-    //eval = eval * scale(board) / 100;
+    eval = eval * scale(board) / 100;
 
     return eval + TEMPO;
 }
