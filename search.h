@@ -988,9 +988,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
                 }
                 else if (beta <= scores[i]) {
                     beta = std::min(INF, beta + window);
-                    /// reduce depth if failing high
-                    /// don't reduce when finding tb wins / mate scores
-                    depth -= (abs(scores[i]) < TB_WIN_SCORE / 2);
+                    depth -= (abs(scores[i]) < TB_WIN_SCORE);
 
                     if (pvTableLen[0])
                         bestMoves[i] = pvTable[0][0];
