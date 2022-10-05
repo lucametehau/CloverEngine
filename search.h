@@ -36,7 +36,7 @@ Search::Search() : threads(nullptr), params(nullptr)
         for (int j = 0; j < 64; j++) /// moves played
             lmrRed[i][j] = 1.0 * lmrMargin / 10 + log(i) * log(j) / (1.0 * lmrDiv / 10);
     }
-    for (int i = 1; i < 9; i++) {
+    for (int i = 1; i < 20; i++) {
         lmrCnt[0][i] = (lmpStart1 + lmpMult1 * i * i) / lmpDiv1;
         lmrCnt[1][i] = (lmpStart2 + lmpMult2 * i * i) / lmpDiv2;
     }
@@ -379,7 +379,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
     /// static null move pruning (don't prune when having a mate line, again stability)
 
-    if (!pvNode && !isCheck && depth <= 8 && eval - (SNMPCoef1 - SNMPCoef2 * improving) * (depth - quietUs) > beta && eval < MATE)
+    if (!pvNode && !isCheck && depth <= SNMPDepth && eval - (SNMPCoef1 - SNMPCoef2 * improving) * (depth - quietUs) > beta && eval < MATE)
         return eval;
 
     /// null move pruning (when last move wasn't null, we still have non pawn material,
@@ -482,7 +482,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
                     skip = 1;
 
                 /// late move pruning
-                if (newDepth <= 8 && nrQuiets >= lmrCnt[improving][newDepth])
+                if (newDepth <= lmpDepth && nrQuiets >= lmrCnt[improving][newDepth])
                     skip = 1;
 
                 if (depth <= 8 && !isCheck && !see(board, move, -seeCoefQuiet * depth))

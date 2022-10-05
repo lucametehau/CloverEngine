@@ -107,6 +107,8 @@ UCI::UCI(Search& _searcher) : searcher(_searcher) {
     addOption("lmpMult2", lmpMult2);
     addOption("lmpDiv2", lmpDiv2);
     addOption("quiesceFutilityCoef", quiesceFutilityCoef);
+    addOption("SNMPDepth", SNMPDepth);
+    addOption("lmpDepth", lmpDepth);
 }
 
 void UCI::addOption(std::string name, int value) {
@@ -420,6 +422,12 @@ void UCI::Uci_Loop() {
             }
             else if (name == "quiesceFutilityCoef") {
                 setOptionI(iss, quiesceFutilityCoef);
+            }
+            else if (name == "SNMPDepth") {
+                setOptionI(iss, SNMPDepth);
+            }
+            else if (name == "lmpDepth") {
+                setOptionI(iss, lmpDepth);
             }
         }
         else if (cmd == "generate") {
