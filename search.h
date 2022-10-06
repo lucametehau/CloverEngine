@@ -569,6 +569,9 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         if (R != 1) {
             score = -search(-alpha - 1, -alpha, newDepth - R, true);
             interesting = (score > alpha + 50);
+
+            if (score > alpha && isQuiet)
+                updateMoveHistory(this, move, ply, getHistoryBonus(depth));
         }
 
         if ((R != 1 && score > alpha) || (R == 1 && (!pvNode || played > 1))) {

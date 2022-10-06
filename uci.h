@@ -475,7 +475,7 @@ void UCI::Uci_Loop() {
 void UCI::Uci() {
     std::cout << "id name Clover " << VERSION << std::endl;
     std::cout << "id author Luca Metehau" << std::endl;
-    std::cout << "option name Hash type spin default 128 min 2 max 131072" << std::endl;
+    std::cout << "option name Hash type spin default 8 min 2 max 131072" << std::endl;
     std::cout << "option name Threads type spin default 1 min 1 max 256" << std::endl;
     std::cout << "option name SyzygyPath type string default <empty>" << std::endl;
     std::cout << "option name MultiPV type spin default 1 min 1 max 255" << std::endl;

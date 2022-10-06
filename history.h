@@ -54,6 +54,20 @@ int getHistoryBonus(int depth) {
     return (depth <= 20 ? depth * depth : 400);
 }
 
+void updateMoveHistory(Search* searcher, uint16_t move, int ply, int bonus) {
+    int from = sqFrom(move), to = sqTo(move), piece = searcher->board.piece_at(from);
+
+    updateHist(searcher->hist[searcher->board.turn][from][to], bonus);
+
+    uint16_t counterMove = searcher->Stack[ply - 1].move, followMove = (ply >= 2 ? searcher->Stack[ply - 2].move : NULLMOVE);
+    int counterPiece = searcher->Stack[ply - 1].piece, followPiece = (ply >= 2 ? searcher->Stack[ply - 2].piece : 0);
+    int counterTo = sqTo(counterMove), followTo = sqTo(followMove);
+
+    updateCounterHist(searcher->follow[0][counterPiece][counterTo][piece][to], bonus);
+
+    updateCounterHist(searcher->follow[1][followPiece][followTo][piece][to], bonus);
+}
+
 void updateHistory(Search* searcher, uint16_t* quiets, int nrQuiets, int ply, int bonus) {
     if (ply < 2 || !nrQuiets) /// we can't update if we don't have a follow move or no quiets
         return;

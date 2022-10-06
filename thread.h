@@ -34,7 +34,7 @@ int nmpEvalDiv = 130;
 
 int RazorCoef = 381;
 
-int SNMPDepth = 9;
+int SNMPDepth = 8;
 int SNMPCoef1 = 97;
 int SNMPCoef2 = 25;
 
@@ -56,7 +56,7 @@ int fhCoef = -2000;
 
 int fpHistDiv = 512;
 
-int lmpDepth = 5;
+int lmpDepth = 8;
 
 int nodesSearchedDiv = 10000;
 

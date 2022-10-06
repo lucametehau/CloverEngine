@@ -1,0 +1,75 @@
+[Settings]
+TournamentName=a.at
+Type=1
+CurrSwissRound=0
+Rounds=2
+CurrentPair=1
+CurrentRound=2
+Level=2 3\0/2#0
+[Options]
+QuitAfterTournament=0
+ShutDownAfterTournament=0
+RestartEngines=0
+RepeatStartPosition=1
+Startposition=0
+Variant=0
+StartPGNEPD=
+Resign=1
+ResignValue=-900
+MaxGameLength=250
+EarlyDrawFromMove=9999
+TablebaseDraw=0
+Autoflag=1
+Ponder=0
+AutoRotateInGautlet=1
+RutschSystem=1
+RestartArenaAfterGamesValue=20
+RestartArenaAtHour1=0
+RestartArenaAtHourValue=2
+ShutdownComputerAfterGames1=0
+ShutdownComputerAfterGamesValue=10
+[Save]
+SaveGamesPGN=1
+SaveIncompleteGamesPGN=1
+PGNFile=C:\Users\Luca\Desktop\arena_3.5.1\Arena.pgn
+Protocolfile=Logfile001.log
+TurTabTextfile=C:\Users\Luca\Desktop\arena_3.5.1\Tournaments\Arena.txt
+TurTabHTMLfile=C:\Users\Luca\Desktop\arena_3.5.1\Tournaments\Arena.html
+SaveTurTabText=1
+SaveTurTabHTML=1
+HTMLuseCountry=0
+HTMLuseFlags=0
+HTMLuseEnglish=0
+HTMLshortResults=0
+HTMLonlyPoints=0
+HTMLFlagsFromWebsite=0
+HTMLshowPGNfilename=1
+HTMLshowBenchmark=0
+PGNwebsite=
+HTMLWinPercent=0
+HTMLStartELO=0
+HTMLShowConditions=0
+HTMLConditions=
+HTMLTopLineColorized=0
+HTMLTableTopLineColor=6737151
+SaveGamesFCH=0
+FCHdir=
+FCHnames=
+[Data]
+LastPGNEPDindex=1
+FirstGameDate=2022.10.06
+FirstGameTime=09:45:08
+Country=United States
+Site=DESKTOP-SQOLNAE
+Hardware=AMD Ryzen 7 5800H with Radeon Graphics with 15.4 GB Memory
+OS=Windows 10 Enterprise Professional (Build 9200) 64 bit
+Website=
+E-Mail=
+ArenaVersion=Arena 3.5.1
+LastGameDate=2022.10.06
+LastGameTime=10:05:01
+[PairingResults]
+Clover.3.2-dev18-native ------ Spike 1.4=11
+[Participants]
+Engine1=Clover.3.2-dev18-native
+Engine2=Spike 1.4
