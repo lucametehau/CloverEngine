@@ -564,14 +564,14 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         /// principal variation search
 
         uint64_t initNodes = nodes;
-        bool interesting = false;
+        bool interesting = false, updMoveHist = false;
 
         if (R != 1) {
             score = -search(-alpha - 1, -alpha, newDepth - R, true);
             interesting = (score > alpha + 50);
 
             if (score > alpha && isQuiet)
-                updateMoveHistory(this, move, ply, getHistoryBonus(depth));
+                updMoveHist = true;
         }
 
         if ((R != 1 && score > alpha) || (R == 1 && (!pvNode || played > 1))) {
@@ -585,6 +585,9 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         undoMove(board, move);
 
         nodesSearched[sqFrom(move)][sqTo(move)] += nodes - initNodes;
+
+        if (updMoveHist)
+            updateMoveHistory(this, move, ply, getHistoryBonus(depth) / 2);
 
         if (flag & TERMINATED_SEARCH) /// stop search
             return ABORT;
