@@ -23,6 +23,16 @@
 
 const int TEMPO = 20;
 
+int pawnScaleStart = 70;
+int pawnScaleStep = 2;
+int pawnsOn1Flank = 8;
+
+int scale(Board& board) {
+    int pawnCount = count(board.bb[getType(PAWN, board.turn)]);
+
+    return std::min(100, pawnScaleStart + pawnScaleStep * pawnCount);
+}
+
 int evaluate(Board &board) {
     int eval = int(board.NN.getOutput(board.turn));
     //board.print();
@@ -40,6 +50,8 @@ int evaluate(Board &board) {
     }*/
 
     //bool turn = board.turn;
+
+    eval = eval * scale(board) / 100;
 
     return eval + TEMPO;
 }

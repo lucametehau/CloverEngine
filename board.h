@@ -67,6 +67,8 @@ public:
         castleRights = 0;
         captured = 0;
         checkers = pinnedPieces = 0;
+
+        setFen(START_POS_FEN);
     }
 
     Board(const Board& other) {

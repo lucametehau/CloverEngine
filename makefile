@@ -1,7 +1,7 @@
 CC  = g++
 SRC = *.cpp tbprobe.c
-EXE = Clover.3.2-dev15
-EVALFILE = Clover_3_2_410mil_e41.nn
+EXE = Clover.3.2-dev19
+EVALFILE = Clover_3_2_500mil_e21.nn
 
 ifeq ($(OS), Windows_NT)
 	EXT = .exe
@@ -11,7 +11,7 @@ endif
 
 
 WFLAGS = -Wall
-RFLAGS = $(WFLAGS) -std=c++17 -O3
+RFLAGS = $(WFLAGS) -std=c++17 -O3 -fopenmp
 
 ifeq ($(EXT), .exe)
 	RFLAGS += -static -static-libgcc -static-libstdc++

@@ -24,8 +24,9 @@
 #include "init.h"
 #include "perft.h"
 #include "generate.h"
+#include "tune.h"
 
-const std::string VERSION = "3.2-dev15"; /// 2.0 was "FM"
+const std::string VERSION = "3.2-dev19"; /// 2.0 was "FM"
 
 struct Option {
     std::string name;
@@ -99,6 +100,15 @@ UCI::UCI(Search& _searcher) : searcher(_searcher) {
     addOption("lmrMargin", lmrMargin);
     addOption("lmrDiv", lmrDiv);
     addOption("lmrCapDiv", lmrCapDiv);
+    addOption("lmpStart1", lmpStart1);
+    addOption("lmpMult1", lmpMult1);
+    addOption("lmpDiv1", lmpDiv1);
+    addOption("lmpStart2", lmpStart2);
+    addOption("lmpMult2", lmpMult2);
+    addOption("lmpDiv2", lmpDiv2);
+    addOption("quiesceFutilityCoef", quiesceFutilityCoef);
+    addOption("SNMPDepth", SNMPDepth);
+    addOption("lmpDepth", lmpDepth);
 }
 
 void UCI::addOption(std::string name, int value) {
@@ -392,6 +402,33 @@ void UCI::Uci_Loop() {
             else if (name == "probcutR") {
                 setOptionI(iss, probcutR);
             }
+            else if (name == "lmpStart1") {
+                setOptionI(iss, lmpStart1);
+            }
+            else if (name == "lmpMult1") {
+                setOptionI(iss, lmpMult1);
+            }
+            else if (name == "lmpDiv1") {
+                setOptionI(iss, lmpDiv1);
+            }
+            else if (name == "lmpStart2") {
+                setOptionI(iss, lmpStart2);
+            }
+            else if (name == "lmpMult2") {
+                setOptionI(iss, lmpMult2);
+            }
+            else if (name == "lmpDiv2") {
+                setOptionI(iss, lmpDiv2);
+            }
+            else if (name == "quiesceFutilityCoef") {
+                setOptionI(iss, quiesceFutilityCoef);
+            }
+            else if (name == "SNMPDepth") {
+                setOptionI(iss, SNMPDepth);
+            }
+            else if (name == "lmpDepth") {
+                setOptionI(iss, lmpDepth);
+            }
         }
         else if (cmd == "generate") {
             int nrThreads, nrFens;
@@ -423,6 +460,12 @@ void UCI::Uci_Loop() {
 
             std::cout << see(searcher.board, move, th) << std::endl;
         }
+        else if (cmd == "tune") {
+            int dataSize, epochs;
+            iss >> dataSize >> epochs;
+
+            tune(dataSize, epochs);
+        }
 
         if (info->quit)
             break;
@@ -432,7 +475,7 @@ void UCI::Uci_Loop() {
 void UCI::Uci() {
     std::cout << "id name Clover " << VERSION << std::endl;
     std::cout << "id author Luca Metehau" << std::endl;
-    std::cout << "option name Hash type spin default 128 min 2 max 131072" << std::endl;
+    std::cout << "option name Hash type spin default 8 min 2 max 131072" << std::endl;
     std::cout << "option name Threads type spin default 1 min 1 max 256" << std::endl;
     std::cout << "option name SyzygyPath type string default <empty>" << std::endl;
     std::cout << "option name MultiPV type spin default 1 min 1 max 255" << std::endl;

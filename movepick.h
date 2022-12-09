@@ -104,7 +104,7 @@ public:
                     cap = PAWN;
 
                 score = 10 * seeVal[cap];
-                if (promoted(move) == QUEEN)
+                if (promoted(move) + KNIGHT == QUEEN)
                     score += 10000;
 
                 score += searcher->capHist[p][sqTo(move)][cap] + 1000000;
@@ -128,7 +128,7 @@ public:
                 }
             }
             if (skip) { /// no need to go through quiets
-                stage = STAGE_BAD_NOISY;
+                stage = STAGE_PRE_BAD_NOISY;
                 return nextMove(searcher, skip, noisyPicker);
             }
             stage++;
@@ -267,7 +267,7 @@ bool see(Board& board, uint16_t move, int threshold) {
                 break;
         }
 
-        occ ^= (1ULL << Sq(lsb(myAtt & board.bb[getType(nextVictim, col)])));
+        occ ^= lsb(myAtt & board.bb[getType(nextVictim, col)]);
 
         if (nextVictim == PAWN || nextVictim == BISHOP || nextVictim == QUEEN)
             att |= genAttacksBishop(occ, to) & diag;

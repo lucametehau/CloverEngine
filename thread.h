@@ -34,6 +34,7 @@ int nmpEvalDiv = 130;
 
 int RazorCoef = 381;
 
+int SNMPDepth = 8;
 int SNMPCoef1 = 97;
 int SNMPCoef2 = 25;
 
@@ -48,18 +49,23 @@ int probcutR = 3;
 int fpMargin = 100;
 int fpCoef = 103;
 
-int histDiv = 4875;
+int histDiv = 4766;
 
 int chCoef = -2000;
 int fhCoef = -2000;
 
 int fpHistDiv = 512;
 
+int lmpDepth = 8;
+
 int nodesSearchedDiv = 10000;
 
 int lmrMargin = 10;
 int lmrDiv = 25;
 int lmrCapDiv = 15;
+
+int lmpStart1 = 3, lmpMult1 = 1, lmpDiv1 = 2;
+int lmpStart2 = 3, lmpMult2 = 1, lmpDiv2 = 1;
 
 int tmScoreDiv = 111;
 int tmBestMoveStep = 205;
@@ -124,7 +130,7 @@ public:
     int hist[2][64][64];
     int follow[2][13][64][13][64];
     int capHist[13][64][7];
-    int lmrCnt[2][9];
+    int lmrCnt[2][20];
     int lmrRed[64][64];
     StackEntry Stack[DEPTH + 5];
     int bestMoves[256], scores[256];

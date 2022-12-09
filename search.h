@@ -36,9 +36,9 @@ Search::Search() : threads(nullptr), params(nullptr)
         for (int j = 0; j < 64; j++) /// moves played
             lmrRed[i][j] = 1.0 * lmrMargin / 10 + log(i) * log(j) / (1.0 * lmrDiv / 10);
     }
-    for (int i = 1; i < 9; i++) {
-        lmrCnt[0][i] = (3 + i * i) / 2;
-        lmrCnt[1][i] = 3 + i * i;
+    for (int i = 1; i < 20; i++) {
+        lmrCnt[0][i] = (lmpStart1 + lmpMult1 * i * i) / lmpDiv1;
+        lmrCnt[1][i] = (lmpStart2 + lmpMult2 * i * i) / lmpDiv2;
     }
 }
 
@@ -165,7 +165,7 @@ int Search::quiesce(int alpha, int beta, bool useTT) {
     else if (eval == INF) {
         /// if last move was null, we already know the evaluation
         Stack[ply].eval = best = eval = (!Stack[ply - 1].move ? -Stack[ply - 1].eval + 2 * TEMPO : evaluate(board));
-        futilityValue = best + 200;
+        futilityValue = best + quiesceFutilityCoef;
     }
     else {
         /// ttValue might be a better evaluation
@@ -197,12 +197,10 @@ int Search::quiesce(int alpha, int beta, bool useTT) {
     uint16_t move;
 
     while ((move = noisyPicker.nextMove(this, !isCheck, true))) {
-
         // futility pruning
-
         if (best > -MATE) {
             if (futilityValue > -MATE) {
-                int value = futilityValue + seeVal[board.piece_type_at(sqTo(move))]/* - seeVal[board.piece_type_at(sqFrom(move))]*/;
+                int value = futilityValue + seeVal[board.piece_type_at(sqTo(move))];
                 if (type(move) != PROMOTION && value <= alpha) {
                     best = std::max(best, value);
                     continue;
@@ -212,10 +210,7 @@ int Search::quiesce(int alpha, int beta, bool useTT) {
             if (isCheck && !isNoisyMove(board, move) && !see(board, move, 0)) {
                 continue;
             }
-
         }
-
-
         // update stack info
         Stack[ply].move = move;
         Stack[ply].piece = board.piece_at(sqFrom(move));
@@ -384,7 +379,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
     /// static null move pruning (don't prune when having a mate line, again stability)
 
-    if (!pvNode && !isCheck && depth <= 8 && eval - (SNMPCoef1 - SNMPCoef2 * improving) * (depth - quietUs) > beta && eval < MATE)
+    if (!pvNode && !isCheck && depth <= SNMPDepth && eval - (SNMPCoef1 - SNMPCoef2 * improving) * (depth - quietUs) > beta && eval < MATE)
         return eval;
 
     /// null move pruning (when last move wasn't null, we still have non pawn material,
@@ -455,7 +450,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
     /// get counter move for move picker
 
-    uint16_t counter = (ply == 0 || !Stack[ply - 1].move ? NULLMOVE : cmTable[1 ^ board.turn][Stack[ply - 1].piece][sqTo(Stack[ply - 1].move)]);
+    uint16_t counter = (!Stack[ply - 1].move ? NULLMOVE : cmTable[1 ^ board.turn][Stack[ply - 1].piece][sqTo(Stack[ply - 1].move)]);
 
     Movepick picker(ttMove, killers[ply][0], killers[ply][1], counter, -seeDepthCoef * depth);
 
@@ -487,7 +482,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
                     skip = 1;
 
                 /// late move pruning
-                if (newDepth <= 8 && nrQuiets >= lmrCnt[improving][newDepth])
+                if (newDepth <= lmpDepth && nrQuiets >= lmrCnt[improving][newDepth])
                     skip = 1;
 
                 if (depth <= 8 && !isCheck && !see(board, move, -seeCoefQuiet * depth))
@@ -547,7 +542,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
                 R -= 2 * refutationMove; /// reduce for refutation moves
 
-                R -= (H.h + H.ch + H.fh) / histDiv; /// reduce based on move history
+                R -= std::max(-2, std::min(2, (H.h + H.ch + H.fh) / histDiv)); /// reduce based on move history
             }
             else if (!pvNode) {
                 R = lmrRed[std::min(63, depth)][std::min(63, played)] / (1.0 * lmrCapDiv / 10);
@@ -993,9 +988,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
                 }
                 else if (beta <= scores[i]) {
                     beta = std::min(INF, beta + window);
-                    /// reduce depth if failing high
-                    /// don't reduce when finding tb wins / mate scores
-                    depth -= (abs(scores[i]) < TB_WIN_SCORE / 2);
+                    depth -= (abs(scores[i]) < TB_WIN_SCORE);
 
                     if (pvTableLen[0])
                         bestMoves[i] = pvTable[0][0];
