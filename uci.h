@@ -26,7 +26,7 @@
 #include "generate.h"
 #include "tune.h"
 
-const std::string VERSION = "3.2-dev19"; /// 2.0 was "FM"
+const std::string VERSION = "3.2"; /// 2.0 was "FM"
 
 struct Option {
     std::string name;
