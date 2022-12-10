@@ -20,9 +20,8 @@ endif
 LIBS   = -pthread
 
 
-POPCNTFLAGS   = -mpopcnt -msse3
-BMI2FLAGS     = $(POPCNTFLAGS) -mbmi2
-AVX2FLAGS     = $(POPCNTFLAGS) -msse -mavx2 -msse4.1 -mssse3 -msse2
+POPCNTFLAGS   = -mpopcnt -Wl,--stack,1000000000
+AVX2FLAGS     = -march=core-avx2
 NATIVEFLAGS   = -march=native
 EVALFILEFLAGS = -DEVALFILE=\"$(EVALFILE)\"
 
@@ -33,4 +32,4 @@ native:
 debug:
 	$(CC) $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(NATIVEFLAGS) -g -o $(EXE)-debug$(EXT)
 run:
-	$(CC) $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(POPCNTFLAGS) $(AVX2FLAGS) -o $(EXE)-avx2$(EXT)
+	$(CC) $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(AVX2FLAGS) -o $(EXE)-avx2$(EXT)

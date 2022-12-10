@@ -16,6 +16,7 @@
 */
 #pragma once
 #include "incbin.h"
+#include <windows.h>
 #include <fstream>
 #include <iomanip>
 #include <vector>
