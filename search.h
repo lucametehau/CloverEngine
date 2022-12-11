@@ -542,7 +542,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
                 R -= 2 * refutationMove; /// reduce for refutation moves
 
-                R -= board.checkers != 0; /// gives check
+                //R -= board.checkers != 0; /// gives check
 
                 R -= std::max(-2, std::min(2, (H.h + H.ch + H.fh) / histDiv)); /// reduce based on move history
             }
@@ -578,7 +578,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         }
 
         if (pvNode && (played == 1 || score > alpha)) {
-            score = -search(-beta, -alpha, newDepth - 1, false);
+            score = -search(-beta, -alpha, newDepth + interesting - 1, false);
         }
 
         undoMove(board, move);
