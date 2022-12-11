@@ -19,8 +19,6 @@ endif
 
 LIBS   = -pthread
 
-
-POPCNTFLAGS   = -mpopcnt -Wl,--stack,1000000000
 AVX2FLAGS     = -march=core-avx2
 NATIVEFLAGS   = -march=native
 EVALFILEFLAGS = -DEVALFILE=\"$(EVALFILE)\"
