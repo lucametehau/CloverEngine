@@ -24,6 +24,7 @@
 struct StackEntry { /// info to keep in the stack
     uint16_t move, piece;
     int eval;
+    int nr_double_ext;
 };
 
 class Undo {
@@ -133,8 +134,8 @@ public:
     void print() {
         for (int i = 7; i >= 0; i--) {
             for (int j = 0; j <= 7; j++)
-                std::cout << piece[board[8 * i + j]] << " ";
-            std::cout << "\n";
+                std::cerr << piece[board[8 * i + j]] << " ";
+            std::cerr << "\n";
         }
     }
 

@@ -121,7 +121,7 @@ int Search::quiesce(int alpha, int beta, bool useTT) {
 
     pvTableLen[ply] = 0;
 
-    selDepth = std::max(selDepth, ply);
+    //selDepth = std::max(selDepth, ply);
     nodes++;
     qsNodes++;
 
@@ -211,6 +211,7 @@ int Search::quiesce(int alpha, int beta, bool useTT) {
                 continue;
             }
         }
+        assert(move != NULLMOVE);
         // update stack info
         Stack[ply].move = move;
         Stack[ply].piece = board.piece_at(sqFrom(move));
@@ -504,7 +505,8 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
             int score = search(rBeta - 1, rBeta, depth / 2, cutNode, move);
 
             if (score < rBeta) {
-                ex = 1 + (!pvNode && rBeta - score > 100);
+                ex = 1 + (Stack[ply - 1].nr_double_ext <= 6 && !pvNode && rBeta - score > 100);
+                Stack[ply].nr_double_ext = Stack[ply - 1].nr_double_ext + (ex == 2);
                 //singular = true;
             }
             else if (rBeta >= beta) /// multicut
@@ -513,6 +515,8 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         else if (isCheck) {
             ex = 1;
         }
+
+        assert(move != NULLMOVE);
 
         /// update stack info
         Stack[ply].move = move;
@@ -542,6 +546,8 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
                 R -= 2 * refutationMove; /// reduce for refutation moves
 
+                //R -= board.checkers != 0; /// gives check
+
                 R -= std::max(-2, std::min(2, (H.h + H.ch + H.fh) / histDiv)); /// reduce based on move history
             }
             else if (!pvNode) {
@@ -564,15 +570,13 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         /// principal variation search
 
         uint64_t initNodes = nodes;
-        bool interesting = false;
 
         if (R != 1) {
             score = -search(-alpha - 1, -alpha, newDepth - R, true);
-            interesting = (score > alpha + 50);
         }
 
         if ((R != 1 && score > alpha) || (R == 1 && (!pvNode || played > 1))) {
-            score = -search(-alpha - 1, -alpha, newDepth + interesting - 1, !cutNode);
+            score = -search(-alpha - 1, -alpha, newDepth - 1, !cutNode);
         }
 
         if (pvNode && (played == 1 || score > alpha)) {
@@ -918,8 +922,6 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
     uint16_t mainThreadBestMove = NULLMOVE;
 
     memset(scores, 0, sizeof(scores));
-
-    //contempt = 0;
 
     for (tDepth = 1; tDepth <= limitDepth; tDepth++) {
         memset(bestMoves, 0, sizeof(bestMoves));
