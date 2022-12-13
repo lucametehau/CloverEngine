@@ -211,7 +211,6 @@ int Search::quiesce(int alpha, int beta, bool useTT) {
                 continue;
             }
         }
-        assert(move != NULLMOVE);
         // update stack info
         Stack[ply].move = move;
         Stack[ply].piece = board.piece_at(sqFrom(move));
@@ -505,9 +504,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
             int score = search(rBeta - 1, rBeta, depth / 2, cutNode, move);
 
             if (score < rBeta) {
-                ex = 1 + (Stack[ply - 1].nr_double_ext <= 6 && !pvNode && rBeta - score > 100);
-                Stack[ply].nr_double_ext = Stack[ply - 1].nr_double_ext + (ex == 2);
-                //singular = true;
+                ex = 1 + (!pvNode && rBeta - score > 100);
             }
             else if (rBeta >= beta) /// multicut
                 return rBeta;
@@ -515,8 +512,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         else if (isCheck) {
             ex = 1;
         }
-
-        assert(move != NULLMOVE);
 
         /// update stack info
         Stack[ply].move = move;
