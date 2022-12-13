@@ -1,6 +1,6 @@
 CC  = g++
 SRC = *.cpp tbprobe.c
-EXE = Clover.3.3-dev1
+EXE = Clover.3.2.1
 EVALFILE = Clover_3_2_500mil_e21.nn
 
 ifeq ($(OS), Windows_NT)
@@ -19,8 +19,6 @@ endif
 
 LIBS   = -pthread
 
-
-POPCNTFLAGS   = -mpopcnt -Wl,--stack,1000000000
 AVX2FLAGS     = -march=core-avx2
 NATIVEFLAGS   = -march=native
 EVALFILEFLAGS = -DEVALFILE=\"$(EVALFILE)\"
