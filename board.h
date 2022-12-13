@@ -24,7 +24,6 @@
 struct StackEntry { /// info to keep in the stack
     uint16_t move, piece;
     int eval;
-    int nr_double_ext;
 };
 
 class Undo {

@@ -1282,8 +1282,6 @@ bool isLegalMoveSlow(Board& board, int move) {
 }
 
 bool isLegalMove(Board& board, int move) {
-    if (move == NULLMOVE)
-        return 0;
     if (!isPseudoLegalMove(board, move)) {
         return 0;
     }
