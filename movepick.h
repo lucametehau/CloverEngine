@@ -182,6 +182,9 @@ public:
                     if (piece_type(piece) != PAWN && (pawnAttacks & (1ULL << to)))
                         score -= 10 * seeVal[piece_type(piece)];
 
+                    if (piece_type(piece) == PAWN) // pawn push, generally good?
+                        score += 10000;
+
                     score += searcher->nodesSearched[from][to] / nodesSearchedDiv + 1000000; // the longer it takes a move to be refuted, the higher its chance to become the best move
                     scores[m++] = score;
                 }
