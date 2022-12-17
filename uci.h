@@ -187,7 +187,7 @@ void UCI::Uci_Loop() {
             UciNewGame(ttSize);
         }
         else if (cmd == "go") {
-            int depth = -1, movestogo = 30, movetime = -1;
+            int depth = -1, movestogo = 40, movetime = -1;
             int time = -1, inc = 0;
             bool turn = searcher.board.turn;
             info->timeset = 0;
@@ -221,18 +221,18 @@ void UCI::Uci_Loop() {
                 }
             }
 
-            if (movetime != -1) {
-                time = movetime;
-                movestogo = 60;
-            }
-
             info->startTime = getTime();
             info->depth = depth;
 
-            int goodTimeLim, hardTimeLim;
-
-            if (time != -1) {
-                goodTimeLim = time / (movestogo + 1) + inc;
+            if (movetime != -1) {
+                time = movetime;
+                info->timeset = 1;
+                info->goodTimeLim = info->hardTimeLim = time;
+                info->stopTime = info->startTime + info->goodTimeLim;
+            }
+            else if (time != -1) {
+                int goodTimeLim, hardTimeLim;
+                goodTimeLim = time / std::max(movestogo / 2, 1) + inc;
                 hardTimeLim = std::min(goodTimeLim * 5, time / std::min(4, movestogo));
 
                 hardTimeLim = std::max(10, std::min(hardTimeLim, time));
