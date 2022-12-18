@@ -256,6 +256,8 @@ inline uint64_t genAttacksSq(uint64_t blockers, int sq, int pieceType) {
     case QUEEN:
         return genAttacksQueen(blockers, sq);
     }
+    assert(0);
+    return 0;
 }
 
 inline uint64_t getAttackers(Board& board, int color, uint64_t blockers, int sq) {
