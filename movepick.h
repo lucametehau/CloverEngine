@@ -157,7 +157,7 @@ public:
                 bool turn = searcher->board.turn, enemy = 1 ^ turn;
                 uint64_t enemyPawns = searcher->board.bb[getType(PAWN, turn ^ 1)], allPieces = searcher->board.pieces[WHITE] | searcher->board.pieces[BLACK];
                 uint64_t pawnAttacks = getPawnAttacks(enemy, enemyPawns);
-                uint64_t enemyKingRing = kingRingMask[searcher->board.king(enemy)] & ~(shift(turn, NORTHEAST, enemyPawns & ~fileMask[(enemy == WHITE ? 7 : 0)]) & shift(turn, NORTHWEST, enemyPawns & ~fileMask[(enemy == WHITE ? 0 : 7)]));
+                uint64_t enemyKingRing = kingRingMask[searcher->board.king(enemy)] & ~(shift(enemy, NORTHEAST, enemyPawns & ~fileMask[(enemy == WHITE ? 7 : 0)]) & shift(enemy, NORTHWEST, enemyPawns & ~fileMask[(enemy == WHITE ? 0 : 7)]));
                 uint16_t counterMove = (ply >= 1 ? searcher->Stack[ply - 1].move : NULLMOVE), followMove = (ply >= 2 ? searcher->Stack[ply - 2].move : NULLMOVE);
                 int counterPiece = (ply >= 1 ? searcher->Stack[ply - 1].piece : 0), followPiece = ply >= 2 ? searcher->Stack[ply - 2].piece : 0;
                 int counterTo = sqTo(counterMove), followTo = sqTo(followMove);
