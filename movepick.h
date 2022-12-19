@@ -184,6 +184,9 @@ public:
                     if (pt != PAWN && (pawnAttacks & (1ULL << to)))
                         score -= 10 * seeVal[pt];
 
+                    if (pt == PAWN) // pawn push, generally good?
+                        score += 10000;
+
                     if(pt != KING && pt != PAWN)
                         score += 4096 * count(genAttacksSq(allPieces, to, pt) & enemyKingRing);
 

@@ -748,17 +748,17 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv) {
 
                 R += (quietUs && eval - seeVal[KNIGHT] > beta);
 
-                R += isNoisyMove(board, ttMove);
+                //R += isNoisyMove(board, ttMove);
 
                 R -= 2 * refutationMove; /// reduce for refutation moves
             }
-            else {
+            /*else {
                 R = lmrRed[std::min(63, depth)][std::min(63, played)] / (1.0 * lmrCapDiv / 10);
 
                 R += quietUs && !see(board, move, -seeVal[BISHOP] - 1);
 
                 R -= picker.stage <= STAGE_GOOD_NOISY;
-            }
+            }*/
 
             R = std::min(depth - 1, std::max(R, 1)); /// clamp R
         }
