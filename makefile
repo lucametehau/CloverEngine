@@ -10,7 +10,7 @@ else
 endif
 
 
-WFLAGS = -Wall
+WFLAGS = -Wall -mno-avx512f
 RFLAGS = $(WFLAGS) -std=c++17 -O3 -fopenmp
 
 ifeq ($(EXT), .exe)
