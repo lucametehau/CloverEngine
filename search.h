@@ -69,11 +69,11 @@ bool Search::checkForStop() {
 bool printStats = true; /// default true
 const bool PROBE_ROOT = true; /// default true
 
-int quietness(Board& board) {
+int quietness(Board& board, bool us) {
     if (board.checkers)
         return 0;
     uint64_t att;
-    int us = board.turn, enemy = 1 ^ us;
+    int enemy = 1 ^ us;
     uint64_t pieces, b, all = board.pieces[WHITE] | board.pieces[BLACK];
 
     if (getPawnAttacks(enemy, board.bb[getType(PAWN, enemy)]) &
@@ -345,7 +345,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     }
 
     bool isCheck = (board.checkers != 0);
-    int quietUs = quietness(board);
+    int quietUs = quietness(board, board.turn), quietEnemy = quietness(board, 1 ^ board.turn);
 
     if (isCheck) {
         /// when in check, don't evaluate (king safety evaluation might break)
@@ -373,13 +373,13 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
     /// razoring (searching 1 more ply can't change the score much, drop in quiesce)
 
-    if (!pvNode && !isCheck && depth <= 1 + quietUs && Stack[ply].eval + RazorCoef < alpha) {
+    if (!pvNode && !isCheck && depth <= 1 && Stack[ply].eval + RazorCoef < alpha) {
         return quiesce(alpha, beta);
     }
 
     /// static null move pruning (don't prune when having a mate line, again stability)
 
-    if (!pvNode && !isCheck && depth <= SNMPDepth && eval - (SNMPCoef1 - SNMPCoef2 * improving) * (depth - quietUs) > beta && eval < MATE)
+    if (!pvNode && !isCheck && depth <= SNMPDepth && eval - (SNMPCoef1 - SNMPCoef2 * improving) * (depth - quietUs - quietEnemy) > beta && eval < MATE)
         return eval;
 
     /// null move pruning (when last move wasn't null, we still have non pawn material,
@@ -669,7 +669,7 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv) {
     }
 
     bool isCheck = (board.checkers != 0);
-    int quietUs = quietness(board);
+    int quietUs = quietness(board, board.turn);
 
     if (isCheck) {
         /// when in check, don't evaluate (king safety evaluation might break)
@@ -981,6 +981,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
                     std::cout << "pv ";
                     printPv();
                     std::cout << std::endl;
+                    //std::cout << cnt2 << " out of " << cnt << ", " << 100.0 * cnt2 / cnt << "% bad\n";
                 }
 
                 if (scores[i] <= alpha) {
