@@ -345,7 +345,8 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     }
 
     bool isCheck = (board.checkers != 0);
-    int quietUs = quietness(board, board.turn), quietEnemy = quietness(board, 1 ^ board.turn);
+    int quietUs = quietness(board, board.turn);
+    //int quietEnemy = quietness(board, 1 ^ board.turn);
 
     if (isCheck) {
         /// when in check, don't evaluate (king safety evaluation might break)
@@ -373,7 +374,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
     /// razoring (searching 1 more ply can't change the score much, drop in quiesce)
 
-    if (!pvNode && !isCheck && depth <= 1 + (quietEnemy) && Stack[ply].eval + RazorCoef < alpha) {
+    if (!pvNode && !isCheck && depth <= 1 && Stack[ply].eval + RazorCoef < alpha) {
         return quiesce(alpha, beta);
     }
 
