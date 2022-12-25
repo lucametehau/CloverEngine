@@ -238,7 +238,7 @@ void UCI::Uci_Loop() {
                 hardTimeLim = std::min(goodTimeLim * 5, time / std::min(4, movestogo));
 
                 hardTimeLim = std::min(hardTimeLim, time);
-                goodTimeLim = std::min(hardTimeLim, time);
+                goodTimeLim = std::min(goodTimeLim, time);
                 info->goodTimeLim = goodTimeLim;
                 info->hardTimeLim = hardTimeLim;
                 info->timeset = 1;
