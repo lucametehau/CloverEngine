@@ -82,24 +82,33 @@ public:
     }
 
     int32_t calc(NetInput& input, bool stm) {
-        int16_t sum;
+        int32_t sum;
+        float sum_f;
 
         for (int n = 0; n < SIDE_NEURONS; n++) {
             sum = inputBiases[n];
+            sum_f = inputBiases_f[n];
 
             for (auto& prevN : input.ind[WHITE]) {
                 sum += inputWeights[prevN][n];
+                sum_f += inputWeights_f[prevN][n];
             }
 
             histOutput[WHITE][0][n] = sum;
+            histOutput_f[WHITE][0][n] = sum_f;
 
             sum = inputBiases[n];
+            sum_f = inputBiases_f[n];
 
             for (auto& prevN : input.ind[BLACK]) {
                 sum += inputWeights[prevN][n];
+                sum_f += inputWeights_f[prevN][n];
             }
 
             histOutput[BLACK][0][n] = sum;
+            histOutput_f[BLACK][0][n] = sum_f;
+
+            assert(-32768 <= sum && sum <= 32767);
         }
 
         histSz = 1;
@@ -254,6 +263,11 @@ public:
 
     int32_t getOutput(bool stm) {
         int32_t sum = outputBias * Q_IN;
+        /*float f_sum = outputBias_f;
+        for (int i = 0; i < SIDE_NEURONS; i++)
+            f_sum += std::max<float>(0, histOutput_f[stm][histSz - 1][i]) * outputWeights_f[i];
+        for (int i = 0; i < SIDE_NEURONS; i++)
+            f_sum += std::max<float>(0, histOutput_f[1 ^ stm][histSz - 1][i]) * outputWeights_f[i + SIDE_NEURONS];*/
 
         __m256i zero = _mm256_setzero_si256();
         __m256i acc0 = _mm256_setzero_si256(), acc1 = _mm256_setzero_si256();
@@ -297,6 +311,8 @@ public:
 
         sum += get_sum(acc0);
 
+        //std::cout << sum / Q_IN / Q_HIDDEN << " " << f_sum << "\n";
+
         return sum / Q_IN / Q_HIDDEN;
     }
 
@@ -306,6 +322,7 @@ public:
         Gradient* gradData;
         Gradient kekw;
         std::vector <float> w;
+        float mn = 1e9, mx = -1e9;
 
         int x;
         intData = (int*)gNetData;
@@ -321,6 +338,7 @@ public:
 
         for (int j = 0; j < sz; j++) {
             float val = *(floatData++);
+            inputBiases_f[j] = val;
             inputBiases[j] = round(val * Q_IN);
         }
 
@@ -333,6 +351,7 @@ public:
 
         for (int i = 0; i < SIDE_NEURONS * INPUT_NEURONS; i++) {
             float val = *(floatData++);
+            inputWeights_f[i / SIDE_NEURONS][i % SIDE_NEURONS] = val;
             inputWeights[i / SIDE_NEURONS][i % SIDE_NEURONS] = round(val * Q_IN);
         }
 
@@ -345,6 +364,7 @@ public:
         sz = 1;
         floatData = (float*)gradData;
 
+        outputBias_f = *floatData;
         outputBias = round(*(floatData++) * Q_HIDDEN);
 
         gradData = (Gradient*)floatData;
@@ -355,6 +375,7 @@ public:
 
         for (int j = 0; j < HIDDEN_NEURONS; j++) {
             float val = *(floatData++);
+            outputWeights_f[j] = val;
             outputWeights[j] = round(val * Q_HIDDEN);
         }
     }
@@ -370,6 +391,11 @@ public:
     int16_t inputWeights[INPUT_NEURONS][SIDE_NEURONS] __attribute__((aligned(32)));
     int16_t outputWeights[HIDDEN_NEURONS] __attribute__((aligned(32)));
     int16_t deeznuts[HIDDEN_NEURONS] __attribute__((aligned(32)));
+    float inputBiases_f[SIDE_NEURONS];
+    float outputBias_f;
+    float histOutput_f[2][2005][SIDE_NEURONS];
+    float inputWeights_f[INPUT_NEURONS][SIDE_NEURONS];
+    float outputWeights_f[HIDDEN_NEURONS];
 
     __m256i* v = (__m256i*)outputWeights;
 

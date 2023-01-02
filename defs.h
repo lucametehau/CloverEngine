@@ -145,7 +145,7 @@ inline int piece_type(int piece) {
 
 inline int16_t netInd(int piece, int sq, int kingSq, int side) {
     if (side == BLACK) {
-        //kingSq ^= 56;
+        kingSq ^= 56;
         sq ^= 56;
         piece = oppositePiece[piece];
     }
