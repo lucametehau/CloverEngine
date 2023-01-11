@@ -23,6 +23,8 @@
 
 struct StackEntry { /// info to keep in the stack
     uint16_t move, piece;
+    //uint16_t killers[2];
+    uint16_t quiets[256], captures[256];
     int eval;
 };
 

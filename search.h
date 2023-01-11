@@ -261,8 +261,8 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     int ply = board.ply;
     int alphaOrig = alpha;
     uint64_t key = board.key;
-    uint16_t quiets[256], nrQuiets = 0;
-    uint16_t captures[256], nrCaptures = 0;
+    uint16_t nrQuiets = 0;
+    uint16_t nrCaptures = 0;
     int played = 0, bound = NONE, skip = 0;
     int best = -INF;
     uint16_t bestMove = NULLMOVE;
@@ -524,9 +524,9 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         /// store quiets for history
 
         if (isQuiet)
-            quiets[nrQuiets++] = move;
+            Stack[ply].quiets[nrQuiets++] = move;
         else
-            captures[nrCaptures++] = move;
+            Stack[ply].captures[nrCaptures++] = move;
 
         int newDepth = depth + ex, R = 1;
 
@@ -616,17 +616,17 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
             killers[ply][0] = bestMove;
         }
 
-        updateHistory(this, quiets, nrQuiets, ply, getHistoryBonus(depth + pvNode));
+        updateHistory(this, Stack[ply].quiets, nrQuiets, ply, getHistoryBonus(depth + pvNode));
     }
 
     if (best >= beta)
-        updateCapHistory(this, captures, nrCaptures, bestMove, ply, getHistoryBonus(depth));
+        updateCapHistory(this, Stack[ply].captures, nrCaptures, bestMove, ply, getHistoryBonus(depth));
 
     /// update tt only if we aren't in a singular search
 
     if (!excluded) {
         bound = (best >= beta ? LOWER : (best > alphaOrig ? EXACT : UPPER));
-        TT->save(key, best, depth, ply, bound, bestMove, Stack[ply].eval);
+        TT->save(key, best, depth + pvNode, ply, bound, bestMove, Stack[ply].eval);
     }
 
     return best;
@@ -918,7 +918,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
         startWorkerThreads(info);
 
     uint64_t totalNodes = 0, totalHits = 0;
-    int limitDepth = (principalSearcher ? info->depth : DEPTH); /// when limited by depth, allow helper threads to pass the fixed depth
+    int limitDepth = (principalSearcher ? info->depth : 255); /// when limited by depth, allow helper threads to pass the fixed depth
     int mainThreadScore = 0;
     uint16_t mainThreadBestMove = NULLMOVE;
 

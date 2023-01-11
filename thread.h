@@ -135,8 +135,6 @@ public:
     StackEntry Stack[DEPTH + 5];
     int bestMoves[256], scores[256];
 
-    int kekw[500];
-
     int16_t contempt;
 
     volatile int flag;
@@ -162,7 +160,7 @@ public:
     bool principalSearcher;
     Board board;
 
-    tt::HashTable* threadTT;
+    //tt::HashTable* threadTT;
 
     std::unique_ptr <std::thread[]> threads;
     std::unique_ptr <Search[]> params;
