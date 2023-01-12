@@ -556,6 +556,8 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
                 R += !improving; /// not on pv or not improving
 
                 R += quietUs && !see(board, move, -seeVal[BISHOP] - 1);
+
+                R -= (getCapHist(this, move) > 4096);
             }
 
             R += cutNode;
