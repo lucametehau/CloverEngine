@@ -322,7 +322,6 @@ public:
         Gradient* gradData;
         Gradient kekw;
         std::vector <float> w;
-        float mn = 1e9, mx = -1e9;
 
         int x;
         intData = (int*)gNetData;
