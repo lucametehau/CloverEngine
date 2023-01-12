@@ -189,6 +189,7 @@ void UCI::Uci_Loop() {
         else if (cmd == "go") {
             int depth = -1, movestogo = 40, movetime = -1;
             int time = -1, inc = 0;
+            int64_t nodes = -1;
             bool turn = searcher.board.turn;
             info->timeset = 0;
 
@@ -219,6 +220,9 @@ void UCI::Uci_Loop() {
                 else if (param == "depth") {
                     iss >> depth;
                 }
+                else if (param == "nodes") {
+                    iss >> nodes;
+                }
             }
 
             info->startTime = getTime();
@@ -245,6 +249,7 @@ void UCI::Uci_Loop() {
                 info->stopTime = info->startTime + goodTimeLim;
             }
 
+            info->nodes = nodes;
             if (depth == -1)
                 info->depth = DEPTH;
 

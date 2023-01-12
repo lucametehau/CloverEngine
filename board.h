@@ -252,7 +252,7 @@ public:
     int depth, sel_depth, multipv;
     int timeset;
     int movestogo;
-    long long nodes;
+    int64_t nodes;
 
     bool quit, stopped;
 };

@@ -55,6 +55,11 @@ bool Search::checkForStop() {
         return 1;
     }
 
+    if (info->nodes != -1 && info->nodes <= (int64_t)nodes) {
+        flag |= TERMINATED_BY_TIME;
+        return 1;
+    }
+
     checkCount++;
 
     if (checkCount == (1 << 10)) {
@@ -69,6 +74,27 @@ bool Search::checkForStop() {
 bool printStats = true; /// default true
 const bool PROBE_ROOT = true; /// default true
 
+uint32_t probe_TB(Board &board, int depth) {
+    if (TB_LARGEST && depth >= 2 && !board.halfMoves && !board.castleRights) {
+        unsigned pieces = count(board.pieces[WHITE] | board.pieces[BLACK]);
+
+        if (pieces <= TB_LARGEST) {
+            int ep = board.enPas;
+            if (ep == -1)
+                ep = 0;
+
+            return tb_probe_wdl(board.pieces[WHITE], board.pieces[BLACK],
+                board.bb[WK] | board.bb[BK],
+                board.bb[WQ] | board.bb[BQ],
+                board.bb[WR] | board.bb[BR],
+                board.bb[WB] | board.bb[BB],
+                board.bb[WN] | board.bb[BN],
+                board.bb[WP] | board.bb[BP],
+                0, 0, ep, board.turn);
+        }
+    }
+    return TB_RESULT_FAILED;
+}
 int quietness(Board& board, bool us) {
     if (board.checkers)
         return 0;
@@ -301,46 +327,28 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     }
 
     /// tablebase probing
+    auto probe = probe_TB(this->board, depth);
+    if (probe != TB_RESULT_FAILED) {
+        int type = NONE, score;
+        tbHits++;
+        switch (probe) {
+        case TB_WIN:
+            score = TB_WIN_SCORE - DEPTH - board.ply;
+            type = LOWER;
+            break;
+        case TB_LOSS:
+            score = -(TB_WIN_SCORE - DEPTH - board.ply);
+            type = UPPER;
+            break;
+        default:
+            score = 0;
+            type = EXACT;
+            break;
+        }
 
-    if (TB_LARGEST && depth >= 2 && !board.halfMoves && !board.castleRights) {
-        unsigned pieces = count(board.pieces[WHITE] | board.pieces[BLACK]);
-
-        if (pieces <= TB_LARGEST) {
-            int ep = board.enPas, score = 0, type = NONE;
-            if (ep == -1)
-                ep = 0;
-
-            auto probe = tb_probe_wdl(board.pieces[WHITE], board.pieces[BLACK],
-                board.bb[WK] | board.bb[BK],
-                board.bb[WQ] | board.bb[BQ],
-                board.bb[WR] | board.bb[BR],
-                board.bb[WB] | board.bb[BB],
-                board.bb[WN] | board.bb[BN],
-                board.bb[WP] | board.bb[BP],
-                0, 0, ep, board.turn);
-
-            if (probe != TB_RESULT_FAILED) {
-                tbHits++;
-                switch (probe) {
-                case TB_WIN:
-                    score = TB_WIN_SCORE - DEPTH - board.ply;
-                    type = LOWER;
-                    break;
-                case TB_LOSS:
-                    score = -(TB_WIN_SCORE - DEPTH - board.ply);
-                    type = UPPER;
-                    break;
-                default:
-                    score = 0;
-                    type = EXACT;
-                    break;
-                }
-
-                if (type == EXACT || (type == UPPER && score <= alpha) || (type == LOWER && score >= beta)) {
-                    TT->save(key, score, DEPTH, 0, type, NULLMOVE, 0);
-                    return score;
-                }
-            }
+        if (type == EXACT || (type == UPPER && score <= alpha) || (type == LOWER && score >= beta)) {
+            TT->save(key, score, DEPTH, 0, type, NULLMOVE, 0);
+            return score;
         }
     }
 
@@ -371,6 +379,15 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     bool improving = (!isCheck && ply >= 2 && Stack[ply].eval > Stack[ply - 2].eval); /// (TO DO: make all pruning dependent of this variable?)
 
     killers[ply + 1][0] = killers[ply + 1][1] = NULLMOVE;
+
+    /// internal iterative deepening (search at reduced depth to find a ttMove) (Rebel like)
+    /// also for cut nodes
+
+    if (pvNode && !isCheck && depth >= 4 && !ttHit)
+        depth--;
+
+    if (cutNode && depth >= 4 && !ttHit)
+        depth--;
 
     /// razoring (searching 1 more ply can't change the score much, drop in quiesce)
 
@@ -444,15 +461,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         }
     }
 
-    /// internal iterative deepening (search at reduced depth to find a ttMove) (Rebel like)
-    /// also for cut nodes
-
-    if (pvNode && !isCheck && depth >= 4 && !ttHit)
-        depth--;
-
-    if (cutNode && depth >= 4 && !ttHit)
-        depth--;
-
     /// get counter move for move picker
 
     uint16_t counter = (!Stack[ply - 1].move ? NULLMOVE : cmTable[1 ^ board.turn][Stack[ply - 1].piece][sqTo(Stack[ply - 1].move)]);
@@ -499,8 +507,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
             else {
                 if (depth <= 8 && !isCheck && picker.stage > STAGE_GOOD_NOISY && !see(board, move, -seeCoefNoisy * depth * depth))
                     continue;
-
-                hist = getCapHist(this, move);
             }
         }
 
@@ -561,8 +567,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
                 R += !improving; /// not on pv or not improving
 
                 R += quietUs && !see(board, move, -seeVal[BISHOP] - 1);
-
-                R -= (hist > 4096);
             }
 
             R += cutNode;
