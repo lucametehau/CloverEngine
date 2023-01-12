@@ -468,11 +468,12 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
             continue;
 
         bool isQuiet = !isNoisyMove(board, move), refutationMove = (picker.stage < STAGE_QUIETS);
-        Heuristics H{}; /// history values for quiet moves
+        int hist = 0;
 
         /// quiet move pruning
         if (best > -MATE) {
             if (isQuiet) {
+                Heuristics H; /// history values for quiet moves
                 getHistory(this, move, ply, H);
 
                 /// approximately the new depth for the next search
@@ -492,10 +493,14 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
                 if (depth <= 8 && !isCheck && !see(board, move, -seeCoefQuiet * depth))
                     continue;
+
+                hist = H.h + H.fh + H.ch;
             }
             else {
                 if (depth <= 8 && !isCheck && picker.stage > STAGE_GOOD_NOISY && !see(board, move, -seeCoefNoisy * depth * depth))
                     continue;
+
+                hist = getCapHist(this, move);
             }
         }
 
@@ -548,7 +553,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
                 R -= board.checkers != 0; /// gives check
 
-                R -= std::max(-2, std::min(2, (H.h + H.ch + H.fh) / histDiv)); /// reduce based on move history
+                R -= std::max(-2, std::min(2, hist / histDiv)); /// reduce based on move history
             }
             else if (!pvNode) {
                 R = lmrRed[std::min(63, depth)][std::min(63, played)] / (1.0 * lmrCapDiv / 10);
@@ -557,7 +562,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
                 R += quietUs && !see(board, move, -seeVal[BISHOP] - 1);
 
-                R -= (getCapHist(this, move) > 4096);
+                R -= (hist > 4096);
             }
 
             R += cutNode;
