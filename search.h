@@ -380,15 +380,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
     killers[ply + 1][0] = killers[ply + 1][1] = NULLMOVE;
 
-    /// internal iterative deepening (search at reduced depth to find a ttMove) (Rebel like)
-    /// also for cut nodes
-
-    if (pvNode && !isCheck && depth >= 4 && !ttHit)
-        depth--;
-
-    if (cutNode && depth >= 4 && !ttHit)
-        depth--;
-
     /// razoring (searching 1 more ply can't change the score much, drop in quiesce)
 
     if (!pvNode && !isCheck && depth <= 1 && Stack[ply].eval + RazorCoef < alpha) {
@@ -461,6 +452,15 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         }
     }
 
+    /// internal iterative deepening (search at reduced depth to find a ttMove) (Rebel like)
+    /// also for cut nodes
+
+    if (pvNode && !isCheck && depth >= 4 && !ttHit)
+        depth--;
+
+    if (cutNode && depth >= 4 && !ttHit)
+        depth--;
+
     /// get counter move for move picker
 
     uint16_t counter = (!Stack[ply - 1].move ? NULLMOVE : cmTable[1 ^ board.turn][Stack[ply - 1].piece][sqTo(Stack[ply - 1].move)]);
@@ -484,6 +484,8 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
                 Heuristics H; /// history values for quiet moves
                 getHistory(this, move, ply, H);
 
+                hist = H.h + H.fh + H.ch;
+
                 /// approximately the new depth for the next search
                 int newDepth = std::max(0, depth - lmrRed[std::min(63, depth)][std::min(63, played)]);
 
@@ -492,7 +494,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
                     continue;
 
                 /// futility pruning
-                if (newDepth <= 8 && !isCheck && Stack[ply].eval + fpMargin + fpCoef * newDepth + (H.h + H.ch + H.fh) / fpHistDiv <= alpha)
+                if (newDepth <= 8 && !isCheck && Stack[ply].eval + fpMargin + fpCoef * newDepth + hist / fpHistDiv <= alpha)
                     skip = 1;
 
                 /// late move pruning
@@ -502,7 +504,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
                 if (depth <= 8 && !isCheck && !see(board, move, -seeCoefQuiet * depth))
                     continue;
 
-                hist = H.h + H.fh + H.ch;
             }
             else {
                 if (depth <= 8 && !isCheck && picker.stage > STAGE_GOOD_NOISY && !see(board, move, -seeCoefNoisy * depth * depth))
@@ -559,7 +560,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
                 R -= board.checkers != 0; /// gives check
 
-                R -= std::max(-2, std::min(2, hist / histDiv)); /// reduce based on move history
+                R -= hist / histDiv; /// reduce based on move history
             }
             else if (!pvNode) {
                 R = lmrRed[std::min(63, depth)][std::min(63, played)] / (1.0 * lmrCapDiv / 10);
