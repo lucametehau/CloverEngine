@@ -34,7 +34,7 @@ int nmpEvalDiv = 130;
 
 int RazorCoef = 381;
 
-int SNMPDepth = 8;
+int SNMPDepth = 10;
 int SNMPCoef1 = 97;
 int SNMPCoef2 = 25;
 
@@ -49,7 +49,7 @@ int probcutR = 3;
 int fpMargin = 100;
 int fpCoef = 103;
 
-int histDiv = 4766;
+int histDiv = 4850;
 
 int chCoef = -2000;
 int fhCoef = -2000;
