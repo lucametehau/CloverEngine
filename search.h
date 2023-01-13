@@ -321,8 +321,11 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         bound = entry.bound(), ttMove = entry.info.move;
         eval = entry.info.eval;
         if (entry.depth() >= depth && !pvNode) {
-            if (bound == EXACT || (bound == LOWER && score >= beta) || (bound == UPPER && score <= alpha))
+            if (bound == EXACT || (bound == LOWER && score >= beta) || (bound == UPPER && score <= alpha)) {
+                if (score >= beta && !isNoisyMove(board, ttMove)) // in case of cutoff, update histories
+                    updateMoveHistory(this, ttMove, ply, getHistoryBonus(depth));
                 return score;
+            }
         }
     }
 
