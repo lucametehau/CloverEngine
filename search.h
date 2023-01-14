@@ -322,8 +322,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         eval = entry.info.eval;
         if (entry.depth() >= depth && !pvNode) {
             if (bound == EXACT || (bound == LOWER && score >= beta) || (bound == UPPER && score <= alpha)) {
-                if (score >= beta && !isNoisyMove(board, ttMove)) // in case of cutoff, update histories
-                    updateMoveHistory(this, ttMove, ply, getHistoryBonus(depth));
                 return score;
             }
         }
@@ -450,8 +448,9 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
             undoMove(board, move);
 
-            if (score >= cutBeta)
+            if (score >= cutBeta) {
                 return score;
+            }
         }
     }
 
@@ -462,6 +461,9 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         depth--;
 
     if (cutNode && depth >= 4 && !ttHit)
+        depth--;
+
+    if (quietUs && depth >= 4 && eval >= beta)
         depth--;
 
     /// get counter move for move picker
@@ -1001,7 +1003,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
                     std::cout << "pv ";
                     printPv();
                     std::cout << std::endl;
-                    //std::cout << cnt2 << " out of " << cnt << ", " << 100.0 * cnt2 / cnt << "% bad\n";
+                    //std::cout << cnt << " out of " << cnt2 << ", " << 100.0 * cnt / cnt2 << "% good\n";
                 }
 
                 if (scores[i] <= alpha) {
