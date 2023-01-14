@@ -26,7 +26,7 @@ enum {
     STAGE_NONE = 0, 
     STAGE_HASHMOVE, 
     STAGE_GEN_NOISY, STAGE_GOOD_NOISY,
-    STAGE_KILLER_1, STAGE_KILLER_2, STAGE_COUNTER,
+    STAGE_COUNTER, STAGE_KILLER_1,
     STAGE_GEN_QUIETS, STAGE_QUIETS, 
     STAGE_PRE_BAD_NOISY, STAGE_BAD_NOISY,
 }; /// move picker stages
@@ -35,10 +35,10 @@ bool see(Board& board, uint16_t move, int threshold);
 
 class Movepick {
 public:
-    int stage;
+    int stage, trueStage;
     //int mp_type;
 
-    uint16_t hashMove, killer1, killer2, counter, possibleCounter;
+    uint16_t hashMove, killer1, counter, possibleCounter;
     int nrNoisy, nrQuiets, nrBadNoisy;
     int index;
 
@@ -48,13 +48,12 @@ public:
     int scores[256];
     long long v[256];
 
-    Movepick(const uint16_t HashMove, const uint16_t Killer1, const uint16_t Killer2, const uint16_t Counter, const int Threshold) {
+    Movepick(const uint16_t HashMove, const uint16_t Killer1, const uint16_t Counter, const int Threshold) {
         stage = STAGE_HASHMOVE;
 
         hashMove = HashMove;
         killer1 = (Killer1 != hashMove ? Killer1 : NULLMOVE);
-        killer2 = (Killer2 != hashMove ? Killer2 : NULLMOVE);
-        counter = (Counter != hashMove && Counter != killer1 && Counter != killer2 ? Counter : NULLMOVE);
+        counter = (Counter != hashMove && Counter != killer1 ? Counter : NULLMOVE);
 
         nrNoisy = nrQuiets = nrBadNoisy = 0;
         threshold = Threshold;
@@ -78,6 +77,7 @@ public:
     uint16_t nextMove(Search* searcher, bool skip, bool noisyPicker) {
         switch (stage) {
         case STAGE_HASHMOVE:
+            trueStage = STAGE_HASHMOVE;
             stage++;
 
             if (hashMove && isLegalMove(searcher->board, hashMove)) {
@@ -92,7 +92,7 @@ public:
             for (int i = 0; i < nrNoisy; i++) {
                 uint16_t move = noisy[i];
 
-                if (move == hashMove || move == killer1 || move == killer2 || move == counter)
+                if (move == hashMove || move == killer1 || move == counter)
                     continue;
 
                 noisy[m] = move;
@@ -120,6 +120,7 @@ public:
             stage++;
         }
         case STAGE_GOOD_NOISY:
+            trueStage = STAGE_GOOD_NOISY;
             while (index < nrNoisy) {
                 if (see(searcher->board, noisy[index], threshold))
                     return noisy[index++];
@@ -132,21 +133,18 @@ public:
                 return nextMove(searcher, skip, noisyPicker);
             }
             stage++;
-        case STAGE_KILLER_1:
-            stage++;
-
-            if (!skip && killer1 && isLegalMove(searcher->board, killer1))
-                return killer1;
-        case STAGE_KILLER_2:
-            stage++;
-
-            if (!skip && killer2 && isLegalMove(searcher->board, killer2))
-                return killer2;
         case STAGE_COUNTER:
+            trueStage = STAGE_COUNTER;
             stage++;
 
             if (!skip && counter && isLegalMove(searcher->board, counter))
                 return counter;
+        case STAGE_KILLER_1:
+            trueStage = STAGE_KILLER_1;
+            stage++;
+
+            if (!skip && killer1 && isLegalMove(searcher->board, killer1))
+                return killer1;
         case STAGE_GEN_QUIETS:
         {
             if (!skip) {
@@ -166,7 +164,7 @@ public:
                 for (int i = 0; i < nrQuiets; i++) {
                     uint16_t move = quiets[i];
 
-                    if (move == hashMove || move == killer1 || move == killer2 || move == counter)
+                    if (move == hashMove || move == killer1 || move == counter)
                         continue;
 
                     quiets[m] = move;
@@ -202,6 +200,7 @@ public:
             stage++;
         }
         case STAGE_QUIETS:
+            trueStage = STAGE_QUIETS;
             if (!skip && index < nrQuiets) {
                 return quiets[index++];
             }
@@ -215,6 +214,7 @@ public:
             index = 0;
             stage++;
         case STAGE_BAD_NOISY:
+            trueStage = STAGE_BAD_NOISY;
             if (index < nrBadNoisy) { /// bad captures can't improve the current position in quiesce search
                 return badNoisy[index++];
             }
