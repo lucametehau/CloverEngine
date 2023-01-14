@@ -293,6 +293,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     int best = -INF;
     uint16_t bestMove = NULLMOVE;
     int ttHit = 0, ttValue = 0;
+    bool nullSearch = (Stack[ply - 1].move == NULLMOVE);
 
     nodes++;
     selDepth = std::max(selDepth, ply);
@@ -314,7 +315,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
     int eval = INF;
 
-    if (!excluded && TT->probe(key, entry)) {
+    if (!excluded && !nullSearch && TT->probe(key, entry)) {
         int score = entry.value(ply);
         ttHit = 1;
         ttValue = score;
@@ -366,13 +367,11 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         if (excluded)
             eval = Stack[ply].eval;
         else
-            Stack[ply].eval = eval = (ply >= 1 && !Stack[ply - 1].move ? -Stack[ply - 1].eval + 2 * TEMPO : evaluate(board));
+            Stack[ply].eval = eval = (nullSearch ? -Stack[ply - 1].eval + 2 * TEMPO : evaluate(board));
     }
     else {
         /// ttValue might be a better evaluation
-
         Stack[ply].eval = eval;
-
         if (bound == EXACT || (bound == LOWER && ttValue > eval) || (bound == UPPER && ttValue < eval))
             eval = ttValue;
     }
@@ -382,13 +381,11 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     killers[ply + 1] = NULLMOVE;
 
     /// razoring (searching 1 more ply can't change the score much, drop in quiesce)
-
     if (!pvNode && !isCheck && depth <= 1 && Stack[ply].eval + RazorCoef < alpha) {
         return quiesce(alpha, beta);
     }
 
     /// static null move pruning (don't prune when having a mate line, again stability)
-
     if (!pvNode && !isCheck && depth <= SNMPDepth && eval - (SNMPCoef1 - SNMPCoef2 * improving) * (depth - quietUs) > beta && eval < MATE) {
         return eval;
     }
@@ -396,8 +393,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     /// null move pruning (when last move wasn't null, we still have non pawn material,
     ///                    we have a good position and we don't have any idea if it's likely to fail)
     /// TO DO: tune nmp
-
-    if (!pvNode && !isCheck && !excluded && (quietUs || eval - 100 * depth > beta) && eval >= beta && eval >= Stack[ply].eval && depth >= 2 && Stack[ply - 1].move &&
+    if (!pvNode && !isCheck && !excluded && depth >= 2 && !nullSearch && (quietUs || eval - 100 * depth > beta) && eval >= beta && eval >= Stack[ply].eval &&
         (board.pieces[board.turn] ^ board.bb[getType(PAWN, board.turn)] ^ board.bb[getType(KING, board.turn)]) &&
         (!ttHit || !(bound & UPPER) || ttValue >= beta)) {
         int R = nmpR + depth / nmpDepthDiv + (eval - beta) / nmpEvalDiv + improving;
@@ -424,7 +420,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     }
 
     /// probcut
-
     if (!pvNode && !isCheck && depth >= probcutDepth && abs(beta) < MATE) {
         int cutBeta = beta + probcutMargin;
         Movepick noisyPicker(NULLMOVE, NULLMOVE, NULLMOVE, cutBeta - Stack[ply].eval);
@@ -441,7 +436,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
             makeMove(board, move);
 
             /// do we have a good sequence of captures that beats cutBeta ?
-
             int score = -quiesce(-cutBeta, -cutBeta + 1);
 
             if (score >= cutBeta) /// then we should try searching this capture
@@ -466,12 +460,11 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
     /// get counter move for move picker
 
-    uint16_t counter = (!Stack[ply - 1].move ? NULLMOVE : cmTable[1 ^ board.turn][Stack[ply - 1].piece][sqTo(Stack[ply - 1].move)]);
+    uint16_t counter = (nullSearch ? NULLMOVE : cmTable[1 ^ board.turn][Stack[ply - 1].piece][sqTo(Stack[ply - 1].move)]);
 
     Movepick picker(ttMove, killers[ply], counter, -seeDepthCoef * depth);
 
     uint16_t move;
-    //bool singular = false;
 
     while ((move = picker.nextMove(this, skip, false)) != NULLMOVE) {
 
