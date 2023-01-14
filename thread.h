@@ -125,7 +125,7 @@ public:
     uint64_t nodesSearched[64][64];
     uint16_t pvTable[DEPTH + 5][DEPTH + 5];
     int pvTableLen[DEPTH + 5];
-    uint16_t killers[DEPTH + 5][2];
+    uint16_t killers[DEPTH + 5];
     uint16_t cmTable[2][13][64];
     int hist[2][64][64];
     int follow[2][13][64][13][64];
@@ -159,6 +159,8 @@ public:
     uint64_t nodes, qsNodes;
     bool principalSearcher;
     Board board;
+
+    int temp[500];
 
     //tt::HashTable* threadTT;
 

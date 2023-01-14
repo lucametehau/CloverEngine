@@ -617,6 +617,7 @@ void UCI::Bench() {
         info->timeset = 0;
         info->depth = 12;
         info->startTime = getTime();
+        info->nodes = -1;
         searcher.startSearch(info);
         totalNodes += searcher.nodes;
 
@@ -631,6 +632,18 @@ void UCI::Bench() {
     printStats = true;
 
     std::cout << totalNodes << " nodes " << int(totalNodes / t) << " nps" << std::endl;
+
+    /*int temp[500], cnt = searcher.cnt;
+    for (int i = 0; i < 30; i++)
+        temp[i] = searcher.temp[i];
+
+    std::cout << std::setw(8) << temp[STAGE_HASHMOVE] << "/" << cnt << " hash move\n";
+    std::cout << std::setw(8) << temp[STAGE_GOOD_NOISY] << "/" << cnt << " good noisy\n";
+    std::cout << std::setw(8) << temp[STAGE_KILLER_1] << "/" << cnt << " killer1\n";
+    //std::cout << std::setw(8) << temp[STAGE_KILLER_2] << "/" << cnt << " killer2\n";
+    std::cout << std::setw(8) << temp[STAGE_COUNTER] << "/" << cnt << " counter\n";
+    std::cout << std::setw(8) << temp[STAGE_QUIETS] << "/" << cnt << " quiets\n";
+    std::cout << std::setw(8) << temp[STAGE_BAD_NOISY] << "/" << cnt << " bad noisy\n";*/
 
     /*std::cout << "nodes: " << totalNodes << "\n";
     std::cout << " time: " << t << "\n";

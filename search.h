@@ -218,7 +218,7 @@ int Search::quiesce(int alpha, int beta, bool useTT) {
 
     alpha = std::max(alpha, best);
 
-    Movepick noisyPicker(ttMove, NULLMOVE, NULLMOVE, NULLMOVE, 0);
+    Movepick noisyPicker(ttMove, NULLMOVE, NULLMOVE, 0);
 
     uint16_t move;
 
@@ -379,7 +379,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
     bool improving = (!isCheck && ply >= 2 && Stack[ply].eval > Stack[ply - 2].eval); /// (TO DO: make all pruning dependent of this variable?)
 
-    killers[ply + 1][0] = killers[ply + 1][1] = NULLMOVE;
+    killers[ply + 1] = NULLMOVE;
 
     /// razoring (searching 1 more ply can't change the score much, drop in quiesce)
 
@@ -389,11 +389,8 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
     /// static null move pruning (don't prune when having a mate line, again stability)
 
-    if (!pvNode && !isCheck && eval - (SNMPCoef1 - SNMPCoef2 * improving) * (depth - quietUs) > beta && eval < MATE) {
-        if (depth <= SNMPDepth)
-            return eval;
-        else
-            depth--;
+    if (!pvNode && !isCheck && depth <= SNMPDepth && eval - (SNMPCoef1 - SNMPCoef2 * improving) * (depth - quietUs) > beta && eval < MATE) {
+        return eval;
     }
 
     /// null move pruning (when last move wasn't null, we still have non pawn material,
@@ -430,7 +427,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
     if (!pvNode && !isCheck && depth >= probcutDepth && abs(beta) < MATE) {
         int cutBeta = beta + probcutMargin;
-        Movepick noisyPicker(NULLMOVE, NULLMOVE, NULLMOVE, NULLMOVE, cutBeta - Stack[ply].eval);
+        Movepick noisyPicker(NULLMOVE, NULLMOVE, NULLMOVE, cutBeta - Stack[ply].eval);
 
         uint16_t move;
 
@@ -471,7 +468,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
     uint16_t counter = (!Stack[ply - 1].move ? NULLMOVE : cmTable[1 ^ board.turn][Stack[ply - 1].piece][sqTo(Stack[ply - 1].move)]);
 
-    Movepick picker(ttMove, killers[ply][0], killers[ply][1], counter, -seeDepthCoef * depth);
+    Movepick picker(ttMove, killers[ply], counter, -seeDepthCoef * depth);
 
     uint16_t move;
     //bool singular = false;
@@ -481,7 +478,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         if (move == excluded)
             continue;
 
-        bool isQuiet = !isNoisyMove(board, move), refutationMove = (picker.stage < STAGE_QUIETS);
+        bool isQuiet = !isNoisyMove(board, move), refutationMove = (picker.trueStage < STAGE_QUIETS);
         int hist = 0;
 
         /// quiet move pruning
@@ -512,7 +509,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
             }
             else {
-                if (depth <= 8 && !isCheck && picker.stage > STAGE_GOOD_NOISY && !see(board, move, -seeCoefNoisy * depth * depth))
+                if (depth <= 8 && !isCheck && picker.trueStage > STAGE_GOOD_NOISY && !see(board, move, -seeCoefNoisy * depth * depth))
                     continue;
             }
         }
@@ -618,6 +615,8 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
                 updatePv(ply, move);
 
                 if (alpha >= beta) {
+                    //temp[picker.trueStage]++;
+                    //cnt++;
                     break;
                 }
             }
@@ -633,9 +632,8 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     /// update killers and history heuristics
 
     if (best >= beta && !isNoisyMove(board, bestMove)) {
-        if (killers[ply][0] != bestMove) {
-            killers[ply][1] = killers[ply][0];
-            killers[ply][0] = bestMove;
+        if (killers[ply] != bestMove) {
+            killers[ply] = bestMove;
         }
 
         updateHistory(this, Stack[ply].quiets, nrQuiets, ply, getHistoryBonus(depth + pvNode));
@@ -711,7 +709,7 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv) {
             eval = ttValue;
     }
 
-    killers[1][0] = killers[1][1] = NULLMOVE;
+    killers[1] = NULLMOVE;
 
     /// internal iterative deepening (search at reduced depth to find a ttMove) (Rebel like)
 
@@ -722,7 +720,7 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv) {
 
     uint16_t counter = NULLMOVE;
 
-    Movepick picker(ttMove, killers[0][0], killers[0][1], counter, -10 * depth);
+    Movepick picker(ttMove, killers[0], counter, -10 * depth);
 
     uint16_t move;
 
@@ -837,9 +835,8 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv) {
     /// update killers and history heuristics
 
     if (best >= beta && !isNoisyMove(board, bestMove)) {
-        if (killers[0][0] != bestMove) {
-            killers[0][1] = killers[0][0];
-            killers[0][0] = bestMove;
+        if (killers[0] != bestMove) {
+            killers[0] = bestMove;
         }
 
         updateHistory(this, quiets, nrQuiets, 0, getHistoryBonus(depth));
