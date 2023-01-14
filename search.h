@@ -28,8 +28,6 @@ Search::Search() : threads(nullptr), params(nullptr)
     nodes = tbHits = t0 = tDepth = selDepth = threadCount = flag = checkCount = 0;
     principalSearcher = terminateSMP = SMPThreadExit = false;
     lazyFlag = 0;
-    memset(&lmrRed, 0, sizeof(lmrRed));
-    memset(&lmrCnt, 0, sizeof(lmrCnt));
     memset(&info, 0, sizeof(info));
 
     for (int i = 0; i < 64; i++) { /// depth
@@ -84,12 +82,8 @@ uint32_t probe_TB(Board &board, int depth) {
                 ep = 0;
 
             return tb_probe_wdl(board.pieces[WHITE], board.pieces[BLACK],
-                board.bb[WK] | board.bb[BK],
-                board.bb[WQ] | board.bb[BQ],
-                board.bb[WR] | board.bb[BR],
-                board.bb[WB] | board.bb[BB],
-                board.bb[WN] | board.bb[BN],
-                board.bb[WP] | board.bb[BP],
+                board.bb[WK] | board.bb[BK], board.bb[WQ] | board.bb[BQ], board.bb[WR] | board.bb[BR],
+                board.bb[WB] | board.bb[BB], board.bb[WN] | board.bb[BN], board.bb[WP] | board.bb[BP],
                 0, 0, ep, board.turn);
         }
     }
@@ -205,13 +199,11 @@ int Search::quiesce(int alpha, int beta, bool useTT) {
     }
 
     /// stand-pat
-
     if (best >= beta) {
         return best;
     }
 
     /// delta pruning
-
     if (!isCheck && best + seeVal[QUEEN] < alpha) {
         return alpha;
     }
