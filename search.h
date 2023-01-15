@@ -393,10 +393,10 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     /// TO DO: tune nmp
     
     //uint16_t threatMove = NULLMOVE;
-    if (!pvNode && !isCheck && !excluded && depth >= 2 && Stack[ply - 1].history < 16384 && !nullSearch && (quietUs || eval - 100 * depth > beta) && eval >= beta && eval >= Stack[ply].eval &&
+    if (!pvNode && !isCheck && !excluded && depth >= 2 && !nullSearch && (quietUs || eval - 100 * depth > beta) && eval >= beta && eval >= Stack[ply].eval &&
         (board.pieces[board.turn] ^ board.bb[getType(PAWN, board.turn)] ^ board.bb[getType(KING, board.turn)]) &&
         (!ttHit || !(bound & UPPER) || ttValue >= beta)) {
-        int R = nmpR + depth / nmpDepthDiv + (eval - beta) / nmpEvalDiv + improving;
+        int R = nmpR + depth / nmpDepthDiv + (eval - beta) / nmpEvalDiv + improving - (Stack[ply - 1].history / (1 << 14));
 
         Stack[ply].move = NULLMOVE;
         Stack[ply].piece = 0;
@@ -412,10 +412,13 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
         //cnt2 += !quiet;
 
+        //cnt2 += Stack[ply - 1].history >= (1 << 15);
+
         undoNullMove(board);
 
         if (score >= beta) {
             //cnt += !quiet;
+            //cnt += Stack[ply - 1].history >= (1 << 15);
             return (abs(score) > MATE ? beta : score); /// don't trust mate scores
         }
     }
