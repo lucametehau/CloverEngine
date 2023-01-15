@@ -391,7 +391,9 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     /// null move pruning (when last move wasn't null, we still have non pawn material,
     ///                    we have a good position and we don't have any idea if it's likely to fail)
     /// TO DO: tune nmp
-    if (!pvNode && !isCheck && !excluded && depth >= 2 && !nullSearch && (quietUs || eval - 100 * depth > beta) && eval >= beta && eval >= Stack[ply].eval &&
+    
+    //uint16_t threatMove = NULLMOVE;
+    if (!pvNode && !isCheck && !excluded && depth >= 2 && Stack[ply - 1].history < 16384 && !nullSearch && (quietUs || eval - 100 * depth > beta) && eval >= beta && eval >= Stack[ply].eval &&
         (board.pieces[board.turn] ^ board.bb[getType(PAWN, board.turn)] ^ board.bb[getType(KING, board.turn)]) &&
         (!ttHit || !(bound & UPPER) || ttValue >= beta)) {
         int R = nmpR + depth / nmpDepthDiv + (eval - beta) / nmpEvalDiv + improving;
@@ -404,6 +406,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         makeNullMove(board);
 
         int score = -search(-beta, -beta + 1, depth - R, !cutNode);
+        //threatMove = Stack[ply + 1].move;
 
         /// TO DO: (verification search?)
 
@@ -502,6 +505,8 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
             else {
                 if (depth <= 8 && !isCheck && picker.trueStage > STAGE_GOOD_NOISY && !see(board, move, -seeCoefNoisy * depth * depth))
                     continue;
+
+                hist = getCapHist(this, move);
             }
         }
 
@@ -527,6 +532,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         /// update stack info
         Stack[ply].move = move;
         Stack[ply].piece = board.piece_at(sqFrom(move));
+        Stack[ply].history = hist;
 
         makeMove(board, move);
         played++;
@@ -576,15 +582,13 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         /// principal variation search
 
         uint64_t initNodes = nodes;
-        bool interesting = false;
 
         if (R != 1) {
             score = -search(-alpha - 1, -alpha, newDepth - R, true);
-            interesting = (score > alpha + 50);
         }
 
         if ((R != 1 && score > alpha) || (R == 1 && (!pvNode || played > 1))) {
-            score = -search(-alpha - 1, -alpha, newDepth + interesting - 1, !cutNode);
+            score = -search(-alpha - 1, -alpha, newDepth - 1, !cutNode);
         }
 
         if (pvNode && (played == 1 || score > alpha)) {
