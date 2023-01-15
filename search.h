@@ -139,6 +139,9 @@ int quietness(Board& board, bool us) {
 int Search::quiesce(int alpha, int beta, bool useTT) {
     int ply = board.ply;
 
+    if (ply >= DEPTH)
+        return evaluate(board);
+
     pvTableLen[ply] = 0;
 
     //selDepth = std::max(selDepth, ply);
@@ -267,16 +270,19 @@ int Search::quiesce(int alpha, int beta, bool useTT) {
 }
 
 int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t excluded) {
+    int ply = board.ply;
 
     if (checkForStop())
         return ABORT;
+
+    if (ply >= DEPTH)
+        return evaluate(board);
 
     if (depth <= 0)
         return quiesce(alpha, beta);
 
     int pvNode = (alpha < beta - 1);
     uint16_t ttMove = NULLMOVE;
-    int ply = board.ply;
     int alphaOrig = alpha;
     uint64_t key = board.key;
     uint16_t nrQuiets = 0;
@@ -307,7 +313,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
     int eval = INF;
 
-    if (!excluded && !nullSearch && TT->probe(key, entry)) {
+    if (!excluded && TT->probe(key, entry)) {
         int score = entry.value(ply);
         ttHit = 1;
         ttValue = score;
@@ -570,13 +576,15 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         /// principal variation search
 
         uint64_t initNodes = nodes;
+        bool interesting = false;
 
         if (R != 1) {
             score = -search(-alpha - 1, -alpha, newDepth - R, true);
+            interesting = (score > alpha + 50);
         }
 
         if ((R != 1 && score > alpha) || (R == 1 && (!pvNode || played > 1))) {
-            score = -search(-alpha - 1, -alpha, newDepth - 1, !cutNode);
+            score = -search(-alpha - 1, -alpha, newDepth + interesting - 1, !cutNode);
         }
 
         if (pvNode && (played == 1 || score > alpha)) {
