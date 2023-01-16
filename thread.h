@@ -160,7 +160,7 @@ public:
     bool principalSearcher;
     Board board;
 
-    int temp[500];
+    int temp[500005];
 
     //tt::HashTable* threadTT;
 
