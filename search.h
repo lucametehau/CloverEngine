@@ -396,7 +396,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     if (!pvNode && !isCheck && !excluded && depth >= 2 && !nullSearch && (quietUs || eval - 100 * depth > beta) && eval >= beta && eval >= Stack[ply].eval &&
         (board.pieces[board.turn] ^ board.bb[getType(PAWN, board.turn)] ^ board.bb[getType(KING, board.turn)]) &&
         (!ttHit || !(bound & UPPER) || ttValue >= beta)) {
-        int R = nmpR + depth / nmpDepthDiv + (eval - beta) / nmpEvalDiv + improving - (Stack[ply - 1].history / (1 << 14));
+        int R = nmpR + depth / nmpDepthDiv + (eval - beta) / nmpEvalDiv + improving /* - (Stack[ply - 1].history / (1 << 14))*/;
 
         Stack[ply].move = NULLMOVE;
         Stack[ply].piece = 0;
@@ -557,11 +557,11 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
                 R += !pvNode + !improving; /// not on pv or not improving
 
-                R += quietUs && eval - seeVal[KNIGHT] > beta;
+                R += quietUs && eval - seeVal[KNIGHT] > beta; /// if the position is relatively quiet and eval is bigger than beta by a margin
 
                 R -= 2 * refutationMove; /// reduce for refutation moves
 
-                R -= board.checkers != 0; /// gives check
+                R -= board.checkers != 0; /// move gives check
 
                 R -= hist / histDiv; /// reduce based on move history
             }
