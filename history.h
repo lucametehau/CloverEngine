@@ -26,10 +26,10 @@ struct Heuristics {
 };
 
 
-int histMax = 7616; // 1000
+int histMax = 7616;
 
-int histMult = 1; // 50
-int histUpdateDiv = 16384; // 300
+int histMult = 1;
+int histUpdateDiv = 16384;
 
 int counterHistMult = 1;
 int counterHistUpdateDiv = 16384;

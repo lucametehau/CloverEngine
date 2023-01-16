@@ -15,6 +15,7 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include <iostream>
+#include <string>
 #include "init.h"
 #include "perft.h"
 #include "uci.h"
@@ -29,7 +30,12 @@ int main(int argc, char** argv) {
 
     UCI uci(*searcher.get());
     if (argc > 1 && !strncmp(argv[1], "bench", 5)) {
-        uci.Bench();
+        int depth = -1;
+        if (argc > 2) {
+            std::string s = argv[2];
+            depth = stoi(s);
+        }
+        uci.Bench(depth);
         return 0;
     }
 

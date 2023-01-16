@@ -41,7 +41,7 @@ public:
 
 public:
     void Uci_Loop();
-    void Bench();
+    void Bench(int depth);
 
 private:
     std::vector <Option> options;
@@ -464,7 +464,7 @@ void UCI::Uci_Loop() {
             Perft(depth);
         }
         else if (cmd == "bench") {
-            Bench();
+            Bench(-1);
         }
         else if (cmd == "see") {
             std::string mv;
@@ -599,7 +599,7 @@ std::string benchPos[] = {
 /// IMPORTANT NOTICE: AFTER RUNNING bench, RUN ucinewgame AGAIN (to fix)
 /// why? because tt is initialized with 16MB when bench is run
 
-void UCI::Bench() {
+void UCI::Bench(int depth) {
     Info info[1];
 
     TT = new tt::HashTable();
@@ -623,7 +623,7 @@ void UCI::Bench() {
         searcher._setFen(fen);
 
         info->timeset = 0;
-        info->depth = 12;
+        info->depth = (depth == -1 ? 12 : depth);
         info->startTime = getTime();
         info->nodes = -1;
         searcher.startSearch(info);
@@ -640,6 +640,11 @@ void UCI::Bench() {
     printStats = true;
 
     std::cout << totalNodes << " nodes " << int(totalNodes / t) << " nps" << std::endl;
+
+    /*std::ofstream fout("history_value.txt");
+
+    for (int i = 250000 - 100000; i < 250000 + 100000; i++)
+        fout << searcher.temp[i] << "\n";*/
 
     /*int temp[500], cnt = searcher.cnt;
     for (int i = 0; i < 30; i++)
