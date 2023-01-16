@@ -26,16 +26,19 @@ struct Heuristics {
 };
 
 
-int histMax = 400; // 1000
+int histMax = 7616; // 1000
 
-int histMult = 32; // 50
-int histUpdateDiv = 512; // 300
+int histMult = 1; // 50
+int histUpdateDiv = 16384; // 300
 
-int counterHistMult = 32;
-int counterHistUpdateDiv = 512;
+int counterHistMult = 1;
+int counterHistUpdateDiv = 16384;
 
-int capHistMult = 32;
-int capHistUpdateDiv = 512;
+int capHistMult = 1;
+int capHistUpdateDiv = 16384;
+
+int A_mult = 16;
+int B_mult = 320;
 
 
 void updateHist(int& hist, int score) {
@@ -51,7 +54,7 @@ void updateCapHist(int& hist, int score) {
 }
 
 int getHistoryBonus(int depth) {
-    return (depth <= 20 ? depth * depth : 400);
+    return std::min(A_mult * depth * depth + B_mult * depth, histMax);
 }
 
 void updateMoveHistory(Search* searcher, uint16_t move, int ply, int bonus) {
