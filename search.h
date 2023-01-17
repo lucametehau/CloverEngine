@@ -360,7 +360,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         /// when in check, don't evaluate (king safety evaluation might break)
         Stack[ply].eval = eval = INF;
     }
-    else if (eval == INF) {
+    else if (!ttHit) {
         /// if last move was null or we are in a singular search, we already know the evaluation
         if (excluded)
             eval = Stack[ply].eval;
@@ -394,30 +394,22 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     
     //uint16_t threatMove = NULLMOVE;
     if (!pvNode && !isCheck && !excluded && depth >= 2 && !nullSearch && (quietUs || eval - 100 * depth > beta) && eval >= beta && eval >= Stack[ply].eval &&
-        (board.pieces[board.turn] ^ board.bb[getType(PAWN, board.turn)] ^ board.bb[getType(KING, board.turn)]) &&
-        (!ttHit || !(bound & UPPER) || ttValue >= beta)) {
+        (board.pieces[board.turn] ^ board.bb[getType(PAWN, board.turn)] ^ board.bb[getType(KING, board.turn)])) {
         int R = nmpR + depth / nmpDepthDiv + (eval - beta) / nmpEvalDiv + improving - (Stack[ply - 1].history / (1 << 15));
 
         Stack[ply].move = NULLMOVE;
         Stack[ply].piece = 0;
-
-        //lastNullMove = board.turn;
 
         makeNullMove(board);
 
         int score = -search(-beta, -beta + 1, depth - R, !cutNode);
         //threatMove = Stack[ply + 1].move;
 
-        /// TO DO: (verification search?)
-
-        //cnt2 += !quiet;
-
         //cnt2 += Stack[ply - 1].history >= 20000;
 
         undoNullMove(board);
 
         if (score >= beta) {
-            //cnt += !quiet;
             //cnt += Stack[ply - 1].history >= 20000;
             return (abs(score) > MATE ? beta : score); /// don't trust mate scores
         }
@@ -427,6 +419,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     if (!pvNode && !isCheck && depth >= probcutDepth && abs(beta) < MATE) {
         int cutBeta = beta + probcutMargin;
         Movepick noisyPicker(NULLMOVE, NULLMOVE, NULLMOVE, cutBeta - Stack[ply].eval);
+        //cnt2 += (noisyPicker.threshold < 0);
 
         uint16_t move;
 
@@ -447,7 +440,9 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
             undoMove(board, move);
 
+
             if (score >= cutBeta) {
+                //cnt += (noisyPicker.threshold < 0);
                 return score;
             }
         }
@@ -466,7 +461,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
     uint16_t counter = (nullSearch ? NULLMOVE : cmTable[1 ^ board.turn][Stack[ply - 1].piece][sqTo(Stack[ply - 1].move)]);
 
-    Movepick picker(ttMove, killers[ply], counter, -seeDepthCoef * depth);
+    Movepick picker(ttMove, killers[ply], counter, -seeDepthCoef * depth, (isNoisyMove(board, Stack[ply - 1].move) ? sqTo(Stack[ply - 1].move) : -1));
 
     uint16_t move;
 

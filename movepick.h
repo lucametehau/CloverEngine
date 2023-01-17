@@ -39,6 +39,7 @@ public:
     //int mp_type;
 
     uint16_t hashMove, killer1, counter, possibleCounter;
+    int recapSq;
     int nrNoisy, nrQuiets, nrBadNoisy;
     int index;
 
@@ -48,7 +49,7 @@ public:
     int scores[256];
     long long v[256];
 
-    Movepick(const uint16_t HashMove, const uint16_t Killer1, const uint16_t Counter, const int Threshold) {
+    Movepick(const uint16_t HashMove, const uint16_t Killer1, const uint16_t Counter, const int Threshold, int RecaptureSq = -1) {
         stage = STAGE_HASHMOVE;
 
         hashMove = HashMove;
@@ -57,6 +58,7 @@ public:
 
         nrNoisy = nrQuiets = nrBadNoisy = 0;
         threshold = Threshold;
+        recapSq = RecaptureSq;
     }
 
     long long codify(uint16_t move, int score) {
@@ -97,7 +99,7 @@ public:
 
                 noisy[m] = move;
 
-                int p = searcher->board.piece_at(sqFrom(move)), cap = searcher->board.piece_type_at(sqTo(move));
+                int p = searcher->board.piece_at(sqFrom(move)), cap = searcher->board.piece_type_at(sqTo(move)), to = sqTo(move);
                 int score = 0; // so that move score isn't negative
 
                 if (type(move) == ENPASSANT)
@@ -107,7 +109,10 @@ public:
                 if (promoted(move) + KNIGHT == QUEEN)
                     score += 10000;
 
-                score += searcher->capHist[p][sqTo(move)][cap] + 1000000;
+                if (to == recapSq)
+                    score += 4096;
+
+                score += searcher->capHist[p][to][cap] + 1000000;
 
                 //score += searcher->nodesSearched[sqFrom(move)][sqTo(move)] / 10000;
 
