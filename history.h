@@ -71,6 +71,15 @@ void updateMoveHistory(Search* searcher, uint16_t move, int ply, int bonus) {
     updateCounterHist(searcher->follow[1][followPiece][followTo][piece][to], bonus);
 }
 
+void updateCaptureMoveHistory(Search* searcher, uint16_t move, int bonus) {
+    int to = sqTo(move), from = sqFrom(move), cap = searcher->board.piece_type_at(to), piece = searcher->board.piece_at(from);
+
+    if (type(move) == ENPASSANT)
+        cap = PAWN;
+
+    updateCapHist(searcher->capHist[piece][to][cap], bonus);
+}
+
 void updateHistory(Search* searcher, uint16_t* quiets, int nrQuiets, int ply, int bonus) {
     if (ply < 2 || !nrQuiets) /// we can't update if we don't have a follow move or no quiets
         return;
