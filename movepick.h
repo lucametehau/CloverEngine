@@ -39,7 +39,6 @@ public:
     //int mp_type;
 
     uint16_t hashMove, killer1, counter, possibleCounter;
-    int recapSq;
     int nrNoisy, nrQuiets, nrBadNoisy;
     int index;
 
@@ -49,7 +48,7 @@ public:
     int scores[256];
     long long v[256];
 
-    Movepick(const uint16_t HashMove, const uint16_t Killer1, const uint16_t Counter, const int Threshold, int RecaptureSq = -1) {
+    Movepick(const uint16_t HashMove, const uint16_t Killer1, const uint16_t Counter, const int Threshold) {
         stage = STAGE_HASHMOVE;
 
         hashMove = HashMove;
@@ -58,7 +57,6 @@ public:
 
         nrNoisy = nrQuiets = nrBadNoisy = 0;
         threshold = Threshold;
-        recapSq = RecaptureSq;
     }
 
     long long codify(uint16_t move, int score) {
@@ -108,9 +106,6 @@ public:
                 score = 10 * seeVal[cap];
                 if (promoted(move) + KNIGHT == QUEEN)
                     score += 10000;
-
-                if (to == recapSq)
-                    score += 4096;
 
                 score += searcher->capHist[p][to][cap] + 1000000;
 

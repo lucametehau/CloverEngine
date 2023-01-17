@@ -461,7 +461,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
     uint16_t counter = (nullSearch ? NULLMOVE : cmTable[1 ^ board.turn][Stack[ply - 1].piece][sqTo(Stack[ply - 1].move)]);
 
-    Movepick picker(ttMove, killers[ply], counter, -seeDepthCoef * depth, (isNoisyMove(board, Stack[ply - 1].move) ? sqTo(Stack[ply - 1].move) : -1));
+    Movepick picker(ttMove, killers[ply], counter, -seeDepthCoef * depth);
 
     uint16_t move;
 
