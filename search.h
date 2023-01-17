@@ -405,12 +405,9 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         int score = -search(-beta, -beta + 1, depth - R, !cutNode);
         //threatMove = Stack[ply + 1].move;
 
-        //cnt2 += Stack[ply - 1].history >= 20000;
-
         undoNullMove(board);
 
         if (score >= beta) {
-            //cnt += Stack[ply - 1].history >= 20000;
             return (abs(score) > MATE ? beta : score); /// don't trust mate scores
         }
     }
@@ -419,7 +416,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     if (!pvNode && !isCheck && depth >= probcutDepth && abs(beta) < MATE) {
         int cutBeta = beta + probcutMargin;
         Movepick noisyPicker(NULLMOVE, NULLMOVE, NULLMOVE, cutBeta - Stack[ply].eval);
-        //cnt2 += (noisyPicker.threshold < 0);
 
         uint16_t move;
 
@@ -442,7 +438,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
 
             if (score >= cutBeta) {
-                //cnt += (noisyPicker.threshold < 0);
+                updateCaptureMoveHistory(this, move, getHistoryBonus(depth - probcutR));
                 return score;
             }
         }
