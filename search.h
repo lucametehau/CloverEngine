@@ -438,7 +438,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
 
             if (score >= cutBeta) {
-                updateCaptureMoveHistory(this, move, getHistoryBonus(depth - probcutR));
                 return score;
             }
         }
@@ -1024,7 +1023,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
             float _tmNodesSearchedMaxPercentage = 1.0 * tmNodesSearchedMaxPercentage / 1000;
             float _tmBestMoveMax = 1.0 * tmBestMoveMax / 1000, _tmBestMoveStep = 1.0 * tmBestMoveStep / 1000;
 
-            if (tDepth >= 9) {
+            if (tDepth >= 5) {
                 scoreChange = std::max(0.5, std::min(1.0 + 1.0 * (mainThreadScore - scores[1]) / tmScoreDiv, 1.5));
 
                 bestMoveCnt = (bestMoves[1] == mainThreadBestMove ? bestMoveCnt + 1 : 1);
