@@ -554,8 +554,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
                 R -= board.checkers != 0; /// move gives check
 
                 R -= hist / histDiv; /// reduce based on move history
-
-                R -= ply <= 10; /// reduce less for first plies
             }
             else if (!pvNode) {
                 R = lmrRed[std::min(63, depth)][std::min(63, played)] / (1.0 * lmrCapDiv / 10);
