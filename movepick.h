@@ -26,7 +26,7 @@ enum {
     STAGE_NONE = 0, 
     STAGE_HASHMOVE, 
     STAGE_GEN_NOISY, STAGE_GOOD_NOISY,
-    STAGE_COUNTER, STAGE_KILLER_1,
+    STAGE_COUNTER, STAGE_KILLER,
     STAGE_GEN_QUIETS, STAGE_QUIETS, 
     STAGE_PRE_BAD_NOISY, STAGE_BAD_NOISY,
 }; /// move picker stages
@@ -38,22 +38,22 @@ public:
     int stage, trueStage;
     //int mp_type;
 
-    uint16_t hashMove, killer1, counter, possibleCounter;
+    uint16_t hashMove, killer, counter, possibleCounter;
     int nrNoisy, nrQuiets, nrBadNoisy;
     int index;
 
     int threshold;
 
-    uint16_t noisy[256], quiets[256], badNoisy[256];
+    uint16_t moves[256], badNoisy[256];
     int scores[256];
     long long v[256];
 
-    Movepick(const uint16_t HashMove, const uint16_t Killer1, const uint16_t Counter, const int Threshold) {
+    Movepick(const uint16_t HashMove, const uint16_t Killer, const uint16_t Counter, const int Threshold) {
         stage = STAGE_HASHMOVE;
 
         hashMove = HashMove;
-        killer1 = (Killer1 != hashMove ? Killer1 : NULLMOVE);
-        counter = (Counter != hashMove && Counter != killer1 ? Counter : NULLMOVE);
+        killer = (Killer != hashMove ? Killer : NULLMOVE);
+        counter = (Counter != hashMove && Counter != killer ? Counter : NULLMOVE);
 
         nrNoisy = nrQuiets = nrBadNoisy = 0;
         threshold = Threshold;
@@ -85,17 +85,17 @@ public:
             }
         case STAGE_GEN_NOISY:
         {
-            nrNoisy = genLegalNoisy(searcher->board, noisy);
+            nrNoisy = genLegalNoisy(searcher->board, moves);
 
             int m = 0;
 
             for (int i = 0; i < nrNoisy; i++) {
-                uint16_t move = noisy[i];
+                uint16_t move = moves[i];
 
-                if (move == hashMove || move == killer1 || move == counter)
+                if (move == hashMove || move == killer || move == counter)
                     continue;
 
-                noisy[m] = move;
+                moves[m] = move;
 
                 int p = searcher->board.piece_at(sqFrom(move)), cap = searcher->board.piece_type_at(sqTo(move)), to = sqTo(move);
                 int score = 0; // so that move score isn't negative
@@ -115,17 +115,17 @@ public:
             }
 
             nrNoisy = m;
-            sortMoves(nrNoisy, noisy, scores);
+            sortMoves(nrNoisy, moves, scores);
             index = 0;
             stage++;
         }
         case STAGE_GOOD_NOISY:
             trueStage = STAGE_GOOD_NOISY;
             while (index < nrNoisy) {
-                if (see(searcher->board, noisy[index], threshold))
-                    return noisy[index++];
+                if (see(searcher->board, moves[index], threshold))
+                    return moves[index++];
                 else {
-                    badNoisy[nrBadNoisy++] = noisy[index++];
+                    badNoisy[nrBadNoisy++] = moves[index++];
                 }
             }
             if (skip) { /// no need to go through quiets
@@ -139,16 +139,16 @@ public:
 
             if (!skip && counter && isLegalMove(searcher->board, counter))
                 return counter;
-        case STAGE_KILLER_1:
-            trueStage = STAGE_KILLER_1;
+        case STAGE_KILLER:
+            trueStage = STAGE_KILLER;
             stage++;
 
-            if (!skip && killer1 && isLegalMove(searcher->board, killer1))
-                return killer1;
+            if (!skip && killer && isLegalMove(searcher->board, killer))
+                return killer;
         case STAGE_GEN_QUIETS:
         {
             if (!skip) {
-                nrQuiets = genLegalQuiets(searcher->board, quiets);
+                nrQuiets = genLegalQuiets(searcher->board, moves);
 
                 int ply = searcher->board.ply;
 
@@ -162,12 +162,12 @@ public:
                 int m = 0;
 
                 for (int i = 0; i < nrQuiets; i++) {
-                    uint16_t move = quiets[i];
+                    uint16_t move = moves[i];
 
-                    if (move == hashMove || move == killer1 || move == counter)
+                    if (move == hashMove || move == killer || move == counter)
                         continue;
 
-                    quiets[m] = move;
+                    moves[m] = move;
                     int score = 0;
                     int from = sqFrom(move), to = sqTo(move), piece = searcher->board.piece_at(from), pt = piece_type(piece);
 
@@ -193,7 +193,7 @@ public:
                 }
 
                 nrQuiets = m;
-                sortMoves(nrQuiets, quiets, scores);
+                sortMoves(nrQuiets, moves, scores);
                 index = 0;
             }
 
@@ -202,7 +202,7 @@ public:
         case STAGE_QUIETS:
             trueStage = STAGE_QUIETS;
             if (!skip && index < nrQuiets) {
-                return quiets[index++];
+                return moves[index++];
             }
             else {
                 stage++;
