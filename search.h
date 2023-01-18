@@ -554,6 +554,8 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
                 R -= board.checkers != 0; /// move gives check
 
                 R -= hist / histDiv; /// reduce based on move history
+
+                R -= ply <= 10; /// reduce less for first plies
             }
             else if (!pvNode) {
                 R = lmrRed[std::min(63, depth)][std::min(63, played)] / (1.0 * lmrCapDiv / 10);
@@ -1023,7 +1025,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
             float _tmNodesSearchedMaxPercentage = 1.0 * tmNodesSearchedMaxPercentage / 1000;
             float _tmBestMoveMax = 1.0 * tmBestMoveMax / 1000, _tmBestMoveStep = 1.0 * tmBestMoveStep / 1000;
 
-            if (tDepth >= 5) {
+            if (tDepth >= 9) {
                 scoreChange = std::max(0.5, std::min(1.0 + 1.0 * (mainThreadScore - scores[1]) / tmScoreDiv, 1.5));
 
                 bestMoveCnt = (bestMoves[1] == mainThreadBestMove ? bestMoveCnt + 1 : 1);
