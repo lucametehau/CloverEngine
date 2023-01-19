@@ -592,7 +592,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
         undoMove(board, move);
 
-        nodesSearched[board.piece_at(sqFrom(move))][sqFrom(move)][sqTo(move)] += nodes - initNodes;
+        nodesSearched[isNoisyMove(board, move)][sqFrom(move)][sqTo(move)] += nodes - initNodes;
 
         if (flag & TERMINATED_SEARCH) /// stop search
             return ABORT;
@@ -785,7 +785,7 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv) {
 
         undoMove(board, move);
 
-        nodesSearched[board.piece_at(sqFrom(move))][sqFrom(move)][sqTo(move)] += nodes - initNodes;
+        nodesSearched[isNoisyMove(board, move)][sqFrom(move)][sqTo(move)] += nodes - initNodes;
 
         if (flag & TERMINATED_SEARCH) /// stop search
             return ABORT;
@@ -1019,7 +1019,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
 
                 bestMoveCnt = (bestMoves[1] == mainThreadBestMove ? bestMoveCnt + 1 : 1);
 
-                nodesSearchedPercentage = 1.0 * nodesSearched[board.piece_at(sqFrom(bestMoves[1]))][sqFrom(bestMoves[1])][sqTo(bestMoves[1])] / nodes;
+                nodesSearchedPercentage = 1.0 * nodesSearched[isNoisyMove(board, bestMoves[1])][sqFrom(bestMoves[1])][sqTo(bestMoves[1])] / nodes;
                 nodesSearchedPercentage = _tmNodesSearchedMaxPercentage - nodesSearchedPercentage;
 
                 bestMoveStreak = _tmBestMoveMax - _tmBestMoveStep * std::min(10, bestMoveCnt);
