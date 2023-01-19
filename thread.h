@@ -122,7 +122,7 @@ public:
 
     bool checkForStop();
 
-    uint64_t nodesSearched[64][64];
+    uint64_t nodesSearched[13][64][64];
     uint16_t pvTable[DEPTH + 5][DEPTH + 5];
     int pvTableLen[DEPTH + 5];
     uint16_t killers[DEPTH + 5];
