@@ -109,7 +109,7 @@ public:
 
                 score += searcher->capHist[p][to][cap] + 1000000;
 
-                //score += searcher->nodesSearched[sqFrom(move)][sqTo(move)] / 10000;
+                score += searcher->nodesSearched[1][sqFrom(move)][sqTo(move)] / nodesSearchedDiv;
 
                 scores[m++] = score;
             }
