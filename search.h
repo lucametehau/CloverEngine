@@ -592,7 +592,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
         undoMove(board, move);
 
-        nodesSearched[sqFrom(move)][sqTo(move)] += nodes - initNodes;
+        nodesSearched[isNoisyMove(board, move)][sqFrom(move)][sqTo(move)] += nodes - initNodes;
 
         if (flag & TERMINATED_SEARCH) /// stop search
             return ABORT;
@@ -607,8 +607,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
                 updatePv(ply, move);
 
                 if (alpha >= beta) {
-                    //temp[picker.trueStage]++;
-                    //cnt++;
                     break;
                 }
             }
@@ -761,17 +759,8 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv) {
 
                 R += (quietUs && eval - seeVal[KNIGHT] > beta);
 
-                //R += isNoisyMove(board, ttMove);
-
                 R -= 2 * refutationMove; /// reduce for refutation moves
             }
-            /*else {
-                R = lmrRed[std::min(63, depth)][std::min(63, played)] / (1.0 * lmrCapDiv / 10);
-
-                R += quietUs && !see(board, move, -seeVal[BISHOP] - 1);
-
-                R -= picker.stage <= STAGE_GOOD_NOISY;
-            }*/
 
             R = std::min(depth - 1, std::max(R, 1)); /// clamp R
         }
@@ -796,7 +785,7 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv) {
 
         undoMove(board, move);
 
-        nodesSearched[sqFrom(move)][sqTo(move)] += nodes - initNodes;
+        nodesSearched[isNoisyMove(board, move)][sqFrom(move)][sqTo(move)] += nodes - initNodes;
 
         if (flag & TERMINATED_SEARCH) /// stop search
             return ABORT;
@@ -1030,7 +1019,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
 
                 bestMoveCnt = (bestMoves[1] == mainThreadBestMove ? bestMoveCnt + 1 : 1);
 
-                nodesSearchedPercentage = 1.0 * nodesSearched[sqFrom(bestMoves[1])][sqTo(bestMoves[1])] / nodes;
+                nodesSearchedPercentage = 1.0 * nodesSearched[isNoisyMove(board, bestMoves[1])][sqFrom(bestMoves[1])][sqTo(bestMoves[1])] / nodes;
                 nodesSearchedPercentage = _tmNodesSearchedMaxPercentage - nodesSearchedPercentage;
 
                 bestMoveStreak = _tmBestMoveMax - _tmBestMoveStep * std::min(10, bestMoveCnt);
