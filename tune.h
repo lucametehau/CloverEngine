@@ -7,7 +7,7 @@
 #include "board.h"
 
 const int DATASET_SIZE = (int)1e8;
-const float EVAL = 0.0;
+const float EVAL = 0.5;
 const float GAME_RES = 1.0 - EVAL;
 float K;
 
@@ -180,7 +180,7 @@ float bestK(Dataset& dataset, int dataSize) {
 
 void tune(int dataSize, int epochs) {
     dataset.init(DATASET_SIZE);
-    readMultipleDatasets(dataset, dataSize, "C:\\Users\\Luca\\source\\repos\\CloverEngine\\CloverData_3_2_v2_", 16);
+    readMultipleDatasets(dataset, dataSize, "C:\\Users\\Luca\\Desktop\\CloverData\\CloverData_3_3_v2_", 16);
 
     params[nrParams++] = { pawnScaleStart, "pawnScaleStart" };
     params[nrParams++] = { pawnScaleStep, "pawnScaleStep" };
