@@ -23,11 +23,11 @@
 #include <cassert>
 
 enum {
-    STAGE_NONE = 0, 
-    STAGE_HASHMOVE, 
+    STAGE_NONE = 0,
+    STAGE_HASHMOVE,
     STAGE_GEN_NOISY, STAGE_GOOD_NOISY,
     STAGE_COUNTER, STAGE_KILLER,
-    STAGE_GEN_QUIETS, STAGE_QUIETS, 
+    STAGE_GEN_QUIETS, STAGE_QUIETS,
     STAGE_PRE_BAD_NOISY, STAGE_BAD_NOISY,
 }; /// move picker stages
 
@@ -74,18 +74,18 @@ public:
         }
     }
 
-    uint16_t nextMove(Search* searcher, bool skip, bool noisyPicker) {
+    uint16_t nextMove(Search* searcher, Board& board, bool skip, bool noisyPicker) {
         switch (stage) {
         case STAGE_HASHMOVE:
             trueStage = STAGE_HASHMOVE;
             stage++;
 
-            if (hashMove && isLegalMove(searcher->board, hashMove)) {
+            if (hashMove && isLegalMove(board, hashMove)) {
                 return hashMove;
             }
         case STAGE_GEN_NOISY:
         {
-            nrNoisy = genLegalNoisy(searcher->board, moves);
+            nrNoisy = genLegalNoisy(board, moves);
 
             int m = 0;
 
@@ -97,7 +97,7 @@ public:
 
                 moves[m] = move;
 
-                int p = searcher->board.piece_at(sqFrom(move)), cap = searcher->board.piece_type_at(sqTo(move)), to = sqTo(move);
+                int p = board.piece_at(sqFrom(move)), cap = board.piece_type_at(sqTo(move)), to = sqTo(move);
                 int score = 0; // so that move score isn't negative
 
                 if (type(move) == ENPASSANT)
@@ -122,7 +122,7 @@ public:
         case STAGE_GOOD_NOISY:
             trueStage = STAGE_GOOD_NOISY;
             while (index < nrNoisy) {
-                if (see(searcher->board, moves[index], threshold))
+                if (see(board, moves[index], threshold))
                     return moves[index++];
                 else {
                     badNoisy[nrBadNoisy++] = moves[index++];
@@ -130,32 +130,32 @@ public:
             }
             if (skip) { /// no need to go through quiets
                 stage = STAGE_PRE_BAD_NOISY;
-                return nextMove(searcher, skip, noisyPicker);
+                return nextMove(searcher, board, skip, noisyPicker);
             }
             stage++;
         case STAGE_COUNTER:
             trueStage = STAGE_COUNTER;
             stage++;
 
-            if (!skip && counter && isLegalMove(searcher->board, counter))
+            if (!skip && counter && isLegalMove(board, counter))
                 return counter;
         case STAGE_KILLER:
             trueStage = STAGE_KILLER;
             stage++;
 
-            if (!skip && killer && isLegalMove(searcher->board, killer))
+            if (!skip && killer && isLegalMove(board, killer))
                 return killer;
         case STAGE_GEN_QUIETS:
         {
             if (!skip) {
-                nrQuiets = genLegalQuiets(searcher->board, moves);
+                nrQuiets = genLegalQuiets(board, moves);
 
-                int ply = searcher->board.ply;
+                int ply = board.ply;
 
-                bool turn = searcher->board.turn, enemy = 1 ^ turn;
-                uint64_t enemyPawns = searcher->board.bb[getType(PAWN, turn ^ 1)], allPieces = searcher->board.pieces[WHITE] | searcher->board.pieces[BLACK];
+                bool turn = board.turn, enemy = 1 ^ turn;
+                uint64_t enemyPawns = board.bb[getType(PAWN, turn ^ 1)], allPieces = board.pieces[WHITE] | board.pieces[BLACK];
                 uint64_t pawnAttacks = getPawnAttacks(enemy, enemyPawns);
-                uint64_t enemyKingRing = kingRingMask[searcher->board.king(enemy)] & ~(shift(enemy, NORTHEAST, enemyPawns & ~fileMask[(enemy == WHITE ? 7 : 0)]) & shift(enemy, NORTHWEST, enemyPawns & ~fileMask[(enemy == WHITE ? 0 : 7)]));
+                uint64_t enemyKingRing = kingRingMask[board.king(enemy)] & ~(shift(enemy, NORTHEAST, enemyPawns & ~fileMask[(enemy == WHITE ? 7 : 0)]) & shift(enemy, NORTHWEST, enemyPawns & ~fileMask[(enemy == WHITE ? 0 : 7)]));
                 uint16_t counterMove = (ply >= 1 ? searcher->Stack[ply - 1].move : NULLMOVE), followMove = (ply >= 2 ? searcher->Stack[ply - 2].move : NULLMOVE);
                 int counterPiece = (ply >= 1 ? searcher->Stack[ply - 1].piece : 0), followPiece = ply >= 2 ? searcher->Stack[ply - 2].piece : 0;
                 int counterTo = sqTo(counterMove), followTo = sqTo(followMove);
@@ -169,9 +169,9 @@ public:
 
                     moves[m] = move;
                     int score = 0;
-                    int from = sqFrom(move), to = sqTo(move), piece = searcher->board.piece_at(from), pt = piece_type(piece);
+                    int from = sqFrom(move), to = sqTo(move), piece = board.piece_at(from), pt = piece_type(piece);
 
-                    score = searcher->hist[searcher->board.turn][from][to];
+                    score = searcher->hist[board.turn][from][to];
 
                     if (counterMove)
                         score += searcher->follow[0][counterPiece][counterTo][piece][to];
@@ -185,7 +185,7 @@ public:
                     if (pt == PAWN) // pawn push, generally good?
                         score += 10000;
 
-                    if(pt != KING && pt != PAWN)
+                    if (pt != KING && pt != PAWN)
                         score += 4096 * count(genAttacksSq(allPieces, to, pt) & enemyKingRing);
 
                     score += searcher->nodesSearched[0][from][to] / nodesSearchedDiv + 1000000; // the longer it takes a move to be refuted, the higher its chance to become the best move
