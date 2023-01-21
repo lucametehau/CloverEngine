@@ -194,6 +194,7 @@ void UCI::Uci_Loop() {
             int64_t nodes = -1;
             bool turn = searcher.board.turn;
             info->timeset = 0;
+            info->sanMode = 0;
 
             std::string param;
 
@@ -224,6 +225,9 @@ void UCI::Uci_Loop() {
                 }
                 else if (param == "nodes") {
                     iss >> nodes;
+                }
+                else if (param == "san") {
+                    info->sanMode = 1;
                 }
             }
 

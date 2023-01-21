@@ -26,10 +26,6 @@ inline bool isSqAttacked(Board& board, int color, int sq) {
     return getAttackers(board, color, board.pieces[WHITE] | board.pieces[BLACK], sq);
 }
 
-inline bool inCheck(Board& board) {
-    return isSqAttacked(board, 1 ^ board.turn, board.king(board.turn));
-}
-
 inline uint16_t* addQuiets(uint16_t* moves, int& nrMoves, int pos, uint64_t att) {
     while (att) {
         uint64_t b = lsb(att);
@@ -67,6 +63,7 @@ inline void makeMove(Board& board, uint16_t mv) { /// assuming move is at least 
     int posFrom = sqFrom(mv), posTo = sqTo(mv);
     int pieceFrom = board.board[posFrom], pieceTo = board.board[posTo];
     int kw = board.king(WHITE), kb = board.king(BLACK);
+    bool turn = board.turn;
 
     int ply = board.gamePly;
     board.history[ply].enPas = board.enPas;
@@ -90,7 +87,7 @@ inline void makeMove(Board& board, uint16_t mv) { /// assuming move is at least 
 
     switch (type(mv)) {
     case NEUT:
-        board.pieces[board.turn] ^= (1ULL << posFrom) ^ (1ULL << posTo);
+        board.pieces[turn] ^= (1ULL << posFrom) ^ (1ULL << posTo);
         board.bb[pieceFrom] ^= (1ULL << posFrom) ^ (1ULL << posTo);
 
         board.key ^= hashKey[pieceFrom][posFrom] ^ hashKey[pieceFrom][posTo];
@@ -98,8 +95,7 @@ inline void makeMove(Board& board, uint16_t mv) { /// assuming move is at least 
         board.NN.removeInput(pieceFrom, posFrom, kw, kb);
         board.NN.addInput(pieceFrom, posTo, kw, kb);
 
-        /// i moved a castle rook
-
+        /// moved a castle rook
         if (pieceFrom == WR)
             board.castleRights &= castleRightsDelta[WHITE][posFrom];
         else if (pieceFrom == BR)
@@ -108,14 +104,13 @@ inline void makeMove(Board& board, uint16_t mv) { /// assuming move is at least 
         if (pieceTo) {
             board.halfMoves = 0;
 
-            board.pieces[1 ^ board.turn] ^= (1ULL << posTo);
+            board.pieces[1 ^ turn] ^= (1ULL << posTo);
             board.bb[pieceTo] ^= (1ULL << posTo);
             board.key ^= hashKey[pieceTo][posTo];
 
             board.NN.removeInput(pieceTo, posTo, kw, kb);
 
             /// special case: captured rook might have been a castle rook
-
             if (pieceTo == WR)
                 board.castleRights &= castleRightsDelta[WHITE][posTo];
             else if (pieceTo == BR)
@@ -127,14 +122,12 @@ inline void makeMove(Board& board, uint16_t mv) { /// assuming move is at least 
         board.captured = pieceTo;
 
         /// double push
-
         if (piece_type(pieceFrom) == PAWN && (posFrom ^ posTo) == 16) {
             board.enPas = sqDir(board.turn, NORTH, posFrom);
             board.key ^= enPasKey[board.enPas];
         }
 
-        /// i moved the king
-
+        /// moved the king
         if (pieceFrom == WK) {
             board.castleRights &= castleRightsDelta[WHITE][posFrom];
         }
@@ -145,11 +138,11 @@ inline void makeMove(Board& board, uint16_t mv) { /// assuming move is at least 
         break;
     case ENPASSANT:
     {
-        int pos = sqDir(board.turn, SOUTH, posTo), pieceCap = getType(PAWN, 1 ^ board.turn);
+        int pos = sqDir(turn, SOUTH, posTo), pieceCap = getType(PAWN, 1 ^ turn);
 
         board.halfMoves = 0;
 
-        board.pieces[board.turn] ^= (1ULL << posFrom) ^ (1ULL << posTo);
+        board.pieces[turn] ^= (1ULL << posFrom) ^ (1ULL << posTo);
         board.bb[pieceFrom] ^= (1ULL << posFrom) ^ (1ULL << posTo);
 
         board.key ^= hashKey[pieceFrom][posFrom] ^ hashKey[pieceFrom][posTo] ^ hashKey[pieceCap][pos];
@@ -158,7 +151,7 @@ inline void makeMove(Board& board, uint16_t mv) { /// assuming move is at least 
         board.NN.addInput(pieceFrom, posTo, kw, kb);
         board.NN.removeInput(pieceCap, pos, kw, kb);
 
-        board.pieces[1 ^ board.turn] ^= (1ULL << pos);
+        board.pieces[1 ^ turn] ^= (1ULL << pos);
         board.bb[pieceCap] ^= (1ULL << pos);
 
         board.board[posFrom] = 0;
@@ -169,18 +162,18 @@ inline void makeMove(Board& board, uint16_t mv) { /// assuming move is at least 
     break;
     case CASTLE:
     {
-        int rFrom, rTo, rPiece = getType(ROOK, board.turn);
+        int rFrom, rTo, rPiece = getType(ROOK, turn);
 
-        if (posTo == mirror(board.turn, C1)) {
-            rFrom = mirror(board.turn, A1);
-            rTo = mirror(board.turn, D1);
+        if (posTo == mirror(turn, C1)) {
+            rFrom = mirror(turn, A1);
+            rTo = mirror(turn, D1);
         }
         else {
-            rFrom = mirror(board.turn, H1);
-            rTo = mirror(board.turn, F1);
+            rFrom = mirror(turn, H1);
+            rTo = mirror(turn, F1);
         }
 
-        board.pieces[board.turn] ^= (1ULL << posFrom) ^ (1ULL << posTo) ^
+        board.pieces[turn] ^= (1ULL << posFrom) ^ (1ULL << posTo) ^
             (1ULL << rFrom) ^ (1ULL << rTo);
         board.bb[pieceFrom] ^= (1ULL << posFrom) ^ (1ULL << posTo);
         board.bb[rPiece] ^= (1ULL << rFrom) ^ (1ULL << rTo);
@@ -207,9 +200,9 @@ inline void makeMove(Board& board, uint16_t mv) { /// assuming move is at least 
     break;
     default: /// promotion
     {
-        int promPiece = getType(promoted(mv) + KNIGHT, board.turn);
+        int promPiece = getType(promoted(mv) + KNIGHT, turn);
 
-        board.pieces[board.turn] ^= (1ULL << posFrom) ^ (1ULL << posTo);
+        board.pieces[turn] ^= (1ULL << posFrom) ^ (1ULL << posTo);
         board.bb[pieceFrom] ^= (1ULL << posFrom);
         board.bb[promPiece] ^= (1ULL << posTo);
 
@@ -218,13 +211,12 @@ inline void makeMove(Board& board, uint16_t mv) { /// assuming move is at least 
 
         if (pieceTo) {
             board.bb[pieceTo] ^= (1ULL << posTo);
-            board.pieces[1 ^ board.turn] ^= (1ULL << posTo);
+            board.pieces[1 ^ turn] ^= (1ULL << posTo);
             board.key ^= hashKey[pieceTo][posTo];
 
             board.NN.removeInput(pieceTo, posTo, kw, kb);
 
             /// special case: captured rook might have been a castle rook
-
             if (pieceTo == WR)
                 board.castleRights &= castleRightsDelta[WHITE][posTo];
             else if (pieceTo == BR)
@@ -317,15 +309,10 @@ inline void undoMove(Board& board, uint16_t move) {
         board.pieces[board.turn] ^= (1ULL << posFrom) ^ (1ULL << posTo);
         board.bb[piece] ^= (1ULL << posFrom) ^ (1ULL << posTo);
 
-        //board.NN.removeInput(netInd(piece, posTo));
-        //board.NN.addInput(netInd(piece, posFrom));
-
         board.board[posFrom] = piece;
         board.board[posTo] = pieceCap;
 
         if (pieceCap) {
-            //board.NN.addInput(netInd(pieceCap, posTo));
-
             board.pieces[1 ^ board.turn] ^= (1ULL << posTo);
             board.bb[pieceCap] ^= (1ULL << posTo);
         }
@@ -343,11 +330,6 @@ inline void undoMove(Board& board, uint16_t move) {
             rTo = mirror(board.turn, F1);
         }
 
-        //board.NN.removeInput(netInd(piece, posTo));
-        //board.NN.addInput(netInd(piece, posFrom));
-        //board.NN.removeInput(netInd(rPiece, rTo));
-        //board.NN.addInput(netInd(rPiece, rFrom));
-
         board.pieces[board.turn] ^= (1ULL << posFrom) ^ (1ULL << posTo) ^ (1ULL << rFrom) ^ (1ULL << rTo);
         board.bb[piece] ^= (1ULL << posFrom) ^ (1ULL << posTo);
         board.bb[rPiece] ^= (1ULL << rFrom) ^ (1ULL << rTo);
@@ -362,10 +344,6 @@ inline void undoMove(Board& board, uint16_t move) {
         int pos = sqDir(board.turn, SOUTH, posTo);
 
         pieceCap = getType(PAWN, 1 ^ board.turn);
-
-        //board.NN.removeInput(netInd(piece, posTo));
-        //board.NN.addInput(netInd(piece, posFrom));
-        //board.NN.addInput(netInd(pieceCap, pos));
 
         board.pieces[board.turn] ^= (1ULL << posFrom) ^ (1ULL << posTo);
         board.bb[piece] ^= (1ULL << posFrom) ^ (1ULL << posTo);
@@ -384,9 +362,6 @@ inline void undoMove(Board& board, uint16_t move) {
 
         piece = getType(PAWN, board.turn);
 
-        //board.NN.removeInput(netInd(promPiece, posTo));
-        //board.NN.addInput(netInd(piece, posFrom));
-
         board.pieces[board.turn] ^= (1ULL << posFrom) ^ (1ULL << posTo);
         board.bb[piece] ^= (1ULL << posFrom);
         board.bb[promPiece] ^= (1ULL << posTo);
@@ -395,8 +370,6 @@ inline void undoMove(Board& board, uint16_t move) {
         board.board[posFrom] = piece;
 
         if (pieceCap) {
-            //board.NN.addInput(netInd(pieceCap, posTo));
-
             board.pieces[1 ^ board.turn] ^= (1ULL << posTo);
             board.bb[pieceCap] ^= (1ULL << posTo);
         }
@@ -504,8 +477,7 @@ inline int genLegal(Board& board, uint16_t* moves) {
 
     int cnt = count(board.checkers);
 
-    if (cnt == 2) { /// double check
-      /// only king moves are legal
+    if (cnt == 2) { /// double check, only king moves are legal
         return nrMoves;
     }
     else if (cnt == 1) { /// one check
@@ -632,7 +604,6 @@ inline int genLegal(Board& board, uint16_t* moves) {
     }
 
     /// not pinned pieces (excluding pawns)
-
     uint64_t mobMask = capMask | quietMask;
 
     mask = board.bb[getType(KNIGHT, color)] & notPinned;

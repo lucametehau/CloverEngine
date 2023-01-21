@@ -20,11 +20,6 @@
 #include "defs.h"
 #include "thread.h"
 
-struct Heuristics {
-    Heuristics() : h(0), ch(0), fh(0) {}
-    int h, ch, fh;
-};
-
 
 int histMax = 7616;
 
@@ -137,16 +132,16 @@ int getCapHist(Search* searcher, uint16_t move) {
     return searcher->capHist[piece][to][cap];
 }
 
-void getHistory(Search* searcher, uint16_t move, int ply, Heuristics& H) {
+void getHistory(Search* searcher, uint16_t move, int ply, int &h, int &ch, int &fh) {
     int from = sqFrom(move), to = sqTo(move), piece = searcher->board.piece_at(from);
 
-    H.h = searcher->hist[searcher->board.turn][from][to];
+    h = searcher->hist[searcher->board.turn][from][to];
 
     uint16_t counterMove = searcher->Stack[ply - 1].move, followMove = (ply >= 2 ? searcher->Stack[ply - 2].move : NULLMOVE);
     int counterPiece = searcher->Stack[ply - 1].piece, followPiece = (ply >= 2 ? searcher->Stack[ply - 2].piece : 0);
     int counterTo = sqTo(counterMove), followTo = sqTo(followMove);
 
-    H.ch = searcher->follow[0][counterPiece][counterTo][piece][to];
+    ch = searcher->follow[0][counterPiece][counterTo][piece][to];
 
-    H.fh = searcher->follow[1][followPiece][followTo][piece][to];
+    fh = searcher->follow[1][followPiece][followTo][piece][to];
 }
