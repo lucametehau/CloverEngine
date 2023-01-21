@@ -481,6 +481,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
 
                 if (score >= cutBeta) {
+                    //TT->save(key, score, depth - probcutR, ply, LOWER, move, staticEval); // save probcut score in tt
                     return score;
                 }
             }
@@ -777,7 +778,7 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv) {
 
         /// current root move info
 
-        if (principalSearcher && printStats && getTime() > info->startTime + 2500) {
+        if (principalSearcher && printStats && getTime() > info->startTime + 2500 && !info->sanMode) {
             std::cout << "info depth " << depth << " currmove " << toString(move) << " currmovenumber " << played << std::endl;
         }
 
@@ -995,27 +996,46 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
                         }
                     }
                     uint64_t t = (uint64_t)getTime() - t0;
-                    std::cout << "info ";
-                    std::cout << "multipv " << i << " ";
-                    std::cout << "score ";
-                    if (scores[i] > MATE)
-                        std::cout << "mate " << (INF - scores[i] + 1) / 2;
-                    else if (scores[i] < -MATE)
-                        std::cout << "mate -" << (INF + scores[i] + 1) / 2;
-                    else
-                        std::cout << "cp " << scores[i];
-                    if (scores[i] >= beta)
-                        std::cout << " lowerbound";
-                    else if (scores[i] <= alpha)
-                        std::cout << " upperbound";
-                    std::cout << " depth " << depth << " seldepth " << selDepth << " nodes " << totalNodes << " qsNodes " << qsNodes;
-                    if (t)
-                        std::cout << " nps " << totalNodes * 1000 / t;
-                    std::cout << " time " << t << " ";
-                    std::cout << "tbhits " << totalHits << " hashfull " << TT->tableFull() << " ";
-                    std::cout << "pv ";
-                    printPv();
-                    std::cout << std::endl;
+                    if (!info->sanMode) {
+                        std::cout << "info ";
+                        std::cout << "multipv " << i << " ";
+                        std::cout << "score ";
+                        if (scores[i] > MATE)
+                            std::cout << "mate " << (INF - scores[i] + 1) / 2;
+                        else if (scores[i] < -MATE)
+                            std::cout << "mate -" << (INF + scores[i] + 1) / 2;
+                        else
+                            std::cout << "cp " << scores[i];
+                        if (scores[i] >= beta)
+                            std::cout << " lowerbound";
+                        else if (scores[i] <= alpha)
+                            std::cout << " upperbound";
+                        std::cout << " depth " << depth << " seldepth " << selDepth << " nodes " << totalNodes << " qsNodes " << qsNodes;
+                        if (t)
+                            std::cout << " nps " << totalNodes * 1000 / t;
+                        std::cout << " time " << t << " ";
+                        std::cout << "tbhits " << totalHits << " hashfull " << TT->tableFull() << " ";
+                        std::cout << "pv ";
+                        printPv();
+                        std::cout << std::endl;
+                    }
+                    else {
+                        std::cout << std::setw(3) << depth << "/" << std::setw(3) << selDepth << " ";
+                        std::cout << std::setw(7) << std::setprecision(2) << t / 1000.0 << "s   ";
+                        std::cout << std::setw(7) << totalNodes * 1000 / (t + 1) << "n/s   ";
+                        if (scores[i] > MATE)
+                            std::cout << "#" << (INF - scores[i] + 1) / 2 << " ";
+                        else if (scores[i] < -MATE)
+                            std::cout << "#-" << (INF + scores[i] + 1) / 2 << " ";
+                        else {
+                            int score = abs(scores[i]);
+                            std::cout << (scores[i] >= 0 ? "+" : "-") << 
+                                score / 100 << "." << (score % 100 >= 10 ? std::to_string(score % 100) : "0" + std::to_string(score % 100)) << " ";
+                        }
+                        std::cout << "  ";
+                        printPv();
+                        std::cout << std::endl;
+                    }
                     //std::cout << cnt << " out of " << cnt2 << ", " << 100.0 * cnt / cnt2 << "% good\n";
                 }
 
