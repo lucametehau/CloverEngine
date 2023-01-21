@@ -77,18 +77,12 @@ const int TERMINATED_BY_USER = 1;
 const int TERMINATED_BY_LIMITS = 2;
 const int TERMINATED_SEARCH = 3; /// 1 | 2
 
-class Search {
-
-    //friend class Movepick;
-    //friend class History;
-
-public:
+struct Search {
     Search();
     ~Search();
     Search(const Search&) = delete;
     Search& operator = (const Search&) = delete;
 
-public:
     void initSearch();
     void clearForSearch();
     void clearKillers();

@@ -142,6 +142,6 @@ void getHistory(Search* searcher, uint16_t move, int ply, int &h, int &ch, int &
     int counterTo = sqTo(counterMove), followTo = sqTo(followMove);
 
     ch = searcher->follow[0][counterPiece][counterTo][piece][to];
-
+    
     fh = searcher->follow[1][followPiece][followTo][piece][to];
 }
