@@ -110,17 +110,11 @@ inline tt::HashTable :: ~HashTable() {
 }
 
 inline void tt::HashTable::initTable(uint64_t size) {
-    //cout << size << "\n";
     size /= (sizeof(Entry) * BUCKET);
     size = pow2(size);
 
-    //cout << size / (1 << 20) << "\n";
-    //cout << entries << "\n";
-
     if (entries)
         delete[] table;
-
-    //cout << size << "\n";
 
     if (size < sizeof(Entry)) {
         entries = 0;
@@ -128,18 +122,10 @@ inline void tt::HashTable::initTable(uint64_t size) {
     }
     else {
         entries = size - 1;
-        //table = new tt :: Entry[entries * BUCKET + BUCKET]();
     }
 
-    //cout << entries << "\n";
-
     table = new Entry[entries * BUCKET + BUCKET]();
-
-    //cout << sizeof(table) << "\n";
-
     memset(table, 0, entries * BUCKET + BUCKET);
-
-    //cout << "Passed\n";
 }
 
 inline void tt::HashTable::prefetch(uint64_t hash) {
@@ -187,8 +173,6 @@ inline void tt::HashTable::save(uint64_t hash, int score, int depth, int ply, in
     tt::Entry* replace = bucket;
 
     for (int i = 1; i < BUCKET; i++) {
-        //if((bucket + i)->hash)
-        //cout << (bucket + i)->hash << " " << (bucket + i)->data << " " << hash << "\n";
         if (((bucket + i)->hash ^ (bucket + i)->data) == hash) {
             if (bound == EXACT || depth >= bucket->depth() - 3) {
                 *(bucket + i) = temp;

@@ -140,7 +140,7 @@ public:
     void print() {
         for (int i = 7; i >= 0; i--) {
             for (int j = 0; j <= 7; j++)
-                std::cerr << piece[board[8 * i + j]] << " ";
+                std::cerr << pieceChar[board[8 * i + j]] << " ";
             std::cerr << "\n";
         }
     }
@@ -178,7 +178,7 @@ public:
                     if (cnt)
                         fen += char(cnt + '0');
                     cnt = 0;
-                    fen += piece[board[sq]];
+                    fen += pieceChar[board[sq]];
                 }
             }
             if (cnt)
@@ -258,6 +258,8 @@ public:
     int timeset;
     int movestogo;
     int64_t nodes;
+
+    bool sanMode;
 
     bool quit, stopped;
 };

@@ -28,7 +28,6 @@ Search::Search() : threads(nullptr), params(nullptr)
     nodes = tbHits = t0 = tDepth = selDepth = threadCount = flag = checkCount = 0;
     principalSearcher = terminateSMP = SMPThreadExit = false;
     lazyFlag = 0;
-    memset(&info, 0, sizeof(info));
 
     for (int i = 0; i < 64; i++) { /// depth
         for (int j = 0; j < 64; j++) /// moves played
@@ -137,9 +136,47 @@ int quietness(Board& board, bool us) {
     return 1;
 }
 
+std::string getSanString(Board& board, uint16_t move) {
+    if (type(move) == CASTLE)
+        return ((sqTo(move) & 7) == 6 ? "O-O" : "O-O-O");
+    int from = sqFrom(move), to = sqTo(move), prom = (type(move) == PROMOTION ? promoted(move) + KNIGHT + 6 : 0), piece = board.piece_type_at(from);
+    std::string san = "";
+
+    if (piece != PAWN) {
+        san += pieceChar[piece + 6];
+    }
+    else {
+        san += char('a' + (from & 7));
+    }
+    if (board.isCapture(move))
+        san += "x";
+    if(piece != PAWN || board.isCapture(move))
+        san += char('a' + (to & 7));
+    san += char('1' + (to >> 3));
+
+    if (prom)
+        san += "=", san += pieceChar[prom];
+
+    makeMove(board, move);
+    if (board.checkers)
+        san += '+';
+    undoMove(board, move);
+    return san;
+}
+
 void Search::printPv() {
     for (int i = 0; i < pvTableLen[0]; i++) {
-        std::cout << toString(pvTable[0][i]) << " ";
+        if (!info->sanMode)
+            std::cout << toString(pvTable[0][i]) << " ";
+        else {
+            std::cout << getSanString(board, pvTable[0][i]) << " ";
+            makeMove(board, pvTable[0][i]);
+        }
+    }
+
+    if (info->sanMode) {
+        for (int i = pvTableLen[0] - 1; i >= 0; i--)
+            undoMove(board, pvTable[0][i]);
     }
 }
 
@@ -206,9 +243,7 @@ int Search::quiesce(int alpha, int beta, bool useTT) {
     }
     else {
         /// ttValue might be a better evaluation
-
         Stack[ply].eval = eval;
-
         if (bound == EXACT || (bound == LOWER && ttValue > eval) || (bound == UPPER && ttValue < eval))
             best = ttValue;
 
@@ -316,7 +351,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     if (isRepetition(board, ply) || board.halfMoves >= 100 || board.isMaterialDraw())
         return 1 - (nodes & 2); /// beal effect apparently, credit to Ethereal for this
 
-        /// mate distance pruning
+    /// mate distance pruning
     alpha = std::max(alpha, -INF + ply), beta = std::min(beta, INF - ply - 1);
     if (alpha >= beta)
         return alpha;
@@ -333,10 +368,8 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         ttValue = score;
         bound = entry.bound(), ttMove = entry.info.move;
         eval = entry.info.eval;
-        if (entry.depth() >= depth && !pvNode) {
-            if (bound == EXACT || (bound == LOWER && score >= beta) || (bound == UPPER && score <= alpha)) {
-                return score;
-            }
+        if (entry.depth() >= depth && !pvNode && (bound == EXACT || (bound == LOWER && score >= beta) || (bound == UPPER && score <= alpha))) {
+            return score;
         }
     }
 
@@ -388,78 +421,74 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
             eval = ttValue;
     }
 
-    bool improving = (!isCheck && ply >= 2 && Stack[ply].eval > Stack[ply - 2].eval); /// (TO DO: make all pruning dependent of this variable?)
+    int staticEval = Stack[ply].eval;
+    bool improving = (!isCheck && ply >= 2 && staticEval > Stack[ply - 2].eval); /// (TO DO: make all pruning dependent of this variable?)
 
     killers[ply + 1] = NULLMOVE;
 
-    /// razoring (searching 1 more ply can't change the score much, drop in quiesce)
-    if (!pvNode && !isCheck && depth <= 1 && Stack[ply].eval + RazorCoef < alpha) {
-        return quiesce(alpha, beta);
-    }
-
-    /// static null move pruning (don't prune when having a mate line, again stability)
-    if (!pvNode && !isCheck && depth <= SNMPDepth && eval - (SNMPCoef1 - SNMPCoef2 * improving) * (depth - quietUs) > beta && eval < MATE) {
-        return eval;
-    }
-
-    /// null move pruning (when last move wasn't null, we still have non pawn material,
-    ///                    we have a good position and we don't have any idea if it's likely to fail)
-    /// TO DO: tune nmp
-
-    //uint16_t threatMove = NULLMOVE;
-    if (!pvNode && !isCheck && !excluded && depth >= 2 && !nullSearch && (quietUs || eval - 100 * depth > beta) && eval >= beta && eval >= Stack[ply].eval &&
-        board.hasNonPawnMaterial(board.turn)) {
-        int R = nmpR + depth / nmpDepthDiv + (eval - beta) / nmpEvalDiv + improving - (Stack[ply - 1].history / (1 << 15));
-
-        Stack[ply].move = NULLMOVE;
-        Stack[ply].piece = 0;
-
-        makeNullMove(board);
-
-        int score = -search(-beta, -beta + 1, depth - R, !cutNode);
-        //threatMove = Stack[ply + 1].move;
-
-        undoNullMove(board);
-
-        if (score >= beta) {
-            return (abs(score) > MATE ? beta : score); /// don't trust mate scores
+    if (!pvNode && !isCheck) {
+        /// razoring (searching 1 more ply can't change the score much, drop in quiesce)
+        if (depth <= 1 && staticEval + RazorCoef < alpha) {
+            return quiesce(alpha, beta);
         }
-    }
 
-    /// probcut
-    if (!pvNode && !isCheck && depth >= probcutDepth && abs(beta) < MATE) {
-        int cutBeta = beta + probcutMargin;
-        Movepick noisyPicker(NULLMOVE, NULLMOVE, NULLMOVE, cutBeta - Stack[ply].eval);
+        /// static null move pruning (don't prune when having a mate line, again stability)
+        if (depth <= SNMPDepth && eval - (SNMPCoef1 - SNMPCoef2 * improving) * (depth - quietUs) > beta && eval < MATE) {
+            return eval;
+        }
 
-        uint16_t move;
+        /// null move pruning (when last move wasn't null, we still have non pawn material, we have a good position)
+        if (!nullSearch && !excluded && depth >= 2 && (quietUs || eval - 100 * depth > beta) && eval >= beta && eval >= staticEval && board.hasNonPawnMaterial(board.turn)) {
+            int R = nmpR + depth / nmpDepthDiv + (eval - beta) / nmpEvalDiv + improving - (Stack[ply - 1].history / (1 << 15));
 
-        while ((move = noisyPicker.nextMove(this, board, true, true)) != NULLMOVE) {
-            if (move == excluded)
-                continue;
+            Stack[ply].move = NULLMOVE;
+            Stack[ply].piece = 0;
 
-            Stack[ply].move = move;
-            Stack[ply].piece = board.piece_at(sqFrom(move));
+            makeNullMove(board);
 
-            makeMove(board, move);
+            int score = -search(-beta, -beta + 1, depth - R, !cutNode);
 
-            /// do we have a good sequence of captures that beats cutBeta ?
-            int score = -quiesce(-cutBeta, -cutBeta + 1);
+            undoNullMove(board);
 
-            if (score >= cutBeta) /// then we should try searching this capture
-                score = -search(-cutBeta, -cutBeta + 1, depth - probcutR, !cutNode);
+            if (score >= beta) {
+                return (abs(score) > MATE ? beta : score); /// don't trust mate scores
+            }
+        }
 
-            undoMove(board, move);
+        /// probcut
+        if (depth >= probcutDepth && abs(beta) < MATE) {
+            int cutBeta = beta + probcutMargin;
+            Movepick noisyPicker(NULLMOVE, NULLMOVE, NULLMOVE, cutBeta - staticEval);
+
+            uint16_t move;
+
+            while ((move = noisyPicker.nextMove(this, board, true, true)) != NULLMOVE) {
+                if (move == excluded)
+                    continue;
+
+                Stack[ply].move = move;
+                Stack[ply].piece = board.piece_at(sqFrom(move));
+
+                makeMove(board, move);
+
+                /// do we have a good sequence of captures that beats cutBeta ?
+                int score = -quiesce(-cutBeta, -cutBeta + 1);
+
+                if (score >= cutBeta) /// then we should try searching this capture
+                    score = -search(-cutBeta, -cutBeta + 1, depth - probcutR, !cutNode);
+
+                undoMove(board, move);
 
 
-            if (score >= cutBeta) {
-                return score;
+                if (score >= cutBeta) {
+                    return score;
+                }
             }
         }
     }
 
     /// internal iterative deepening (search at reduced depth to find a ttMove) (Rebel like)
     /// also for cut nodes
-
     if (pvNode && !isCheck && depth >= 4 && !ttHit)
         depth--;
 
@@ -485,20 +514,20 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         /// quiet move pruning
         if (best > -MATE && board.hasNonPawnMaterial(board.turn)) {
             if (isQuiet) {
-                Heuristics H; /// history values for quiet moves
-                getHistory(this, move, ply, H);
+                int h = 0, ch = 0, fh = 0;
+                getHistory(this, move, ply, h, ch, fh);
 
-                hist = H.h + H.fh + H.ch;
+                hist = h + fh + ch;
 
                 /// approximately the new depth for the next search
                 int newDepth = std::max(0, depth - lmrRed[std::min(63, depth)][std::min(63, played)]);
 
                 /// counter move and follow move pruning
-                if (newDepth <= 3 && !refutationMove && (H.ch < chCoef * newDepth || H.fh < fhCoef * newDepth))
+                if (newDepth <= 3 && !refutationMove && (ch < chCoef * newDepth || fh < fhCoef * newDepth))
                     continue;
 
                 /// futility pruning
-                if (newDepth <= 8 && !isCheck && Stack[ply].eval + fpMargin + fpCoef * newDepth + hist / fpHistDiv <= alpha)
+                if (newDepth <= 8 && !isCheck && staticEval + fpMargin + fpCoef * newDepth + hist / fpHistDiv <= alpha)
                     skip = 1;
 
                 /// late move pruning
@@ -581,8 +610,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
             R += cutNode;
 
-            //R += 2 * singular;
-
             R = std::min(depth - 1, std::max(R, 1)); /// clamp R
         }
 
@@ -606,7 +633,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
         undoMove(board, move);
 
-        nodesSearched[isNoisyMove(board, move)][sqFrom(move)][sqTo(move)] += nodes - initNodes;
+        nodesSearched[!isQuiet][sqFrom(move)][sqTo(move)] += nodes - initNodes;
 
         if (flag & TERMINATED_SEARCH) /// stop search
             return ABORT;
@@ -650,7 +677,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
     if (!excluded) {
         bound = (best >= beta ? LOWER : (best > alphaOrig ? EXACT : UPPER));
-        TT->save(key, best, depth, ply, bound, bestMove, Stack[ply].eval);
+        TT->save(key, best, depth, ply, bound, bestMove, staticEval);
     }
 
     return best;
@@ -812,7 +839,6 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv) {
                 updatePv(0, move);
 
                 if (alpha >= beta) {
-                    //std::cout << nodes << " " << initNodes << " " << nodes << " " << nodesBefore << '\n';
                     break;
                 }
             }
@@ -885,11 +911,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
                 board.bb[WB] | board.bb[BB],
                 board.bb[WN] | board.bb[BN],
                 board.bb[WP] | board.bb[BP],
-                board.halfMoves,
-                (board.castleRights & (3 << board.turn)) > 0,
-                0,
-                board.turn,
-                nullptr);
+                board.halfMoves, (board.castleRights & (3 << board.turn)) > 0, 0, board.turn, nullptr);
             if (probe != TB_RESULT_CHECKMATE && probe != TB_RESULT_FAILED && probe != TB_RESULT_STALEMATE) {
                 int to = int(TB_GET_TO(probe)), from = int(TB_GET_FROM(probe)), promote = TB_GET_PROMOTES(probe), ep = TB_GET_EP(probe);
 
