@@ -408,7 +408,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
     //uint16_t threatMove = NULLMOVE;
     if (!pvNode && !isCheck && !excluded && depth >= 2 && !nullSearch && (quietUs || eval - 100 * depth > beta) && eval >= beta && eval >= Stack[ply].eval &&
-        (board.pieces[board.turn] ^ board.bb[getType(PAWN, board.turn)] ^ board.bb[getType(KING, board.turn)])) {
+        board.hasNonPawnMaterial(board.turn)) {
         int R = nmpR + depth / nmpDepthDiv + (eval - beta) / nmpEvalDiv + improving - (Stack[ply - 1].history / (1 << 15));
 
         Stack[ply].move = NULLMOVE;
@@ -483,7 +483,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         int hist = 0;
 
         /// quiet move pruning
-        if (best > -MATE) {
+        if (best > -MATE && board.hasNonPawnMaterial(board.turn)) {
             if (isQuiet) {
                 Heuristics H; /// history values for quiet moves
                 getHistory(this, move, ply, H);

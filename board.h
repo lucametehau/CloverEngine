@@ -117,12 +117,16 @@ public:
       return board[sq] / 7;
     }*/
 
-    int king(int color) {
+    int king(bool color) {
         return Sq(bb[getType(KING, color)]);
     }
 
     bool isCapture(int move) {
         return (board[sqTo(move)] > 0);
+    }
+
+    bool hasNonPawnMaterial(bool color) {
+        return (pieces[color] ^ bb[getType(KING, color)] ^ bb[getType(PAWN, color)]) != 0;
     }
 
     void clear() {

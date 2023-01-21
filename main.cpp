@@ -29,14 +29,16 @@ int main(int argc, char** argv) {
     searcher->_setFen(START_POS_FEN);
 
     UCI uci(*searcher.get());
-    if (argc > 1 && !strncmp(argv[1], "bench", 5)) {
-        int depth = -1;
-        if (argc > 2) {
-            std::string s = argv[2];
-            depth = stoi(s);
+    if (argc > 1) {
+        if (!strncmp(argv[1], "bench", 5)) {
+            int depth = -1;
+            if (argc > 2) {
+                std::string s = argv[2];
+                depth = stoi(s);
+            }
+            uci.Bench(depth);
+            return 0;
         }
-        uci.Bench(depth);
-        return 0;
     }
 
     uci.Uci_Loop();
