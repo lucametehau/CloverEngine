@@ -49,7 +49,7 @@ int probcutR = 3;
 int fpMargin = 100;
 int fpCoef = 103;
 
-int histDiv = 4850;
+int histDiv = 5102;
 
 int chCoef = -2000;
 int fhCoef = -2000;
@@ -75,7 +75,7 @@ int tmNodesSearchedMaxPercentage = 1570;
 int quiesceFutilityCoef = 200;
 
 const int TERMINATED_BY_USER = 1;
-const int TERMINATED_BY_TIME = 2;
+const int TERMINATED_BY_LIMITS = 2;
 const int TERMINATED_SEARCH = 3; /// 1 | 2
 
 class Search {

@@ -49,12 +49,12 @@ bool Search::checkForStop() {
         return 1;
 
     if (SMPThreadExit) {
-        flag |= TERMINATED_BY_TIME;
+        flag |= TERMINATED_BY_LIMITS;
         return 1;
     }
 
     if (info->nodes != -1 && info->nodes <= (int64_t)nodes) {
-        flag |= TERMINATED_BY_TIME;
+        flag |= TERMINATED_BY_LIMITS;
         return 1;
     }
 
@@ -62,7 +62,7 @@ bool Search::checkForStop() {
 
     if (checkCount == (1 << 10)) {
         if (info->timeset && getTime() > info->startTime + info->hardTimeLim)
-            flag |= TERMINATED_BY_TIME;
+            flag |= TERMINATED_BY_LIMITS;
         checkCount = 0;
     }
 
@@ -72,7 +72,7 @@ bool Search::checkForStop() {
 bool printStats = true; /// default true
 const bool PROBE_ROOT = true; /// default true
 
-uint32_t probe_TB(Board &board, int depth) {
+uint32_t probe_TB(Board& board, int depth) {
     if (TB_LARGEST && depth >= 2 && !board.halfMoves && !board.castleRights) {
         unsigned pieces = count(board.pieces[WHITE] | board.pieces[BLACK]);
 
@@ -89,6 +89,7 @@ uint32_t probe_TB(Board &board, int depth) {
     }
     return TB_RESULT_FAILED;
 }
+
 int quietness(Board& board, bool us) {
     if (board.checkers)
         return 0;
@@ -134,6 +135,19 @@ int quietness(Board& board, bool us) {
         return 0;
 
     return 1;
+}
+
+void Search::printPv() {
+    for (int i = 0; i < pvTableLen[0]; i++) {
+        std::cout << toString(pvTable[0][i]) << " ";
+    }
+}
+
+void Search::updatePv(int ply, int move) {
+    pvTable[ply][0] = move;
+    for (int i = 0; i < pvTableLen[ply + 1]; i++)
+        pvTable[ply][i + 1] = pvTable[ply + 1][i];
+    pvTableLen[ply] = 1 + pvTableLen[ply + 1];
 }
 
 int Search::quiesce(int alpha, int beta, bool useTT) {
@@ -217,7 +231,7 @@ int Search::quiesce(int alpha, int beta, bool useTT) {
 
     uint16_t move;
 
-    while ((move = noisyPicker.nextMove(this, !isCheck, true))) {
+    while ((move = noisyPicker.nextMove(this, board, !isCheck, true))) {
         // futility pruning
         if (best > -MATE) {
             if (futilityValue > -MATE) {
@@ -391,7 +405,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
     /// null move pruning (when last move wasn't null, we still have non pawn material,
     ///                    we have a good position and we don't have any idea if it's likely to fail)
     /// TO DO: tune nmp
-    
+
     //uint16_t threatMove = NULLMOVE;
     if (!pvNode && !isCheck && !excluded && depth >= 2 && !nullSearch && (quietUs || eval - 100 * depth > beta) && eval >= beta && eval >= Stack[ply].eval &&
         (board.pieces[board.turn] ^ board.bb[getType(PAWN, board.turn)] ^ board.bb[getType(KING, board.turn)])) {
@@ -419,7 +433,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
         uint16_t move;
 
-        while ((move = noisyPicker.nextMove(this, true, true)) != NULLMOVE) {
+        while ((move = noisyPicker.nextMove(this, board, true, true)) != NULLMOVE) {
             if (move == excluded)
                 continue;
 
@@ -460,7 +474,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
 
     uint16_t move;
 
-    while ((move = picker.nextMove(this, skip, false)) != NULLMOVE) {
+    while ((move = picker.nextMove(this, board, skip, false)) != NULLMOVE) {
 
         if (move == excluded)
             continue;
@@ -710,13 +724,11 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv) {
 
     /// get counter move for move picker
 
-    uint16_t counter = NULLMOVE;
-
-    Movepick picker(ttMove, killers[0], counter, -10 * depth);
+    Movepick picker(ttMove, killers[0], NULLMOVE, -10 * depth);
 
     uint16_t move;
 
-    while ((move = picker.nextMove(this, false, false)) != NULLMOVE) {
+    while ((move = picker.nextMove(this, board, false, false)) != NULLMOVE) {
         bool searched = false;
 
         for (int i = 1; i < multipv; i++) {
@@ -1046,12 +1058,12 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
             break;
 
         if (info->timeset && getTime() > info->stopTime) {
-            flag |= TERMINATED_BY_TIME;
+            flag |= TERMINATED_BY_LIMITS;
             break;
         }
 
         if (tDepth == limitDepth) {
-            flag |= TERMINATED_BY_TIME;
+            flag |= TERMINATED_BY_LIMITS;
             break;
         }
     }
@@ -1104,19 +1116,6 @@ void Search::clearStack() {
     }
 }
 
-void Search::printPv() {
-    for (int i = 0; i < pvTableLen[0]; i++) {
-        std::cout << toString(pvTable[0][i]) << " ";
-    }
-}
-
-void Search::updatePv(int ply, int move) {
-    pvTable[ply][0] = move;
-    for (int i = 0; i < pvTableLen[ply + 1]; i++)
-        pvTable[ply][i + 1] = pvTable[ply + 1][i];
-    pvTableLen[ply] = 1 + pvTableLen[ply + 1];
-}
-
 void Search::startWorkerThreads(Info* info) {
     for (int i = 0; i < threadCount; i++) {
         params[i].readyMutex.lock();
@@ -1141,7 +1140,7 @@ void Search::startWorkerThreads(Info* info) {
 void Search::flagWorkersStop() {
     for (int i = 0; i < threadCount; i++) {
         params[i].SMPThreadExit = true;
-        params[i].flag |= TERMINATED_BY_TIME;
+        params[i].flag |= TERMINATED_BY_LIMITS;
     }
 }
 
