@@ -109,7 +109,7 @@ public:
 
                 score += searcher->capHist[p][to][cap] + 1000000;
 
-                //score += searcher->nodesSearched[sqFrom(move)][sqTo(move)] / 10000;
+                score += searcher->nodesSearched[1][sqFrom(move)][sqTo(move)] / nodesSearchedDiv;
 
                 scores[m++] = score;
             }
@@ -188,7 +188,7 @@ public:
                     if (pt != KING && pt != PAWN)
                         score += 4096 * count(genAttacksSq(allPieces, to, pt) & enemyKingRing);
 
-                    score += searcher->nodesSearched[from][to] / nodesSearchedDiv + 1000000; // the longer it takes a move to be refuted, the higher its chance to become the best move
+                    score += searcher->nodesSearched[0][from][to] / nodesSearchedDiv + 1000000; // the longer it takes a move to be refuted, the higher its chance to become the best move
                     scores[m++] = score;
                 }
 
