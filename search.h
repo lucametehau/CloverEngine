@@ -569,9 +569,9 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         /// update stack info
         Stack[ply].move = move;
         Stack[ply].piece = board.piece_at(sqFrom(move));
-        Stack[ply].history = hist;
 
         makeMove(board, move);
+        TT->prefetch(board.key);
         played++;
 
         /// store quiets for history
@@ -602,9 +602,9 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
             else if (!pvNode) {
                 R = lmrRed[std::min(63, depth)][std::min(63, played)] / (1.0 * lmrCapDiv / 10);
 
-                R += !improving; /// not on pv or not improving
+                R += !improving; /// not improving
 
-                R += quietUs && !see(board, move, -seeVal[BISHOP] - 1);
+                R += quietUs && !see(board, move, -seeVal[BISHOP] - 1); /// if the position is relatively quiet and the capture is "very losing"
             }
 
             R += cutNode;
@@ -653,14 +653,11 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         }
     }
 
-    TT->prefetch(key);
-
     if (!played) {
         return (isCheck ? -INF + ply : 0);
     }
 
     /// update killers and history heuristics
-
     if (best >= beta && !isNoisyMove(board, bestMove)) {
         if (killers[ply] != bestMove) {
             killers[ply] = bestMove;
@@ -1019,7 +1016,10 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
                     }
                     else {
                         std::cout << std::setw(3) << depth << "/" << std::setw(3) << selDepth << " ";
-                        std::cout << std::setw(7) << std::setprecision(2) << t / 1000.0 << "s   ";
+                        if (t < 10 * 1000)
+                            std::cout << std::setw(7) << std::setprecision(2) << t / 1000.0 << "s   ";
+                        else
+                            std::cout << std::setw(7) << t / 1000 << "s   ";
                         std::cout << std::setw(7) << totalNodes * 1000 / (t + 1) << "n/s   ";
                         if (scores[i] > MATE)
                             std::cout << "#" << (INF - scores[i] + 1) / 2 << " ";
