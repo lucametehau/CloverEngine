@@ -91,7 +91,7 @@ public:
                 sum += inputWeights[prevN][n];
             }
 
-            histOutput[WHITE][0][n] = sum;
+            histOutput[0][WHITE][n] = sum;
 
             sum = inputBiases[n];
 
@@ -99,7 +99,7 @@ public:
                 sum += inputWeights[prevN][n];
             }
 
-            histOutput[BLACK][0][n] = sum;
+            histOutput[0][BLACK][n] = sum;
 
             assert(-32768 <= sum && sum <= 32767);
         }
@@ -119,7 +119,7 @@ public:
                 sum += inputWeights[prevN][n];
             }
 
-            histOutput[WHITE][0][n] = sum;
+            histOutput[0][WHITE][n] = sum;
 
             sum = inputBiases[n];
 
@@ -127,7 +127,7 @@ public:
                 sum += inputWeights[prevN][n];
             }
 
-            histOutput[BLACK][0][n] = sum;
+            histOutput[0][BLACK][n] = sum;
 
             assert(-32768 <= sum && sum <= 32767);
         }
@@ -211,12 +211,12 @@ public:
     }
 
     void applyUpdates(int c) {
-        apply(histOutput[c][histSz], histOutput[c][histSz - 1], updateSz[c], updates[c]);
+        apply(histOutput[histSz][c], histOutput[histSz - 1][c], updateSz[c], updates[c]);
         updateSz[c] = 0;
     }
 
     void applyInitUpdates(int c) {
-        apply(histOutput[c][histSz], inputBiases, updateSz[c], updates[c]);
+        apply(histOutput[histSz][c], inputBiases, updateSz[c], updates[c]);
         updateSz[c] = 0;
     }
 
@@ -233,7 +233,7 @@ public:
         __m256i acc4 = _mm256_setzero_si256(), acc5 = _mm256_setzero_si256();
         __m256i acc6 = _mm256_setzero_si256(), acc7 = _mm256_setzero_si256();
 
-        __m256i* w = (__m256i*)histOutput[stm][histSz - 1];
+        __m256i* w = (__m256i*)histOutput[histSz - 1][stm];
 
         for (int j = 0; j < batches; j += 8) {
             acc0 = _mm256_add_epi32(acc0, _mm256_madd_epi16(_mm256_max_epi16(w[j], zero), v[j]));
@@ -246,7 +246,7 @@ public:
             acc7 = _mm256_add_epi32(acc7, _mm256_madd_epi16(_mm256_max_epi16(w[j + 7], zero), v[j + 7]));
         }
 
-        __m256i* w2 = (__m256i*)histOutput[stm ^ 1][histSz - 1];
+        __m256i* w2 = (__m256i*)histOutput[histSz - 1][stm ^ 1];
 
         for (int j = 0; j < batches; j += 8) {
             acc0 = _mm256_add_epi32(acc0, _mm256_madd_epi16(_mm256_max_epi16(w2[j], zero), v[j + batches]));
@@ -338,7 +338,7 @@ public:
 
     int16_t inputBiases[SIDE_NEURONS] __attribute__((aligned(32)));
     int32_t outputBias;
-    int16_t histOutput[2][2005][SIDE_NEURONS] __attribute__((aligned(32)));
+    int16_t histOutput[2005][2][SIDE_NEURONS] __attribute__((aligned(32)));
     int16_t inputWeights[INPUT_NEURONS][SIDE_NEURONS] __attribute__((aligned(32)));
     int16_t outputWeights[HIDDEN_NEURONS] __attribute__((aligned(32)));
     int16_t deeznuts[HIDDEN_NEURONS] __attribute__((aligned(32)));
