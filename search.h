@@ -438,9 +438,11 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
         }
 
         /// null move pruning (when last move wasn't null, we still have non pawn material, we have a good position)
-        if (!nullSearch && !excluded && depth >= 2 && (quietUs || eval - 100 * depth > beta) && eval >= beta && eval >= staticEval && board.hasNonPawnMaterial(board.turn)) {
+        if (!nullSearch && !excluded && depth >= 2 && (quietUs || eval - 100 * depth > beta) && 
+            eval >= beta && eval >= staticEval && staticEval + 20 * depth - 150 >= beta &&
+            board.hasNonPawnMaterial(board.turn)) {
             int R = nmpR + depth / nmpDepthDiv + (eval - beta) / nmpEvalDiv + improving;
-
+            //cnt2 += flag;
             Stack[ply].move = NULLMOVE;
             Stack[ply].piece = 0;
 
@@ -451,6 +453,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, uint16_t exclud
             undoNullMove(board);
 
             if (score >= beta) {
+                //cnt += flag;
                 return (abs(score) > MATE ? beta : score); /// don't trust mate scores
             }
         }
@@ -1033,8 +1036,8 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
                         std::cout << "  ";
                         printPv();
                         std::cout << std::endl;
+                        std::cout << cnt << " out of " << cnt2 << ", " << 100.0 * cnt / cnt2 << "% good\n";
                     }
-                    //std::cout << cnt << " out of " << cnt2 << ", " << 100.0 * cnt / cnt2 << "% good\n";
                 }
 
                 if (scores[i] <= alpha) {
