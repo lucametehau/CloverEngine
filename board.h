@@ -23,9 +23,7 @@
 
 struct StackEntry { /// info to keep in the stack
     uint16_t move, piece;
-    //uint16_t killers[2];
     uint16_t quiets[256], captures[256];
-    int history;
     int eval;
 };
 
@@ -110,12 +108,6 @@ public:
     int piece_at(int sq) {
         return board[sq];
     }
-
-    /*int color_at(int sq) {
-      if(board[sq] == 0) /// empty square
-        return -1;
-      return board[sq] / 7;
-    }*/
 
     int king(bool color) {
         return Sq(bb[getType(KING, color)]);

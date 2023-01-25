@@ -30,13 +30,9 @@ namespace tt {
                 int16_t eval;
                 uint16_t move;
             } info;
-
-            uint64_t data;
         };
         void refresh(int gen) {
-            uint64_t temp = hash ^ data;
             info.about = (info.about & 1023u) | (gen << 10u);
-            hash = temp ^ data;
         }
 
         int value(int ply) {
@@ -139,7 +135,7 @@ inline bool tt::HashTable::probe(uint64_t hash, Entry& entry) {
     Entry* bucket = table + ind;
 
     for (int i = 0; i < BUCKET; i++) {
-        if (((bucket + i)->hash ^ (bucket + i)->data) == hash) {
+        if ((bucket + i)->hash == hash) {
             (bucket + i)->refresh(generation);
             entry = *(bucket + i);
             return 1;
@@ -162,9 +158,9 @@ inline void tt::HashTable::save(uint64_t hash, int score, int depth, int ply, in
 
     temp.info.move = move; temp.info.eval = short(eval); temp.info.score = short(score);
     temp.info.about = uint16_t(bound | (depth << 2u) | (generation << 10u));
-    temp.hash = hash ^ temp.data;
+    temp.hash = hash;
 
-    if ((bucket->hash ^ bucket->data) == hash) {
+    if (bucket->hash == hash) {
         if (bound == EXACT || depth >= bucket->depth() - 3)
             *bucket = temp;
         return;
@@ -173,7 +169,7 @@ inline void tt::HashTable::save(uint64_t hash, int score, int depth, int ply, in
     tt::Entry* replace = bucket;
 
     for (int i = 1; i < BUCKET; i++) {
-        if (((bucket + i)->hash ^ (bucket + i)->data) == hash) {
+        if ((bucket + i)->hash == hash) {
             if (bound == EXACT || depth >= bucket->depth() - 3) {
                 *(bucket + i) = temp;
             }
