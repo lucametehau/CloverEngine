@@ -52,18 +52,14 @@ int getHistoryBonus(int depth) {
     return std::min(A_mult * depth * depth + B_mult * depth, histMax);
 }
 
-void updateMoveHistory(Search* searcher, uint16_t move, int ply, int bonus) {
+void updateMoveHistory(Search* searcher, StackEntry* stack, uint16_t move, int bonus) {
     int from = sqFrom(move), to = sqTo(move), piece = searcher->board.piece_at(from);
 
     updateHist(searcher->hist[searcher->board.turn][from][to], bonus);
 
-    uint16_t counterMove = searcher->Stack[ply - 1].move, followMove = (ply >= 2 ? searcher->Stack[ply - 2].move : NULLMOVE);
-    int counterPiece = searcher->Stack[ply - 1].piece, followPiece = (ply >= 2 ? searcher->Stack[ply - 2].piece : 0);
-    int counterTo = sqTo(counterMove), followTo = sqTo(followMove);
+    updateCounterHist((*(stack - 1)->continuationHist)[piece][to], bonus);
 
-    updateCounterHist(searcher->follow[0][counterPiece][counterTo][piece][to], bonus);
-
-    updateCounterHist(searcher->follow[1][followPiece][followTo][piece][to], bonus);
+    updateCounterHist((*(stack - 2)->continuationHist)[piece][to], bonus);
 }
 
 void updateCaptureMoveHistory(Search* searcher, uint16_t move, int bonus) {
@@ -75,15 +71,15 @@ void updateCaptureMoveHistory(Search* searcher, uint16_t move, int bonus) {
     updateCapHist(searcher->capHist[piece][to][cap], bonus);
 }
 
-void updateHistory(Search* searcher, uint16_t* quiets, int nrQuiets, int ply, int bonus) {
+void updateHistory(Search* searcher, StackEntry* stack, int nrQuiets, int ply, int bonus) {
     if (ply < 2 || !nrQuiets) /// we can't update if we don't have a follow move or no quiets
         return;
 
-    uint16_t counterMove = searcher->Stack[ply - 1].move, followMove = searcher->Stack[ply - 2].move;
-    int counterPiece = searcher->Stack[ply - 1].piece, followPiece = searcher->Stack[ply - 2].piece;
-    int counterTo = sqTo(counterMove), followTo = sqTo(followMove);
+    uint16_t counterMove = (stack - 1)->move;
+    int counterPiece = (stack - 1)->piece;;
+    int counterTo = sqTo(counterMove);
 
-    uint16_t best = quiets[nrQuiets - 1];
+    uint16_t best = stack->quiets[nrQuiets - 1];
     bool turn = searcher->board.turn;
 
     if (counterMove)
@@ -93,26 +89,26 @@ void updateHistory(Search* searcher, uint16_t* quiets, int nrQuiets, int ply, in
         /// increase value for best move, decrease value for the other moves
         /// so we have an early cut-off
 
-        int move = quiets[i];
+        int move = stack->quiets[i];
         int score = (move == best ? bonus : -bonus);
         int from = sqFrom(move), to = sqTo(move), piece = searcher->board.piece_at(from);
 
         updateHist(searcher->hist[turn][from][to], score);
 
-        if (counterMove)
-            updateCounterHist(searcher->follow[0][counterPiece][counterTo][piece][to], score);
+        if ((stack - 1)->move)
+            updateCounterHist((*(stack - 1)->continuationHist)[piece][to], score);
 
-        if (followMove)
-            updateCounterHist(searcher->follow[1][followPiece][followTo][piece][to], score);
+        if ((stack - 2)->move)
+            updateCounterHist((*(stack - 2)->continuationHist)[piece][to], score);
     }
 }
 
-void updateCapHistory(Search* searcher, uint16_t* captures, int nrCaptures, uint16_t best, int ply, int bonus) {
+void updateCapHistory(Search* searcher, StackEntry* stack, int nrCaptures, uint16_t best, int ply, int bonus) {
     for (int i = 0; i < nrCaptures; i++) {
         /// increase value for best move, decrease value for the other moves
         /// so we have an early cut-off
 
-        int move = captures[i];
+        int move = stack->captures[i];
         int score = (move == best ? bonus : -bonus);
         int from = sqFrom(move), to = sqTo(move), piece = searcher->board.piece_at(from), cap = searcher->board.piece_type_at(to);
 
@@ -132,16 +128,12 @@ int getCapHist(Search* searcher, uint16_t move) {
     return searcher->capHist[piece][to][cap];
 }
 
-void getHistory(Search* searcher, uint16_t move, int ply, int &h, int &ch, int &fh) {
+void getHistory(Search* searcher, StackEntry* stack, uint16_t move, int &h, int &ch, int &fh) {
     int from = sqFrom(move), to = sqTo(move), piece = searcher->board.piece_at(from);
 
     h = searcher->hist[searcher->board.turn][from][to];
 
-    uint16_t counterMove = searcher->Stack[ply - 1].move, followMove = (ply >= 2 ? searcher->Stack[ply - 2].move : NULLMOVE);
-    int counterPiece = searcher->Stack[ply - 1].piece, followPiece = (ply >= 2 ? searcher->Stack[ply - 2].piece : 0);
-    int counterTo = sqTo(counterMove), followTo = sqTo(followMove);
-
-    ch = searcher->follow[0][counterPiece][counterTo][piece][to];
+    ch = (*(stack - 1)->continuationHist)[piece][to];
     
-    fh = searcher->follow[1][followPiece][followTo][piece][to];
+    fh = (*(stack - 2)->continuationHist)[piece][to];
 }

@@ -74,7 +74,7 @@ public:
         }
     }
 
-    uint16_t nextMove(Search* searcher, Board& board, bool skip, bool noisyPicker) {
+    uint16_t nextMove(Search* searcher, StackEntry* stack, Board& board, bool skip, bool noisyPicker) {
         switch (stage) {
         case STAGE_HASHMOVE:
             trueStage = STAGE_HASHMOVE;
@@ -130,7 +130,7 @@ public:
             }
             if (skip) { /// no need to go through quiets
                 stage = STAGE_PRE_BAD_NOISY;
-                return nextMove(searcher, board, skip, noisyPicker);
+                return nextMove(searcher, stack, board, skip, noisyPicker);
             }
             stage++;
         case STAGE_COUNTER:
@@ -150,15 +150,10 @@ public:
             if (!skip) {
                 nrQuiets = genLegalQuiets(board, moves);
 
-                int ply = board.ply;
-
                 bool turn = board.turn, enemy = 1 ^ turn;
                 uint64_t enemyPawns = board.bb[getType(PAWN, turn ^ 1)], allPieces = board.pieces[WHITE] | board.pieces[BLACK];
                 uint64_t pawnAttacks = getPawnAttacks(enemy, enemyPawns);
                 uint64_t enemyKingRing = kingRingMask[board.king(enemy)] & ~(shift(enemy, NORTHEAST, enemyPawns & ~fileMask[(enemy == WHITE ? 7 : 0)]) & shift(enemy, NORTHWEST, enemyPawns & ~fileMask[(enemy == WHITE ? 0 : 7)]));
-                uint16_t counterMove = (ply >= 1 ? searcher->Stack[ply - 1].move : NULLMOVE), followMove = (ply >= 2 ? searcher->Stack[ply - 2].move : NULLMOVE);
-                int counterPiece = (ply >= 1 ? searcher->Stack[ply - 1].piece : 0), followPiece = ply >= 2 ? searcher->Stack[ply - 2].piece : 0;
-                int counterTo = sqTo(counterMove), followTo = sqTo(followMove);
                 int m = 0;
 
                 for (int i = 0; i < nrQuiets; i++) {
@@ -172,12 +167,8 @@ public:
                     int from = sqFrom(move), to = sqTo(move), piece = board.piece_at(from), pt = piece_type(piece);
 
                     score = searcher->hist[board.turn][from][to];
-
-                    if (counterMove)
-                        score += searcher->follow[0][counterPiece][counterTo][piece][to];
-
-                    if (followMove)
-                        score += searcher->follow[1][followPiece][followTo][piece][to];
+                    score += (*(stack - 1)->continuationHist)[piece][to];
+                    score += (*(stack - 2)->continuationHist)[piece][to];
 
                     if (pt != PAWN && (pawnAttacks & (1ULL << to)))
                         score -= 10 * seeVal[pt];
