@@ -98,9 +98,9 @@ struct Search {
     void _makeMove(uint16_t move);
 
     std::pair <int, uint16_t> startSearch(Info* info);
-    int quiesce(int alpha, int beta, bool useTT = true); /// for quiet position check (tuning)
-    int search(int alpha, int beta, int depth, bool cutNode, uint16_t excluded = NULLMOVE);
-    int rootSearch(int alpha, int beta, int depth, int multipv);
+    int quiesce(int alpha, int beta, StackEntry* stack, bool useTT = true); /// for quiet position check (tuning)
+    int search(int alpha, int beta, int depth, bool cutNode, StackEntry *stack, uint16_t excluded = NULLMOVE);
+    int rootSearch(int alpha, int beta, int depth, int multipv, StackEntry *stack);
 
     void setTime(Info* tInfo) { info = tInfo; }
 
@@ -121,11 +121,10 @@ struct Search {
     uint16_t killers[DEPTH + 5];
     uint16_t cmTable[2][13][64];
     int hist[2][64][64];
-    int follow[2][13][64][13][64];
+    Table follow[13][64];
     int capHist[13][64][7];
     int lmrCnt[2][20];
     int lmrRed[64][64];
-    StackEntry Stack[DEPTH + 5];
     int bestMoves[256], scores[256];
 
     int16_t contempt;

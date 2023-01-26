@@ -21,9 +21,12 @@
 #include <ratio>
 #include <random>
 #include <cassert>
+#include <array>
 
 std::mt19937_64 gen(0xBEEF);
 std::uniform_int_distribution <uint64_t> rng;
+
+#define Table std::array <std::array <int, 64>, 13>
 
 enum {
     A1, B1, C1, D1, E1, F1, G1, H1,
