@@ -23,36 +23,32 @@ const int BUCKET = 4;
 namespace tt {
     struct Entry {
         uint64_t hash;
-        union {
-            struct {
-                uint16_t about;
-                int16_t score;
-                int16_t eval;
-                uint16_t move;
-            } info;
-        };
+        uint16_t about;
+        int16_t score;
+        int16_t eval;
+        uint16_t move;
         void refresh(int gen) {
-            info.about = (info.about & 1023u) | (gen << 10u);
+            about = (about & 1023u) | (gen << 10u);
         }
 
         int value(int ply) {
-            if (info.score >= TB_WIN_SCORE)
-                return info.score - ply;
-            else if (info.score <= -TB_WIN_SCORE)
-                return info.score + ply;
-            return info.score;
+            if (score >= TB_WIN_SCORE)
+                return score - ply;
+            else if (score <= -TB_WIN_SCORE)
+                return score + ply;
+            return score;
         }
 
         int bound() {
-            return info.about & 3u;
+            return about & 3u;
         }
 
         int depth() {
-            return (info.about >> 2u) & 255u;
+            return (about >> 2u) & 255u;
         }
 
         int generation() {
-            return info.about >> 10u;
+            return about >> 10u;
         }
     };
 
@@ -121,7 +117,7 @@ inline void tt::HashTable::initTable(uint64_t size) {
     }
 
     table = new Entry[entries * BUCKET + BUCKET]();
-    memset(table, 0, entries * BUCKET + BUCKET);
+    memset(table, 0, entries * BUCKET * sizeof(Entry) + BUCKET);
 }
 
 inline void tt::HashTable::prefetch(uint64_t hash) {
@@ -154,10 +150,10 @@ inline void tt::HashTable::save(uint64_t hash, int score, int depth, int ply, in
     else if (score <= -TB_WIN_SCORE)
         score -= ply;
 
-    Entry temp = {};
+    Entry temp;
 
-    temp.info.move = move; temp.info.eval = short(eval); temp.info.score = short(score);
-    temp.info.about = uint16_t(bound | (depth << 2u) | (generation << 10u));
+    temp.move = move; temp.eval = short(eval); temp.score = short(score);
+    temp.about = uint16_t(bound | (depth << 2u) | (generation << 10u));
     temp.hash = hash;
 
     if (bucket->hash == hash) {
@@ -175,7 +171,7 @@ inline void tt::HashTable::save(uint64_t hash, int score, int depth, int ply, in
             }
             return;
         }
-        else if ((bucket + i)->info.about < replace->info.about) {
+        else if ((bucket + i)->about < replace->about) {
             replace = (bucket + i);
         }
     }

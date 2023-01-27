@@ -126,6 +126,7 @@ struct Search {
     int lmrCnt[2][20];
     int lmrRed[64][64];
     int bestMoves[256], scores[256];
+    MeanValue values[10];
 
     int16_t contempt;
 

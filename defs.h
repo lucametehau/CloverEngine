@@ -121,6 +121,26 @@ const int oppositepieceChar[13] = {
     BP, BN, BB, BR, BQ, BK
 };
 
+struct MeanValue {
+    std::string name;
+    double valuesSum;
+    int valuesCount;
+
+    void init(std::string _name) {
+        name = _name;
+        valuesSum = valuesCount = 0;
+    }
+
+    void upd(double value) {
+        valuesSum += value;
+        valuesCount++;
+    }
+
+    void print_mean() {
+        std::cout << name << " has the mean value " << static_cast<long long>(round(valuesSum / valuesCount)) << "\n";
+    }
+};
+
 inline long double getTime() { /// thanks Terje!
     struct timespec time;
     clock_gettime(CLOCK_MONOTONIC, &time);
