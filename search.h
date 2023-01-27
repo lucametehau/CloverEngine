@@ -219,10 +219,10 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack, bool useTT) {
     /// probe transposition table
 
     if (TT->probe(key, entry)) {
-        best = eval = entry.info.eval;
+        best = eval = entry.eval;
         ttValue = score = entry.value(ply);
         bound = entry.bound();
-        ttMove = entry.info.move;
+        ttMove = entry.move;
 
         if (!pvNode && (bound == EXACT || (bound == LOWER && score >= beta) || (bound == UPPER && score <= alpha)))
             return score;
@@ -366,8 +366,8 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry *sta
         int score = entry.value(ply);
         ttHit = 1;
         ttValue = score;
-        bound = entry.bound(), ttMove = entry.info.move;
-        eval = entry.info.eval;
+        bound = entry.bound(), ttMove = entry.move;
+        eval = entry.eval;
         if (entry.depth() >= depth && !pvNode && (bound == EXACT || (bound == LOWER && score >= beta) || (bound == UPPER && score <= alpha))) {
             return score;
         }
@@ -515,12 +515,11 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry *sta
             continue;
 
         bool isQuiet = !isNoisyMove(board, move), refutationMove = (picker.trueStage < STAGE_QUIETS);
-        int hist = 0;
+        int hist = 0, h, ch, fh;
 
         /// quiet move pruning
         if (best > -MATE && board.hasNonPawnMaterial(board.turn)) {
             if (isQuiet) {
-                int h = 0, ch = 0, fh = 0;
                 getHistory(this, stack, move, h, ch, fh);
 
                 hist = h + fh + ch;
@@ -528,8 +527,8 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry *sta
                 /// approximately the new depth for the next search
                 int newDepth = std::max(0, depth - lmrRed[std::min(63, depth)][std::min(63, played)]);
 
-                /// history leaf pruning
-                if (newDepth <= 3 && !refutationMove && hist < -4096 * newDepth)
+                /// continuation history leaf pruning
+                if (newDepth <= 3 && !refutationMove && ch + fh < -4096 * newDepth)
                     continue;
 
                 /// futility pruning
@@ -718,8 +717,8 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv, StackEntry *
         int score = entry.value(0);
         ttHit = 1;
         ttValue = score;
-        bound = entry.bound(), ttMove = entry.info.move;
-        eval = entry.info.eval;
+        bound = entry.bound(), ttMove = entry.move;
+        eval = entry.eval;
     }
 
     bool isCheck = (board.checkers != 0);
@@ -964,6 +963,8 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
 
     memset(search_stack, 0, sizeof(search_stack));
 
+    //values[0].init("continuationHistory_for_failing_moves");
+
     for (int i = 1; i <= 2; i++)
         (stack - i)->continuationHist = &continuationHistory[0][0], (stack - i)->eval = INF;
 
@@ -1046,6 +1047,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
                         std::cout << "  ";
                         printPv();
                         std::cout << std::endl;
+                        //values[0].print_mean();
                         //std::cout << cnt << " out of " << cnt2 << ", " << 100.0 * cnt / cnt2 << "% good\n";
                     }
                 }
