@@ -25,7 +25,7 @@
 
 Search::Search() : threads(nullptr), params(nullptr)
 {
-    nodes = tbHits = t0 = tDepth = selDepth = threadCount = flag = checkCount = 0;
+    threadCount = flag = checkCount = 0;
     principalSearcher = terminateSMP = SMPThreadExit = false;
     lazyFlag = 0;
 
@@ -195,7 +195,6 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack, bool useTT) {
 
     pvTableLen[ply] = 0;
 
-    //selDepth = std::max(selDepth, ply);
     nodes++;
     qsNodes++;
 
@@ -284,7 +283,7 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack, bool useTT) {
         // update stack info
         stack->move = move;
         stack->piece = board.piece_at(sqFrom(move));
-        stack->continuationHist = &follow[stack->piece][sqTo(move)];
+        stack->continuationHist = &continuationHistory[stack->piece][sqTo(move)];
 
         makeMove(board, move);
         score = -quiesce(-beta, -alpha, stack + 1);
@@ -423,7 +422,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry *sta
     }
 
     int staticEval = stack->eval;
-    bool improving = (!isCheck && ply >= 2 && staticEval > (stack - 2)->eval); /// (TO DO: make all pruning dependent of this variable?)
+    bool improving = (!isCheck && staticEval > (stack - 2)->eval); /// (TO DO: make all pruning dependent of this variable?)
 
     killers[ply + 1] = NULLMOVE;
 
@@ -446,7 +445,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry *sta
             //cnt2 += flag;
             stack->move = NULLMOVE;
             stack->piece = 0;
-            stack->continuationHist = &follow[0][0];
+            stack->continuationHist = &continuationHistory[0][0];
 
             makeNullMove(board);
 
@@ -473,7 +472,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry *sta
 
                 stack->move = move;
                 stack->piece = board.piece_at(sqFrom(move));
-                stack->continuationHist = &follow[stack->piece][sqTo(move)];
+                stack->continuationHist = &continuationHistory[stack->piece][sqTo(move)];
 
                 makeMove(board, move);
 
@@ -529,8 +528,8 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry *sta
                 /// approximately the new depth for the next search
                 int newDepth = std::max(0, depth - lmrRed[std::min(63, depth)][std::min(63, played)]);
 
-                /// counter move and follow move pruning
-                if (newDepth <= 3 && !refutationMove && (ch < chCoef * newDepth || fh < fhCoef * newDepth))
+                /// history leaf pruning
+                if (newDepth <= 3 && !refutationMove && hist < -4096 * newDepth)
                     continue;
 
                 /// futility pruning
@@ -575,7 +574,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry *sta
         /// update stack info
         stack->move = move;
         stack->piece = board.piece_at(sqFrom(move));
-        stack->continuationHist = &follow[stack->piece][sqTo(move)];
+        stack->continuationHist = &continuationHistory[stack->piece][sqTo(move)];
 
         makeMove(board, move);
         TT->prefetch(board.key);
@@ -773,7 +772,7 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv, StackEntry *
         /// update stack info
         stack->move = move;
         stack->piece = board.piece_at(sqFrom(move));
-        stack->continuationHist = &follow[stack->piece][sqTo(move)];
+        stack->continuationHist = &continuationHistory[stack->piece][sqTo(move)];
 
         makeMove(board, move);
         played++;
@@ -966,7 +965,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
     memset(search_stack, 0, sizeof(search_stack));
 
     for (int i = 1; i <= 2; i++)
-        (stack - i)->continuationHist = &follow[0][0];
+        (stack - i)->continuationHist = &continuationHistory[0][0], (stack - i)->eval = INF;
 
     for (tDepth = 1; tDepth <= limitDepth; tDepth++) {
         memset(bestMoves, 0, sizeof(bestMoves));
@@ -1128,13 +1127,13 @@ void Search::clearHistory() {
     memset(hist, 0, sizeof(hist));
     memset(capHist, 0, sizeof(capHist));
     memset(cmTable, 0, sizeof(cmTable));
-    memset(follow, 0, sizeof(follow));
+    memset(continuationHistory, 0, sizeof(continuationHistory));
 
     for (int i = 0; i < threadCount; i++) {
         memset(params[i].hist, 0, sizeof(params[i].hist));
         memset(params[i].capHist, 0, sizeof(params[i].capHist));
         memset(params[i].cmTable, 0, sizeof(params[i].cmTable));
-        memset(params[i].follow, 0, sizeof(params[i].follow));
+        memset(params[i].continuationHistory, 0, sizeof(params[i].continuationHistory));
     }
 }
 

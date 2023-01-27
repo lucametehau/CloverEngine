@@ -74,11 +74,9 @@ UCI::UCI(Search& _searcher) : searcher(_searcher) {
     addOption("fpHistDiv", fpHistDiv);
     addOption("histDiv", histDiv);
     addOption("histMax", histMax);
-    addOption("histMult", histMult);
     addOption("A_mult", A_mult);
     addOption("B_mult", B_mult);
     addOption("histUpdateDiv", histUpdateDiv);
-    addOption("counterHistMult", counterHistMult);
     addOption("counterHistUpdateDiv", counterHistUpdateDiv);
     addOption("tmScoreDiv", tmScoreDiv);
     addOption("tmBestMoveStep", tmBestMoveStep);
@@ -349,9 +347,6 @@ void UCI::Uci_Loop() {
             else if (name == "histMax") {
                 setOptionI(iss, histMax);
             }
-            else if (name == "histMult") {
-                setOptionI(iss, histMult);
-            }
             else if (name == "A_mult") {
                 setOptionI(iss, A_mult);
             }
@@ -360,9 +355,6 @@ void UCI::Uci_Loop() {
             }
             else if (name == "histUpdateDiv") {
                 setOptionI(iss, histUpdateDiv);
-            }
-            else if (name == "counterHistMult") {
-                setOptionI(iss, counterHistMult);
             }
             else if (name == "counterHistUpdateDiv") {
                 setOptionI(iss, counterHistUpdateDiv);

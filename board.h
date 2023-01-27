@@ -25,7 +25,7 @@ struct StackEntry { /// info to keep in the stack
     uint16_t move, piece;
     uint16_t quiets[256], captures[256];
     int eval;
-    Table* continuationHist;
+    TablePieceTo* continuationHist;
 };
 
 class Undo {
