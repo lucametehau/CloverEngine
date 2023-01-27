@@ -121,7 +121,7 @@ struct Search {
     uint16_t killers[DEPTH + 5];
     uint16_t cmTable[2][13][64];
     int hist[2][64][64];
-    Table follow[13][64];
+    TablePieceTo continuationHistory[13][64];
     int capHist[13][64][7];
     int lmrCnt[2][20];
     int lmrRed[64][64];
