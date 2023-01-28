@@ -261,7 +261,7 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack, bool useTT) {
 
     alpha = std::max(alpha, best);
 
-    Movepick noisyPicker(ttMove, NULLMOVE, NULLMOVE, 0);
+    Movepick noisyPicker((!isCheck && see(board, ttMove, 0) ? ttMove : NULLMOVE), NULLMOVE, NULLMOVE, 0);
 
     uint16_t move;
 
@@ -311,7 +311,6 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack, bool useTT) {
     }
 
     /// store info in transposition table
-
     bound = (best >= beta ? LOWER : (best > alphaOrig ? EXACT : UPPER));
     TT->save(key, best, 0, ply, bound, bestMove, stack->eval);
 
@@ -528,7 +527,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry *sta
                 int newDepth = std::max(0, depth - lmrRed[std::min(63, depth)][std::min(63, played)]);
 
                 /// continuation history leaf pruning
-                if (newDepth <= 3 && !refutationMove && ch + fh < -4096 * newDepth)
+                if (newDepth <= 3 && !refutationMove && (ch < chCoef * newDepth || fh < fhCoef * newDepth))
                     continue;
 
                 /// futility pruning
@@ -1048,6 +1047,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
                         printPv();
                         std::cout << std::endl;
                         //values[0].print_mean();
+                        //std::cout << cnt << '\n';
                         //std::cout << cnt << " out of " << cnt2 << ", " << 100.0 * cnt / cnt2 << "% good\n";
                     }
                 }
