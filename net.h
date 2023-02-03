@@ -29,7 +29,7 @@
 
 INCBIN(Net, EVALFILE);
 
-const int INPUT_NEURONS = 1536;
+const int INPUT_NEURONS = 3072;
 const int SIDE_NEURONS = 512;
 const int HIDDEN_NEURONS = 2 * SIDE_NEURONS;
 
