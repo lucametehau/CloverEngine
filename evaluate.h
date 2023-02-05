@@ -23,36 +23,21 @@
 
 const int TEMPO = 20;
 
-int pawnScaleStart = 73;
-int pawnScaleStep = 2;
-int pawnsOn1Flank = 13;
+int pawnScaleStart = 81;
+int pawnScaleStep = 0;
+int pawnsOn1Flank = -2;
 
 int scale(Board& board) {
     int pawnCount = count(board.bb[getType(PAWN, board.turn)]);
     uint64_t allPawns = board.bb[WP] | board.bb[BP];
 
-    return std::min(100, pawnScaleStart + pawnScaleStep * pawnCount - pawnsOn1Flank * !((allPawns & flankMask[0]) && (allPawns & flankMask[1])));
+    return std::min(128, pawnScaleStart + pawnScaleStep * pawnCount - pawnsOn1Flank * !((allPawns & flankMask[0]) && (allPawns & flankMask[1])));
 }
 
 int evaluate(Board &board) {
-    int eval = int(board.NN.getOutput(board.turn));
-    //board.print();
-    //std::cout << board.turn << " " << eval << "\n";
+    int eval = board.NN.getOutput(board.turn);
 
-    /*NetInput inp = board.toNetInput();
-
-    int amogus = int(board.NN.kekw(inp));
-
-    if (abs(eval - amogus) > 1) {
-        board.print();
-        std::cout << board.NN.getOutput() << " " << board.NN.kekw(inp) << "\n";
-        std::cout << eval << " " << amogus << "\n";
-        exit(0);
-    }*/
-
-    //bool turn = board.turn;
-
-    eval = eval * scale(board) / 100;
+    eval = eval * scale(board) / 128;
 
     return eval + TEMPO;
 }
