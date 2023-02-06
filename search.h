@@ -958,13 +958,13 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
 
     memset(scores, 0, sizeof(scores));
     StackEntry search_stack[DEPTH + 15];
-    StackEntry* stack = search_stack + 2;
+    StackEntry* stack = search_stack + 3;
 
     memset(search_stack, 0, sizeof(search_stack));
 
     //values[0].init("continuationHistory_for_failing_moves");
 
-    for (int i = 1; i <= 2; i++)
+    for (int i = 1; i <= 3; i++)
         (stack - i)->continuationHist = &continuationHistory[0][0], (stack - i)->eval = INF;
 
     for (tDepth = 1; tDepth <= limitDepth; tDepth++) {
