@@ -23,21 +23,21 @@
 
 const int TEMPO = 20;
 
-int pawnScaleStart = 81;
-int pawnScaleStep = 0;
-int pawnsOn1Flank = -2;
+int pawnScaleStart = 73;
+int pawnScaleStep = 2;
+int pawnsOn1Flank = 13;
 
 int scale(Board& board) {
     int pawnCount = count(board.bb[getType(PAWN, board.turn)]);
     uint64_t allPawns = board.bb[WP] | board.bb[BP];
 
-    return std::min(128, pawnScaleStart + pawnScaleStep * pawnCount - pawnsOn1Flank * !((allPawns & flankMask[0]) && (allPawns & flankMask[1])));
+    return std::min(100, pawnScaleStart + pawnScaleStep * pawnCount - pawnsOn1Flank * !((allPawns & flankMask[0]) && (allPawns & flankMask[1])));
 }
 
 int evaluate(Board &board) {
     int eval = board.NN.getOutput(board.turn);
 
-    eval = eval * scale(board) / 128;
+    eval = eval * scale(board) / 100;
 
     return eval + TEMPO;
 }

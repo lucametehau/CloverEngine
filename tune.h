@@ -30,9 +30,9 @@ struct Input {
     int evaluate() {
         int scale = params[0].value + params[1].value * pawnCount - params[2].value * pawnsOn1Flank;
         scale = std::max(scale, 0);
-        scale = std::min(scale, 128);
+        scale = std::min(scale, 100);
         cnt[pawnCount]++;
-        return eval * scale / 128 + TEMPO;
+        return eval * scale / 100 + TEMPO;
     }
 };
 
