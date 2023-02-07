@@ -423,7 +423,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry *sta
     int staticEval = stack->eval;
     bool improving = (!isCheck && staticEval > (stack - 2)->eval); /// (TO DO: make all pruning dependent of this variable?)
 
-    killers[ply + 1] = NULLMOVE;
+    (stack + 1)->killer = NULLMOVE;
 
     if (!pvNode && !isCheck) {
         /// razoring (searching 1 more ply can't change the score much, drop in quiesce)
@@ -504,7 +504,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry *sta
 
     uint16_t counter = (nullSearch ? NULLMOVE : cmTable[1 ^ board.turn][(stack - 1)->piece][sqTo((stack - 1)->move)]);
 
-    Movepick picker(ttMove, killers[ply], counter, -seeDepthCoef * depth);
+    Movepick picker(ttMove, stack->killer, counter, -seeDepthCoef * depth);
 
     uint16_t move;
 
@@ -531,7 +531,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry *sta
                     continue;
 
                 /// futility pruning
-                if (newDepth <= 8 && !isCheck && staticEval + fpMargin + fpCoef * newDepth + hist / fpHistDiv <= alpha)
+                if (newDepth <= 8 && !isCheck && staticEval + fpMargin + fpCoef * newDepth <= alpha)
                     skip = 1;
 
                 /// late move pruning
@@ -663,8 +663,8 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry *sta
 
     /// update killers and history heuristics
     if (best >= beta && !isNoisyMove(board, bestMove)) {
-        if (killers[ply] != bestMove) {
-            killers[ply] = bestMove;
+        if (stack->killer != bestMove) {
+            stack->killer = bestMove;
         }
 
         updateHistory(this, stack, nrQuiets, ply, getHistoryBonus(depth + pvNode));
@@ -739,7 +739,7 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv, StackEntry *
             eval = ttValue;
     }
 
-    killers[1] = NULLMOVE;
+    (stack + 1)->killer = NULLMOVE;
 
     /// internal iterative deepening (search at reduced depth to find a ttMove) (Rebel like)
 
@@ -748,7 +748,7 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv, StackEntry *
 
     /// get counter move for move picker
 
-    Movepick picker(ttMove, killers[0], NULLMOVE, -10 * depth);
+    Movepick picker(ttMove, stack->killer, NULLMOVE, -10 * depth);
 
     uint16_t move;
 
@@ -854,8 +854,8 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv, StackEntry *
     /// update killers and history heuristics
 
     if (best >= beta && !isNoisyMove(board, bestMove)) {
-        if (killers[0] != bestMove) {
-            killers[0] = bestMove;
+        if (stack->killer != bestMove) {
+            stack->killer = bestMove;
         }
 
         updateHistory(this, stack, nrQuiets, 0, getHistoryBonus(depth));
@@ -1137,13 +1137,6 @@ void Search::clearHistory() {
         memset(params[i].cmTable, 0, sizeof(params[i].cmTable));
         memset(params[i].continuationHistory, 0, sizeof(params[i].continuationHistory));
     }
-}
-
-void Search::clearKillers() {
-    memset(killers, 0, sizeof(killers));
-
-    for (int i = 0; i < threadCount; i++)
-        memset(params[i].killers, 0, sizeof(params[i].killers));
 }
 
 void Search::clearStack() {

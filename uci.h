@@ -499,7 +499,6 @@ void UCI::UciNewGame(uint64_t ttSize) {
     searcher._setFen(START_POS_FEN);
 
     searcher.clearHistory();
-    searcher.clearKillers();
     searcher.clearStack();
 
     TT->resetAge();
