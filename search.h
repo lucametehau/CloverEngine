@@ -501,7 +501,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry *sta
         depth--;
 
     /// get counter move for move picker
-
     uint16_t counter = (nullSearch ? NULLMOVE : cmTable[1 ^ board.turn][(stack - 1)->piece][sqTo((stack - 1)->move)]);
 
     Movepick picker(ttMove, stack->killer, counter, -seeDepthCoef * depth);
