@@ -57,7 +57,7 @@ void updateMoveHistory(Search* searcher, StackEntry*& stack, uint16_t move, int 
     if ((stack - 1)->move)
         updateCounterHist((*(stack - 1)->continuationHist)[piece][to], bonus);
 
-    if((stack - 2)->move)
+    if ((stack - 2)->move)
         updateCounterHist((*(stack - 2)->continuationHist)[piece][to], bonus);
 }
 

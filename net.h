@@ -29,11 +29,11 @@
 
 INCBIN(Net, EVALFILE);
 
-const int INPUT_NEURONS = 1536;
-const int SIDE_NEURONS = 512;
+const int INPUT_NEURONS = 3072;
+const int SIDE_NEURONS = 768;
 const int HIDDEN_NEURONS = 2 * SIDE_NEURONS;
 
-const int Q_IN = 4;
+const int Q_IN = 2;
 const int Q_HIDDEN = 512;
 
 struct NetInput {
