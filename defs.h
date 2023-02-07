@@ -115,6 +115,17 @@ const int castleRightsDelta[2][64] = {
   }
 };
 
+const int kingIndTable[64] = {
+    0, 0, 0, 0, 1, 1, 1, 1,
+    0, 0, 0, 0, 1, 1, 1, 1,
+    0, 0, 0, 0, 1, 1, 1, 1,
+    0, 0, 0, 0, 1, 1, 1, 1,
+    2, 2, 2, 2, 3, 3, 3, 3,
+    2, 2, 2, 2, 3, 3, 3, 3,
+    2, 2, 2, 2, 3, 3, 3, 3,
+    2, 2, 2, 2, 3, 3, 3, 3,
+};
+
 const int oppositepieceChar[13] = {
     0,
     WP, WN, WB, WR, WQ, WK,
@@ -161,7 +172,7 @@ inline int16_t netInd(int piece, int sq, int kingSq, int side) {
         sq ^= 56;
         piece = (piece > 6 ? piece - 6 : piece + 6);
     }
-    return 2 * 64 * (piece - 1) + 64 * ((kingSq & 4) > 0) + sq;
+    return 4 * 64 * (piece - 1) + 64 * kingIndTable[kingSq] + sq;
 }
 
 inline int hashVal(int value, int ply) {

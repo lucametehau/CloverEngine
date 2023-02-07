@@ -35,22 +35,7 @@ int scale(Board& board) {
 }
 
 int evaluate(Board &board) {
-    int eval = int(board.NN.getOutput(board.turn));
-    //board.print();
-    //std::cout << board.turn << " " << eval << "\n";
-
-    /*NetInput inp = board.toNetInput();
-
-    int amogus = int(board.NN.kekw(inp));
-
-    if (abs(eval - amogus) > 1) {
-        board.print();
-        std::cout << board.NN.getOutput() << " " << board.NN.kekw(inp) << "\n";
-        std::cout << eval << " " << amogus << "\n";
-        exit(0);
-    }*/
-
-    //bool turn = board.turn;
+    int eval = board.NN.getOutput(board.turn);
 
     eval = eval * scale(board) / 100;
 
