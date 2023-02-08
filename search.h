@@ -89,7 +89,7 @@ uint32_t probe_TB(Board& board, int depth) {
     return TB_RESULT_FAILED;
 }
 
-int quietness(Board& board, bool us) {
+bool quietness(Board& board, bool us) {
     if (board.checkers)
         return 0;
     uint64_t att;
@@ -399,7 +399,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry *sta
     }
 
     bool isCheck = (board.checkers != 0);
-    int quietUs = quietness(board, board.turn);
+    bool quietUs = quietness(board, board.turn);
     //int quietEnemy = quietness(board, 1 ^ board.turn);
 
     if (isCheck) {
@@ -424,6 +424,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry *sta
     bool improving = (!isCheck && staticEval > (stack - 2)->eval); /// (TO DO: make all pruning dependent of this variable?)
 
     (stack + 1)->killer = NULLMOVE;
+    //bool flaggy = 0;
 
     if (!pvNode && !isCheck) {
         /// razoring (searching 1 more ply can't change the score much, drop in quiesce)
@@ -431,8 +432,12 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry *sta
             return quiesce(alpha, beta, stack);
         }
 
+        //flaggy = (quietUs && staticEval - rootEval > 200);
+        //cnt += flaggy;
+
         /// static null move pruning (don't prune when having a mate line, again stability)
-        if (depth <= SNMPDepth && eval - (SNMPCoef1 - SNMPCoef2 * improving) * (depth - quietUs) > beta && eval < MATE) {
+        if (depth <= SNMPDepth && eval > beta && eval - (SNMPCoef1 - SNMPCoef2 * improving) * (depth - quietUs - (quietUs && staticEval - rootEval > 200)) > beta && eval < MATE) {
+            //cnt2 += flaggy;
             return eval;
         }
 
@@ -441,7 +446,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry *sta
             eval >= beta && eval >= staticEval &&
             board.hasNonPawnMaterial(board.turn)) {
             int R = nmpR + depth / nmpDepthDiv + (eval - beta) / nmpEvalDiv + improving;
-            //cnt2 += flag;
             stack->move = NULLMOVE;
             stack->piece = 0;
             stack->continuationHist = &continuationHistory[0][0];
@@ -453,7 +457,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry *sta
             undoNullMove(board);
 
             if (score >= beta) {
-                //cnt += flag;
+                //cnt2 += flaggy;
                 return (abs(score) > MATE ? beta : score); /// don't trust mate scores
             }
         }
@@ -485,6 +489,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry *sta
 
 
                 if (score >= cutBeta) {
+                    //cnt2 += flaggy;
                     //TT->save(key, score, depth - probcutR, ply, LOWER, move, staticEval); // save probcut score in tt
                     return score;
                 }
@@ -660,20 +665,18 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry *sta
         return (isCheck ? -INF + ply : 0);
     }
 
-    /// update killers and history heuristics
-    if (best >= beta && !isNoisyMove(board, bestMove)) {
-        if (stack->killer != bestMove) {
-            stack->killer = bestMove;
+    /// update killer and history heuristics in case of a cutoff
+    if (best >= beta) {
+        //cnt2 += flaggy;
+        if (!isNoisyMove(board, bestMove)) {
+            if (stack->killer != bestMove)
+                stack->killer = bestMove;
+            updateHistory(this, stack, nrQuiets, ply, getHistoryBonus(depth + pvNode));
         }
-
-        updateHistory(this, stack, nrQuiets, ply, getHistoryBonus(depth + pvNode));
+        updateCapHistory(this, stack, nrCaptures, bestMove, ply, getHistoryBonus(depth));
     }
 
-    if (best >= beta)
-        updateCapHistory(this, stack, nrCaptures, bestMove, ply, getHistoryBonus(depth));
-
     /// update tt only if we aren't in a singular search
-
     if (!excluded) {
         bound = (best >= beta ? LOWER : (best > alphaOrig ? EXACT : UPPER));
         TT->save(key, best, depth, ply, bound, bestMove, staticEval);
@@ -850,20 +853,15 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv, StackEntry *
         return (isCheck ? -INF : 0);
     }
 
-    /// update killers and history heuristics
-
-    if (best >= beta && !isNoisyMove(board, bestMove)) {
-        if (stack->killer != bestMove) {
-            stack->killer = bestMove;
+    /// update killer and history heuristics in case of cutoff
+    if (best >= beta) {
+        if (!isNoisyMove(board, bestMove)) {
+            if (stack->killer != bestMove)
+                stack->killer = bestMove;
+            updateHistory(this, stack, nrQuiets, 0, getHistoryBonus(depth));
         }
-
-        updateHistory(this, stack, nrQuiets, 0, getHistoryBonus(depth));
-    }
-
-    if (best >= beta)
         updateCapHistory(this, stack, nrCaptures, bestMove, 0, getHistoryBonus(depth));
-
-    /// update tt only if we aren't in a singular search
+    }
 
     bound = (best >= beta ? LOWER : (best > alphaOrig ? EXACT : UPPER));
     TT->save(key, best, depth, 0, bound, bestMove, stack->eval);
@@ -963,6 +961,8 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
 
     //values[0].init("continuationHistory_for_failing_moves");
 
+    rootEval = evaluate(board);
+
     for (int i = 1; i <= 3; i++)
         (stack - i)->continuationHist = &continuationHistory[0][0], (stack - i)->eval = INF;
 
@@ -1047,7 +1047,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
                         std::cout << std::endl;
                         //values[0].print_mean();
                         //std::cout << cnt << '\n';
-                        //std::cout << cnt << " out of " << cnt2 << ", " << 100.0 * cnt / cnt2 << "% good\n";
+                        //std::cout << cnt2 << " out of " << cnt << ", " << 100.0 * cnt2 / cnt << "% good\n";
                     }
                 }
 

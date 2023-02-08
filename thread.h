@@ -53,8 +53,6 @@ int histDiv = 5102;
 int chCoef = -2000;
 int fhCoef = -2000;
 
-int fpHistDiv = 512;
-
 int lmpDepth = 8;
 
 int nodesSearchedDiv = 10000;
@@ -127,8 +125,6 @@ struct Search {
     int bestMoves[256], scores[256];
     MeanValue values[10];
 
-    int16_t contempt;
-
     volatile int flag;
 
     uint64_t tbHits;
@@ -145,14 +141,14 @@ struct Search {
     int threadCount;
     int tDepth, selDepth;
 
+    int rootEval;
+
     std::unique_ptr <std::thread> principalThread;
     std::mutex readyMutex;
 
     uint64_t nodes, qsNodes;
     bool principalSearcher;
     Board board;
-
-    //int temp[500005];
 
     //tt::HashTable* threadTT;
 
