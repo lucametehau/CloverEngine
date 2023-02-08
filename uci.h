@@ -71,7 +71,6 @@ UCI::UCI(Search& _searcher) : searcher(_searcher) {
     addOption("fpCoef", fpCoef);
     addOption("chCoef", chCoef);
     addOption("fhCoef", fhCoef);
-    addOption("fpHistDiv", fpHistDiv);
     addOption("histDiv", histDiv);
     addOption("histMax", histMax);
     addOption("A_mult", A_mult);
@@ -337,9 +336,6 @@ void UCI::Uci_Loop() {
             }
             else if (name == "fhCoef") {
                 setOptionI(iss, fhCoef);
-            }
-            else if (name == "fpHistDiv") {
-                setOptionI(iss, fpHistDiv);
             }
             else if (name == "histDiv") {
                 setOptionI(iss, histDiv);
