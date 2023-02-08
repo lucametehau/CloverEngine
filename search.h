@@ -432,7 +432,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry *sta
             return quiesce(alpha, beta, stack);
         }
 
-        if (quietUs && staticEval - rootEval > 200)
+        if (quietUs && staticEval - rootEval > 200 && ply % 2 == 0)
             depth--;
 
         //flaggy = (quietUs && staticEval - rootEval > 200);
