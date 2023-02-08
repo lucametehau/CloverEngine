@@ -961,7 +961,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
 
     //values[0].init("continuationHistory_for_failing_moves");
 
-    rootEval = evaluate(board);
+    rootEval = (!board.checkers ? evaluate(board) : INF);
 
     for (int i = 1; i <= 3; i++)
         (stack - i)->continuationHist = &continuationHistory[0][0], (stack - i)->eval = INF;
