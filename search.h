@@ -432,11 +432,14 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry *sta
             return quiesce(alpha, beta, stack);
         }
 
+        if (quietUs && staticEval - rootEval > 200)
+            depth--;
+
         //flaggy = (quietUs && staticEval - rootEval > 200);
         //cnt += flaggy;
 
         /// static null move pruning (don't prune when having a mate line, again stability)
-        if (depth <= SNMPDepth && eval > beta && eval - (SNMPCoef1 - SNMPCoef2 * improving) * (depth - quietUs - (quietUs && staticEval - rootEval > 200)) > beta && eval < MATE) {
+        if (depth <= SNMPDepth && eval > beta && eval - (SNMPCoef1 - SNMPCoef2 * improving) * (depth - quietUs) > beta && eval < MATE) {
             //cnt2 += flaggy;
             return eval;
         }
