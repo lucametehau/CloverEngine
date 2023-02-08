@@ -27,15 +27,15 @@
 
 int seeVal[] = { 0, 93, 308, 346, 521, 994, 20000 };
 
-int nmpR = 4;
-int nmpDepthDiv = 6;
-int nmpEvalDiv = 130;
+int nmpR = 3;
+int nmpDepthDiv = 4;
+int nmpEvalDiv = 135;
 
 int RazorCoef = 381;
 
 int SNMPDepth = 10;
-int SNMPCoef1 = 97;
-int SNMPCoef2 = 25;
+int SNMPCoef1 = 87;
+int SNMPCoef2 = 13;
 
 int seeCoefQuiet = 71;
 int seeCoefNoisy = 10;
