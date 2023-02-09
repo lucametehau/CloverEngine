@@ -422,6 +422,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry *sta
 
     int staticEval = stack->eval;
     bool improving = (!isCheck && staticEval > (stack - 2)->eval); /// (TO DO: make all pruning dependent of this variable?)
+    uint16_t refutationMove = NULLMOVE;
 
     (stack + 1)->killer = NULLMOVE;
     //bool flaggy = 0;
@@ -446,6 +447,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry *sta
             eval >= beta && eval >= staticEval &&
             board.hasNonPawnMaterial(board.turn)) {
             int R = nmpR + depth / nmpDepthDiv + (eval - beta) / nmpEvalDiv + improving;
+
             stack->move = NULLMOVE;
             stack->piece = 0;
             stack->continuationHist = &continuationHistory[0][0];
@@ -455,6 +457,10 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry *sta
             int score = -search(-beta, -beta + 1, depth - R, !cutNode, stack + 1);
 
             undoNullMove(board);
+            //cnt += (score < beta);
+            //cnt2 += (score < beta && isNoisyMove(board, (stack + 1)->move));
+
+            refutationMove = (isNoisyMove(board, (stack + 1)->move) ? (stack + 1)->move : NULLMOVE);
 
             if (score >= beta) {
                 //cnt2 += flaggy;
@@ -508,7 +514,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry *sta
     /// get counter move for move picker
     uint16_t counter = (nullSearch ? NULLMOVE : cmTable[1 ^ board.turn][(stack - 1)->piece][sqTo((stack - 1)->move)]);
 
-    Movepick picker(ttMove, stack->killer, counter, -seeDepthCoef * depth);
+    Movepick picker(ttMove, stack->killer, counter, -seeDepthCoef * depth, refutationMove);
 
     uint16_t move;
 
@@ -544,7 +550,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry *sta
 
                 if (depth <= 8 && !isCheck && !see(board, move, -seeCoefQuiet * depth))
                     continue;
-
             }
             else {
                 if (depth <= 8 && !isCheck && picker.trueStage > STAGE_GOOD_NOISY && !see(board, move, -seeCoefNoisy * depth * depth))
@@ -556,9 +561,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry *sta
 
         int ex = 0;
         /// singular extension (look if the tt move is better than the rest)
-
-
-        if (!excluded && move == ttMove && abs(ttValue) < MATE && depth >= 5 + pvNode && entry.depth() >= depth - 3 && (bound & LOWER)) { /// had best instead of ttValue lol
+        if (!excluded && move == ttMove && abs(ttValue) < MATE && depth >= 6 && entry.depth() >= depth - 3 && (bound & LOWER)) { /// had best instead of ttValue lol
             int rBeta = ttValue - depth;
 
             int score = search(rBeta - 1, rBeta, depth / 2, cutNode, stack, move);
