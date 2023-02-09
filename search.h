@@ -455,12 +455,12 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry *sta
             makeNullMove(board);
 
             int score = -search(-beta, -beta + 1, depth - R, !cutNode, stack + 1);
+            refutationMove = (isNoisyMove(board, (stack + 1)->move) ? (stack + 1)->move : NULLMOVE);
 
             undoNullMove(board);
             //cnt += (score < beta);
             //cnt2 += (score < beta && isNoisyMove(board, (stack + 1)->move));
 
-            refutationMove = (isNoisyMove(board, (stack + 1)->move) ? (stack + 1)->move : NULLMOVE);
 
             if (score >= beta) {
                 //cnt2 += flaggy;
