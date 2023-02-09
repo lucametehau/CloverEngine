@@ -329,7 +329,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry *sta
     if (depth <= 0)
         return quiesce(alpha, beta, stack);
 
-    int pvNode = (alpha < beta - 1);
+    bool pvNode = (alpha < beta - 1);
     uint16_t ttMove = NULLMOVE;
     int alphaOrig = alpha;
     uint64_t key = board.key;
@@ -558,7 +558,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry *sta
         /// singular extension (look if the tt move is better than the rest)
 
 
-        if (!excluded && move == ttMove && abs(ttValue) < MATE && depth >= 6 && entry.depth() >= depth - 3 && (bound & LOWER)) { /// had best instead of ttValue lol
+        if (!excluded && move == ttMove && abs(ttValue) < MATE && depth >= 5 + pvNode && entry.depth() >= depth - 3 && (bound & LOWER)) { /// had best instead of ttValue lol
             int rBeta = ttValue - depth;
 
             int score = search(rBeta - 1, rBeta, depth / 2, cutNode, stack, move);
