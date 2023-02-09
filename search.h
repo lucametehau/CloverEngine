@@ -614,7 +614,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry *sta
 
                 R += !improving; /// not improving
 
-                R += quietUs && !see(board, move, -seeVal[BISHOP] - 1); /// if the position is relatively quiet and the capture is "very losing"
+                R += quietUs && picker.trueStage == STAGE_BAD_NOISY; /// if the position is relatively quiet and the capture is "very losing"
             }
 
             R += cutNode;
