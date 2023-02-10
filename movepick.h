@@ -182,7 +182,7 @@ public:
                         score += 4096 * count(genAttacksSq(allPieces, to, pt) & enemyKingRing);
 
                     if (from == dangerSq)
-                        score -= 4096;
+                        score += 4096;
 
                     score += searcher->nodesSearched[0][from][to] / nodesSearchedDiv + 1000000; // the longer it takes a move to be refuted, the higher its chance to become the best move
                     scores[m++] = score;
