@@ -152,7 +152,6 @@ public:
         {
             if (!skip) {
                 nrQuiets = genLegalQuiets(board, moves);
-
                 bool turn = board.turn, enemy = 1 ^ turn;
                 uint64_t enemyPawns = board.bb[getType(PAWN, turn ^ 1)], allPieces = board.pieces[WHITE] | board.pieces[BLACK];
                 uint64_t pawnAttacks = getPawnAttacks(enemy, enemyPawns);
