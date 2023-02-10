@@ -108,6 +108,9 @@ UCI::UCI(Search& _searcher) : searcher(_searcher) {
     addOption("quiesceFutilityCoef", quiesceFutilityCoef);
     addOption("SNMPDepth", SNMPDepth);
     addOption("lmpDepth", lmpDepth);
+    addOption("pawnAttackedCoef", pawnAttackedCoef);
+    addOption("pawnPushBonus", pawnPushBonus);
+    addOption("kingAttackBonus", kingAttackBonus);
 }
 
 void UCI::addOption(std::string name, int value) {
@@ -435,6 +438,15 @@ void UCI::Uci_Loop() {
             }
             else if (name == "lmpDepth") {
                 setOptionI(iss, lmpDepth);
+            }
+            else if (name == "pawnAttackedCoef") {
+                setOptionI(iss, pawnAttackedCoef);
+            }
+            else if (name == "pawnPushBonus") {
+                setOptionI(iss, pawnPushBonus);
+            }
+            else if (name == "kingAttackBonus") {
+                setOptionI(iss, kingAttackBonus);
             }
         }
         else if (cmd == "generate") {

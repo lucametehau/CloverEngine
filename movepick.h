@@ -41,7 +41,6 @@ public:
     uint16_t hashMove, killer, counter, possibleCounter;
     int nrNoisy, nrQuiets, nrBadNoisy;
     int index;
-    int dangerSq;
 
     int threshold;
 
@@ -49,7 +48,7 @@ public:
     int scores[256];
     long long v[256];
 
-    Movepick(const uint16_t HashMove, const uint16_t Killer, const uint16_t Counter, const int Threshold, int RefutationMove = NULLMOVE) {
+    Movepick(const uint16_t HashMove, const uint16_t Killer, const uint16_t Counter, const int Threshold) {
         stage = STAGE_HASHMOVE;
 
         hashMove = HashMove;
@@ -58,8 +57,6 @@ public:
 
         nrNoisy = nrQuiets = nrBadNoisy = 0;
         threshold = Threshold;
-
-        dangerSq = (RefutationMove ? sqTo(RefutationMove) : -1);
     }
 
     long long codify(uint16_t move, int score) {
@@ -173,16 +170,13 @@ public:
                     score += (*(stack - 2)->continuationHist)[piece][to];
 
                     if (pt != PAWN && (pawnAttacks & (1ULL << to)))
-                        score -= 10 * seeVal[pt];
+                        score -= pawnAttackedCoef * seeVal[pt];
 
                     if (pt == PAWN) // pawn push, generally good?
-                        score += 10000;
+                        score += pawnPushBonus;
 
                     if (pt != KING && pt != PAWN)
-                        score += 4096 * count(genAttacksSq(allPieces, to, pt) & enemyKingRing);
-
-                    if (from == dangerSq)
-                        score += 4096;
+                        score += kingAttackBonus * count(genAttacksSq(allPieces, to, pt) & enemyKingRing);
 
                     score += searcher->nodesSearched[0][from][to] / nodesSearchedDiv + 1000000; // the longer it takes a move to be refuted, the higher its chance to become the best move
                     scores[m++] = score;
