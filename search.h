@@ -422,7 +422,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry *sta
 
     int staticEval = stack->eval;
     bool improving = (!isCheck && staticEval > (stack - 2)->eval); /// (TO DO: make all pruning dependent of this variable?)
-    uint16_t refutationMove = NULLMOVE;
 
     (stack + 1)->killer = NULLMOVE;
     //bool flaggy = 0;
@@ -455,7 +454,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry *sta
             makeNullMove(board);
 
             int score = -search(-beta, -beta + 1, depth - R, !cutNode, stack + 1);
-            refutationMove = (isNoisyMove(board, (stack + 1)->move) ? (stack + 1)->move : NULLMOVE);
 
             undoNullMove(board);
             //cnt += (score < beta);
@@ -514,7 +512,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry *sta
     /// get counter move for move picker
     uint16_t counter = (nullSearch ? NULLMOVE : cmTable[1 ^ board.turn][(stack - 1)->piece][sqTo((stack - 1)->move)]);
 
-    Movepick picker(ttMove, stack->killer, counter, -seeDepthCoef * depth, refutationMove);
+    Movepick picker(ttMove, stack->killer, counter, -seeDepthCoef * depth);
 
     uint16_t move;
 
@@ -1062,6 +1060,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
                     depth = tDepth;
                 }
                 else if (beta <= scores[i]) {
+                    alpha = (alpha + beta) / 2;
                     beta = std::min(INF, beta + window);
                     depth -= (abs(scores[i]) < TB_WIN_SCORE);
 
