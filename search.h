@@ -1060,7 +1060,6 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
                     depth = tDepth;
                 }
                 else if (beta <= scores[i]) {
-                    alpha = (alpha + beta) / 2;
                     beta = std::min(INF, beta + window);
                     depth -= (abs(scores[i]) < TB_WIN_SCORE);
 
