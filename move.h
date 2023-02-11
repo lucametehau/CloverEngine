@@ -234,7 +234,7 @@ inline void makeMove(Board& board, uint16_t mv) { /// assuming move is at least 
     }
 
     // recalculate if king changes sides
-    if (piece_type(pieceFrom) == KING && kingIndTable[posFrom] != kingIndTable[posTo]) {
+    if (piece_type(pieceFrom) == KING && recalc(posFrom, posTo)) {
         uint64_t b = board.pieces[WHITE] | board.pieces[BLACK];
         kw = board.king(WHITE), kb = board.king(BLACK);
 
