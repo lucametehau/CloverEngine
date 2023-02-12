@@ -1,7 +1,7 @@
 CC  = g++
 SRC = *.cpp tbprobe.c
 EXE = Clover.3.3.20-2
-EVALFILE = 4buckets_768_49.nn
+EVALFILE = 4buckets_768.nn
 
 ifeq ($(OS), Windows_NT)
 	EXT = .exe
