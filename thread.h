@@ -80,8 +80,25 @@ const int TERMINATED_BY_LIMITS = 2;
 const int TERMINATED_SEARCH = 3; /// 1 | 2
 
 struct Search {
-    Search();
-    ~Search();
+    Search() : threads(nullptr), params(nullptr) {
+        threadCount = flag = checkCount = 0;
+        principalSearcher = terminateSMP = SMPThreadExit = false;
+        lazyFlag = 0;
+
+        for (int i = 0; i < 64; i++) { /// depth
+            for (int j = 0; j < 64; j++) /// moves played
+                lmrRed[i][j] = 1.0 * lmrMargin / 10 + log(i) * log(j) / (1.0 * lmrDiv / 10);
+        }
+        for (int i = 1; i < 20; i++) {
+            lmrCnt[0][i] = (lmpStart1 + lmpMult1 * i * i) / lmpDiv1;
+            lmrCnt[1][i] = (lmpStart2 + lmpMult2 * i * i) / lmpDiv2;
+        }
+    }
+
+    ~Search() {
+        releaseThreads();
+    }
+
     Search(const Search&) = delete;
     Search& operator = (const Search&) = delete;
 

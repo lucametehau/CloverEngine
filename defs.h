@@ -116,17 +116,6 @@ const int castleRightsDelta[2][64] = {
 };
 
 const int kingIndTable[64] = {
-    0, 0, 0, 0, 1, 1, 1, 1,
-    0, 0, 0, 0, 1, 1, 1, 1,
-    0, 0, 0, 0, 1, 1, 1, 1,
-    0, 0, 0, 0, 1, 1, 1, 1,
-    2, 2, 2, 2, 3, 3, 3, 3,
-    2, 2, 2, 2, 3, 3, 3, 3,
-    2, 2, 2, 2, 3, 3, 3, 3,
-    2, 2, 2, 2, 3, 3, 3, 3,
-};
-
-const int kingIndTable2[64] = {
     0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0,
     1, 1, 1, 1, 1, 1, 1, 1,
@@ -185,11 +174,11 @@ inline int16_t netInd(int piece, int sq, int kingSq, int side) {
     }
     if ((kingSq & 7) >= 4)
         kingSq ^= 7, sq ^= 7;
-    return 4 * 64 * (piece - 1) + 64 * kingIndTable2[kingSq] + sq;
+    return 4 * 64 * (piece - 1) + 64 * kingIndTable[kingSq] + sq;
 }
 
 inline bool recalc(int from, int to) {
-    return ((from & 4) != (to & 4)) || kingIndTable2[from] != kingIndTable2[to];
+    return ((from & 4) != (to & 4)) || kingIndTable[from] != kingIndTable[to];
 }
 
 inline int hashVal(int value, int ply) {
