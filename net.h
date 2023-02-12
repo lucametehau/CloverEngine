@@ -45,23 +45,6 @@ struct Update {
     int8_t coef;
 };
 
-class Gradient {
-public:
-    //float grad;
-    float m1, m2; /// momentums
-
-    Gradient(float _m1, float _m2) {
-        m1 = _m1;
-        m2 = _m2;
-        //grad = 0;
-    }
-
-    Gradient() {
-        m1 = m2 = 0;
-        //grad = 0;
-    }
-};
-
 class Network {
 public:
 
@@ -275,8 +258,6 @@ public:
     void load() {
         int* intData;
         float* floatData;
-        Gradient* gradData;
-        Gradient kekw;
         std::vector <float> w;
 
         int x;
@@ -296,34 +277,14 @@ public:
             inputBiases[j] = round(val * Q_IN);
         }
 
-        gradData = (Gradient*)floatData;
-
-        for (int j = 0; j < sz; j++)
-            kekw = *(gradData++);
-
-        floatData = (float*)gradData;
-
         for (int i = 0; i < SIDE_NEURONS * INPUT_NEURONS; i++) {
             float val = *(floatData++);
             inputWeights[i / SIDE_NEURONS][i % SIDE_NEURONS] = round(val * Q_IN);
         }
 
-        gradData = (Gradient*)floatData;
-
-        for (int i = 0; i < SIDE_NEURONS * INPUT_NEURONS; i++) {
-            kekw = *(gradData++);
-        }
-
         sz = 1;
-        floatData = (float*)gradData;
 
         outputBias = round(*(floatData++) * Q_HIDDEN);
-
-        gradData = (Gradient*)floatData;
-
-        kekw = *(gradData++);
-
-        floatData = (float*)gradData;
 
         for (int j = 0; j < HIDDEN_NEURONS; j++) {
             float val = *(floatData++);
