@@ -23,26 +23,6 @@
 #include "thread.h"
 #include <cmath>
 
-Search::Search() : threads(nullptr), params(nullptr)
-{
-    threadCount = flag = checkCount = 0;
-    principalSearcher = terminateSMP = SMPThreadExit = false;
-    lazyFlag = 0;
-
-    for (int i = 0; i < 64; i++) { /// depth
-        for (int j = 0; j < 64; j++) /// moves played
-            lmrRed[i][j] = 1.0 * lmrMargin / 10 + log(i) * log(j) / (1.0 * lmrDiv / 10);
-    }
-    for (int i = 1; i < 20; i++) {
-        lmrCnt[0][i] = (lmpStart1 + lmpMult1 * i * i) / lmpDiv1;
-        lmrCnt[1][i] = (lmpStart2 + lmpMult2 * i * i) / lmpDiv2;
-    }
-}
-
-Search::~Search() {
-    releaseThreads();
-}
-
 bool Search::checkForStop() {
     if (flag & TERMINATED_SEARCH)
         return 1;
@@ -71,7 +51,22 @@ bool Search::checkForStop() {
 bool printStats = true; /// default true
 const bool PROBE_ROOT = true; /// default true
 
-uint32_t probe_TB(Board& board, int depth) {
+uint32_t probe_TB(Board& board, int depth, bool probeAtRoot = 0, int halfMoves = 0, bool castlingRights = 0) {
+    if (probeAtRoot) {
+        unsigned pieces = count(board.pieces[WHITE] | board.pieces[BLACK]);
+
+        if (pieces <= TB_LARGEST) {
+            int ep = board.enPas;
+            if (ep == -1)
+                ep = 0;
+
+            return tb_probe_root(board.pieces[WHITE], board.pieces[BLACK],
+                board.bb[WK] | board.bb[BK], board.bb[WQ] | board.bb[BQ], board.bb[WR] | board.bb[BR],
+                board.bb[WB] | board.bb[BB], board.bb[WN] | board.bb[BN], board.bb[WP] | board.bb[BP],
+                halfMoves, castlingRights, ep, board.turn, nullptr);
+        }
+        return TB_RESULT_FAILED;
+    }
     if (TB_LARGEST && depth >= 2 && !board.halfMoves && !board.castleRights) {
         unsigned pieces = count(board.pieces[WHITE] | board.pieces[BLACK]);
 
@@ -904,14 +899,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
 
         if (PROBE_ROOT && count(board.pieces[WHITE] | board.pieces[BLACK]) <= (int)TB_LARGEST) {
             int move = NULLMOVE;
-            auto probe = tb_probe_root(board.pieces[WHITE], board.pieces[BLACK],
-                board.bb[WK] | board.bb[BK],
-                board.bb[WQ] | board.bb[BQ],
-                board.bb[WR] | board.bb[BR],
-                board.bb[WB] | board.bb[BB],
-                board.bb[WN] | board.bb[BN],
-                board.bb[WP] | board.bb[BP],
-                board.halfMoves, (board.castleRights & (3 << board.turn)) > 0, 0, board.turn, nullptr);
+            auto probe = probe_TB(board, 0, 1, board.halfMoves, (board.castleRights & (3 << board.turn)) > 0);
             if (probe != TB_RESULT_CHECKMATE && probe != TB_RESULT_FAILED && probe != TB_RESULT_STALEMATE) {
                 int to = int(TB_GET_TO(probe)), from = int(TB_GET_FROM(probe)), promote = TB_GET_PROMOTES(probe), ep = TB_GET_EP(probe);
 
@@ -987,7 +975,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
             int depth = tDepth;
             while (true) {
 
-                depth = std::max(depth, 1);
+                depth = std::max({depth, 1, tDepth - 4});
 
                 selDepth = 0;
 
@@ -1061,7 +1049,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
                 }
                 else if (beta <= scores[i]) {
                     beta = std::min(INF, beta + window);
-                    depth -= (abs(scores[i]) < TB_WIN_SCORE);
+                    depth--;
 
                     if (pvTableLen[0])
                         bestMoves[i] = pvTable[0][0];
