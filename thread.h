@@ -71,9 +71,9 @@ int tmNodesSearchedMaxPercentage = 1570;
 
 int quiesceFutilityCoef = 200;
 
-int pawnAttackedCoef = 10;
-int pawnPushBonus = 10000;
-int kingAttackBonus = 4096;
+int pawnAttackedCoef = 36;
+int pawnPushBonus = 9520;
+int kingAttackBonus = 3579;
 
 const int TERMINATED_BY_USER = 1;
 const int TERMINATED_BY_LIMITS = 2;
