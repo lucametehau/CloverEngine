@@ -118,8 +118,8 @@ struct Search {
 
     std::pair <int, uint16_t> startSearch(Info* info);
     int quiesce(int alpha, int beta, StackEntry* stack, bool useTT = true); /// for quiet position check (tuning)
-    int search(int alpha, int beta, int depth, bool cutNode, StackEntry *stack, uint16_t excluded = NULLMOVE);
-    int rootSearch(int alpha, int beta, int depth, int multipv, StackEntry *stack);
+    int search(int alpha, int beta, int depth, bool cutNode, StackEntry* stack, uint16_t excluded = NULLMOVE);
+    int rootSearch(int alpha, int beta, int depth, int multipv, StackEntry* stack);
 
     void setTime(Info* tInfo) { info = tInfo; }
 
@@ -135,7 +135,7 @@ struct Search {
     bool checkForStop();
 
     uint64_t nodesSearched[2][64][64];
-    uint16_t pvTable[DEPTH + 5][DEPTH + 5];
+    uint16_t pvTable[DEPTH + 5][2 * DEPTH + 5];
     int pvTableLen[DEPTH + 5];
     uint16_t cmTable[2][13][64];
     int hist[2][64][64];

@@ -129,6 +129,7 @@ void Board::setFen(const std::string fen) {
     NetInput input = toNetInput();
 
     checkers = getAttackers(*this, 1 ^ turn, pieces[WHITE] | pieces[BLACK], king(turn));
+    pinnedPieces = getPinnedPieces(*this, turn);
 
     NN.calc(input, turn);
 }

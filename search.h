@@ -21,7 +21,9 @@
 #include "tt.h"
 #include "tbprobe.h"
 #include "thread.h"
+#include <cstring>
 #include <cmath>
+#include <fstream>
 
 bool Search::checkForStop() {
     if (flag & TERMINATED_SEARCH)
@@ -145,7 +147,7 @@ std::string getSanString(Board& board, uint16_t move) {
     }
     if (board.isCapture(move))
         san += "x";
-    if(piece != PAWN || board.isCapture(move))
+    if (piece != PAWN || board.isCapture(move))
         san += char('a' + (to & 7));
     san += char('1' + (to >> 3));
 
@@ -312,7 +314,7 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack, bool useTT) {
     return best;
 }
 
-int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry *stack, uint16_t excluded) {
+int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* stack, uint16_t excluded) {
     int ply = board.ply;
 
     if (checkForStop())
@@ -368,17 +370,17 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry *sta
     }
 
     /// tablebase probing
-    auto probe = probe_TB(this->board, depth);
+    auto probe = probe_TB(board, depth);
     if (probe != TB_RESULT_FAILED) {
         int type = NONE, score;
         tbHits++;
         switch (probe) {
         case TB_WIN:
-            score = TB_WIN_SCORE - DEPTH - board.ply;
+            score = TB_WIN_SCORE - DEPTH - ply;
             type = LOWER;
             break;
         case TB_LOSS:
-            score = -(TB_WIN_SCORE - DEPTH - board.ply);
+            score = -(TB_WIN_SCORE - DEPTH - ply);
             type = UPPER;
             break;
         default:
@@ -437,7 +439,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry *sta
         }
 
         /// null move pruning (when last move wasn't null, we still have non pawn material, we have a good position)
-        if (!nullSearch && !excluded && depth >= 2 && (quietUs || eval - 100 * depth > beta) && 
+        if (!nullSearch && !excluded && depth >= 2 && (quietUs || eval - 100 * depth > beta) &&
             eval >= beta && eval >= staticEval &&
             board.hasNonPawnMaterial(board.turn)) {
             int R = nmpR + depth / nmpDepthDiv + (eval - beta) / nmpEvalDiv + improving;
@@ -683,7 +685,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry *sta
     return best;
 }
 
-int Search::rootSearch(int alpha, int beta, int depth, int multipv, StackEntry *stack) {
+int Search::rootSearch(int alpha, int beta, int depth, int multipv, StackEntry* stack) {
 
     if (checkForStop())
         return ABORT;
@@ -975,7 +977,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
             int depth = tDepth;
             while (true) {
 
-                depth = std::max({depth, 1, tDepth - 4});
+                depth = std::max({ depth, 1, tDepth - 4 });
 
                 selDepth = 0;
 
@@ -1030,7 +1032,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
                             std::cout << "#-" << (INF + scores[i] + 1) / 2 << " ";
                         else {
                             int score = abs(scores[i]);
-                            std::cout << (scores[i] >= 0 ? "+" : "-") << 
+                            std::cout << (scores[i] >= 0 ? "+" : "-") <<
                                 score / 100 << "." << (score % 100 >= 10 ? std::to_string(score % 100) : "0" + std::to_string(score % 100)) << " ";
                         }
                         std::cout << "  ";

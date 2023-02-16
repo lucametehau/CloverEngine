@@ -22,6 +22,15 @@
 #include <random>
 #include <cassert>
 #include <array>
+#include <chrono>
+
+#ifdef _MSC_VER
+#  include <intrin.h>
+#  define __builtin_popcountll __popcnt64
+#  define __builtin_clzll _lzcnt_u64
+#  define __builtin_ctzll _tzcnt_u64
+#  define _byteswap_ulong __builtin_bswap32 
+#endif
 
 std::mt19937_64 gen(0xBEEF);
 std::uniform_int_distribution <uint64_t> rng;
@@ -152,10 +161,11 @@ struct MeanValue {
     }
 };
 
-inline long double getTime() { /// thanks Terje!
-    struct timespec time;
-    clock_gettime(CLOCK_MONOTONIC, &time);
-    return ((uint64_t)time.tv_sec * 1000 + time.tv_nsec / 1000000);
+auto t_init = std::chrono::steady_clock::now();
+
+inline long double getTime() {
+    auto t = std::chrono::steady_clock::now();
+    return std::chrono::duration_cast<std::chrono::milliseconds>(t - t_init).count();
 }
 
 inline uint64_t lsb(uint64_t nr) {

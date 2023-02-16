@@ -26,6 +26,28 @@ inline bool isSqAttacked(Board& board, int color, int sq) {
     return getAttackers(board, color, board.pieces[WHITE] | board.pieces[BLACK], sq);
 }
 
+inline uint64_t getPinnedPieces(Board& board, bool turn) {
+    int color = board.turn, enemy = color ^ 1;
+    int king = board.king(color);
+    uint64_t mask, us = board.pieces[color], them = board.pieces[enemy];
+    uint64_t b, b2;
+    uint64_t pinned = 0; /// squares attacked by enemy / pinned pieces
+    uint64_t enemyOrthSliders = board.orthSliders(enemy), enemyDiagSliders = board.diagSliders(enemy);
+
+    mask = (genAttacksRook(them, king) & enemyOrthSliders) | (genAttacksBishop(them, king) & enemyDiagSliders);
+
+    while (mask) {
+        b = lsb(mask);
+        int pos = Sq(b);
+        b2 = us & between[pos][king];
+        if (!(b2 & (b2 - 1)))
+            pinned ^= b2;
+        mask ^= b;
+    }
+
+    return pinned;
+}
+
 inline uint16_t* addQuiets(uint16_t* moves, int& nrMoves, int pos, uint64_t att) {
     while (att) {
         uint64_t b = lsb(att);
@@ -284,6 +306,8 @@ inline void makeMove(Board& board, uint16_t mv) { /// assuming move is at least 
     board.key ^= 1;
     if (board.turn == WHITE)
         board.moveIndex++;
+
+    board.pinnedPieces = getPinnedPieces(board, turn);
 }
 
 inline void undoMove(Board& board, uint16_t move) {
@@ -397,10 +421,11 @@ inline void makeNullMove(Board& board) {
     board.key ^= (board.enPas >= 0 ? enPasKey[board.enPas] : 0);
 
     board.captured = 0;
-    board.checkers = board.pinnedPieces = 0;
+    board.checkers = 0;
     board.enPas = -1;
     board.turn ^= 1;
     board.key ^= 1;
+    board.pinnedPieces = getPinnedPieces(board, board.turn);
     board.ply++;
     board.gamePly++;
     board.halfMoves++;
@@ -429,7 +454,7 @@ inline int genLegal(Board& board, uint16_t* moves) {
     int king = board.king(color), enemyKing = board.king(enemy);
     uint64_t pieces, mask, us = board.pieces[color], them = board.pieces[enemy];
     uint64_t b, b1, b2, b3;
-    uint64_t attacked = 0, pinned = 0; /// squares attacked by enemy / pinned pieces
+    uint64_t attacked = 0, pinned = board.pinnedPieces; /// squares attacked by enemy / pinned pieces
     uint64_t enemyOrthSliders = board.orthSliders(enemy), enemyDiagSliders = board.diagSliders(enemy);
     uint64_t all = board.pieces[WHITE] | board.pieces[BLACK], emptySq = ~all;
 
@@ -461,17 +486,6 @@ inline int genLegal(Board& board, uint16_t* moves) {
     b1 = kingBBAttacks[king] & ~(us | attacked);
 
     moves = addMoves(moves, nrMoves, king, b1);
-
-    mask = (genAttacksRook(them, king) & enemyOrthSliders) | (genAttacksBishop(them, king) & enemyDiagSliders);
-
-    while (mask) {
-        b = lsb(mask);
-        int pos = Sq(b);
-        b2 = us & between[pos][king];
-        if (!(b2 & (b2 - 1)))
-            pinned ^= b2;
-        mask ^= b;
-    }
 
     uint64_t notPinned = ~pinned, capMask = 0, quietMask = 0;
 
@@ -723,7 +737,7 @@ inline int genLegalNoisy(Board& board, uint16_t* moves) {
     int king = board.king(color), enemyKing = board.king(enemy);
     uint64_t pieces, mask, us = board.pieces[color], them = board.pieces[enemy];
     uint64_t b, b1, b2, b3;
-    uint64_t attacked = 0, pinned = 0; /// squares attacked by enemy / pinned pieces
+    uint64_t attacked = 0, pinned = board.pinnedPieces; /// squares attacked by enemy / pinned pieces
     uint64_t enemyOrthSliders = board.orthSliders(enemy), enemyDiagSliders = board.diagSliders(enemy);
     uint64_t all = board.pieces[WHITE] | board.pieces[BLACK];
 
@@ -754,20 +768,7 @@ inline int genLegalNoisy(Board& board, uint16_t* moves) {
 
     moves = addCaps(moves, nrMoves, king, kingBBAttacks[king] & ~(us | attacked) & them);
 
-    mask = (genAttacksRook(them, king) & enemyOrthSliders) | (genAttacksBishop(them, king) & enemyDiagSliders);
-
-    while (mask) {
-        b = lsb(mask);
-        int pos = Sq(b);
-        uint64_t b2 = us & between[pos][king];
-        if (!(b2 & (b2 - 1)))
-            pinned ^= b2;
-        mask ^= b;
-    }
-
     uint64_t notPinned = ~pinned, capMask = 0, quietMask = 0;
-
-    board.pinnedPieces = pinned;
 
     int cnt = count(board.checkers);
 
@@ -966,7 +967,7 @@ inline int genLegalQuiets(Board& board, uint16_t* moves) {
     int king = board.king(color), enemyKing = board.king(enemy), pos = board.king(board.turn);
     uint64_t pieces, mask, us = board.pieces[color], them = board.pieces[enemy];
     uint64_t b, b1, b2, b3;
-    uint64_t attacked = 0, pinned = 0; /// squares attacked by enemy / pinned pieces
+    uint64_t attacked = 0, pinned = board.pinnedPieces; /// squares attacked by enemy / pinned pieces
     uint64_t enemyOrthSliders = board.orthSliders(enemy), enemyDiagSliders = board.diagSliders(enemy);
     uint64_t all = board.pieces[WHITE] | board.pieces[BLACK], emptySq = ~all;
 
@@ -996,20 +997,8 @@ inline int genLegalQuiets(Board& board, uint16_t* moves) {
     attacked |= kingBBAttacks[enemyKing];
 
     moves = addQuiets(moves, nrMoves, king, kingBBAttacks[king] & ~(us | attacked) & ~them);
-    mask = (genAttacksRook(them, king) & enemyOrthSliders) | (genAttacksBishop(them, king) & enemyDiagSliders);
-
-    while (mask) {
-        b = lsb(mask);
-        int pos = Sq(b);
-        uint64_t b2 = us & between[pos][king];
-        if (!(b2 & (b2 - 1)))
-            pinned ^= b2;
-        mask ^= b;
-    }
 
     uint64_t notPinned = ~pinned, quietMask = 0;
-
-    board.pinnedPieces = pinned;
 
     int cnt = count(board.checkers);
 
