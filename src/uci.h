@@ -24,9 +24,8 @@
 #include "init.h"
 #include "perft.h"
 #include "generate.h"
-#include "tune.h"
 
-const std::string VERSION = "3.3.1"; /// 2.0 was "FM"
+const std::string VERSION = "4.0"; /// 2.0 was "FM"
 
 struct Option {
     std::string name;
@@ -478,12 +477,6 @@ void UCI::Uci_Loop() {
             uint16_t move = parseMove(searcher.board, mv);
 
             std::cout << see(searcher.board, move, th) << std::endl;
-        }
-        else if (cmd == "tune") {
-            int dataSize, epochs;
-            iss >> dataSize >> epochs;
-
-            tune(dataSize, epochs);
         }
 
         if (info->quit)
