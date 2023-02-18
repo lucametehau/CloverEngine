@@ -591,7 +591,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
 
         /// quiet late move reduction
 
-        if (depth >= 3 && played > 1) { /// first few moves we don't reduce
+        if (depth >= 3 && played > 1 + pvNode) { /// first few moves we don't reduce
             if (isQuiet) {
                 R = lmrRed[std::min(63, depth)][std::min(63, played)];
 
