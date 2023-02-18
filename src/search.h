@@ -555,20 +555,23 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         }
 
         int ex = 0;
-        /// singular extension (look if the tt move is better than the rest)
-        if (!excluded && move == ttMove && abs(ttValue) < MATE && depth >= 6 && entry.depth() >= depth - 3 && (bound & LOWER)) { /// had best instead of ttValue lol
-            int rBeta = ttValue - depth;
+        /// avoid extending too far (might cause stack overflow)
+        if (ply < 2 * tDepth) {
+            /// singular extension (look if the tt move is better than the rest)
+            if (!excluded && move == ttMove && abs(ttValue) < MATE && depth >= 6 && entry.depth() >= depth - 3 && (bound & LOWER)) { /// had best instead of ttValue lol
+                int rBeta = ttValue - depth;
 
-            int score = search(rBeta - 1, rBeta, depth / 2, cutNode, stack, move);
+                int score = search(rBeta - 1, rBeta, depth / 2, cutNode, stack, move);
 
-            if (score < rBeta) {
-                ex = 1 + (!pvNode && rBeta - score > 100);
+                if (score < rBeta) {
+                    ex = 1 + (!pvNode && rBeta - score > 100);
+                }
+                else if (rBeta >= beta) /// multicut
+                    return rBeta;
             }
-            else if (rBeta >= beta) /// multicut
-                return rBeta;
-        }
-        else if (isCheck) {
-            ex = 1;
+            else if (isCheck) {
+                ex = 1;
+            }
         }
 
         /// update stack info
@@ -686,7 +689,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
 }
 
 int Search::rootSearch(int alpha, int beta, int depth, int multipv, StackEntry* stack) {
-
     if (checkForStop())
         return ABORT;
 

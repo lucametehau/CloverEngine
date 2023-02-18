@@ -162,7 +162,7 @@ struct Search {
     int threadCount;
     int tDepth, selDepth;
 
-    int rootEval;
+    int rootEval, rootDepth;
 
     std::unique_ptr <std::thread> principalThread;
     std::mutex readyMutex;
