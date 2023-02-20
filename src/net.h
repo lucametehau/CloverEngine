@@ -27,6 +27,32 @@
 #include <random>
 #include <immintrin.h>
 
+#if defined(__AVX512F__)
+#define reg_type    __m512i
+#define reg_add16   _mm512_add_epi16
+#define reg_sub16   _mm512_sub_epi16
+#define reg_max16   _mm512_max_epi16
+#define reg_add32   _mm512_add_epi32
+#define reg_madd16  _mm512_madd_epi16
+#define ALLIGN      64
+#elif defined(__AVX2__) || defined(__AVX__)
+#define reg_type    __m256i
+#define reg_add16   _mm256_add_epi16
+#define reg_sub16   _mm256_sub_epi16
+#define reg_max16   _mm256_max_epi16
+#define reg_add32   _mm256_add_epi32
+#define reg_madd16  _mm256_madd_epi16
+#define ALLIGN      32
+#elif defined(__SSE2__)
+#define reg_type    __m128i
+#define reg_add16   _mm_add_epi16
+#define reg_sub16   _mm_sub_epi16
+#define reg_max16   _mm_max_epi16
+#define reg_add32   _mm_add_epi32
+#define reg_madd16  _mm_madd_epi16
+#define ALLIGN      16
+#endif
+
 INCBIN(Net, EVALFILE);
 
 const int INPUT_NEURONS = 3072;
@@ -56,8 +82,15 @@ public:
         load();
     }
 
-    int32_t get_sum(__m256i x) {
+    int32_t get_sum(reg_type& x) {
+#if defined(__AVX512F__)
+        __m256i reg_256 = _mm256_add_epi32(_mm512_castsi512_si256(x), _mm512_extracti32x8_epi32(x, 1));
+        __m128i a = _mm_add_epi32(_mm256_castsi256_si128(reg_256), _mm256_extractf128_si256(reg_256, 1));
+#elif defined(__AVX2__) || defined(__AVX__)
         __m128i a = _mm_add_epi32(_mm256_castsi256_si128(x), _mm256_extractf128_si256(x, 1));
+#else
+        __m128i a = x;
+#endif
         __m128i b = _mm_add_epi32(a, _mm_srli_si128(a, 8));
         __m128i c = _mm_add_epi32(b, _mm_srli_si128(b, 4));
 
@@ -117,25 +150,25 @@ public:
 
         sum = outputBias * Q_IN;
 
-        __m256i zero = _mm256_setzero_si256();
-        __m256i acc = _mm256_setzero_si256(), acc2 = _mm256_setzero_si256();
+        reg_type zero{};
+        reg_type acc{}, acc2{};
 
-        __m256i* v = (__m256i*)outputWeights;
-        __m256i* w = (__m256i*)histOutput[stm][0];
-
-        for (int j = 0; j < batches / 2; j++) {
-            acc = _mm256_add_epi32(acc, _mm256_madd_epi16(_mm256_max_epi16(w[2 * j], zero), v[2 * j]));
-            acc2 = _mm256_add_epi32(acc2, _mm256_madd_epi16(_mm256_max_epi16(w[2 * j + 1], zero), v[2 * j + 1]));
-        }
-
-        __m256i* w2 = (__m256i*)histOutput[stm ^ 1][0];
+        reg_type* v = (reg_type*)outputWeights;
+        reg_type* w = (reg_type*)histOutput[stm][0];
 
         for (int j = 0; j < batches / 2; j++) {
-            acc = _mm256_add_epi32(acc, _mm256_madd_epi16(_mm256_max_epi16(w2[2 * j], zero), v[2 * j + batches]));
-            acc2 = _mm256_add_epi32(acc2, _mm256_madd_epi16(_mm256_max_epi16(w2[2 * j + 1], zero), v[2 * j + 1 + batches]));
+            acc = reg_add32(acc, reg_madd16(reg_max16(w[2 * j], zero), v[2 * j]));
+            acc2 = reg_add32(acc2, reg_madd16(reg_max16(w[2 * j + 1], zero), v[2 * j + 1]));
         }
 
-        acc = _mm256_add_epi32(acc, acc2);
+        reg_type* w2 = (reg_type*)histOutput[stm ^ 1][0];
+
+        for (int j = 0; j < batches / 2; j++) {
+            acc = reg_add32(acc, reg_madd16(reg_max16(w2[2 * j], zero), v[2 * j + batches]));
+            acc2 = reg_add32(acc2, reg_madd16(reg_max16(w2[2 * j + 1], zero), v[2 * j + 1 + batches]));
+        }
+
+        acc = reg_add32(acc, acc2);
 
         sum += get_sum(acc);
 
@@ -162,32 +195,32 @@ public:
 
     void apply(int16_t* a, int16_t* b, int updatesCnt, Update* updates) {
         memcpy(a, b, sizeof(int16_t) * SIDE_NEURONS);
-        __m256i* w = (__m256i*)a;
+        reg_type* w = (reg_type*)a;
         for (int i = 0; i < updatesCnt; i++) {
-            __m256i* v = (__m256i*)inputWeights[updates[i].ind];
+            reg_type* v = (reg_type*)inputWeights[updates[i].ind];
 
             if (updates[i].coef == 1) {
                 for (int j = 0; j < batches; j += 8) {
-                    w[j] = _mm256_add_epi16(w[j], v[j]);
-                    w[j + 1] = _mm256_add_epi16(w[j + 1], v[j + 1]);
-                    w[j + 2] = _mm256_add_epi16(w[j + 2], v[j + 2]);
-                    w[j + 3] = _mm256_add_epi16(w[j + 3], v[j + 3]);
-                    w[j + 4] = _mm256_add_epi16(w[j + 4], v[j + 4]);
-                    w[j + 5] = _mm256_add_epi16(w[j + 5], v[j + 5]);
-                    w[j + 6] = _mm256_add_epi16(w[j + 6], v[j + 6]);
-                    w[j + 7] = _mm256_add_epi16(w[j + 7], v[j + 7]);
+                    w[j] = reg_add16(w[j], v[j]);
+                    w[j + 1] = reg_add16(w[j + 1], v[j + 1]);
+                    w[j + 2] = reg_add16(w[j + 2], v[j + 2]);
+                    w[j + 3] = reg_add16(w[j + 3], v[j + 3]);
+                    w[j + 4] = reg_add16(w[j + 4], v[j + 4]);
+                    w[j + 5] = reg_add16(w[j + 5], v[j + 5]);
+                    w[j + 6] = reg_add16(w[j + 6], v[j + 6]);
+                    w[j + 7] = reg_add16(w[j + 7], v[j + 7]);
                 }
             }
             else {
                 for (int j = 0; j < batches; j += 8) {
-                    w[j] = _mm256_sub_epi16(w[j], v[j]);
-                    w[j + 1] = _mm256_sub_epi16(w[j + 1], v[j + 1]);
-                    w[j + 2] = _mm256_sub_epi16(w[j + 2], v[j + 2]);
-                    w[j + 3] = _mm256_sub_epi16(w[j + 3], v[j + 3]);
-                    w[j + 4] = _mm256_sub_epi16(w[j + 4], v[j + 4]);
-                    w[j + 5] = _mm256_sub_epi16(w[j + 5], v[j + 5]);
-                    w[j + 6] = _mm256_sub_epi16(w[j + 6], v[j + 6]);
-                    w[j + 7] = _mm256_sub_epi16(w[j + 7], v[j + 7]);
+                    w[j] = reg_sub16(w[j], v[j]);
+                    w[j + 1] = reg_sub16(w[j + 1], v[j + 1]);
+                    w[j + 2] = reg_sub16(w[j + 2], v[j + 2]);
+                    w[j + 3] = reg_sub16(w[j + 3], v[j + 3]);
+                    w[j + 4] = reg_sub16(w[j + 4], v[j + 4]);
+                    w[j + 5] = reg_sub16(w[j + 5], v[j + 5]);
+                    w[j + 6] = reg_sub16(w[j + 6], v[j + 6]);
+                    w[j + 7] = reg_sub16(w[j + 7], v[j + 7]);
                 }
             }
         }
@@ -210,45 +243,45 @@ public:
     int32_t getOutput(bool stm) {
         int32_t sum = outputBias * Q_IN;
 
-        __m256i zero = _mm256_setzero_si256();
-        __m256i acc0 = _mm256_setzero_si256(), acc1 = _mm256_setzero_si256();
-        __m256i acc2 = _mm256_setzero_si256(), acc3 = _mm256_setzero_si256();
-        __m256i acc4 = _mm256_setzero_si256(), acc5 = _mm256_setzero_si256();
-        __m256i acc6 = _mm256_setzero_si256(), acc7 = _mm256_setzero_si256();
+        reg_type zero{};
+        reg_type acc0{}, acc1{};
+        reg_type acc2{}, acc3{};
+        reg_type acc4{}, acc5{};
+        reg_type acc6{}, acc7{};
 
-        __m256i* w = (__m256i*)histOutput[histSz - 1][stm];
-
-        for (int j = 0; j < batches; j += 8) {
-            acc0 = _mm256_add_epi32(acc0, _mm256_madd_epi16(_mm256_max_epi16(w[j], zero), v[j]));
-            acc1 = _mm256_add_epi32(acc1, _mm256_madd_epi16(_mm256_max_epi16(w[j + 1], zero), v[j + 1]));
-            acc2 = _mm256_add_epi32(acc2, _mm256_madd_epi16(_mm256_max_epi16(w[j + 2], zero), v[j + 2]));
-            acc3 = _mm256_add_epi32(acc3, _mm256_madd_epi16(_mm256_max_epi16(w[j + 3], zero), v[j + 3]));
-            acc4 = _mm256_add_epi32(acc4, _mm256_madd_epi16(_mm256_max_epi16(w[j + 4], zero), v[j + 4]));
-            acc5 = _mm256_add_epi32(acc5, _mm256_madd_epi16(_mm256_max_epi16(w[j + 5], zero), v[j + 5]));
-            acc6 = _mm256_add_epi32(acc6, _mm256_madd_epi16(_mm256_max_epi16(w[j + 6], zero), v[j + 6]));
-            acc7 = _mm256_add_epi32(acc7, _mm256_madd_epi16(_mm256_max_epi16(w[j + 7], zero), v[j + 7]));
-        }
-
-        __m256i* w2 = (__m256i*)histOutput[histSz - 1][stm ^ 1];
+        reg_type* w = (reg_type*)histOutput[histSz - 1][stm];
 
         for (int j = 0; j < batches; j += 8) {
-            acc0 = _mm256_add_epi32(acc0, _mm256_madd_epi16(_mm256_max_epi16(w2[j], zero), v[j + batches]));
-            acc1 = _mm256_add_epi32(acc1, _mm256_madd_epi16(_mm256_max_epi16(w2[j + 1], zero), v[j + 1 + batches]));
-            acc2 = _mm256_add_epi32(acc2, _mm256_madd_epi16(_mm256_max_epi16(w2[j + 2], zero), v[j + 2 + batches]));
-            acc3 = _mm256_add_epi32(acc3, _mm256_madd_epi16(_mm256_max_epi16(w2[j + 3], zero), v[j + 3 + batches]));
-            acc4 = _mm256_add_epi32(acc4, _mm256_madd_epi16(_mm256_max_epi16(w2[j + 4], zero), v[j + 4 + batches]));
-            acc5 = _mm256_add_epi32(acc5, _mm256_madd_epi16(_mm256_max_epi16(w2[j + 5], zero), v[j + 5 + batches]));
-            acc6 = _mm256_add_epi32(acc6, _mm256_madd_epi16(_mm256_max_epi16(w2[j + 6], zero), v[j + 6 + batches]));
-            acc7 = _mm256_add_epi32(acc7, _mm256_madd_epi16(_mm256_max_epi16(w2[j + 7], zero), v[j + 7 + batches]));
+            acc0 = reg_add32(acc0, reg_madd16(reg_max16(w[j], zero), v[j]));
+            acc1 = reg_add32(acc1, reg_madd16(reg_max16(w[j + 1], zero), v[j + 1]));
+            acc2 = reg_add32(acc2, reg_madd16(reg_max16(w[j + 2], zero), v[j + 2]));
+            acc3 = reg_add32(acc3, reg_madd16(reg_max16(w[j + 3], zero), v[j + 3]));
+            acc4 = reg_add32(acc4, reg_madd16(reg_max16(w[j + 4], zero), v[j + 4]));
+            acc5 = reg_add32(acc5, reg_madd16(reg_max16(w[j + 5], zero), v[j + 5]));
+            acc6 = reg_add32(acc6, reg_madd16(reg_max16(w[j + 6], zero), v[j + 6]));
+            acc7 = reg_add32(acc7, reg_madd16(reg_max16(w[j + 7], zero), v[j + 7]));
         }
 
-        acc0 = _mm256_add_epi32(acc0, acc1);
-        acc2 = _mm256_add_epi32(acc2, acc3);
-        acc4 = _mm256_add_epi32(acc4, acc5);
-        acc6 = _mm256_add_epi32(acc6, acc7);
-        acc0 = _mm256_add_epi32(acc0, acc2);
-        acc4 = _mm256_add_epi32(acc4, acc6);
-        acc0 = _mm256_add_epi32(acc0, acc4);
+        reg_type* w2 = (reg_type*)histOutput[histSz - 1][stm ^ 1];
+
+        for (int j = 0; j < batches; j += 8) {
+            acc0 = reg_add32(acc0, reg_madd16(reg_max16(w2[j], zero), v[j + batches]));
+            acc1 = reg_add32(acc1, reg_madd16(reg_max16(w2[j + 1], zero), v[j + 1 + batches]));
+            acc2 = reg_add32(acc2, reg_madd16(reg_max16(w2[j + 2], zero), v[j + 2 + batches]));
+            acc3 = reg_add32(acc3, reg_madd16(reg_max16(w2[j + 3], zero), v[j + 3 + batches]));
+            acc4 = reg_add32(acc4, reg_madd16(reg_max16(w2[j + 4], zero), v[j + 4 + batches]));
+            acc5 = reg_add32(acc5, reg_madd16(reg_max16(w2[j + 5], zero), v[j + 5 + batches]));
+            acc6 = reg_add32(acc6, reg_madd16(reg_max16(w2[j + 6], zero), v[j + 6 + batches]));
+            acc7 = reg_add32(acc7, reg_madd16(reg_max16(w2[j + 7], zero), v[j + 7 + batches]));
+        }
+
+        acc0 = reg_add32(acc0, acc1);
+        acc2 = reg_add32(acc2, acc3);
+        acc4 = reg_add32(acc4, acc5);
+        acc6 = reg_add32(acc6, acc7);
+        acc0 = reg_add32(acc0, acc2);
+        acc4 = reg_add32(acc4, acc6);
+        acc0 = reg_add32(acc0, acc4);
 
         sum += get_sum(acc0);
 
@@ -292,19 +325,19 @@ public:
         }
     }
 
-    int lg = sizeof(__m256i) / sizeof(int16_t);
+    int lg = sizeof(reg_type) / sizeof(int16_t);
     int batches = SIDE_NEURONS / lg;
 
     int histSz, updateSz[2];
 
-    int16_t inputBiases[SIDE_NEURONS] __attribute__((aligned(32)));
+    int16_t inputBiases[SIDE_NEURONS] __attribute__((aligned(ALLIGN)));
     int32_t outputBias;
-    int16_t histOutput[2005][2][SIDE_NEURONS] __attribute__((aligned(32)));
-    int16_t inputWeights[INPUT_NEURONS][SIDE_NEURONS] __attribute__((aligned(32)));
-    int16_t outputWeights[HIDDEN_NEURONS] __attribute__((aligned(32)));
-    int16_t deeznuts[HIDDEN_NEURONS] __attribute__((aligned(32)));
+    int16_t histOutput[2005][2][SIDE_NEURONS] __attribute__((aligned(ALLIGN)));
+    int16_t inputWeights[INPUT_NEURONS][SIDE_NEURONS] __attribute__((aligned(ALLIGN)));
+    int16_t outputWeights[HIDDEN_NEURONS] __attribute__((aligned(ALLIGN)));
+    int16_t deeznuts[HIDDEN_NEURONS] __attribute__((aligned(ALLIGN)));
 
-    __m256i* v = (__m256i*)outputWeights;
+    reg_type* v = (reg_type*)outputWeights;
 
     Update updates[2][105];
 };
