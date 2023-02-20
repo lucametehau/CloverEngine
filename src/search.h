@@ -234,7 +234,7 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack, bool useTT) {
     }
     else if (eval == INF) {
         /// if last move was null, we already know the evaluation
-        stack->eval = best = eval = (!(stack - 1)->move ? -(stack - 1)->eval + 2 * TEMPO : evaluate(board));
+        stack->eval = best = eval = evaluate(board);
         futilityValue = best + quiesceFutilityCoef;
     }
     else {
@@ -408,7 +408,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         if (excluded)
             eval = stack->eval;
         else
-            stack->eval = eval = (nullSearch ? -(stack - 1)->eval + 2 * TEMPO : evaluate(board));
+            stack->eval = eval = evaluate(board);
     }
     else {
         /// ttValue might be a better evaluation
