@@ -28,7 +28,13 @@
 #include <immintrin.h>
 
 #if defined(__AVX512F__)
-
+#define reg_type    __m512i
+#define reg_add16   _mm512_add_epi16
+#define reg_sub16   _mm512_sub_epi16
+#define reg_max16   _mm512_max_epi16
+#define reg_add32   _mm512_add_epi32
+#define reg_madd16  _mm512_madd_epi16
+#define ALLIGN      64
 #elif defined(__AVX2__) || defined(__AVX__)
 #define reg_type    __m256i
 #define reg_add16   _mm256_add_epi16
@@ -77,7 +83,10 @@ public:
     }
 
     int32_t get_sum(reg_type& x) {
-#if defined(__AVX2__) || defined(__AVX__)
+#if defined(__AVX512F__)
+        __m256i reg_256 = _mm256_add_epi32(_mm512_castsi512_si256(x), _mm512_extractf256_si512(x, 1))
+        __m128i a = _mm_add_epi32(_mm256_castsi256_si128(reg_256), _mm256_extractf128_si256(reg_256, 1));
+#elif defined(__AVX2__) || defined(__AVX__)
         __m128i a = _mm_add_epi32(_mm256_castsi256_si128(x), _mm256_extractf128_si256(x, 1));
 #else
         __m128i a = x;

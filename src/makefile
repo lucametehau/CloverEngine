@@ -22,6 +22,7 @@ LIBS   = -pthread
 AVX2FLAGS     = -march=core-avx2
 NATIVEFLAGS   = -march=native
 OLDFLAGS      = -march=core2
+AVX512FLAS    = $(AVX2FLAGS) -mavx512f -mavx512bw -mavx512dq
 EVALFILEFLAGS = -DEVALFILE=\"$(EVALFILE)\"
 
 ob:
@@ -32,5 +33,12 @@ debug:
 	$(CC) $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(NATIVEFLAGS) -g -o $(EXE)-debug$(EXT)
 old:
 	$(CC) $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(OLDFLAGS) -g -o $(EXE)-old$(EXT)
-run:
+avx2:
 	$(CC) $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(AVX2FLAGS) -o $(EXE)-avx2$(EXT)
+avx512:
+	$(CC) $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(AVX512FLAGS) -o $(EXE)-avx2$(EXT)
+
+release:
+	make old
+	make avx2
+	make avx512
