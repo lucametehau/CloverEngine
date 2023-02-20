@@ -22,7 +22,7 @@ LIBS   = -pthread
 AVX2FLAGS     = -march=core-avx2
 NATIVEFLAGS   = -mno-avx512f -march=native
 OLDFLAGS      = -march=core2
-AVX512FLAGS    = $(AVX2FLAGS) -mavx512f -mavx512bw -mavx512dq
+AVX512FLAGS   = $(AVX2FLAGS) -mavx512f -mavx512bw -mavx512dq
 EVALFILEFLAGS = -DEVALFILE=\"$(EVALFILE)\"
 
 ob:
