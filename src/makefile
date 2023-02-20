@@ -10,7 +10,7 @@ else
 endif
 
 
-WFLAGS = -Wall -mno-avx512f
+WFLAGS = -Wall
 RFLAGS = $(WFLAGS) -std=c++17 -O3 -fopenmp
 
 ifeq ($(EXT), .exe)
@@ -20,7 +20,7 @@ endif
 LIBS   = -pthread
 
 AVX2FLAGS     = -march=core-avx2
-NATIVEFLAGS   = -march=native
+NATIVEFLAGS   = -mno-avx512f -march=native
 OLDFLAGS      = -march=core2
 AVX512FLAS    = $(AVX2FLAGS) -mavx512f -mavx512bw -mavx512dq
 EVALFILEFLAGS = -DEVALFILE=\"$(EVALFILE)\"
