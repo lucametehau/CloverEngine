@@ -568,6 +568,8 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                 }
                 else if (rBeta >= beta) /// multicut
                     return rBeta;
+                else if (ttValue >= beta)
+                    ex = -1;
             }
             else if (isCheck) {
                 ex = 1;
