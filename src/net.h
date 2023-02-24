@@ -200,27 +200,19 @@ public:
             reg_type* v = (reg_type*)inputWeights[updates[i].ind];
 
             if (updates[i].coef == 1) {
-                for (int j = 0; j < batches; j += 8) {
+                for (int j = 0; j < batches; j += 4) {
                     w[j] = reg_add16(w[j], v[j]);
                     w[j + 1] = reg_add16(w[j + 1], v[j + 1]);
                     w[j + 2] = reg_add16(w[j + 2], v[j + 2]);
                     w[j + 3] = reg_add16(w[j + 3], v[j + 3]);
-                    w[j + 4] = reg_add16(w[j + 4], v[j + 4]);
-                    w[j + 5] = reg_add16(w[j + 5], v[j + 5]);
-                    w[j + 6] = reg_add16(w[j + 6], v[j + 6]);
-                    w[j + 7] = reg_add16(w[j + 7], v[j + 7]);
                 }
             }
             else {
-                for (int j = 0; j < batches; j += 8) {
+                for (int j = 0; j < batches; j += 4) {
                     w[j] = reg_sub16(w[j], v[j]);
                     w[j + 1] = reg_sub16(w[j + 1], v[j + 1]);
                     w[j + 2] = reg_sub16(w[j + 2], v[j + 2]);
                     w[j + 3] = reg_sub16(w[j + 3], v[j + 3]);
-                    w[j + 4] = reg_sub16(w[j + 4], v[j + 4]);
-                    w[j + 5] = reg_sub16(w[j + 5], v[j + 5]);
-                    w[j + 6] = reg_sub16(w[j + 6], v[j + 6]);
-                    w[j + 7] = reg_sub16(w[j + 7], v[j + 7]);
                 }
             }
         }
@@ -246,42 +238,28 @@ public:
         reg_type zero{};
         reg_type acc0{}, acc1{};
         reg_type acc2{}, acc3{};
-        reg_type acc4{}, acc5{};
-        reg_type acc6{}, acc7{};
 
         reg_type* w = (reg_type*)histOutput[histSz - 1][stm];
 
-        for (int j = 0; j < batches; j += 8) {
+        for (int j = 0; j < batches; j += 4) {
             acc0 = reg_add32(acc0, reg_madd16(reg_max16(w[j], zero), v[j]));
             acc1 = reg_add32(acc1, reg_madd16(reg_max16(w[j + 1], zero), v[j + 1]));
             acc2 = reg_add32(acc2, reg_madd16(reg_max16(w[j + 2], zero), v[j + 2]));
             acc3 = reg_add32(acc3, reg_madd16(reg_max16(w[j + 3], zero), v[j + 3]));
-            acc4 = reg_add32(acc4, reg_madd16(reg_max16(w[j + 4], zero), v[j + 4]));
-            acc5 = reg_add32(acc5, reg_madd16(reg_max16(w[j + 5], zero), v[j + 5]));
-            acc6 = reg_add32(acc6, reg_madd16(reg_max16(w[j + 6], zero), v[j + 6]));
-            acc7 = reg_add32(acc7, reg_madd16(reg_max16(w[j + 7], zero), v[j + 7]));
         }
 
         reg_type* w2 = (reg_type*)histOutput[histSz - 1][stm ^ 1];
 
-        for (int j = 0; j < batches; j += 8) {
+        for (int j = 0; j < batches; j += 4) {
             acc0 = reg_add32(acc0, reg_madd16(reg_max16(w2[j], zero), v[j + batches]));
             acc1 = reg_add32(acc1, reg_madd16(reg_max16(w2[j + 1], zero), v[j + 1 + batches]));
             acc2 = reg_add32(acc2, reg_madd16(reg_max16(w2[j + 2], zero), v[j + 2 + batches]));
             acc3 = reg_add32(acc3, reg_madd16(reg_max16(w2[j + 3], zero), v[j + 3 + batches]));
-            acc4 = reg_add32(acc4, reg_madd16(reg_max16(w2[j + 4], zero), v[j + 4 + batches]));
-            acc5 = reg_add32(acc5, reg_madd16(reg_max16(w2[j + 5], zero), v[j + 5 + batches]));
-            acc6 = reg_add32(acc6, reg_madd16(reg_max16(w2[j + 6], zero), v[j + 6 + batches]));
-            acc7 = reg_add32(acc7, reg_madd16(reg_max16(w2[j + 7], zero), v[j + 7 + batches]));
         }
 
         acc0 = reg_add32(acc0, acc1);
         acc2 = reg_add32(acc2, acc3);
-        acc4 = reg_add32(acc4, acc5);
-        acc6 = reg_add32(acc6, acc7);
         acc0 = reg_add32(acc0, acc2);
-        acc4 = reg_add32(acc4, acc6);
-        acc0 = reg_add32(acc0, acc4);
 
         sum += get_sum(acc0);
 
