@@ -21,17 +21,9 @@
 #include "defs.h"
 #include "net.h"
 
-struct StackEntry { /// info to keep in the stack
-    uint16_t move, piece;
-    uint16_t killer;
-    uint16_t quiets[256], captures[256];
-    int eval;
-    TablePieceTo* continuationHist;
-};
-
 class Undo {
 public:
-    int8_t enPas;
+    int8_t enPas, kingSq;
     uint8_t castleRights;
     uint8_t captured;
     uint16_t halfMoves, moveIndex;
@@ -157,6 +149,17 @@ public:
         }
 
         return ans;
+    }
+
+    int checkParentKingSide() {
+        int kingSq = king(turn), ply_ = ply;
+        while (ply_ >= 2) {
+            ply_ -= 2;
+            if (!recalc(history[ply_].kingSq, kingSq)) {
+                return ply_;
+            }
+        }
+        return -1;
     }
 
     void setFen(const std::string fen); // check init.h

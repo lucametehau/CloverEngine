@@ -600,7 +600,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
             if (isQuiet) {
                 R = lmrRed[std::min(63, depth)][std::min(63, played)];
 
-                R += pvDistance > 4;
+                R += pvDistance > 8;
 
                 R += !pvNode + !improving; /// not on pv or not improving
 
