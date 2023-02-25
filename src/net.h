@@ -248,13 +248,9 @@ public:
         int nrUpdates = 0;
         Update realUpdates[1005];
         for (int i = histSz - dif; i <= histSz; i++) {
-            //std::cout << lightUpdatesSz[i] << " " << i << "\n";
-            //assert(lightUpdatesSz[i]);
             for (int j = 0; j < lightUpdatesSz[i]; j++) {
                 realUpdates[nrUpdates++] = { netInd(lightUpdates[i][j].piece, lightUpdates[i][j].sq, kingSq, c), lightUpdates[i][j].coef };
-                //std::cout << "(" << lightUpdates[i][j].piece << ", " << lightUpdates[i][j].sq << ", " << lightUpdates[i][j].coef << ") ; ";
             }
-            //std::cout << "\n";
         }
         apply(histOutput[histSz][c], nrUpdates, realUpdates);
         updateSz[c] = 0;
