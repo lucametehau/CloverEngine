@@ -314,7 +314,7 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack, bool useTT) {
     return best;
 }
 
-int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* stack, int pvDistance, uint16_t excluded) {
+int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* stack, uint16_t excluded) {
     int ply = board.ply;
 
     if (checkForStop())
@@ -450,7 +450,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
 
             makeNullMove(board);
 
-            int score = -search(-beta, -beta + 1, depth - R, !cutNode, stack + 1, pvDistance + 1);
+            int score = -search(-beta, -beta + 1, depth - R, !cutNode, stack + 1);
 
             undoNullMove(board);
             //cnt += (score < beta);
@@ -484,7 +484,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                 int score = -quiesce(-cutBeta, -cutBeta + 1, stack + 1);
 
                 if (score >= cutBeta) /// then we should try searching this capture
-                    score = -search(-cutBeta, -cutBeta + 1, depth - probcutR, !cutNode, stack + 1, pvDistance + 1);
+                    score = -search(-cutBeta, -cutBeta + 1, depth - probcutR, !cutNode, stack + 1);
 
                 undoMove(board, move);
 
@@ -561,7 +561,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
             if (!excluded && move == ttMove && abs(ttValue) < MATE && depth >= 6 && entry.depth() >= depth - 3 && (bound & LOWER)) { /// had best instead of ttValue lol
                 int rBeta = ttValue - depth;
 
-                int score = search(rBeta - 1, rBeta, depth / 2, cutNode, stack, pvDistance, move);
+                int score = search(rBeta - 1, rBeta, depth / 2, cutNode, stack, move);
 
                 if (score < rBeta) {
                     ex = 1 + (!pvNode && rBeta - score > 100);
@@ -600,8 +600,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
             if (isQuiet) {
                 R = lmrRed[std::min(63, depth)][std::min(63, played)];
 
-                R += pvDistance > 8;
-
                 R += !pvNode + !improving; /// not on pv or not improving
 
                 R += quietUs && !isCheck && eval - seeVal[KNIGHT] > beta; /// if the position is relatively quiet and eval is bigger than beta by a margin
@@ -634,15 +632,15 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         uint64_t initNodes = nodes;
 
         if (R != 1) {
-            score = -search(-alpha - 1, -alpha, newDepth - R, true, stack + 1, pvDistance + 1);
+            score = -search(-alpha - 1, -alpha, newDepth - R, true, stack + 1);
         }
 
         if ((R != 1 && score > alpha) || (R == 1 && (!pvNode || played > 1))) {
-            score = -search(-alpha - 1, -alpha, newDepth - 1, !cutNode, stack + 1, pvDistance + 1);
+            score = -search(-alpha - 1, -alpha, newDepth - 1, !cutNode, stack + 1);
         }
 
         if (pvNode && (played == 1 || score > alpha)) {
-            score = -search(-beta, -alpha, newDepth - 1, false, stack + 1, 0);
+            score = -search(-beta, -alpha, newDepth - 1, false, stack + 1);
         }
 
         undoMove(board, move);
@@ -819,15 +817,15 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv, StackEntry* 
         uint64_t initNodes = nodes;
 
         if (R != 1) {
-            score = -search(-alpha - 1, -alpha, newDepth - R, true, stack + 1, 1);
+            score = -search(-alpha - 1, -alpha, newDepth - R, true, stack + 1);
         }
 
         if ((R != 1 && score > alpha) || (R == 1 && played > 1)) {
-            score = -search(-alpha - 1, -alpha, newDepth - 1, true, stack + 1, 1);
+            score = -search(-alpha - 1, -alpha, newDepth - 1, true, stack + 1);
         }
 
         if (played == 1 || score > alpha) {
-            score = -search(-beta, -alpha, newDepth - 1, false, stack + 1, 0);
+            score = -search(-beta, -alpha, newDepth - 1, false, stack + 1);
         }
 
         undoMove(board, move);

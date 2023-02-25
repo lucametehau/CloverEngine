@@ -96,6 +96,8 @@ inline void makeMove(Board& board, uint16_t mv) { /// assuming move is at least 
     board.history[ply].checkers = board.checkers;
     board.history[ply].pinnedPieces = board.pinnedPieces;
     board.history[ply].key = board.key;
+    board.history[ply].kingSq = board.king(turn);
+    board.history[ply + 1].nullMoves = board.history[ply].nullMoves;
 
     board.key ^= (board.enPas >= 0 ? enPasKey[board.enPas] : 0);
 
@@ -257,33 +259,43 @@ inline void makeMove(Board& board, uint16_t mv) { /// assuming move is at least 
 
     // recalculate if king changes sides
     if (piece_type(pieceFrom) == KING && recalc(posFrom, posTo)) {
-        uint64_t b = board.pieces[WHITE] | board.pieces[BLACK];
-        kw = board.king(WHITE), kb = board.king(BLACK);
-
-        if (turn == WHITE) {
+        int lastPly = board.checkParentKingSide();
+        if (turn == WHITE)
             board.NN.applyUpdates(BLACK);
-            board.NN.updateSz[WHITE] = 0;
-            while (b) {
-                uint64_t b2 = lsb(b);
-                int sq = Sq(b2);
-                //board.NN.removeInput(WHITE, netInd(board.piece_at(sq), sq, kw, WHITE));
-                board.NN.addInput(WHITE, netInd(board.piece_at(sq), sq, kw, WHITE));
-                b ^= b2;
+        else
+            board.NN.applyUpdates(WHITE);
+
+        if (lastPly == -1) {
+            uint64_t b = board.pieces[WHITE] | board.pieces[BLACK];
+            kw = board.king(WHITE), kb = board.king(BLACK);
+
+            if (turn == WHITE) {
+                board.NN.updateSz[WHITE] = 0;
+                while (b) {
+                    uint64_t b2 = lsb(b);
+                    int sq = Sq(b2);
+                    //board.NN.removeInput(WHITE, netInd(board.piece_at(sq), sq, kw, WHITE));
+                    board.NN.addInput(WHITE, netInd(board.piece_at(sq), sq, kw, WHITE));
+                    b ^= b2;
+                }
+
+                board.NN.applyInitUpdates(WHITE);
             }
-            
-            board.NN.applyInitUpdates(WHITE);
+            else {
+                board.NN.updateSz[BLACK] = 0;
+                while (b) {
+                    uint64_t b2 = lsb(b);
+                    int sq = Sq(b2);
+                    //board.NN.removeInput(BLACK, netInd(board.piece_at(sq), sq, kb, BLACK));
+                    board.NN.addInput(BLACK, netInd(board.piece_at(sq), sq, kb, BLACK));
+                    b ^= b2;
+                }
+                board.NN.applyInitUpdates(BLACK);
+            }
         }
         else {
-            board.NN.applyUpdates(WHITE);
-            board.NN.updateSz[BLACK] = 0;
-            while (b) {
-                uint64_t b2 = lsb(b);
-                int sq = Sq(b2);
-                //board.NN.removeInput(BLACK, netInd(board.piece_at(sq), sq, kb, BLACK));
-                board.NN.addInput(BLACK, netInd(board.piece_at(sq), sq, kb, BLACK));
-                b ^= b2;
-            }
-            board.NN.applyInitUpdates(BLACK);
+            //std::cout << lastPly << " " << ply << " " << int(board.history[lastPly].kingSq) << " " << int(board.king(turn)) << " " << turn << "\n";
+            board.NN.applyUpdatesFromPrev(turn, ply - lastPly - (board.history[ply].nullMoves - board.history[lastPly].nullMoves), board.history[lastPly].kingSq);
         }
     }
     else {
@@ -417,6 +429,13 @@ inline void makeNullMove(Board& board) {
     board.history[ply].checkers = board.checkers;
     board.history[ply].pinnedPieces = board.pinnedPieces;
     board.history[ply].key = board.key;
+    board.history[ply].kingSq = board.king(board.turn);
+    board.history[ply + 1].nullMoves = board.history[ply].nullMoves + 1;
+
+    //board.NN.applyUpdates(BLACK);
+    //board.NN.applyUpdates(WHITE);
+
+    //board.NN.histSz++;
 
     board.key ^= (board.enPas >= 0 ? enPasKey[board.enPas] : 0);
 
@@ -446,6 +465,7 @@ inline void undoNullMove(Board& board) {
     board.checkers = board.history[ply].checkers;
     board.pinnedPieces = board.history[ply].pinnedPieces;
     board.key = board.history[ply].key;
+    //board.NN.revertUpdates();
 }
 
 inline int genLegal(Board& board, uint16_t* moves) {

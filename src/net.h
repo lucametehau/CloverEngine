@@ -71,6 +71,11 @@ struct Update {
     int8_t coef;
 };
 
+struct LightUpdate {
+    int piece, sq;
+    int8_t coef;
+};
+
 class Network {
 public:
 
@@ -180,6 +185,7 @@ public:
     }
 
     void removeInput(int piece, int sq, int kingWhite, int kingBlack) {
+        lightUpdates[histSz][lightUpdatesSz[histSz]++] = { piece, sq, -1 };
         updates[WHITE][updateSz[WHITE]++] = { netInd(piece, sq, kingWhite, WHITE), -1 };
         updates[BLACK][updateSz[BLACK]++] = { netInd(piece, sq, kingBlack, BLACK), -1 };
     }
@@ -189,12 +195,12 @@ public:
     }
 
     void addInput(int piece, int sq, int kingWhite, int kingBlack) {
+        lightUpdates[histSz][lightUpdatesSz[histSz]++] = { piece, sq, 1 };
         updates[WHITE][updateSz[WHITE]++] = { netInd(piece, sq, kingWhite, WHITE), 1 };
         updates[BLACK][updateSz[BLACK]++] = { netInd(piece, sq, kingBlack, BLACK), 1 };
     }
 
-    void apply(int16_t* a, int16_t* b, int updatesCnt, Update* updates) {
-        memcpy(a, b, sizeof(int16_t) * SIDE_NEURONS);
+    void apply(int16_t* a, int updatesCnt, Update* updates) {
         reg_type* w = (reg_type*)a;
         for (int i = 0; i < updatesCnt; i++) {
             reg_type* v = (reg_type*)inputWeights[updates[i].ind];
@@ -219,17 +225,39 @@ public:
     }
 
     void applyUpdates(int c) {
-        apply(histOutput[histSz][c], histOutput[histSz - 1][c], updateSz[c], updates[c]);
+        memcpy(histOutput[histSz][c], histOutput[histSz - 1][c], sizeof(int16_t) * SIDE_NEURONS);
+        apply(histOutput[histSz][c], updateSz[c], updates[c]);
         updateSz[c] = 0;
+        lightUpdatesSz[histSz + 1] = 0;
     }
 
     void applyInitUpdates(int c) {
-        apply(histOutput[histSz][c], inputBiases, updateSz[c], updates[c]);
+        memcpy(histOutput[histSz][c], inputBiases, sizeof(int16_t) * SIDE_NEURONS);
+        apply(histOutput[histSz][c], updateSz[c], updates[c]);
         updateSz[c] = 0;
+        lightUpdatesSz[histSz + 1] = 0;
     }
 
     void revertUpdates() {
         histSz--;
+        lightUpdatesSz[histSz] = 0;
+    }
+
+    void applyUpdatesFromPrev(int c, int dif, int kingSq) {
+        memcpy(histOutput[histSz][c], histOutput[histSz - dif - 1][c], sizeof(int16_t) * SIDE_NEURONS);
+        int nrUpdates = 0;
+        Update realUpdates[1005];
+        for (int i = histSz - dif; i <= histSz; i++) {
+            //std::cout << lightUpdatesSz[i] << " " << i << "\n";
+            //assert(lightUpdatesSz[i]);
+            for (int j = 0; j < lightUpdatesSz[i]; j++) {
+                realUpdates[nrUpdates++] = { netInd(lightUpdates[i][j].piece, lightUpdates[i][j].sq, kingSq, c), lightUpdates[i][j].coef };
+                //std::cout << "(" << lightUpdates[i][j].piece << ", " << lightUpdates[i][j].sq << ", " << lightUpdates[i][j].coef << ") ; ";
+            }
+            //std::cout << "\n";
+        }
+        apply(histOutput[histSz][c], nrUpdates, realUpdates);
+        updateSz[c] = 0;
     }
 
     int32_t getOutput(bool stm) {
@@ -306,7 +334,7 @@ public:
     int lg = sizeof(reg_type) / sizeof(int16_t);
     int batches = SIDE_NEURONS / lg;
 
-    int histSz, updateSz[2];
+    int histSz;
 
     int16_t inputBiases[SIDE_NEURONS] __attribute__((aligned(ALLIGN)));
     int32_t outputBias;
@@ -317,5 +345,9 @@ public:
 
     reg_type* v = (reg_type*)outputWeights;
 
+    int updateSz[2];
     Update updates[2][105];
+    int lightUpdatesSz[2005];
+    LightUpdate lightUpdates[2005][5];
+    //int kingSq[2005];
 };

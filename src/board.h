@@ -26,7 +26,7 @@ public:
     int8_t enPas, kingSq;
     uint8_t castleRights;
     uint8_t captured;
-    uint16_t halfMoves, moveIndex;
+    uint16_t halfMoves, moveIndex, nullMoves;
     uint64_t checkers, pinnedPieces;
     uint64_t key;
 };
