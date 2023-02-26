@@ -249,6 +249,7 @@ public:
         assert(histSz >= dif + 1);
         memcpy(histOutput[histSz][c], histOutput[histSz - dif - 1][c], sizeof(int16_t) * SIDE_NEURONS);
         int nrUpdates = 0;
+        Update realUpdates[1005];
         for (int i = histSz - dif; i <= histSz; i++) {
             for (int j = 0; j < lightUpdatesSz[i]; j++) {
                 realUpdates[nrUpdates++] = { netInd(lightUpdates[i][j].piece, lightUpdates[i][j].sq, kingSq, c), lightUpdates[i][j].coef };
@@ -345,7 +346,6 @@ public:
 
     int updateSz[2];
     Update updates[2][105];
-    Update realUpdates[1005];
     int lightUpdatesSz[2005];
     LightUpdate lightUpdates[2005][5];
     //int kingSq[2005];

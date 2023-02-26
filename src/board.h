@@ -153,7 +153,7 @@ public:
         return ans;
     }
 
-    int checkParentKingSide(bool print = false) {
+    int checkParentKingSide() {
         int kingSq = king(turn), ply_ = gamePly;
         while (ply_ > 2 + gamePly - ply) {
             ply_ -= 2;
