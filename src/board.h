@@ -26,7 +26,8 @@ public:
     int8_t enPas, kingSq;
     uint8_t castleRights;
     uint8_t captured;
-    uint16_t halfMoves, moveIndex, nullMoves;
+    uint16_t halfMoves, moveIndex;
+    int16_t nullMoves;
     uint64_t checkers, pinnedPieces;
     uint64_t key;
 };
@@ -117,6 +118,7 @@ public:
 
     void clear() {
         ply = 0;
+        history[0].nullMoves = 0;
 
         NetInput input = toNetInput();
 
@@ -151,10 +153,11 @@ public:
         return ans;
     }
 
-    int checkParentKingSide() {
-        int kingSq = king(turn), ply_ = ply;
-        while (ply_ >= 2) {
+    int checkParentKingSide(bool print = false) {
+        int kingSq = king(turn), ply_ = gamePly;
+        while (ply_ > 2 + gamePly - ply) {
             ply_ -= 2;
+
             if (!recalc(history[ply_].kingSq, kingSq)) {
                 return ply_;
             }

@@ -294,7 +294,7 @@ inline void makeMove(Board& board, uint16_t mv) { /// assuming move is at least 
             }
         }
         else {
-            //std::cout << lastPly << " " << ply << " " << int(board.history[lastPly].kingSq) << " " << int(board.king(turn)) << " " << turn << "\n";
+            //std::cout << lastPly << " " << ply << " " << board.history[ply].nullMoves << " " << board.history[lastPly].nullMoves << "\n";
             board.NN.applyUpdatesFromPrev(turn, ply - lastPly - (board.history[ply].nullMoves - board.history[lastPly].nullMoves), board.history[lastPly].kingSq);
         }
     }
