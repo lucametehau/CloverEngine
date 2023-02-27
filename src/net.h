@@ -300,7 +300,6 @@ public:
     }
 
     void applyInitUpdates(int c) {
-        //memcpy(histOutput[histSz - 1][c], inputBiases, sizeof(int16_t) * SIDE_NEURONS);
         apply(histOutput[histSz - 1][c], inputBiases, updateSz, updates);
         updateSz = 0;
     }
