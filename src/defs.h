@@ -169,6 +169,8 @@ struct MeanValue {
     }
 };
 
+MeanValue average_changes;
+
 auto t_init = std::chrono::steady_clock::now();
 
 inline long double getTime() {
@@ -259,6 +261,10 @@ inline uint64_t shift(int color, int dir, uint64_t mask) {
 
 inline int getType(int type, int color) {
     return 6 * color + type;
+}
+
+inline int color_of(int piece) {
+    return piece > 6;
 }
 
 inline bool inTable(int rank, int file) {

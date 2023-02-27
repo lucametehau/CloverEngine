@@ -283,6 +283,7 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack, bool useTT) {
         stack->continuationHist = &continuationHistory[stack->piece][sqTo(move)];
 
         makeMove(board, move);
+        TT->prefetch(board.key);
         score = -quiesce(-beta, -alpha, stack + 1);
         undoMove(board, move);
 
@@ -341,7 +342,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
     nodes++;
     selDepth = std::max(selDepth, ply);
 
-    TT->prefetch(key);
     pvTableLen[ply] = 0;
 
     if (isRepetition(board, ply) || board.halfMoves >= 100 || board.isMaterialDraw())
@@ -960,6 +960,8 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
 
     rootEval = (!board.checkers ? evaluate(board) : INF);
 
+    //average_changes.init("average_changes");
+
     for (int i = 1; i <= 3; i++)
         (stack - i)->continuationHist = &continuationHistory[0][0], (stack - i)->eval = INF;
 
@@ -1042,6 +1044,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
                         std::cout << "  ";
                         printPv();
                         std::cout << std::endl;
+                        //average_changes.print_mean();
                         //values[0].print_mean();
                         //std::cout << cnt << '\n';
                         //std::cout << cnt2 << " out of " << cnt << ", " << 100.0 * cnt2 / cnt << "% good\n";
