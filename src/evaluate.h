@@ -41,10 +41,9 @@ void bringUpToDate(Board &board, Network &NN) {
                 for (int j = i; j < histSz; j++) {
                     NetHist hist = NN.hist[j];
                     NN.hist[j].calc[c] = 1;
-                    memcpy(NN.histOutput[j][c], NN.histOutput[j - 1][c], sizeof(int16_t) * SIDE_NEURONS);
                     NN.updateSz = 0;
                     NN.processMove(hist.move, hist.piece, hist.cap, board.king(c), c);
-                    NN.apply(NN.histOutput[j][c], NN.updateSz, NN.updates);
+                    NN.apply(NN.histOutput[j][c], NN.histOutput[j - 1][c], NN.updateSz, NN.updates);
                 }
             }
             else {

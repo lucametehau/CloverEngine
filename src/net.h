@@ -254,9 +254,30 @@ public:
         histSz++;
     }
 
-    void apply(int16_t* a, int updatesCnt, Update* updates) {
-        reg_type* w = (reg_type*)a;
-        for (int i = 0; i < updatesCnt; i++) {
+    void apply(int16_t* a, int16_t* b, int updatesCnt, Update* updates) {
+        reg_type* w  = (reg_type*)a;
+        reg_type* w2 = (reg_type*)b;
+
+        reg_type* v = (reg_type*)inputWeights[updates[0].ind];
+
+        if (updates[0].coef == 1) {
+            for (int j = 0; j < NUM_REGS; j += 4) {
+                w[j] = reg_add16(w2[j], v[j]);
+                w[j + 1] = reg_add16(w2[j + 1], v[j + 1]);
+                w[j + 2] = reg_add16(w2[j + 2], v[j + 2]);
+                w[j + 3] = reg_add16(w2[j + 3], v[j + 3]);
+            }
+        }
+        else {
+            for (int j = 0; j < NUM_REGS; j += 4) {
+                w[j] = reg_sub16(w2[j], v[j]);
+                w[j + 1] = reg_sub16(w2[j + 1], v[j + 1]);
+                w[j + 2] = reg_sub16(w2[j + 2], v[j + 2]);
+                w[j + 3] = reg_sub16(w2[j + 3], v[j + 3]);
+            }
+        }
+
+        for (int i = 1; i < updatesCnt; i++) {
             reg_type* v = (reg_type*)inputWeights[updates[i].ind];
 
             if (updates[i].coef == 1) {
@@ -279,8 +300,8 @@ public:
     }
 
     void applyInitUpdates(int c) {
-        memcpy(histOutput[histSz - 1][c], inputBiases, sizeof(int16_t) * SIDE_NEURONS);
-        apply(histOutput[histSz - 1][c], updateSz, updates);
+        //memcpy(histOutput[histSz - 1][c], inputBiases, sizeof(int16_t) * SIDE_NEURONS);
+        apply(histOutput[histSz - 1][c], inputBiases, updateSz, updates);
         updateSz = 0;
     }
 
