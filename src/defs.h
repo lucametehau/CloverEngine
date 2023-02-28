@@ -37,6 +37,14 @@ std::uniform_int_distribution <uint64_t> rng;
 
 #define TablePieceTo std::array <std::array <int, 64>, 13>
 
+struct StackEntry { /// info to keep in the stack
+    uint16_t move, piece;
+    uint16_t killer;
+    uint16_t quiets[256], captures[256];
+    int eval;
+    TablePieceTo* continuationHist;
+};
+
 enum {
     A1, B1, C1, D1, E1, F1, G1, H1,
     A2, B2, C2, D2, E2, F2, G2, H2,
@@ -161,6 +169,8 @@ struct MeanValue {
     }
 };
 
+MeanValue average_changes;
+
 auto t_init = std::chrono::steady_clock::now();
 
 inline long double getTime() {
@@ -251,6 +261,10 @@ inline uint64_t shift(int color, int dir, uint64_t mask) {
 
 inline int getType(int type, int color) {
     return 6 * color + type;
+}
+
+inline int color_of(int piece) {
+    return piece > 6;
 }
 
 inline bool inTable(int rank, int file) {

@@ -53,11 +53,14 @@
 #define ALLIGN      16
 #endif
 
+
 INCBIN(Net, EVALFILE);
 
 const int INPUT_NEURONS = 3072;
 const int SIDE_NEURONS = 768;
 const int HIDDEN_NEURONS = 2 * SIDE_NEURONS;
+const int REG_LENGTH = sizeof(reg_type) / sizeof(int16_t);
+const int NUM_REGS = SIDE_NEURONS / REG_LENGTH;
 
 const int Q_IN = 2;
 const int Q_HIDDEN = 512;
@@ -71,13 +74,20 @@ struct Update {
     int8_t coef;
 };
 
+struct NetHist {
+    uint16_t move;
+    uint8_t piece, cap;
+    bool recalc;
+    bool calc[2];
+};
+
 class Network {
 public:
 
     Network() {
         histSz = 0;
 
-        updateSz[WHITE] = updateSz[BLACK] = 0;
+        updateSz = 0;
 
         load();
     }
@@ -121,12 +131,14 @@ public:
         }
 
         histSz = 1;
+        hist[0].calc[0] = hist[0].calc[1] = 1;
 
         return getOutput(stm);
     }
 
     int32_t getOutput(NetInput& input, bool stm) { /// feed forward
         int32_t sum;
+        int16_t va[2][SIDE_NEURONS];
 
         for (int n = 0; n < SIDE_NEURONS; n++) {
             sum = inputBiases[n];
@@ -135,7 +147,7 @@ public:
                 sum += inputWeights[prevN][n];
             }
 
-            histOutput[0][WHITE][n] = sum;
+            va[WHITE][n] = sum;
 
             sum = inputBiases[n];
 
@@ -143,7 +155,7 @@ public:
                 sum += inputWeights[prevN][n];
             }
 
-            histOutput[0][BLACK][n] = sum;
+            va[BLACK][n] = sum;
 
             assert(-32768 <= sum && sum <= 32767);
         }
@@ -154,18 +166,18 @@ public:
         reg_type acc{}, acc2{};
 
         reg_type* v = (reg_type*)outputWeights;
-        reg_type* w = (reg_type*)histOutput[stm][0];
+        reg_type* w = (reg_type*)va[stm];
 
-        for (int j = 0; j < batches / 2; j++) {
+        for (int j = 0; j < NUM_REGS / 2; j++) {
             acc = reg_add32(acc, reg_madd16(reg_max16(w[2 * j], zero), v[2 * j]));
             acc2 = reg_add32(acc2, reg_madd16(reg_max16(w[2 * j + 1], zero), v[2 * j + 1]));
         }
 
-        reg_type* w2 = (reg_type*)histOutput[stm ^ 1][0];
+        reg_type* w2 = (reg_type*)va[1 ^ stm];
 
-        for (int j = 0; j < batches / 2; j++) {
-            acc = reg_add32(acc, reg_madd16(reg_max16(w2[2 * j], zero), v[2 * j + batches]));
-            acc2 = reg_add32(acc2, reg_madd16(reg_max16(w2[2 * j + 1], zero), v[2 * j + 1 + batches]));
+        for (int j = 0; j < NUM_REGS / 2; j++) {
+            acc = reg_add32(acc, reg_madd16(reg_max16(w2[2 * j], zero), v[2 * j + NUM_REGS]));
+            acc2 = reg_add32(acc2, reg_madd16(reg_max16(w2[2 * j + 1], zero), v[2 * j + 1 + NUM_REGS]));
         }
 
         acc = reg_add32(acc, acc2);
@@ -175,32 +187,101 @@ public:
         return sum / Q_IN / Q_HIDDEN;
     }
 
-    void removeInput(int side, int16_t ind) {
-        updates[side][updateSz[side]++] = { ind, -1 };
+    void removeInput(int16_t ind) {
+        updates[updateSz++] = { ind, -1 };
     }
 
-    void removeInput(int piece, int sq, int kingWhite, int kingBlack) {
-        updates[WHITE][updateSz[WHITE]++] = { netInd(piece, sq, kingWhite, WHITE), -1 };
-        updates[BLACK][updateSz[BLACK]++] = { netInd(piece, sq, kingBlack, BLACK), -1 };
+    void removeInput(bool side, int piece, int sq, int king) {
+        updates[updateSz++] = { netInd(piece, sq, king, side), -1 };
     }
 
-    void addInput(int side, int16_t ind) {
-        updates[side][updateSz[side]++] = { ind, 1 };
+    void addInput(int16_t ind) {
+        updates[updateSz++] = { ind, 1 };
     }
 
-    void addInput(int piece, int sq, int kingWhite, int kingBlack) {
-        updates[WHITE][updateSz[WHITE]++] = { netInd(piece, sq, kingWhite, WHITE), 1 };
-        updates[BLACK][updateSz[BLACK]++] = { netInd(piece, sq, kingBlack, BLACK), 1 };
+    void addInput(bool side, int piece, int sq, int king) {
+        updates[updateSz++] = { netInd(piece, sq, king, side), 1 };
+    }
+
+    void processMove(uint16_t move, int pieceFrom, int captured, int king, bool side) {
+        int posFrom = sqFrom(move), posTo = sqTo(move);
+        bool turn = color_of(pieceFrom);
+        switch (type(move)) {
+        case NEUT: {
+            removeInput(side, pieceFrom, posFrom, king);
+            addInput(side, pieceFrom, posTo, king);
+            if (captured)
+                removeInput(side, captured, posTo, king);
+        }
+        break;
+        case ENPASSANT: {
+            int pos = sqDir(turn, SOUTH, posTo), pieceCap = getType(PAWN, 1 ^ turn);
+            removeInput(side, pieceFrom, posFrom, king);
+            addInput(side, pieceFrom, posTo, king);
+            removeInput(side, pieceCap, pos, king);
+        }
+        break;
+        case CASTLE: {
+            int rFrom, rTo, rPiece = getType(ROOK, turn);
+            if (posTo == mirror(turn, C1)) {
+                rFrom = mirror(turn, A1);
+                rTo = mirror(turn, D1);
+            }
+            else {
+                rFrom = mirror(turn, H1);
+                rTo = mirror(turn, F1);
+            }
+            removeInput(side, pieceFrom, posFrom, king);
+            addInput(side, pieceFrom, posTo, king);
+            removeInput(side, rPiece, rFrom, king);
+            addInput(side, rPiece, rTo, king);
+        }
+        break;
+        default: {
+            int promPiece = getType(promoted(move) + KNIGHT, turn);
+            removeInput(side, pieceFrom, posFrom, king);
+            addInput(side, promPiece, posTo, king);
+
+            if (captured)
+                removeInput(side, captured, posTo, king);
+        }
+        break;
+        }
+    }
+
+    void addHistory(uint16_t move, uint8_t piece, uint8_t captured) {
+        hist[histSz] = { move, piece, captured, (piece_type(piece) == KING && recalc(sqFrom(move), sqTo(move))), { 0, 0 }};
+        histSz++;
     }
 
     void apply(int16_t* a, int16_t* b, int updatesCnt, Update* updates) {
-        memcpy(a, b, sizeof(int16_t) * SIDE_NEURONS);
-        reg_type* w = (reg_type*)a;
-        for (int i = 0; i < updatesCnt; i++) {
+        reg_type* w  = (reg_type*)a;
+        reg_type* w2 = (reg_type*)b;
+
+        reg_type* v = (reg_type*)inputWeights[updates[0].ind];
+
+        if (updates[0].coef == 1) {
+            for (int j = 0; j < NUM_REGS; j += 4) {
+                w[j] = reg_add16(w2[j], v[j]);
+                w[j + 1] = reg_add16(w2[j + 1], v[j + 1]);
+                w[j + 2] = reg_add16(w2[j + 2], v[j + 2]);
+                w[j + 3] = reg_add16(w2[j + 3], v[j + 3]);
+            }
+        }
+        else {
+            for (int j = 0; j < NUM_REGS; j += 4) {
+                w[j] = reg_sub16(w2[j], v[j]);
+                w[j + 1] = reg_sub16(w2[j + 1], v[j + 1]);
+                w[j + 2] = reg_sub16(w2[j + 2], v[j + 2]);
+                w[j + 3] = reg_sub16(w2[j + 3], v[j + 3]);
+            }
+        }
+
+        for (int i = 1; i < updatesCnt; i++) {
             reg_type* v = (reg_type*)inputWeights[updates[i].ind];
 
             if (updates[i].coef == 1) {
-                for (int j = 0; j < batches; j += 4) {
+                for (int j = 0; j < NUM_REGS; j += 4) {
                     w[j] = reg_add16(w[j], v[j]);
                     w[j + 1] = reg_add16(w[j + 1], v[j + 1]);
                     w[j + 2] = reg_add16(w[j + 2], v[j + 2]);
@@ -208,7 +289,7 @@ public:
                 }
             }
             else {
-                for (int j = 0; j < batches; j += 4) {
+                for (int j = 0; j < NUM_REGS; j += 4) {
                     w[j] = reg_sub16(w[j], v[j]);
                     w[j + 1] = reg_sub16(w[j + 1], v[j + 1]);
                     w[j + 2] = reg_sub16(w[j + 2], v[j + 2]);
@@ -218,18 +299,23 @@ public:
         }
     }
 
-    void applyUpdates(int c) {
-        apply(histOutput[histSz][c], histOutput[histSz - 1][c], updateSz[c], updates[c]);
-        updateSz[c] = 0;
-    }
-
     void applyInitUpdates(int c) {
-        apply(histOutput[histSz][c], inputBiases, updateSz[c], updates[c]);
-        updateSz[c] = 0;
+        apply(histOutput[histSz - 1][c], inputBiases, updateSz, updates);
+        updateSz = 0;
     }
 
     void revertUpdates() {
         histSz--;
+    }
+
+    int getGoodParent(int c) {
+        int i = histSz - 1;
+        while (!hist[i].calc[c]) {
+            if (color_of(hist[i].piece) == c && hist[i].recalc)
+                return -1;
+            i--;
+        }
+        return i;
     }
 
     int32_t getOutput(bool stm) {
@@ -241,7 +327,7 @@ public:
 
         reg_type* w = (reg_type*)histOutput[histSz - 1][stm];
 
-        for (int j = 0; j < batches; j += 4) {
+        for (int j = 0; j < NUM_REGS; j += 4) {
             acc0 = reg_add32(acc0, reg_madd16(reg_max16(w[j], zero), v[j]));
             acc1 = reg_add32(acc1, reg_madd16(reg_max16(w[j + 1], zero), v[j + 1]));
             acc2 = reg_add32(acc2, reg_madd16(reg_max16(w[j + 2], zero), v[j + 2]));
@@ -250,11 +336,11 @@ public:
 
         reg_type* w2 = (reg_type*)histOutput[histSz - 1][stm ^ 1];
 
-        for (int j = 0; j < batches; j += 4) {
-            acc0 = reg_add32(acc0, reg_madd16(reg_max16(w2[j], zero), v[j + batches]));
-            acc1 = reg_add32(acc1, reg_madd16(reg_max16(w2[j + 1], zero), v[j + 1 + batches]));
-            acc2 = reg_add32(acc2, reg_madd16(reg_max16(w2[j + 2], zero), v[j + 2 + batches]));
-            acc3 = reg_add32(acc3, reg_madd16(reg_max16(w2[j + 3], zero), v[j + 3 + batches]));
+        for (int j = 0; j < NUM_REGS; j += 4) {
+            acc0 = reg_add32(acc0, reg_madd16(reg_max16(w2[j], zero), v[j + NUM_REGS]));
+            acc1 = reg_add32(acc1, reg_madd16(reg_max16(w2[j + 1], zero), v[j + 1 + NUM_REGS]));
+            acc2 = reg_add32(acc2, reg_madd16(reg_max16(w2[j + 2], zero), v[j + 2 + NUM_REGS]));
+            acc3 = reg_add32(acc3, reg_madd16(reg_max16(w2[j + 3], zero), v[j + 3 + NUM_REGS]));
         }
 
         acc0 = reg_add32(acc0, acc1);
@@ -303,10 +389,7 @@ public:
         }
     }
 
-    int lg = sizeof(reg_type) / sizeof(int16_t);
-    int batches = SIDE_NEURONS / lg;
-
-    int histSz, updateSz[2];
+    int histSz;
 
     int16_t inputBiases[SIDE_NEURONS] __attribute__((aligned(ALLIGN)));
     int32_t outputBias;
@@ -317,5 +400,8 @@ public:
 
     reg_type* v = (reg_type*)outputWeights;
 
-    Update updates[2][105];
+    int updateSz;
+    Update updates[105];
+    NetHist hist[2005];
+    //int kingSq[2005];
 };
