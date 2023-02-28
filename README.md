@@ -6,6 +6,18 @@ Clover is a chess engine, written in C++, inspired by my favorite plant. Since t
 
 Clover now has a page with all the features: https://www.chessprogramming.org/Clover .
 
+# Rating
+
+Clover is and was tested in multiple rating lists (thanks to all testers btw), such as:
+
+- [CCRL 40/15](https://ccrl.chessdom.com/ccrl/4040/) - 3382 4CPU, 3319 1CPU (v3.2.1)
+- [CCRL 2+1](https://ccrl.chessdom.com/ccrl/404/) - 3430 1CPU (v3.2.1)
+- [SP-CC](https://www.sp-cc.de/) - 3515 1CPU (v3.3.1)
+- [CEGT](http://www.cegt.net/40_4_Ratinglist/40_4_single/rangliste.html) - 3391 (v3.3.1)
+- [IPMAN CHESS](https://ipmanchess.yolasite.com/i7-11800h.php) - 3369 (dev version of 4.0)
+
+There may be other that I omited, if so please bring to my attention =).
+
 # Fathom
 
 Currently, Clover supports Endgame Tablebases, thanks to [Fathom](https://github.com/jdart1/Fathom).
@@ -18,18 +30,16 @@ Clover is UCI compatible, but doesn't have a GUI, so, in order to play with it, 
 
 ``` 
 git clone https://github.com/lucametehau/CloverEngine.git
-make run 
+cd src
+make release 
 ```
-This will create an avx2 executable, any CPU that supports avx2 can run it. If you don't have avx2, then it will probably crash.
+
+This will create 3 compiles: old, avx2 and avx512. Choose the latest that doesn't crash (if you don't know your PC specs).
 
 To run it's pretty easy:
 ```
 ./Clover.3.1-avx2.exe
 ```
-
-# Testing
-The only version supported for now is avx2 (any CPU that supports avx2 can run it), because I use simd and avx2 code.
-I plan on doing something for the non-avx2 CPU users in the future.
 
 # UCI
 
@@ -49,14 +59,9 @@ perft <depth>
 eval
 ```
 
-- Tune command
-```
-tune <nrThreads> <path for positions>
-```
-
 - Bench command
 ```
-bench
+bench <depth>
 ```
 
 # Contributing
