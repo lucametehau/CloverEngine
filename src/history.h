@@ -21,7 +21,7 @@
 #include "thread.h"
 
 
-int histMax = 7616;
+int histMax = 1950;
 
 int histUpdateDiv = 16384;
 
@@ -29,8 +29,7 @@ int counterHistUpdateDiv = 16384;
 
 int capHistUpdateDiv = 16384;
 
-int A_mult = 16;
-int B_mult = 320;
+int A_mult = 150;
 
 
 void updateHist(int& hist, int score) {
@@ -46,7 +45,7 @@ void updateCapHist(int& hist, int score) {
 }
 
 int getHistoryBonus(int depth) {
-    return std::min(A_mult * depth * depth + B_mult * depth, histMax);
+    return std::min(A_mult * depth, histMax);
 }
 
 void updateMoveHistory(Search* searcher, StackEntry*& stack, uint16_t move, int bonus) {
