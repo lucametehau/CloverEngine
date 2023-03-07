@@ -30,14 +30,12 @@ uint64_t perft(Board& board, int depth, bool print = 0) {
     for (int i = 0; i < nrMoves; i++) {
         uint16_t move = moves[i];
 
-        makeMove(board, move);
+        board.makeMove(move);
 
-        bool p = print;
-
-        uint64_t x = perft(board, depth - 1, p);
+        uint64_t x = perft(board, depth - 1);
 
         nodes += x;
-        undoMove(board, move);
+        board.undoMove(move);
     }
     return nodes;
 }

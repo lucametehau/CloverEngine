@@ -111,6 +111,14 @@ public:
         return (board[sqTo(move)] > 0);
     }
 
+    void makeMove(uint16_t move);
+
+    void undoMove(uint16_t move);
+
+    void makeNullMove();
+
+    void undoNullMove();
+
     bool hasNonPawnMaterial(bool color) {
         return (pieces[color] ^ bb[getType(KING, color)] ^ bb[getType(PAWN, color)]) != 0;
     }

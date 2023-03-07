@@ -153,7 +153,6 @@ struct Search {
     Info* info;
     int checkCount;
 
-    uint64_t nmpFail, nmpTries;
     int64_t cnt, cnt2;
     int bestMoveCnt;
 

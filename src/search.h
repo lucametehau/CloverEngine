@@ -154,10 +154,10 @@ std::string getSanString(Board& board, uint16_t move) {
     if (prom)
         san += "=", san += pieceChar[prom];
 
-    makeMove(board, move);
+    board.makeMove(move);
     if (board.checkers)
         san += '+';
-    undoMove(board, move);
+    board.undoMove(move);
     return san;
 }
 
@@ -167,13 +167,13 @@ void Search::printPv() {
             std::cout << toString(pvTable[0][i]) << " ";
         else {
             std::cout << getSanString(board, pvTable[0][i]) << " ";
-            makeMove(board, pvTable[0][i]);
+            board.makeMove(pvTable[0][i]);
         }
     }
 
     if (info->sanMode) {
         for (int i = pvTableLen[0] - 1; i >= 0; i--)
-            undoMove(board, pvTable[0][i]);
+            board.undoMove(pvTable[0][i]);
     }
 }
 
@@ -214,7 +214,6 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack, bool useTT) {
     int eval = INF, ttValue = 0;
 
     /// probe transposition table
-
     if (TT->probe(key, entry)) {
         best = eval = entry.eval;
         ttValue = score = entry.value(ply);
@@ -233,12 +232,10 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack, bool useTT) {
         best = futilityValue = -INF;
     }
     else if (eval == INF) {
-        /// if last move was null, we already know the evaluation
         stack->eval = best = eval = evaluate(board);
         futilityValue = best + quiesceFutilityCoef;
     }
-    else {
-        /// ttValue might be a better evaluation
+    else { /// ttValue might be a better evaluation
         stack->eval = eval;
         if (bound == EXACT || (bound == LOWER && ttValue > eval) || (bound == UPPER && ttValue < eval))
             best = ttValue;
@@ -282,10 +279,10 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack, bool useTT) {
         stack->piece = board.piece_at(sqFrom(move));
         stack->continuationHist = &continuationHistory[stack->piece][sqTo(move)];
 
-        makeMove(board, move);
+        board.makeMove(move);
         TT->prefetch(board.key);
         score = -quiesce(-beta, -alpha, stack + 1);
-        undoMove(board, move);
+        board.undoMove(move);
 
         if (flag & TERMINATED_SEARCH)
             return ABORT;
@@ -355,7 +352,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
     tt::Entry entry = {};
 
     /// transposition table probing
-
     int eval = INF;
 
     if (!excluded && TT->probe(key, entry)) {
@@ -399,19 +395,16 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
     bool quietUs = quietness(board, board.turn);
     //int quietEnemy = quietness(board, 1 ^ board.turn);
 
-    if (isCheck) {
-        /// when in check, don't evaluate (king safety evaluation might break)
+    if (isCheck) { /// when in check, don't evaluate
         stack->eval = eval = INF;
     }
-    else if (!ttHit) {
-        /// if last move was null or we are in a singular search, we already know the evaluation
+    else if (!ttHit) { /// if we are in a singular search, we already know the evaluation
         if (excluded)
             eval = stack->eval;
         else
             stack->eval = eval = evaluate(board);
     }
-    else {
-        /// ttValue might be a better evaluation
+    else { /// ttValue might be a better evaluation
         stack->eval = eval;
         if (bound == EXACT || (bound == LOWER && ttValue > eval) || (bound == UPPER && ttValue < eval))
             eval = ttValue;
@@ -421,7 +414,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
     bool improving = (!isCheck && staticEval > (stack - 2)->eval); /// (TO DO: make all pruning dependent of this variable?)
 
     (stack + 1)->killer = NULLMOVE;
-    //bool flaggy = 0;
 
     if (!pvNode && !isCheck) {
         /// razoring (searching 1 more ply can't change the score much, drop in quiesce)
@@ -429,12 +421,8 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
             return quiesce(alpha, beta, stack);
         }
 
-        //flaggy = (quietUs && staticEval - rootEval > 200);
-        //cnt += flaggy;
-
         /// static null move pruning (don't prune when having a mate line, again stability)
         if (depth <= SNMPDepth && eval > beta && eval - (SNMPCoef1 - SNMPCoef2 * improving) * (depth - quietUs) > beta && eval < MATE) {
-            //cnt2 += flaggy;
             return eval;
         }
 
@@ -448,17 +436,13 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
             stack->piece = 0;
             stack->continuationHist = &continuationHistory[0][0];
 
-            makeNullMove(board);
+            board.makeNullMove();
 
             int score = -search(-beta, -beta + 1, depth - R, !cutNode, stack + 1);
 
-            undoNullMove(board);
-            //cnt += (score < beta);
-            //cnt2 += (score < beta && isNoisyMove(board, (stack + 1)->move));
-
+            board.undoNullMove();
 
             if (score >= beta) {
-                //cnt2 += flaggy;
                 return (abs(score) > MATE ? beta : score); /// don't trust mate scores
             }
         }
@@ -478,7 +462,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                 stack->piece = board.piece_at(sqFrom(move));
                 stack->continuationHist = &continuationHistory[stack->piece][sqTo(move)];
 
-                makeMove(board, move);
+                board.makeMove(move);
 
                 /// do we have a good sequence of captures that beats cutBeta ?
                 int score = -quiesce(-cutBeta, -cutBeta + 1, stack + 1);
@@ -486,11 +470,10 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                 if (score >= cutBeta) /// then we should try searching this capture
                     score = -search(-cutBeta, -cutBeta + 1, depth - probcutR, !cutNode, stack + 1);
 
-                undoMove(board, move);
+                board.undoMove(move);
 
 
                 if (score >= cutBeta) {
-                    //cnt2 += flaggy;
                     //TT->save(key, score, depth - probcutR, ply, LOWER, move, staticEval); // save probcut score in tt
                     return score;
                 }
@@ -558,14 +541,13 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         /// avoid extending too far (might cause stack overflow)
         if (ply < 2 * tDepth) {
             /// singular extension (look if the tt move is better than the rest)
-            if (!excluded && move == ttMove && abs(ttValue) < MATE && depth >= 6 && entry.depth() >= depth - 3 && (bound & LOWER)) { /// had best instead of ttValue lol
+            if (!excluded && move == ttMove && abs(ttValue) < MATE && depth >= 6 && entry.depth() >= depth - 3 && (bound & LOWER)) {
                 int rBeta = ttValue - depth;
 
                 int score = search(rBeta - 1, rBeta, depth / 2, cutNode, stack, move);
 
-                if (score < rBeta) {
+                if (score < rBeta)
                     ex = 1 + (!pvNode && rBeta - score > 100);
-                }
                 else if (rBeta >= beta) /// multicut
                     return rBeta;
                 else if (ttValue >= beta)
@@ -581,7 +563,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         stack->piece = board.piece_at(sqFrom(move));
         stack->continuationHist = &continuationHistory[stack->piece][sqTo(move)];
 
-        makeMove(board, move);
+        board.makeMove(move);
         TT->prefetch(board.key);
         played++;
 
@@ -628,7 +610,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         int score = -INF;
 
         /// principal variation search
-
         uint64_t initNodes = nodes;
 
         if (R != 1) {
@@ -643,7 +624,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
             score = -search(-beta, -alpha, newDepth - 1, false, stack + 1);
         }
 
-        undoMove(board, move);
+        board.undoMove(move);
 
         nodesSearched[!isQuiet][sqFrom(move)][sqTo(move)] += nodes - initNodes;
 
@@ -715,7 +696,6 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv, StackEntry* 
     tt::Entry entry = {};
 
     /// transposition table probing
-
     int eval = INF;
 
     if (TT->probe(key, entry)) {
@@ -727,19 +707,15 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv, StackEntry* 
     }
 
     bool isCheck = (board.checkers != 0);
-    int quietUs = quietness(board, board.turn);
+    bool quietUs = quietness(board, board.turn);
 
-    if (isCheck) {
-        /// when in check, don't evaluate (king safety evaluation might break)
+    if (isCheck) { /// when in check, don't evaluate (king safety evaluation might break)
         stack->eval = eval = INF;
     }
     else if (eval == INF) {
-        /// if last move was null or we are in a singular search, we already know the evaluation
         stack->eval = eval = evaluate(board);
     }
-    else {
-        /// ttValue might be a better evaluation
-
+    else { /// ttValue might be a better evaluation
         stack->eval = eval;
         if (bound == EXACT || (bound == LOWER && ttValue > eval) || (bound == UPPER && ttValue < eval))
             eval = ttValue;
@@ -748,11 +724,8 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv, StackEntry* 
     (stack + 1)->killer = NULLMOVE;
 
     /// internal iterative deepening (search at reduced depth to find a ttMove) (Rebel like)
-
     if (!isCheck && depth >= 4 && !ttHit)
         depth--;
-
-    /// get counter move for move picker
 
     Movepick picker(ttMove, stack->killer, NULLMOVE, -10 * depth);
 
@@ -778,17 +751,15 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv, StackEntry* 
         stack->piece = board.piece_at(sqFrom(move));
         stack->continuationHist = &continuationHistory[stack->piece][sqTo(move)];
 
-        makeMove(board, move);
+        board.makeMove(move);
         played++;
 
         /// current root move info
-
         if (principalSearcher && printStats && getTime() > info->startTime + 2500 && !info->sanMode) {
             std::cout << "info depth " << depth << " currmove " << toString(move) << " currmovenumber " << played << std::endl;
         }
 
         /// store quiets for history
-
         if (isQuiet)
             stack->quiets[nrQuiets++] = move;
         else
@@ -797,12 +768,11 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv, StackEntry* 
         int newDepth = depth, R = 1;
 
         /// quiet late move reduction
-
         if (depth >= 3 && played > 3) { /// first few moves we don't reduce
             if (isQuiet) {
                 R = lmrRed[std::min(63, depth)][std::min(63, played)];
 
-                R += (quietUs && eval - seeVal[KNIGHT] > beta);
+                R += quietUs && eval - seeVal[KNIGHT] > beta;
 
                 R -= 2 * refutationMove; /// reduce for refutation moves
             }
@@ -813,7 +783,6 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv, StackEntry* 
         int score = -INF;
 
         /// principal variation search
-
         uint64_t initNodes = nodes;
 
         if (R != 1) {
@@ -828,7 +797,7 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv, StackEntry* 
             score = -search(-beta, -alpha, newDepth - 1, false, stack + 1);
         }
 
-        undoMove(board, move);
+        board.undoMove(move);
 
         nodesSearched[isNoisyMove(board, move)][sqFrom(move)][sqTo(move)] += nodes - initNodes;
 
@@ -956,11 +925,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
 
     memset(search_stack, 0, sizeof(search_stack));
 
-    //values[0].init("continuationHistory_for_failing_moves");
-
     rootEval = (!board.checkers ? evaluate(board) : INF);
-
-    //average_changes.init("average_changes");
 
     for (int i = 1; i <= 3; i++)
         (stack - i)->continuationHist = &continuationHistory[0][0], (stack - i)->eval = INF;
@@ -1074,21 +1039,21 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
         }
 
         if (principalSearcher && !(flag & TERMINATED_SEARCH)) {
-            /// adjust time if score is dropping (and maybe if it's jumping)
             double scoreChange = 1.0, bestMoveStreak = 1.0, nodesSearchedPercentage = 1.0;
 
             float _tmNodesSearchedMaxPercentage = 1.0 * tmNodesSearchedMaxPercentage / 1000;
             float _tmBestMoveMax = 1.0 * tmBestMoveMax / 1000, _tmBestMoveStep = 1.0 * tmBestMoveStep / 1000;
 
             if (tDepth >= 9) {
-                scoreChange = std::max(0.5, std::min(1.0 + 1.0 * (mainThreadScore - scores[1]) / tmScoreDiv, 1.5));
+                scoreChange = std::max(0.5, std::min(1.0 + 1.0 * (mainThreadScore - scores[1]) / tmScoreDiv, 1.5)); /// adjust time based on score change
 
                 bestMoveCnt = (bestMoves[1] == mainThreadBestMove ? bestMoveCnt + 1 : 1);
 
+                /// adjust time based on how many nodes from the total searched nodes were used for the best move
                 nodesSearchedPercentage = 1.0 * nodesSearched[isNoisyMove(board, bestMoves[1])][sqFrom(bestMoves[1])][sqTo(bestMoves[1])] / nodes;
-                nodesSearchedPercentage = _tmNodesSearchedMaxPercentage - nodesSearchedPercentage;
+                nodesSearchedPercentage = _tmNodesSearchedMaxPercentage - nodesSearchedPercentage; 
 
-                bestMoveStreak = _tmBestMoveMax - _tmBestMoveStep * std::min(10, bestMoveCnt);
+                bestMoveStreak = _tmBestMoveMax - _tmBestMoveStep * std::min(10, bestMoveCnt); /// adjust time based on how long the best move was the same
             }
 
             info->stopTime = info->startTime + info->goodTimeLim * scoreChange * bestMoveStreak * nodesSearchedPercentage;
@@ -1267,9 +1232,9 @@ void Search::_setFen(std::string fen) {
 
 void Search::_makeMove(uint16_t move) {
     for (int i = 0; i < threadCount; i++)
-        makeMove(params[i].board, move);
+        params[i].board.makeMove(move);
 
-    makeMove(board, move);
+    board.makeMove(move);
 }
 
 void Search::clearBoard() {
