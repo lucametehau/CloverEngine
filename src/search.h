@@ -707,7 +707,6 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv, StackEntry* 
     }
 
     bool isCheck = (board.checkers != 0);
-    bool quietUs = quietness(board, board.turn);
 
     if (isCheck) { /// when in check, don't evaluate (king safety evaluation might break)
         stack->eval = eval = INF;
@@ -771,8 +770,6 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv, StackEntry* 
         if (depth >= 3 && played > 3) { /// first few moves we don't reduce
             if (isQuiet) {
                 R = lmrRed[std::min(63, depth)][std::min(63, played)];
-
-                R += quietUs && eval - seeVal[KNIGHT] > beta;
 
                 R -= 2 * refutationMove; /// reduce for refutation moves
             }
