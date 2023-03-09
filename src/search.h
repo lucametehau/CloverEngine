@@ -533,6 +533,9 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                 if (depth <= 8 && !isCheck && picker.trueStage > STAGE_GOOD_NOISY && !see(board, move, -seeCoefNoisy * depth * depth))
                     continue;
 
+                if (depth <= 8 && !isCheck && staticEval + fpMargin + seeVal[board.piece_type_at(sqTo(move))] + fpCoef * depth <= alpha)
+                    continue;
+
                 hist = getCapHist(this, move);
             }
         }
@@ -595,7 +598,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                 R -= hist / histDiv; /// reduce based on move history
             }
             else if (!pvNode) {
-                R = lmrRed[std::min(63, depth)][std::min(63, played)] / (1.0 * lmrCapDiv / 10);
+                R = lmrRedNoisy[std::min(63, depth)][std::min(63, played)];
 
                 R += !improving; /// not improving
 

@@ -86,8 +86,10 @@ struct Search {
         lazyFlag = 0;
 
         for (int i = 0; i < 64; i++) { /// depth
-            for (int j = 0; j < 64; j++) /// moves played
+            for (int j = 0; j < 64; j++) { /// moves played 
                 lmrRed[i][j] = 1.0 * lmrMargin / 10 + log(i) * log(j) / (1.0 * lmrDiv / 10);
+                lmrRedNoisy[i][j] = lmrRed[i][j] / (1.0 * lmrCapDiv / 10);
+            }
         }
         for (int i = 1; i < 20; i++) {
             lmrCnt[0][i] = (lmpStart1 + lmpMult1 * i * i) / lmpDiv1;
@@ -142,7 +144,7 @@ struct Search {
     TablePieceTo continuationHistory[13][64];
     int capHist[13][64][7];
     int lmrCnt[2][20];
-    int lmrRed[64][64];
+    int lmrRed[64][64], lmrRedNoisy[64][64];
     int bestMoves[256], scores[256];
     MeanValue values[10];
 
