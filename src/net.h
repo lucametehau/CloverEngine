@@ -34,7 +34,7 @@
 #define reg_max16   _mm512_max_epi16
 #define reg_add32   _mm512_add_epi32
 #define reg_madd16  _mm512_madd_epi16
-#define ALLIGN      64
+#define ALIGN       64
 #elif defined(__AVX2__) || defined(__AVX__)
 #define reg_type    __m256i
 #define reg_add16   _mm256_add_epi16
@@ -42,7 +42,7 @@
 #define reg_max16   _mm256_max_epi16
 #define reg_add32   _mm256_add_epi32
 #define reg_madd16  _mm256_madd_epi16
-#define ALLIGN      32
+#define ALIGN       32
 #elif defined(__SSE2__)
 #define reg_type    __m128i
 #define reg_add16   _mm_add_epi16
@@ -50,7 +50,7 @@
 #define reg_max16   _mm_max_epi16
 #define reg_add32   _mm_add_epi32
 #define reg_madd16  _mm_madd_epi16
-#define ALLIGN      16
+#define ALIGN       16
 #endif
 
 
@@ -185,10 +185,6 @@ public:
         sum += get_sum(acc);
 
         return sum / Q_IN / Q_HIDDEN;
-    }
-
-    void removeInput(int16_t ind) {
-        updates[updateSz++] = { ind, -1 };
     }
 
     void removeInput(bool side, int piece, int sq, int king) {
@@ -391,12 +387,12 @@ public:
 
     int histSz;
 
-    int16_t inputBiases[SIDE_NEURONS] __attribute__((aligned(ALLIGN)));
+    int16_t inputBiases[SIDE_NEURONS] __attribute__((aligned(ALIGN)));
     int32_t outputBias;
-    int16_t histOutput[2005][2][SIDE_NEURONS] __attribute__((aligned(ALLIGN)));
-    int16_t inputWeights[INPUT_NEURONS][SIDE_NEURONS] __attribute__((aligned(ALLIGN)));
-    int16_t outputWeights[HIDDEN_NEURONS] __attribute__((aligned(ALLIGN)));
-    int16_t deeznuts[HIDDEN_NEURONS] __attribute__((aligned(ALLIGN)));
+    int16_t histOutput[2005][2][SIDE_NEURONS] __attribute__((aligned(ALIGN)));
+    int16_t inputWeights[INPUT_NEURONS][SIDE_NEURONS] __attribute__((aligned(ALIGN)));
+    int16_t outputWeights[HIDDEN_NEURONS] __attribute__((aligned(ALIGN)));
+    int16_t deeznuts[HIDDEN_NEURONS] __attribute__((aligned(ALIGN)));
 
     reg_type* v = (reg_type*)outputWeights;
 
