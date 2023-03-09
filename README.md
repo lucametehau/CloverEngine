@@ -70,6 +70,9 @@ If one spots a bug or finds an improvement, I'm open to any suggestion.
 
 # Credits
 
+- [Weather-Factory](https://github.com/dsekercioglu/weather-factory) For being a great tuning tool!
+- [Open Bench](https://github.com/AndyGrant/OpenBench) For making testing easier!
+
 I inspired myself from:
 
 - [Stockfish](https://github.com/official-stockfish/Stockfish)
