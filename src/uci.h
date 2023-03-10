@@ -268,6 +268,12 @@ void UCI::Uci_Loop() {
         else if (cmd == "uci") {
             Uci();
         }
+        else if (cmd == "checkmove") {
+            std::string moveStr;
+            iss >> moveStr;
+            uint16_t move = parseMove(searcher.board, moveStr);
+            std::cout << isLegalMove(searcher.board, move) << " " << isLegalMoveSlow(searcher.board, move) << "\n";
+        }
         else if (cmd == "setoption") {
             std::string name, value;
 

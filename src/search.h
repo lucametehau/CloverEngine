@@ -901,8 +901,8 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
                 }
             }
 
-            for (auto& mv : moves) {
-                if (mv == move) {
+            for (int i = 0; i < nrMoves; i++) {
+                if (moves[i] == move) {
                     if (printStats)
                         std::cout << "bestmove " << toString(move) << std::endl;
                     return { 0, move };

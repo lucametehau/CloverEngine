@@ -1104,18 +1104,8 @@ bool isPseudoLegalMove(Board& board, uint16_t move) {
         return 0;
 
     /// check for normal moves
-
-    if (pt == KNIGHT)
-        return knightBBAttacks[from] & (1ULL << to);
-
-    if (pt == BISHOP)
-        return genAttacksBishop(occ, from) & (1ULL << to);
-
-    if (pt == ROOK)
-        return genAttacksRook(occ, from) & (1ULL << to);
-
-    if (pt == QUEEN)
-        return genAttacksQueen(occ, from) & (1ULL << to);
+    if (pt != KING)
+        return genAttacksSq(occ, from, pt) & (1ULL << to);
 
     return kingBBAttacks[from] & (1ULL << to);
 
@@ -1183,6 +1173,23 @@ bool isLegalMove(Board& board, int move) {
         return 1;
     
     return ((board.checkers & (board.checkers - 1)) ? false : (1ULL << to) & (board.checkers | between[king][Sq(board.checkers)]));
+}
+
+bool isLegalMoveDummy(Board& board, uint16_t move) {
+    if (!isPseudoLegalMove(board, move))
+        return 0;
+    if (type(move) == CASTLE)
+        return isLegalMove(board, move);
+    bool legal = false;
+    board.makeMove(move);
+    legal = !isSqAttacked(board, board.turn, board.king(board.turn ^ 1));
+    board.undoMove(move);
+    if (legal != isLegalMove(board, move)) {
+        board.print();
+        std::cout << toString(move) << " " << legal << " " << isLegalMoveSlow(board, move) << " " << isLegalMove(board, move) << "\n";
+        exit(0);
+    }
+    return legal;
 }
 
 uint16_t parseMove(Board& board, std::string moveStr) {
