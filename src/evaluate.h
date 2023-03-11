@@ -21,8 +21,8 @@
 #include "board.h"
 #include "thread.h"
 
-int pawnScaleStart = 73;
-int pawnScaleStep = 2;
+int pawnScaleStart = 71;
+int pawnScaleStep = 1;
 int pawnsOn1Flank = 13;
 
 int scale(Board& board) {

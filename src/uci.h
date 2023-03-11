@@ -109,6 +109,8 @@ UCI::UCI(Search& _searcher) : searcher(_searcher) {
     addOption("pawnAttackedCoef", pawnAttackedCoef);
     addOption("pawnPushBonus", pawnPushBonus);
     addOption("kingAttackBonus", kingAttackBonus);
+    addOption("pawnScaleStart", pawnScaleStart);
+    addOption("pawnScaleStep", pawnScaleStep);
 }
 
 void UCI::addOption(std::string name, int value) {
@@ -448,6 +450,12 @@ void UCI::Uci_Loop() {
             }
             else if (name == "kingAttackBonus") {
                 setOptionI(iss, kingAttackBonus);
+            }
+            else if (name == "pawnScaleStart") {
+                setOptionI(iss, pawnScaleStart);
+            }
+            else if (name == "pawnScaleStep") {
+                setOptionI(iss, pawnScaleStep);
             }
         }
         else if (cmd == "generate") {
