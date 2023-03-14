@@ -53,8 +53,8 @@ int histDiv = 5102;
 int chCoef = -2000;
 int fhCoef = -2000;
 
-int seePruningQuietDepth = 9;
-int seePruningNoisyDepth = 10;
+int seePruningQuietDepth = 8;
+int seePruningNoisyDepth = 8;
 int lmpDepth = 8;
 
 int nodesSearchedDiv = 10000;
