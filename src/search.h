@@ -526,11 +526,11 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                 if (newDepth <= lmpDepth && nrQuiets >= lmrCnt[improving][newDepth])
                     skip = 1;
 
-                if (depth <= 8 && !isCheck && !see(board, move, -seeCoefQuiet * depth))
+                if (depth <= seePruningQuietDepth && !isCheck && !see(board, move, -seeCoefQuiet * depth))
                     continue;
             }
             else {
-                if (depth <= 8 && !isCheck && picker.trueStage > STAGE_GOOD_NOISY && !see(board, move, -seeCoefNoisy * depth * depth))
+                if (depth <= seePruningNoisyDepth && !isCheck && picker.trueStage > STAGE_GOOD_NOISY && !see(board, move, -seeCoefNoisy * depth * depth))
                     continue;
 
                 if (depth <= 8 && !isCheck && staticEval + fpMargin + seeVal[board.piece_type_at(sqTo(move))] + fpCoef * depth <= alpha)
@@ -934,7 +934,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
         memset(bestMoves, 0, sizeof(bestMoves));
 
         for (int i = 1; i <= info->multipv; i++) {
-            int window = 10;
+            int window = aspirationWindow;
 
             if (tDepth >= 6) {
                 alpha = std::max(-INF, scores[i] - window);
