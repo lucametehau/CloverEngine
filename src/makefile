@@ -1,6 +1,6 @@
 CC  = g++
 SRC = *.cpp tbprobe.c
-EXE = Clover.4.0.13
+EXE = Clover.4.0.14
 EVALFILE = 4buckets_768.nn
 
 ifeq ($(OS), Windows_NT)

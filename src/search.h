@@ -448,7 +448,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         }
 
         /// probcut
-        if (depth >= probcutDepth && abs(beta) < MATE) {
+        if (depth >= probcutDepth && abs(beta) < MATE && cutNode) {
             int cutBeta = beta + probcutMargin;
             Movepick noisyPicker(NULLMOVE, NULLMOVE, NULLMOVE, cutBeta - staticEval);
 
