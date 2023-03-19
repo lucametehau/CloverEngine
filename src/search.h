@@ -512,7 +512,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                 hist = h + fh + ch;
 
                 /// approximately the new depth for the next search
-                int newDepth = std::max(0, depth - lmrRed[std::min(63, depth)][std::min(63, played)]);
+                int newDepth = std::max(0, depth - lmrRed[std::min(63, depth)][std::min(63, played)] + improving);
 
                 /// continuation history leaf pruning
                 if (newDepth <= 3 && !refutationMove && (ch < chCoef * newDepth || fh < fhCoef * newDepth))
