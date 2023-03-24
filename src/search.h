@@ -930,6 +930,8 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
     for (int i = 1; i <= 3; i++)
         (stack - i)->continuationHist = &continuationHistory[0][0], (stack - i)->eval = INF;
 
+    //values[0].init("nmp_pv_rate");
+
     for (tDepth = 1; tDepth <= limitDepth; tDepth++) {
         memset(bestMoves, 0, sizeof(bestMoves));
 
