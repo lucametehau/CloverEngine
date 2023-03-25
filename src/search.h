@@ -930,6 +930,8 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
     for (int i = 1; i <= 3; i++)
         (stack - i)->continuationHist = &continuationHistory[0][0], (stack - i)->eval = INF;
 
+    //values[0].init("nmp_pv_rate");
+
     for (tDepth = 1; tDepth <= limitDepth; tDepth++) {
         memset(bestMoves, 0, sizeof(bestMoves));
 
@@ -1076,8 +1078,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
         }
     }
 
-    if (threadCount)
-        stopWorkerThreads();
+    stopWorkerThreads();
 
     int bm = (bestMoves[1] ? bestMoves[1] : mainThreadBestMove);
 
@@ -1219,6 +1220,20 @@ void Search::releaseThreads() {
             params[i].lazyCV.notify_one();
             threads[i].join();
         }
+    }
+}
+
+void Search::killMainThread() {
+    if (principalThread->joinable()) {
+        terminateSMP = true;
+
+        {
+            std::unique_lock <std::mutex> lk(readyMutex);
+            lazyFlag = 1;
+        }
+
+        lazyCV.notify_one();
+        principalThread->join();
     }
 }
 

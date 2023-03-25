@@ -143,10 +143,9 @@ void UCI::Uci_Loop() {
 
     //searcher.setThreadCount(1); /// 2 threads for debugging data races
     UciNewGame(ttSize);
-
-    while (1) {
         std::string input;
-        getline(std::cin, input);
+
+    while (getline(std::cin, input)) {
 
         std::istringstream iss(input);
 
@@ -186,7 +185,7 @@ void UCI::Uci_Loop() {
                 }
             }
 
-            searcher.board.print(); /// just to be sure
+            //searcher.board.print(); /// just to be sure
         }
         else if (cmd == "ucinewgame") {
             UciNewGame(ttSize);
@@ -265,6 +264,9 @@ void UCI::Uci_Loop() {
             Go(info);
         }
         else if (cmd == "quit") {
+            Stop();
+            searcher.stopWorkerThreads();
+            searcher.killMainThread();
             return;
         }
         else if (cmd == "stop") {
