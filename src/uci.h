@@ -143,10 +143,9 @@ void UCI::Uci_Loop() {
 
     //searcher.setThreadCount(1); /// 2 threads for debugging data races
     UciNewGame(ttSize);
-
-    while (1) {
         std::string input;
-        getline(std::cin, input);
+
+    while (getline(std::cin, input)) {
 
         std::istringstream iss(input);
 
