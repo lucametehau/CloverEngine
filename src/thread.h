@@ -102,6 +102,7 @@ struct Search {
     }
 
     ~Search() {
+        //std::cout << "its not even called\n";
         releaseThreads();
     }
 
@@ -134,6 +135,7 @@ struct Search {
     void stopWorkerThreads();
     void lazySMPSearcher();
     void releaseThreads();
+    void killMainThread();
 
     void printPv();
     void updatePv(int ply, int move);
