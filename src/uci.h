@@ -245,8 +245,9 @@ void UCI::Uci_Loop() {
             else if (time != -1) {
                 const int MOVE_OVERHEAD = 100; // idk
                 time -= MOVE_OVERHEAD;
+                time += movestogo * inc;
                 int goodTimeLim, hardTimeLim;
-                goodTimeLim = time / std::max(movestogo / 2, 1) + inc;
+                goodTimeLim = time / std::max(movestogo / 2, 1);
                 hardTimeLim = std::min(goodTimeLim * 5, time / std::min(4, movestogo));
 
                 hardTimeLim = std::min(hardTimeLim, time);
