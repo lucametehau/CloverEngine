@@ -245,13 +245,13 @@ void UCI::Uci_Loop() {
             else if (time != -1) {
                 const int MOVE_OVERHEAD = 100; // idk
                 time -= MOVE_OVERHEAD;
-                time += movestogo * inc;
+                int incTime = time + movestogo * inc;
                 int goodTimeLim, hardTimeLim;
-                goodTimeLim = time / std::max(movestogo / 2, 1);
-                hardTimeLim = std::min(goodTimeLim * 5, time / std::min(4, movestogo));
+                goodTimeLim = std::min<int>(incTime / std::max(movestogo / 2, 1), time * 0.25);
+                hardTimeLim = std::min<int>(goodTimeLim * 5, time * 0.75);
 
-                hardTimeLim = std::min(hardTimeLim, time);
-                goodTimeLim = std::min(goodTimeLim, time);
+                //hardTimeLim = std::min(hardTimeLim, time);
+                //goodTimeLim = std::min(goodTimeLim, time);
                 info->goodTimeLim = goodTimeLim;
                 info->hardTimeLim = hardTimeLim;
                 info->timeset = 1;
