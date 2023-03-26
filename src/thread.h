@@ -67,8 +67,8 @@ int lmpStart1 = 3, lmpMult1 = 1, lmpDiv1 = 2;
 int lmpStart2 = 3, lmpMult2 = 1, lmpDiv2 = 1;
 
 int tmScoreDiv = 111;
-int tmBestMoveStep = 100;
-int tmBestMoveMax = 1500;
+int tmBestMoveStep = 50;
+int tmBestMoveMax = 1250;
 int tmNodesSearchedMaxPercentage = 1570;
 
 int quiesceFutilityCoef = 200;
