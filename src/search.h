@@ -587,6 +587,8 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
 
                 R += !pvNode + !improving; /// not on pv or not improving
 
+                R -= pvNode;
+
                 R += quietUs && !isCheck && eval - seeVal[KNIGHT] > beta; /// if the position is relatively quiet and eval is bigger than beta by a margin
 
                 R += quietUs && !isCheck && staticEval - rootEval > 200 && ply % 2 == 0; /// the position in quiet and static eval is way bigger than root eval
