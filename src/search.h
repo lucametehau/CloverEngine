@@ -553,7 +553,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                     ex = 1 + (!pvNode && rBeta - score > 100);
                 else if (rBeta >= beta) /// multicut
                     return rBeta;
-                else if (ttValue >= beta)
+                else if (ttValue >= beta || ttValue <= alpha)
                     ex = -1;
             }
             else if (isCheck) {
