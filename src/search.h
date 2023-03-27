@@ -1058,6 +1058,9 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
                 bestMoveStreak = _tmBestMoveMax - _tmBestMoveStep * std::min(10, bestMoveCnt); /// adjust time based on how long the best move was the same
             }
 
+            //std::cout << "Scale factor for tm is " << scoreChange * bestMoveStreak * nodesSearchedPercentage * 100 << "%\n";
+            //std::cout << scoreChange * 100 << " " << bestMoveStreak * 100 << " " << nodesSearchedPercentage * 100 << "\n";
+
             info->stopTime = info->startTime + info->goodTimeLim * scoreChange * bestMoveStreak * nodesSearchedPercentage;
 
             mainThreadScore = scores[1];
