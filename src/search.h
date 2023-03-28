@@ -560,6 +560,8 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                 ex = 1;
             }
         }
+        else if (!pvNode && !cutNode && played >= 1 && entry.depth() >= depth - 3 && bound == UPPER)
+            ex = -1;
 
         /// update stack info
         stack->move = move;
