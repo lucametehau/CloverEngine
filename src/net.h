@@ -55,8 +55,8 @@
 
 INCBIN(Net, EVALFILE);
 
-const int INPUT_NEURONS = 3072;
-const int SIDE_NEURONS = 768;
+const int INPUT_NEURONS = 6144;
+const int SIDE_NEURONS = 512;
 const int HIDDEN_NEURONS = 2 * SIDE_NEURONS;
 const int REG_LENGTH = sizeof(reg_type) / sizeof(int16_t);
 const int NUM_REGS = SIDE_NEURONS / REG_LENGTH;
@@ -116,6 +116,8 @@ public:
                 sum += inputWeights[prevN][n];
             }
 
+            assert(-32768 <= sum && sum <= 32767);
+
             histOutput[0][WHITE][n] = sum;
 
             sum = inputBiases[n];
@@ -145,6 +147,8 @@ public:
             for (auto& prevN : input.ind[WHITE]) {
                 sum += inputWeights[prevN][n];
             }
+
+            assert(-32768 <= sum && sum <= 32767);
 
             va[WHITE][n] = sum;
 
@@ -245,7 +249,7 @@ public:
     }
 
     void addHistory(uint16_t move, uint8_t piece, uint8_t captured) {
-        hist[histSz] = { move, piece, captured, (piece_type(piece) == KING && recalc(sqFrom(move), sqTo(move))), { 0, 0 }};
+        hist[histSz] = { move, piece, captured, (piece_type(piece) == KING && recalc(sqFrom(move), sqTo(move), color_of(piece))), { 0, 0 }};
         histSz++;
     }
 
