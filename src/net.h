@@ -55,8 +55,8 @@
 
 INCBIN(Net, EVALFILE);
 
-const int INPUT_NEURONS = 6144;
-const int SIDE_NEURONS = 512;
+const int INPUT_NEURONS = 3072;
+const int SIDE_NEURONS = 768;
 const int HIDDEN_NEURONS = 2 * SIDE_NEURONS;
 const int REG_LENGTH = sizeof(reg_type) / sizeof(int16_t);
 const int NUM_REGS = SIDE_NEURONS / REG_LENGTH;
