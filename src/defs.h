@@ -208,7 +208,7 @@ inline int16_t netInd(int piece, int sq, int kingSq, int side) {
     return 4 * 64 * (piece - 1) + 64 * kingIndTable[kingSq] + sq;
 }
 
-inline bool recalc(int from, int to, int side) {
+inline bool recalc(int from, int to) {
     return (from & 4) != (to & 4) || kingIndTable[from] != kingIndTable[to];
 }
 
