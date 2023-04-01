@@ -116,6 +116,8 @@ public:
                 sum += inputWeights[prevN][n];
             }
 
+            assert(-32768 <= sum && sum <= 32767);
+
             histOutput[0][WHITE][n] = sum;
 
             sum = inputBiases[n];
@@ -145,6 +147,8 @@ public:
             for (auto& prevN : input.ind[WHITE]) {
                 sum += inputWeights[prevN][n];
             }
+
+            assert(-32768 <= sum && sum <= 32767);
 
             va[WHITE][n] = sum;
 

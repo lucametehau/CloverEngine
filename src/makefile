@@ -1,7 +1,7 @@
 CC  = g++
 SRC = *.cpp tbprobe.c
-EXE = Clover.4.0.21
-EVALFILE = 4buckets_768.nn
+EXE = Clover.4.0.22
+EVALFILE = Clover_nn.nn
 
 ifeq ($(OS), Windows_NT)
 	EXT = .exe
@@ -20,7 +20,7 @@ endif
 LIBS   = -pthread
 
 AVX2FLAGS     = -march=core-avx2
-NATIVEFLAGS   = -mno-avx512f -march=native
+NATIVEFLAGS   = -march=native
 OLDFLAGS      = -march=core2
 AVX512FLAGS   = $(AVX2FLAGS) -mavx512f -mavx512bw -mavx512dq
 EVALFILEFLAGS = -DEVALFILE=\"$(EVALFILE)\"
