@@ -17,7 +17,7 @@ ifeq ($(EXT), .exe)
 	RFLAGS += -static -static-libgcc -static-libstdc++
 endif
 
-LIBS   = -pthread
+LIBS   = -pthread -flto
 
 AVX2FLAGS     = -march=core-avx2
 NATIVEFLAGS   = -march=native

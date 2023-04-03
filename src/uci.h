@@ -260,7 +260,7 @@ void UCI::Uci_Loop() {
 
             info->nodes = nodes;
             if (depth == -1)
-                info->depth = 15;
+                info->depth = DEPTH;
 
             Go(info);
         }
