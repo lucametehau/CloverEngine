@@ -334,12 +334,12 @@ void Board::makeNullMove() {
 
     key ^= (enPas >= 0 ? enPasKey[enPas] : 0);
 
+    checkers = getAttackers(*this, turn, pieces[WHITE] | pieces[BLACK], king(1 ^ turn));
     captured = 0;
     enPas = -1;
     turn ^= 1;
     key ^= 1;
     pinnedPieces = getPinnedPieces(*this, turn);
-    checkers = getAttackers(*this, turn, pieces[WHITE] | pieces[BLACK], king(1 ^ turn));
     ply++;
     gamePly++;
     halfMoves++;
