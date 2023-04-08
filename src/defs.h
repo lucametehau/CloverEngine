@@ -205,11 +205,13 @@ inline int16_t netInd(int piece, int sq, int kingSq, int side) {
     }
     if ((kingSq & 7) >= 4)
         kingSq ^= 7, sq ^= 7;
-    return 4 * 64 * (piece - 1) + 64 * kingIndTable[kingSq] + sq;
+    return 8 * 64 * (piece - 1) + 64 * kingIndTable2[kingSq] + sq;
 }
 
-inline bool recalc(int from, int to) {
-    return (from & 4) != (to & 4) || kingIndTable[from] != kingIndTable[to];
+inline bool recalc(int from, int to, bool side) {
+    if (side == BLACK)
+        from ^= 56, to ^= 56;
+    return (from & 4) != (to & 4) || kingIndTable2[from] != kingIndTable2[to];
 }
 
 inline int hashVal(int value, int ply) {

@@ -55,7 +55,7 @@
 
 INCBIN(Net, EVALFILE);
 
-const int INPUT_NEURONS = 3072;
+const int INPUT_NEURONS = 6144;
 const int SIDE_NEURONS = 768;
 const int HIDDEN_NEURONS = 2 * SIDE_NEURONS;
 const int REG_LENGTH = sizeof(reg_type) / sizeof(int16_t);
@@ -249,7 +249,7 @@ public:
     }
 
     void addHistory(uint16_t move, uint8_t piece, uint8_t captured) {
-        hist[histSz] = { move, piece, captured, (piece_type(piece) == KING && recalc(sqFrom(move), sqTo(move))), { 0, 0 }};
+        hist[histSz] = { move, piece, captured, (piece_type(piece) == KING && recalc(sqFrom(move), sqTo(move), color_of(piece))), { 0, 0 }};
         histSz++;
     }
 
