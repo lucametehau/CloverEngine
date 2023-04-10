@@ -69,7 +69,7 @@ const int SIDE_NEURONS = 768;
 const int HIDDEN_NEURONS = 2 * SIDE_NEURONS;
 const int REG_LENGTH = sizeof(reg_type) / sizeof(int16_t);
 const int NUM_REGS = SIDE_NEURONS / REG_LENGTH;
-const int BUCKET_UNROLL = 256;
+const int BUCKET_UNROLL = 128;
 
 const int Q_IN = 2;
 const int Q_HIDDEN = 512;
