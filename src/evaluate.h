@@ -32,7 +32,7 @@ int scale(Board& board) {
     return std::min(100, pawnScaleStart + pawnScaleStep * pawnCount - pawnsOn1Flank * !((allPawns & flankMask[0]) && (allPawns & flankMask[1])));
 }
 
-void bringUpToDate(Board &board, Network &NN) {
+void bringUpToDate(Board& board, Network& NN) {
     int histSz = NN.histSz;
     for (auto& c : { BLACK, WHITE }) {
         if (!NN.hist[histSz - 1].calc[c]) {
@@ -41,30 +41,28 @@ void bringUpToDate(Board &board, Network &NN) {
                 for (int j = i; j < histSz; j++) {
                     NetHist hist = NN.hist[j];
                     NN.hist[j].calc[c] = 1;
-                    NN.updateSz = 0;
-                    NN.processMove(hist.move, hist.piece, hist.cap, board.king(c), c);
-                    NN.apply(NN.histOutput[j][c], NN.histOutput[j - 1][c], NN.updateSz, NN.updates);
+                    NN.processMove(hist.move, hist.piece, hist.cap, board.king(c), c, NN.histOutput[j][c], NN.histOutput[j - 1][c]);
                 }
             }
             else {
-                NN.updateSz = 0;
                 uint64_t b = board.pieces[BLACK] | board.pieces[WHITE];
+                NN.addSz = 0;
                 while (b) {
                     uint64_t b2 = lsb(b);
                     int sq = Sq(b2);
                     NN.addInput(netInd(board.piece_at(sq), sq, board.king(c), c));
                     b ^= b2;
                 }
-                NN.applyInitUpdates(c);
+                NN.applyInitial(c);
                 NN.hist[histSz - 1].calc[c] = 1;
             }
         }
     }
 }
 
-int evaluate(Board &board) {
-    //board.print();
+int evaluate(Board& board) {
     bringUpToDate(board, board.NN);
+
     int eval = board.NN.getOutput(board.turn);
 
     /*NetInput inp = board.toNetInput();

@@ -143,7 +143,7 @@ void UCI::Uci_Loop() {
 
     //searcher.setThreadCount(1); /// 2 threads for debugging data races
     UciNewGame(ttSize);
-        std::string input;
+    std::string input;
 
     while (getline(std::cin, input)) {
 
@@ -493,6 +493,13 @@ void UCI::Uci_Loop() {
         }
         else if (cmd == "bench") {
             Bench(-1);
+        }
+        else if (cmd == "evalbench") {
+            uint64_t t1 = getTime();
+            int eval = evaluate(searcher.board);
+            for (int i = 0; i < 1000000000; i++)
+                evaluate(searcher.board);
+            std::cout << eval << " and " << (getTime() - t1) << "ns for evaluate\n";
         }
         else if (cmd == "see") {
             std::string mv;
