@@ -360,22 +360,34 @@ public:
     }
 
     int32_t getOutput(bool stm) {
-        int32_t sum = outputBias * Q_IN;
+        const int32_t sum = outputBias * Q_IN;
 
-        reg_type zero{}, acc0{};
+        const reg_type zero{};
+        reg_type acc0{}, acc1{}, acc2{}, acc3{};
 
-        const reg_type* w  = (reg_type*)histOutput[histSz - 1][stm];
-        const reg_type* w2 = (reg_type*)histOutput[histSz - 1][stm ^ 1];
-        const reg_type* v  = (reg_type*)outputWeights;
+        const reg_type* w = reinterpret_cast<const reg_type*>(histOutput[histSz - 1][stm]);
+        const reg_type* w2 = reinterpret_cast<const reg_type*>(histOutput[histSz - 1][stm ^ 1]);
+        const reg_type* v = reinterpret_cast<const reg_type*>(outputWeights);
 
-        for (int j = 0; j < NUM_REGS; j++) {
+        for (int j = 0; j < NUM_REGS; j += 4) {
             acc0 = reg_add32(acc0, reg_madd16(reg_max16(w[j], zero), v[j]));
             acc0 = reg_add32(acc0, reg_madd16(reg_max16(w2[j], zero), v[j + NUM_REGS]));
+
+            acc1 = reg_add32(acc1, reg_madd16(reg_max16(w[j + 1], zero), v[j + 1]));
+            acc1 = reg_add32(acc1, reg_madd16(reg_max16(w2[j + 1], zero), v[j + 1 + NUM_REGS]));
+
+            acc2 = reg_add32(acc2, reg_madd16(reg_max16(w[j + 2], zero), v[j + 2]));
+            acc2 = reg_add32(acc2, reg_madd16(reg_max16(w2[j + 2], zero), v[j + 2 + NUM_REGS]));
+
+            acc3 = reg_add32(acc3, reg_madd16(reg_max16(w[j + 3], zero), v[j + 3]));
+            acc3 = reg_add32(acc3, reg_madd16(reg_max16(w2[j + 3], zero), v[j + 3 + NUM_REGS]));
         }
 
-        sum += get_sum(acc0);
+        acc0 = reg_add32(acc0, acc1);
+        acc2 = reg_add32(acc2, acc3);
+        acc0 = reg_add32(acc0, acc2);
 
-        return sum / Q_IN / Q_HIDDEN;
+        return (sum + get_sum(acc0)) / (Q_IN * Q_HIDDEN);
     }
 
     void load() {

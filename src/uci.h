@@ -495,12 +495,17 @@ void UCI::Uci_Loop() {
             Bench(-1);
         }
         else if (cmd == "evalbench") {
-            uint64_t t1 = getTime();
             int eval = evaluate(searcher.board);
-            for (int i = 0; i < 100000000; i++)
-                evaluate(searcher.board);
-            // t * 10^8 = 10^9 * ns
-            std::cout << eval << " and " << (getTime() - t1) * 10.0 << "ns for evaluate\n";
+            uint64_t total = 0;
+            const int N = (int)1e8;
+            for (int i = 0; i < N; i++) {
+                auto start = std::chrono::high_resolution_clock::now();
+                eval = evaluate(searcher.board);
+                auto end = std::chrono::high_resolution_clock::now();
+                total += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+            }
+
+            std::cout << eval << " evaluation and " << total / N << "ns\n";
         }
         else if (cmd == "see") {
             std::string mv;
