@@ -125,7 +125,7 @@ public:
             sum = inputBiases[n];
 
             for (auto& prevN : input.ind[WHITE]) {
-                sum += inputWeights[prevN][n];
+                sum += inputWeights[prevN * SIDE_NEURONS + n];
             }
 
             assert(-32768 <= sum && sum <= 32767);
@@ -135,7 +135,7 @@ public:
             sum = inputBiases[n];
 
             for (auto& prevN : input.ind[BLACK]) {
-                sum += inputWeights[prevN][n];
+                sum += inputWeights[prevN * SIDE_NEURONS + n];
             }
 
             histOutput[0][BLACK][n] = sum;
@@ -157,7 +157,7 @@ public:
             sum = inputBiases[n];
 
             for (auto& prevN : input.ind[WHITE]) {
-                sum += inputWeights[prevN][n];
+                sum += inputWeights[prevN * SIDE_NEURONS + n];
             }
 
             assert(-32768 <= sum && sum <= 32767);
@@ -167,7 +167,7 @@ public:
             sum = inputBiases[n];
 
             for (auto& prevN : input.ind[BLACK]) {
-                sum += inputWeights[prevN][n];
+                sum += inputWeights[prevN * SIDE_NEURONS + n];
             }
 
             va[BLACK][n] = sum;
@@ -211,7 +211,7 @@ public:
             for (int i = 0; i < UNROLL_LENGTH; i++)
                 regs[i] = reg_load(&reg_in[i]);
             for (int idx = 0; idx < addSz; idx++) {
-                reg_type* reg = (reg_type*) &inputWeights[add_ind[idx]][offset];
+                reg_type* reg = (reg_type*) &inputWeights[add_ind[idx] * SIDE_NEURONS + offset];
                 for (int i = 0; i < UNROLL_LENGTH; i++)
                     regs[i] = reg_add16(regs[i], reg[i]);
             }
@@ -226,14 +226,14 @@ public:
 
         for (int b = 0; b < SIDE_NEURONS / BUCKET_UNROLL; b++) {
             const int offset = b * BUCKET_UNROLL;
-            reg_type* reg_in = (reg_type*)&input[offset];
+            const reg_type* reg_in = reinterpret_cast<const reg_type*>(&input[offset]);
             for (int i = 0; i < UNROLL_LENGTH; i++)
                 regs[i] = reg_load(&reg_in[i]);
 
-            reg_type* reg1 = (reg_type*)&inputWeights[ind1][offset];
+            const reg_type* reg1 = reinterpret_cast<const reg_type*>(&inputWeights[ind1 * SIDE_NEURONS + offset]);
             for (int i = 0; i < UNROLL_LENGTH; i++)
                 regs[i] = reg_sub16(regs[i], reg1[i]);
-            reg_type* reg2 = (reg_type*)&inputWeights[ind2][offset];
+            const reg_type* reg2 = reinterpret_cast<const reg_type*>(&inputWeights[ind2 * SIDE_NEURONS + offset]);
             for (int i = 0; i < UNROLL_LENGTH; i++)
                 regs[i] = reg_add16(regs[i], reg2[i]);
 
@@ -248,17 +248,17 @@ public:
 
         for (int b = 0; b < SIDE_NEURONS / BUCKET_UNROLL; b++) {
             const int offset = b * BUCKET_UNROLL;
-            reg_type* reg_in = (reg_type*)&input[offset];
+            const reg_type* reg_in = reinterpret_cast<const reg_type*>(&input[offset]);
             for (int i = 0; i < UNROLL_LENGTH; i++)
                 regs[i] = reg_load(&reg_in[i]);
 
-            reg_type* reg1 = (reg_type*)&inputWeights[ind1][offset];
+            const reg_type* reg1 = reinterpret_cast<const reg_type*>(&inputWeights[ind1 * SIDE_NEURONS + offset]);
             for (int i = 0; i < UNROLL_LENGTH; i++)
                 regs[i] = reg_sub16(regs[i], reg1[i]);
-            reg_type* reg2 = (reg_type*)&inputWeights[ind2][offset];
+            const reg_type* reg2 = reinterpret_cast<const reg_type*>(&inputWeights[ind2 * SIDE_NEURONS + offset]);
             for (int i = 0; i < UNROLL_LENGTH; i++)
                 regs[i] = reg_add16(regs[i], reg2[i]);
-            reg_type* reg3 = (reg_type*)&inputWeights[ind3][offset];
+            const reg_type* reg3 = reinterpret_cast<const reg_type*>(&inputWeights[ind3 * SIDE_NEURONS + offset]);
             for (int i = 0; i < UNROLL_LENGTH; i++)
                 regs[i] = reg_sub16(regs[i], reg3[i]);
 
@@ -273,20 +273,20 @@ public:
 
         for (int b = 0; b < SIDE_NEURONS / BUCKET_UNROLL; b++) {
             const int offset = b * BUCKET_UNROLL;
-            reg_type* reg_in = (reg_type*)&input[offset];
+            const reg_type* reg_in = reinterpret_cast<const reg_type*>(&input[offset]);
             for (int i = 0; i < UNROLL_LENGTH; i++)
                 regs[i] = reg_load(&reg_in[i]);
 
-            reg_type* reg1 = (reg_type*)&inputWeights[ind1][offset];
+            const reg_type* reg1 = reinterpret_cast<const reg_type*>(&inputWeights[ind1 * SIDE_NEURONS + offset]);
             for (int i = 0; i < UNROLL_LENGTH; i++)
                 regs[i] = reg_sub16(regs[i], reg1[i]);
-            reg_type* reg2 = (reg_type*)&inputWeights[ind2][offset];
+            const reg_type* reg2 = reinterpret_cast<const reg_type*>(&inputWeights[ind2 * SIDE_NEURONS + offset]);
             for (int i = 0; i < UNROLL_LENGTH; i++)
                 regs[i] = reg_add16(regs[i], reg2[i]);
-            reg_type* reg3 = (reg_type*)&inputWeights[ind3][offset];
+            const reg_type* reg3 = reinterpret_cast<const reg_type*>(&inputWeights[ind3 * SIDE_NEURONS + offset]);
             for (int i = 0; i < UNROLL_LENGTH; i++)
                 regs[i] = reg_sub16(regs[i], reg3[i]);
-            reg_type* reg4 = (reg_type*)&inputWeights[ind4][offset];
+            const reg_type* reg4 = reinterpret_cast<const reg_type*>(&inputWeights[ind4 * SIDE_NEURONS + offset]);
             for (int i = 0; i < UNROLL_LENGTH; i++)
                 regs[i] = reg_add16(regs[i], reg4[i]);
 
@@ -414,7 +414,7 @@ public:
 
         for (int i = 0; i < SIDE_NEURONS * INPUT_NEURONS; i++) {
             float val = *(floatData++);
-            inputWeights[i / SIDE_NEURONS][i % SIDE_NEURONS] = round(val * Q_IN);
+            inputWeights[(i / SIDE_NEURONS) * SIDE_NEURONS + (i % SIDE_NEURONS)] = round(val * Q_IN);
         }
 
         sz = 1;
@@ -432,7 +432,7 @@ public:
     int16_t inputBiases[SIDE_NEURONS] __attribute__((aligned(ALIGN)));
     int32_t outputBias;
     int16_t histOutput[2005][2][SIDE_NEURONS] __attribute__((aligned(ALIGN)));
-    int16_t inputWeights[INPUT_NEURONS][SIDE_NEURONS] __attribute__((aligned(ALIGN)));
+    int16_t inputWeights[INPUT_NEURONS * SIDE_NEURONS] __attribute__((aligned(ALIGN)));
     int16_t outputWeights[HIDDEN_NEURONS] __attribute__((aligned(ALIGN)));
 
     //reg_type* v = (reg_type*)outputWeights;
