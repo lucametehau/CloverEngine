@@ -223,6 +223,8 @@ public:
 
     void applySubAdd(int16_t* output, int16_t* input, int ind1, int ind2) {
         reg_type regs[UNROLL_LENGTH];
+        const int16_t* inputWeights1 = reinterpret_cast<const int16_t*>(&inputWeights[ind1 * SIDE_NEURONS]);
+        const int16_t* inputWeights2 = reinterpret_cast<const int16_t*>(&inputWeights[ind2 * SIDE_NEURONS]);
 
         for (int b = 0; b < SIDE_NEURONS / BUCKET_UNROLL; b++) {
             const int offset = b * BUCKET_UNROLL;
@@ -230,10 +232,10 @@ public:
             for (int i = 0; i < UNROLL_LENGTH; i++)
                 regs[i] = reg_load(&reg_in[i]);
 
-            const reg_type* reg1 = reinterpret_cast<const reg_type*>(&inputWeights[ind1 * SIDE_NEURONS + offset]);
+            const reg_type* reg1 = reinterpret_cast<const reg_type*>(&inputWeights1[offset]);
             for (int i = 0; i < UNROLL_LENGTH; i++)
                 regs[i] = reg_sub16(regs[i], reg1[i]);
-            const reg_type* reg2 = reinterpret_cast<const reg_type*>(&inputWeights[ind2 * SIDE_NEURONS + offset]);
+            const reg_type* reg2 = reinterpret_cast<const reg_type*>(&inputWeights2[offset]);
             for (int i = 0; i < UNROLL_LENGTH; i++)
                 regs[i] = reg_add16(regs[i], reg2[i]);
 
@@ -245,6 +247,9 @@ public:
 
     void applySubAddSub(int16_t* output, int16_t* input, int ind1, int ind2, int ind3) {
         reg_type regs[UNROLL_LENGTH];
+        const int16_t* inputWeights1 = reinterpret_cast<const int16_t*>(&inputWeights[ind1 * SIDE_NEURONS]);
+        const int16_t* inputWeights2 = reinterpret_cast<const int16_t*>(&inputWeights[ind2 * SIDE_NEURONS]);
+        const int16_t* inputWeights3 = reinterpret_cast<const int16_t*>(&inputWeights[ind3 * SIDE_NEURONS]);
 
         for (int b = 0; b < SIDE_NEURONS / BUCKET_UNROLL; b++) {
             const int offset = b * BUCKET_UNROLL;
@@ -252,13 +257,13 @@ public:
             for (int i = 0; i < UNROLL_LENGTH; i++)
                 regs[i] = reg_load(&reg_in[i]);
 
-            const reg_type* reg1 = reinterpret_cast<const reg_type*>(&inputWeights[ind1 * SIDE_NEURONS + offset]);
+            const reg_type* reg1 = reinterpret_cast<const reg_type*>(&inputWeights1[offset]);
             for (int i = 0; i < UNROLL_LENGTH; i++)
                 regs[i] = reg_sub16(regs[i], reg1[i]);
-            const reg_type* reg2 = reinterpret_cast<const reg_type*>(&inputWeights[ind2 * SIDE_NEURONS + offset]);
+            const reg_type* reg2 = reinterpret_cast<const reg_type*>(&inputWeights2[offset]);
             for (int i = 0; i < UNROLL_LENGTH; i++)
                 regs[i] = reg_add16(regs[i], reg2[i]);
-            const reg_type* reg3 = reinterpret_cast<const reg_type*>(&inputWeights[ind3 * SIDE_NEURONS + offset]);
+            const reg_type* reg3 = reinterpret_cast<const reg_type*>(&inputWeights3[offset]);
             for (int i = 0; i < UNROLL_LENGTH; i++)
                 regs[i] = reg_sub16(regs[i], reg3[i]);
 
@@ -270,6 +275,10 @@ public:
 
     void applySubAddSubAdd(int16_t* output, int16_t* input, int ind1, int ind2, int ind3, int ind4) {
         reg_type regs[UNROLL_LENGTH];
+        const int16_t* inputWeights1 = reinterpret_cast<const int16_t*>(&inputWeights[ind1 * SIDE_NEURONS]);
+        const int16_t* inputWeights2 = reinterpret_cast<const int16_t*>(&inputWeights[ind2 * SIDE_NEURONS]);
+        const int16_t* inputWeights3 = reinterpret_cast<const int16_t*>(&inputWeights[ind3 * SIDE_NEURONS]);
+        const int16_t* inputWeights4 = reinterpret_cast<const int16_t*>(&inputWeights[ind4 * SIDE_NEURONS]);
 
         for (int b = 0; b < SIDE_NEURONS / BUCKET_UNROLL; b++) {
             const int offset = b * BUCKET_UNROLL;
@@ -277,16 +286,16 @@ public:
             for (int i = 0; i < UNROLL_LENGTH; i++)
                 regs[i] = reg_load(&reg_in[i]);
 
-            const reg_type* reg1 = reinterpret_cast<const reg_type*>(&inputWeights[ind1 * SIDE_NEURONS + offset]);
+            const reg_type* reg1 = reinterpret_cast<const reg_type*>(&inputWeights1[offset]);
             for (int i = 0; i < UNROLL_LENGTH; i++)
                 regs[i] = reg_sub16(regs[i], reg1[i]);
-            const reg_type* reg2 = reinterpret_cast<const reg_type*>(&inputWeights[ind2 * SIDE_NEURONS + offset]);
+            const reg_type* reg2 = reinterpret_cast<const reg_type*>(&inputWeights2[offset]);
             for (int i = 0; i < UNROLL_LENGTH; i++)
                 regs[i] = reg_add16(regs[i], reg2[i]);
-            const reg_type* reg3 = reinterpret_cast<const reg_type*>(&inputWeights[ind3 * SIDE_NEURONS + offset]);
+            const reg_type* reg3 = reinterpret_cast<const reg_type*>(&inputWeights3[offset]);
             for (int i = 0; i < UNROLL_LENGTH; i++)
                 regs[i] = reg_sub16(regs[i], reg3[i]);
-            const reg_type* reg4 = reinterpret_cast<const reg_type*>(&inputWeights[ind4 * SIDE_NEURONS + offset]);
+            const reg_type* reg4 = reinterpret_cast<const reg_type*>(&inputWeights4[offset]);
             for (int i = 0; i < UNROLL_LENGTH; i++)
                 regs[i] = reg_add16(regs[i], reg4[i]);
 
