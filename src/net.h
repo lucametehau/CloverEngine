@@ -65,11 +65,12 @@
 INCBIN(Net, EVALFILE);
 
 const int INPUT_NEURONS = 3072;
-const int SIDE_NEURONS = 1024;
+const int SIDE_NEURONS = 768;
 const int HIDDEN_NEURONS = 2 * SIDE_NEURONS;
 const int REG_LENGTH = sizeof(reg_type) / sizeof(int16_t);
 const int NUM_REGS = SIDE_NEURONS / REG_LENGTH;
-const int BUCKET_UNROLL = 128;
+const int BUCKET_UNROLL = 256;
+const int UNROLL_LENGTH = BUCKET_UNROLL / REG_LENGTH;
 
 const int Q_IN = 2;
 const int Q_HIDDEN = 512;
@@ -201,45 +202,96 @@ public:
         return sum / Q_IN / Q_HIDDEN;
     }
 
-    template <bool operation>
-    void apply(int16_t* a, int16_t* b, int ind) {
-        reg_type* w = (reg_type*)a;
-        reg_type* w2 = (reg_type*)b;
+    void applyInitial(int c) { // refresh output
+        reg_type regs[UNROLL_LENGTH];
 
-        reg_type* v = (reg_type*)inputWeights[ind];
-
-        if constexpr (operation) {
-            for (int j = 0; j < NUM_REGS; j += 4) {
-                w[j] = reg_add16(w2[j], v[j]);
-                w[j + 1] = reg_add16(w2[j + 1], v[j + 1]);
-                w[j + 2] = reg_add16(w2[j + 2], v[j + 2]);
-                w[j + 3] = reg_add16(w2[j + 3], v[j + 3]);
+        for (int b = 0; b < SIDE_NEURONS / BUCKET_UNROLL; b++) {
+            const int offset = b * BUCKET_UNROLL;
+            reg_type* reg_in = (reg_type*) &inputBiases[offset];
+            for (int i = 0; i < UNROLL_LENGTH; i++)
+                regs[i] = reg_load(&reg_in[i]);
+            for (int idx = 0; idx < addSz; idx++) {
+                reg_type* reg = (reg_type*) &inputWeights[add_ind[idx]][offset];
+                for (int i = 0; i < UNROLL_LENGTH; i++)
+                    regs[i] = reg_add16(regs[i], reg[i]);
             }
-        }
-        else {
-            for (int j = 0; j < NUM_REGS; j += 4) {
-                w[j] = reg_sub16(w2[j], v[j]);
-                w[j + 1] = reg_sub16(w2[j + 1], v[j + 1]);
-                w[j + 2] = reg_sub16(w2[j + 2], v[j + 2]);
-                w[j + 3] = reg_sub16(w2[j + 3], v[j + 3]);
-            }
+            reg_type* reg_out = (reg_type*)&histOutput[histSz - 1][c][offset];
+            for (int i = 0; i < UNROLL_LENGTH; i++)
+                reg_save(&reg_out[i], regs[i]);
         }
     }
 
-    void applyInitial(int c) { // refresh output
-        reg_type regs[BUCKET_UNROLL / REG_LENGTH];
+    void applySubAdd(int16_t* output, int16_t* input, int ind1, int ind2) {
+        reg_type regs[UNROLL_LENGTH];
 
         for (int b = 0; b < SIDE_NEURONS / BUCKET_UNROLL; b++) {
-            reg_type* reg_in = (reg_type*) &inputBiases[b * BUCKET_UNROLL];
-            for (int i = 0; i < BUCKET_UNROLL / REG_LENGTH; i++)
+            const int offset = b * BUCKET_UNROLL;
+            reg_type* reg_in = (reg_type*)&input[offset];
+            for (int i = 0; i < UNROLL_LENGTH; i++)
                 regs[i] = reg_load(&reg_in[i]);
-            for (int idx = 0; idx < addSz; idx++) {
-                reg_type* reg = (reg_type*) &inputWeights[add_ind[idx]][b * BUCKET_UNROLL];
-                for (int i = 0; i < BUCKET_UNROLL / REG_LENGTH; i++)
-                    regs[i] = reg_add16(regs[i], reg[i]);
-            }
-            reg_type* reg_out = (reg_type*)&histOutput[histSz - 1][c][b * BUCKET_UNROLL];
-            for (int i = 0; i < BUCKET_UNROLL / REG_LENGTH; i++)
+
+            reg_type* reg1 = (reg_type*)&inputWeights[ind1][offset];
+            for (int i = 0; i < UNROLL_LENGTH; i++)
+                regs[i] = reg_sub16(regs[i], reg1[i]);
+            reg_type* reg2 = (reg_type*)&inputWeights[ind2][offset];
+            for (int i = 0; i < UNROLL_LENGTH; i++)
+                regs[i] = reg_add16(regs[i], reg2[i]);
+
+            reg_type* reg_out = (reg_type*)&output[offset];
+            for (int i = 0; i < UNROLL_LENGTH; i++)
+                reg_save(&reg_out[i], regs[i]);
+        }
+    }
+
+    void applySubAddSub(int16_t* output, int16_t* input, int ind1, int ind2, int ind3) {
+        reg_type regs[UNROLL_LENGTH];
+
+        for (int b = 0; b < SIDE_NEURONS / BUCKET_UNROLL; b++) {
+            const int offset = b * BUCKET_UNROLL;
+            reg_type* reg_in = (reg_type*)&input[offset];
+            for (int i = 0; i < UNROLL_LENGTH; i++)
+                regs[i] = reg_load(&reg_in[i]);
+
+            reg_type* reg1 = (reg_type*)&inputWeights[ind1][offset];
+            for (int i = 0; i < UNROLL_LENGTH; i++)
+                regs[i] = reg_sub16(regs[i], reg1[i]);
+            reg_type* reg2 = (reg_type*)&inputWeights[ind2][offset];
+            for (int i = 0; i < UNROLL_LENGTH; i++)
+                regs[i] = reg_add16(regs[i], reg2[i]);
+            reg_type* reg3 = (reg_type*)&inputWeights[ind3][offset];
+            for (int i = 0; i < UNROLL_LENGTH; i++)
+                regs[i] = reg_sub16(regs[i], reg3[i]);
+
+            reg_type* reg_out = (reg_type*)&output[offset];
+            for (int i = 0; i < UNROLL_LENGTH; i++)
+                reg_save(&reg_out[i], regs[i]);
+        }
+    }
+
+    void applySubAddSubAdd(int16_t* output, int16_t* input, int ind1, int ind2, int ind3, int ind4) {
+        reg_type regs[UNROLL_LENGTH];
+
+        for (int b = 0; b < SIDE_NEURONS / BUCKET_UNROLL; b++) {
+            const int offset = b * BUCKET_UNROLL;
+            reg_type* reg_in = (reg_type*)&input[offset];
+            for (int i = 0; i < UNROLL_LENGTH; i++)
+                regs[i] = reg_load(&reg_in[i]);
+
+            reg_type* reg1 = (reg_type*)&inputWeights[ind1][offset];
+            for (int i = 0; i < UNROLL_LENGTH; i++)
+                regs[i] = reg_sub16(regs[i], reg1[i]);
+            reg_type* reg2 = (reg_type*)&inputWeights[ind2][offset];
+            for (int i = 0; i < UNROLL_LENGTH; i++)
+                regs[i] = reg_add16(regs[i], reg2[i]);
+            reg_type* reg3 = (reg_type*)&inputWeights[ind3][offset];
+            for (int i = 0; i < UNROLL_LENGTH; i++)
+                regs[i] = reg_sub16(regs[i], reg3[i]);
+            reg_type* reg4 = (reg_type*)&inputWeights[ind4][offset];
+            for (int i = 0; i < UNROLL_LENGTH; i++)
+                regs[i] = reg_add16(regs[i], reg4[i]);
+
+            reg_type* reg_out = (reg_type*)&output[offset];
+            for (int i = 0; i < UNROLL_LENGTH; i++)
                 reg_save(&reg_out[i], regs[i]);
         }
     }
@@ -249,17 +301,17 @@ public:
         bool turn = color_of(pieceFrom);
         switch (type(move)) {
         case NEUT: {
-            apply<SUB>(a, b, netInd(pieceFrom, posFrom, king, side));
-            apply<ADD>(a, a, netInd(pieceFrom, posTo, king, side));
-            if (captured)
-                apply<SUB>(a, a, netInd(captured, posTo, king, side));
+            if (!captured) {
+                applySubAdd(a, b, netInd(pieceFrom, posFrom, king, side), netInd(pieceFrom, posTo, king, side));
+            }
+            else {
+                applySubAddSub(a, b, netInd(pieceFrom, posFrom, king, side), netInd(pieceFrom, posTo, king, side), netInd(captured, posTo, king, side));
+            }
         }
         break;
         case ENPASSANT: {
             int pos = sqDir(turn, SOUTH, posTo), pieceCap = getType(PAWN, 1 ^ turn);
-            apply<SUB>(a, b, netInd(pieceFrom, posFrom, king, side));
-            apply<ADD>(a, a, netInd(pieceFrom, posTo, king, side));
-            apply<SUB>(a, a, netInd(pieceCap, pos, king, side));
+            applySubAddSub(a, b, netInd(pieceFrom, posFrom, king, side), netInd(pieceFrom, posTo, king, side), netInd(pieceCap, pos, king, side));
         }
         break;
         case CASTLE: {
@@ -272,19 +324,17 @@ public:
                 rFrom = mirror(turn, H1);
                 rTo = mirror(turn, F1);
             }
-            apply<SUB>(a, b, netInd(pieceFrom, posFrom, king, side));
-            apply<ADD>(a, a, netInd(pieceFrom, posTo, king, side));
-            apply<SUB>(a, a, netInd(rPiece, rFrom, king, side));
-            apply<ADD>(a, a, netInd(rPiece, rTo, king, side));
+            applySubAddSubAdd(a, b, netInd(pieceFrom, posFrom, king, side), netInd(pieceFrom, posTo, king, side), netInd(rPiece, rFrom, king, side), netInd(rPiece, rTo, king, side));
         }
         break;
         default: {
             int promPiece = getType(promoted(move) + KNIGHT, turn);
-            apply<SUB>(a, b, netInd(pieceFrom, posFrom, king, side));
-            apply<ADD>(a, a, netInd(promPiece, posTo, king, side));
-
-            if (captured)
-                apply<SUB>(a, a, netInd(captured, posTo, king, side));
+            if (!captured) {
+                applySubAdd(a, b, netInd(pieceFrom, posFrom, king, side), netInd(promPiece, posTo, king, side));
+            }
+            else {
+                applySubAddSub(a, b, netInd(pieceFrom, posFrom, king, side), netInd(promPiece, posTo, king, side), netInd(captured, posTo, king, side));
+            }
         }
         break;
         }

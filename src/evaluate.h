@@ -36,7 +36,7 @@ void bringUpToDate(Board& board, Network& NN) {
     int histSz = NN.histSz;
     for (auto& c : { BLACK, WHITE }) {
         if (!NN.hist[histSz - 1].calc[c]) {
-            int i = board.NN.getGoodParent(c) + 1;
+            int i = NN.getGoodParent(c) + 1;
             if (i != 0) { // no full refresh required
                 for (int j = i; j < histSz; j++) {
                     NetHist hist = NN.hist[j];
