@@ -310,12 +310,10 @@ public:
         bool turn = color_of(pieceFrom);
         switch (type(move)) {
         case NEUT: {
-            if (!captured) {
+            if (!captured)
                 applySubAdd(a, b, netInd(pieceFrom, posFrom, king, side), netInd(pieceFrom, posTo, king, side));
-            }
-            else {
+            else
                 applySubAddSub(a, b, netInd(pieceFrom, posFrom, king, side), netInd(pieceFrom, posTo, king, side), netInd(captured, posTo, king, side));
-            }
         }
         break;
         case ENPASSANT: {
@@ -338,12 +336,10 @@ public:
         break;
         default: {
             int promPiece = getType(promoted(move) + KNIGHT, turn);
-            if (!captured) {
+            if (!captured)
                 applySubAdd(a, b, netInd(pieceFrom, posFrom, king, side), netInd(promPiece, posTo, king, side));
-            }
-            else {
+            else
                 applySubAddSub(a, b, netInd(pieceFrom, posFrom, king, side), netInd(promPiece, posTo, king, side), netInd(captured, posTo, king, side));
-            }
         }
         break;
         }
@@ -377,19 +373,20 @@ public:
         const reg_type* w = reinterpret_cast<const reg_type*>(histOutput[histSz - 1][stm]);
         const reg_type* w2 = reinterpret_cast<const reg_type*>(histOutput[histSz - 1][stm ^ 1]);
         const reg_type* v = reinterpret_cast<const reg_type*>(outputWeights);
+        const reg_type* v2 = reinterpret_cast<const reg_type*>(&outputWeights[SIDE_NEURONS]);
 
         for (int j = 0; j < NUM_REGS; j += 4) {
             acc0 = reg_add32(acc0, reg_madd16(reg_max16(w[j], zero), v[j]));
-            acc0 = reg_add32(acc0, reg_madd16(reg_max16(w2[j], zero), v[j + NUM_REGS]));
+            acc0 = reg_add32(acc0, reg_madd16(reg_max16(w2[j], zero), v2[j]));
 
             acc1 = reg_add32(acc1, reg_madd16(reg_max16(w[j + 1], zero), v[j + 1]));
-            acc1 = reg_add32(acc1, reg_madd16(reg_max16(w2[j + 1], zero), v[j + 1 + NUM_REGS]));
+            acc1 = reg_add32(acc1, reg_madd16(reg_max16(w2[j + 1], zero), v2[j + 1]));
 
             acc2 = reg_add32(acc2, reg_madd16(reg_max16(w[j + 2], zero), v[j + 2]));
-            acc2 = reg_add32(acc2, reg_madd16(reg_max16(w2[j + 2], zero), v[j + 2 + NUM_REGS]));
+            acc2 = reg_add32(acc2, reg_madd16(reg_max16(w2[j + 2], zero), v2[j + 2]));
 
             acc3 = reg_add32(acc3, reg_madd16(reg_max16(w[j + 3], zero), v[j + 3]));
-            acc3 = reg_add32(acc3, reg_madd16(reg_max16(w2[j + 3], zero), v[j + 3 + NUM_REGS]));
+            acc3 = reg_add32(acc3, reg_madd16(reg_max16(w2[j + 3], zero), v2[j + 3]));
         }
 
         acc0 = reg_add32(acc0, acc1);
