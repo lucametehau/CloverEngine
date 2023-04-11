@@ -362,28 +362,16 @@ public:
     int32_t getOutput(bool stm) {
         int32_t sum = outputBias * Q_IN;
 
-        reg_type zero{};
-        reg_type acc0{}, acc1{};
-        reg_type acc2{}, acc3{};
+        reg_type zero{}, acc0{};
 
-        reg_type* w  = (reg_type*)histOutput[histSz - 1][stm];
-        reg_type* w2 = (reg_type*)histOutput[histSz - 1][stm ^ 1];
+        const reg_type* w  = (reg_type*)histOutput[histSz - 1][stm];
+        const reg_type* w2 = (reg_type*)histOutput[histSz - 1][stm ^ 1];
+        const reg_type* v  = (reg_type*)outputWeights;
 
-        for (int j = 0; j < NUM_REGS; j += 4) {
+        for (int j = 0; j < NUM_REGS; j++) {
             acc0 = reg_add32(acc0, reg_madd16(reg_max16(w[j], zero), v[j]));
-            acc1 = reg_add32(acc1, reg_madd16(reg_max16(w[j + 1], zero), v[j + 1]));
-            acc2 = reg_add32(acc2, reg_madd16(reg_max16(w[j + 2], zero), v[j + 2]));
-            acc3 = reg_add32(acc3, reg_madd16(reg_max16(w[j + 3], zero), v[j + 3]));
-
             acc0 = reg_add32(acc0, reg_madd16(reg_max16(w2[j], zero), v[j + NUM_REGS]));
-            acc1 = reg_add32(acc1, reg_madd16(reg_max16(w2[j + 1], zero), v[j + 1 + NUM_REGS]));
-            acc2 = reg_add32(acc2, reg_madd16(reg_max16(w2[j + 2], zero), v[j + 2 + NUM_REGS]));
-            acc3 = reg_add32(acc3, reg_madd16(reg_max16(w2[j + 3], zero), v[j + 3 + NUM_REGS]));
         }
-
-        acc0 = reg_add32(acc0, acc1);
-        acc2 = reg_add32(acc2, acc3);
-        acc0 = reg_add32(acc0, acc2);
 
         sum += get_sum(acc0);
 
@@ -435,7 +423,7 @@ public:
     int16_t inputWeights[INPUT_NEURONS][SIDE_NEURONS] __attribute__((aligned(ALIGN)));
     int16_t outputWeights[HIDDEN_NEURONS] __attribute__((aligned(ALIGN)));
 
-    reg_type* v = (reg_type*)outputWeights;
+    //reg_type* v = (reg_type*)outputWeights;
 
     int addSz;
     int16_t add_ind[32];

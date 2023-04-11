@@ -497,9 +497,10 @@ void UCI::Uci_Loop() {
         else if (cmd == "evalbench") {
             uint64_t t1 = getTime();
             int eval = evaluate(searcher.board);
-            for (int i = 0; i < 1000000000; i++)
+            for (int i = 0; i < 100000000; i++)
                 evaluate(searcher.board);
-            std::cout << eval << " and " << (getTime() - t1) << "ns for evaluate\n";
+            // t * 10^8 = 10^9 * ns
+            std::cout << eval << " and " << (getTime() - t1) * 10.0 << "ns for evaluate\n";
         }
         else if (cmd == "see") {
             std::string mv;
