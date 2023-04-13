@@ -405,7 +405,8 @@ public:
         intData = (int*)gNetData;
 
         x = *(intData++);
-        assert(x == 3);
+        //std::cout << x << "\n";
+        assert(x == 2361601);
 
         floatData = (float*)intData;
 
@@ -413,24 +414,22 @@ public:
 
         sz = SIDE_NEURONS;
 
-        for (int j = 0; j < sz; j++) {
-            float val = *(floatData++);
-            inputBiases[j] = round(val * Q_IN);
-        }
-
         for (int i = 0; i < SIDE_NEURONS * INPUT_NEURONS; i++) {
             float val = *(floatData++);
             inputWeights[(i / SIDE_NEURONS) * SIDE_NEURONS + (i % SIDE_NEURONS)] = round(val * Q_IN);
         }
 
-        sz = 1;
-
-        outputBias = round(*(floatData++) * Q_HIDDEN);
+        for (int j = 0; j < sz; j++) {
+            float val = *(floatData++);
+            inputBiases[j] = round(val * Q_IN);
+        }
 
         for (int j = 0; j < HIDDEN_NEURONS; j++) {
             float val = *(floatData++);
             outputWeights[j] = round(val * Q_HIDDEN);
         }
+
+        outputBias = round(*(floatData++) * Q_HIDDEN);
     }
 
     int histSz;
