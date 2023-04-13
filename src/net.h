@@ -125,7 +125,7 @@ public:
             sum = inputBiases[n];
 
             for (auto& prevN : input.ind[WHITE]) {
-                sum += inputWeights[prevN][n];
+                sum += inputWeights[prevN * SIDE_NEURONS + n];
             }
 
             assert(-32768 <= sum && sum <= 32767);
@@ -135,7 +135,7 @@ public:
             sum = inputBiases[n];
 
             for (auto& prevN : input.ind[BLACK]) {
-                sum += inputWeights[prevN][n];
+                sum += inputWeights[prevN * SIDE_NEURONS + n];
             }
 
             histOutput[0][BLACK][n] = sum;
@@ -157,7 +157,7 @@ public:
             sum = inputBiases[n];
 
             for (auto& prevN : input.ind[WHITE]) {
-                sum += inputWeights[prevN][n];
+                sum += inputWeights[prevN * SIDE_NEURONS + n];
             }
 
             assert(-32768 <= sum && sum <= 32767);
@@ -167,7 +167,7 @@ public:
             sum = inputBiases[n];
 
             for (auto& prevN : input.ind[BLACK]) {
-                sum += inputWeights[prevN][n];
+                sum += inputWeights[prevN * SIDE_NEURONS + n];
             }
 
             va[BLACK][n] = sum;
@@ -211,7 +211,7 @@ public:
             for (int i = 0; i < UNROLL_LENGTH; i++)
                 regs[i] = reg_load(&reg_in[i]);
             for (int idx = 0; idx < addSz; idx++) {
-                reg_type* reg = (reg_type*) &inputWeights[add_ind[idx]][offset];
+                reg_type* reg = (reg_type*) &inputWeights[add_ind[idx] * SIDE_NEURONS + offset];
                 for (int i = 0; i < UNROLL_LENGTH; i++)
                     regs[i] = reg_add16(regs[i], reg[i]);
             }
@@ -223,17 +223,19 @@ public:
 
     void applySubAdd(int16_t* output, int16_t* input, int ind1, int ind2) {
         reg_type regs[UNROLL_LENGTH];
+        const int16_t* inputWeights1 = reinterpret_cast<const int16_t*>(&inputWeights[ind1 * SIDE_NEURONS]);
+        const int16_t* inputWeights2 = reinterpret_cast<const int16_t*>(&inputWeights[ind2 * SIDE_NEURONS]);
 
         for (int b = 0; b < SIDE_NEURONS / BUCKET_UNROLL; b++) {
             const int offset = b * BUCKET_UNROLL;
-            reg_type* reg_in = (reg_type*)&input[offset];
+            const reg_type* reg_in = reinterpret_cast<const reg_type*>(&input[offset]);
             for (int i = 0; i < UNROLL_LENGTH; i++)
                 regs[i] = reg_load(&reg_in[i]);
 
-            reg_type* reg1 = (reg_type*)&inputWeights[ind1][offset];
+            const reg_type* reg1 = reinterpret_cast<const reg_type*>(&inputWeights1[offset]);
             for (int i = 0; i < UNROLL_LENGTH; i++)
                 regs[i] = reg_sub16(regs[i], reg1[i]);
-            reg_type* reg2 = (reg_type*)&inputWeights[ind2][offset];
+            const reg_type* reg2 = reinterpret_cast<const reg_type*>(&inputWeights2[offset]);
             for (int i = 0; i < UNROLL_LENGTH; i++)
                 regs[i] = reg_add16(regs[i], reg2[i]);
 
@@ -245,20 +247,23 @@ public:
 
     void applySubAddSub(int16_t* output, int16_t* input, int ind1, int ind2, int ind3) {
         reg_type regs[UNROLL_LENGTH];
+        const int16_t* inputWeights1 = reinterpret_cast<const int16_t*>(&inputWeights[ind1 * SIDE_NEURONS]);
+        const int16_t* inputWeights2 = reinterpret_cast<const int16_t*>(&inputWeights[ind2 * SIDE_NEURONS]);
+        const int16_t* inputWeights3 = reinterpret_cast<const int16_t*>(&inputWeights[ind3 * SIDE_NEURONS]);
 
         for (int b = 0; b < SIDE_NEURONS / BUCKET_UNROLL; b++) {
             const int offset = b * BUCKET_UNROLL;
-            reg_type* reg_in = (reg_type*)&input[offset];
+            const reg_type* reg_in = reinterpret_cast<const reg_type*>(&input[offset]);
             for (int i = 0; i < UNROLL_LENGTH; i++)
                 regs[i] = reg_load(&reg_in[i]);
 
-            reg_type* reg1 = (reg_type*)&inputWeights[ind1][offset];
+            const reg_type* reg1 = reinterpret_cast<const reg_type*>(&inputWeights1[offset]);
             for (int i = 0; i < UNROLL_LENGTH; i++)
                 regs[i] = reg_sub16(regs[i], reg1[i]);
-            reg_type* reg2 = (reg_type*)&inputWeights[ind2][offset];
+            const reg_type* reg2 = reinterpret_cast<const reg_type*>(&inputWeights2[offset]);
             for (int i = 0; i < UNROLL_LENGTH; i++)
                 regs[i] = reg_add16(regs[i], reg2[i]);
-            reg_type* reg3 = (reg_type*)&inputWeights[ind3][offset];
+            const reg_type* reg3 = reinterpret_cast<const reg_type*>(&inputWeights3[offset]);
             for (int i = 0; i < UNROLL_LENGTH; i++)
                 regs[i] = reg_sub16(regs[i], reg3[i]);
 
@@ -270,23 +275,27 @@ public:
 
     void applySubAddSubAdd(int16_t* output, int16_t* input, int ind1, int ind2, int ind3, int ind4) {
         reg_type regs[UNROLL_LENGTH];
+        const int16_t* inputWeights1 = reinterpret_cast<const int16_t*>(&inputWeights[ind1 * SIDE_NEURONS]);
+        const int16_t* inputWeights2 = reinterpret_cast<const int16_t*>(&inputWeights[ind2 * SIDE_NEURONS]);
+        const int16_t* inputWeights3 = reinterpret_cast<const int16_t*>(&inputWeights[ind3 * SIDE_NEURONS]);
+        const int16_t* inputWeights4 = reinterpret_cast<const int16_t*>(&inputWeights[ind4 * SIDE_NEURONS]);
 
         for (int b = 0; b < SIDE_NEURONS / BUCKET_UNROLL; b++) {
             const int offset = b * BUCKET_UNROLL;
-            reg_type* reg_in = (reg_type*)&input[offset];
+            const reg_type* reg_in = reinterpret_cast<const reg_type*>(&input[offset]);
             for (int i = 0; i < UNROLL_LENGTH; i++)
                 regs[i] = reg_load(&reg_in[i]);
 
-            reg_type* reg1 = (reg_type*)&inputWeights[ind1][offset];
+            const reg_type* reg1 = reinterpret_cast<const reg_type*>(&inputWeights1[offset]);
             for (int i = 0; i < UNROLL_LENGTH; i++)
                 regs[i] = reg_sub16(regs[i], reg1[i]);
-            reg_type* reg2 = (reg_type*)&inputWeights[ind2][offset];
+            const reg_type* reg2 = reinterpret_cast<const reg_type*>(&inputWeights2[offset]);
             for (int i = 0; i < UNROLL_LENGTH; i++)
                 regs[i] = reg_add16(regs[i], reg2[i]);
-            reg_type* reg3 = (reg_type*)&inputWeights[ind3][offset];
+            const reg_type* reg3 = reinterpret_cast<const reg_type*>(&inputWeights3[offset]);
             for (int i = 0; i < UNROLL_LENGTH; i++)
                 regs[i] = reg_sub16(regs[i], reg3[i]);
-            reg_type* reg4 = (reg_type*)&inputWeights[ind4][offset];
+            const reg_type* reg4 = reinterpret_cast<const reg_type*>(&inputWeights4[offset]);
             for (int i = 0; i < UNROLL_LENGTH; i++)
                 regs[i] = reg_add16(regs[i], reg4[i]);
 
@@ -301,12 +310,10 @@ public:
         bool turn = color_of(pieceFrom);
         switch (type(move)) {
         case NEUT: {
-            if (!captured) {
+            if (!captured)
                 applySubAdd(a, b, netInd(pieceFrom, posFrom, king, side), netInd(pieceFrom, posTo, king, side));
-            }
-            else {
+            else
                 applySubAddSub(a, b, netInd(pieceFrom, posFrom, king, side), netInd(pieceFrom, posTo, king, side), netInd(captured, posTo, king, side));
-            }
         }
         break;
         case ENPASSANT: {
@@ -329,12 +336,10 @@ public:
         break;
         default: {
             int promPiece = getType(promoted(move) + KNIGHT, turn);
-            if (!captured) {
+            if (!captured)
                 applySubAdd(a, b, netInd(pieceFrom, posFrom, king, side), netInd(promPiece, posTo, king, side));
-            }
-            else {
+            else
                 applySubAddSub(a, b, netInd(pieceFrom, posFrom, king, side), netInd(promPiece, posTo, king, side), netInd(captured, posTo, king, side));
-            }
         }
         break;
         }
@@ -360,22 +365,35 @@ public:
     }
 
     int32_t getOutput(bool stm) {
-        int32_t sum = outputBias * Q_IN;
+        const int32_t sum = outputBias * Q_IN;
 
-        reg_type zero{}, acc0{};
+        const reg_type zero{};
+        reg_type acc0{}, acc1{}, acc2{}, acc3{};
 
-        const reg_type* w  = (reg_type*)histOutput[histSz - 1][stm];
-        const reg_type* w2 = (reg_type*)histOutput[histSz - 1][stm ^ 1];
-        const reg_type* v  = (reg_type*)outputWeights;
+        const reg_type* w = reinterpret_cast<const reg_type*>(histOutput[histSz - 1][stm]);
+        const reg_type* w2 = reinterpret_cast<const reg_type*>(histOutput[histSz - 1][stm ^ 1]);
+        const reg_type* v = reinterpret_cast<const reg_type*>(outputWeights);
+        const reg_type* v2 = reinterpret_cast<const reg_type*>(&outputWeights[SIDE_NEURONS]);
 
-        for (int j = 0; j < NUM_REGS; j++) {
+        for (int j = 0; j < NUM_REGS; j += 4) {
             acc0 = reg_add32(acc0, reg_madd16(reg_max16(w[j], zero), v[j]));
-            acc0 = reg_add32(acc0, reg_madd16(reg_max16(w2[j], zero), v[j + NUM_REGS]));
+            acc0 = reg_add32(acc0, reg_madd16(reg_max16(w2[j], zero), v2[j]));
+
+            acc1 = reg_add32(acc1, reg_madd16(reg_max16(w[j + 1], zero), v[j + 1]));
+            acc1 = reg_add32(acc1, reg_madd16(reg_max16(w2[j + 1], zero), v2[j + 1]));
+
+            acc2 = reg_add32(acc2, reg_madd16(reg_max16(w[j + 2], zero), v[j + 2]));
+            acc2 = reg_add32(acc2, reg_madd16(reg_max16(w2[j + 2], zero), v2[j + 2]));
+
+            acc3 = reg_add32(acc3, reg_madd16(reg_max16(w[j + 3], zero), v[j + 3]));
+            acc3 = reg_add32(acc3, reg_madd16(reg_max16(w2[j + 3], zero), v2[j + 3]));
         }
 
-        sum += get_sum(acc0);
+        acc0 = reg_add32(acc0, acc1);
+        acc2 = reg_add32(acc2, acc3);
+        acc0 = reg_add32(acc0, acc2);
 
-        return sum / Q_IN / Q_HIDDEN;
+        return (sum + get_sum(acc0)) / (Q_IN * Q_HIDDEN);
     }
 
     void load() {
@@ -387,7 +405,8 @@ public:
         intData = (int*)gNetData;
 
         x = *(intData++);
-        assert(x == 3);
+        //std::cout << x << "\n";
+        assert(x == 2361601);
 
         floatData = (float*)intData;
 
@@ -395,24 +414,22 @@ public:
 
         sz = SIDE_NEURONS;
 
+        for (int i = 0; i < SIDE_NEURONS * INPUT_NEURONS; i++) {
+            float val = *(floatData++);
+            inputWeights[(i / SIDE_NEURONS) * SIDE_NEURONS + (i % SIDE_NEURONS)] = round(val * Q_IN);
+        }
+
         for (int j = 0; j < sz; j++) {
             float val = *(floatData++);
             inputBiases[j] = round(val * Q_IN);
         }
 
-        for (int i = 0; i < SIDE_NEURONS * INPUT_NEURONS; i++) {
-            float val = *(floatData++);
-            inputWeights[i / SIDE_NEURONS][i % SIDE_NEURONS] = round(val * Q_IN);
-        }
-
-        sz = 1;
-
-        outputBias = round(*(floatData++) * Q_HIDDEN);
-
         for (int j = 0; j < HIDDEN_NEURONS; j++) {
             float val = *(floatData++);
             outputWeights[j] = round(val * Q_HIDDEN);
         }
+
+        outputBias = round(*(floatData++) * Q_HIDDEN);
     }
 
     int histSz;
@@ -420,7 +437,7 @@ public:
     int16_t inputBiases[SIDE_NEURONS] __attribute__((aligned(ALIGN)));
     int32_t outputBias;
     int16_t histOutput[2005][2][SIDE_NEURONS] __attribute__((aligned(ALIGN)));
-    int16_t inputWeights[INPUT_NEURONS][SIDE_NEURONS] __attribute__((aligned(ALIGN)));
+    int16_t inputWeights[INPUT_NEURONS * SIDE_NEURONS] __attribute__((aligned(ALIGN)));
     int16_t outputWeights[HIDDEN_NEURONS] __attribute__((aligned(ALIGN)));
 
     //reg_type* v = (reg_type*)outputWeights;
