@@ -54,13 +54,11 @@
 #define reg_max16   _mm_max_epi16
 #define reg_add32   _mm_add_epi32
 #define reg_madd16  _mm_madd_epi16
-#define reg_load    _mm
 #define reg_madd16  _mm_madd_epi16
 #define reg_load    _mm_load_si128
 #define reg_save    _mm_store_si128
 #define ALIGN       16
 #endif
-
 
 INCBIN(Net, EVALFILE);
 
@@ -399,13 +397,11 @@ public:
     void load() {
         int* intData;
         float* floatData;
-        std::vector <float> w;
 
         int x;
         intData = (int*)gNetData;
 
         x = *(intData++);
-        //std::cout << x << "\n";
         assert(x == 2361601);
 
         floatData = (float*)intData;
@@ -440,10 +436,7 @@ public:
     int16_t inputWeights[INPUT_NEURONS * SIDE_NEURONS] __attribute__((aligned(ALIGN)));
     int16_t outputWeights[HIDDEN_NEURONS] __attribute__((aligned(ALIGN)));
 
-    //reg_type* v = (reg_type*)outputWeights;
-
     int addSz;
     int16_t add_ind[32];
     NetHist hist[2005];
-    //int kingSq[2005];
 };

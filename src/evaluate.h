@@ -65,17 +65,6 @@ int evaluate(Board& board) {
 
     int eval = board.NN.getOutput(board.turn);
 
-    /*NetInput inp = board.toNetInput();
-    int eval2 = board.NN.getOutput(inp, board.turn);
-
-    if (eval != eval2) {
-        board.print();
-        std::cout << eval << " " << eval2 << "\n";
-        for (int i = 0; i < board.NN.histSz; i++)
-            std::cout << toString(board.NN.hist[i].move) << " " << int(board.NN.hist[i].piece) << " " << int(board.NN.hist[i].recalc) << "\n";
-        exit(0);
-    }*/
-
     eval = eval * scale(board) / 100;
 
     return eval;
