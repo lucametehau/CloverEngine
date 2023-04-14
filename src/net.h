@@ -70,7 +70,7 @@ const int NUM_REGS = SIDE_NEURONS / REG_LENGTH;
 const int BUCKET_UNROLL = 256;
 const int UNROLL_LENGTH = BUCKET_UNROLL / REG_LENGTH;
 
-const int Q_IN = 2;
+const int Q_IN = 32;
 const int Q_HIDDEN = 512;
 
 enum {
