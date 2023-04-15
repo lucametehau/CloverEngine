@@ -71,7 +71,7 @@ const int BUCKET_UNROLL = 256;
 const int UNROLL_LENGTH = BUCKET_UNROLL / REG_LENGTH;
 
 const int Q_IN = 32;
-const int Q_HIDDEN = 512;
+const int Q_HIDDEN = 256;
 
 enum {
     SUB = 0, ADD
@@ -205,11 +205,11 @@ public:
 
         for (int b = 0; b < SIDE_NEURONS / BUCKET_UNROLL; b++) {
             const int offset = b * BUCKET_UNROLL;
-            reg_type* reg_in = (reg_type*) &inputBiases[offset];
+            reg_type* reg_in = (reg_type*)&inputBiases[offset];
             for (int i = 0; i < UNROLL_LENGTH; i++)
                 regs[i] = reg_load(&reg_in[i]);
             for (int idx = 0; idx < addSz; idx++) {
-                reg_type* reg = (reg_type*) &inputWeights[add_ind[idx] * SIDE_NEURONS + offset];
+                reg_type* reg = (reg_type*)&inputWeights[add_ind[idx] * SIDE_NEURONS + offset];
                 for (int i = 0; i < UNROLL_LENGTH; i++)
                     regs[i] = reg_add16(regs[i], reg[i]);
             }
@@ -313,12 +313,12 @@ public:
             else
                 applySubAddSub(a, b, netInd(pieceFrom, posFrom, king, side), netInd(pieceFrom, posTo, king, side), netInd(captured, posTo, king, side));
         }
-        break;
+                 break;
         case ENPASSANT: {
             int pos = sqDir(turn, SOUTH, posTo), pieceCap = getType(PAWN, 1 ^ turn);
             applySubAddSub(a, b, netInd(pieceFrom, posFrom, king, side), netInd(pieceFrom, posTo, king, side), netInd(pieceCap, pos, king, side));
         }
-        break;
+                      break;
         case CASTLE: {
             int rFrom, rTo, rPiece = getType(ROOK, turn);
             if (posTo == mirror(turn, C1)) {
@@ -331,7 +331,7 @@ public:
             }
             applySubAddSubAdd(a, b, netInd(pieceFrom, posFrom, king, side), netInd(pieceFrom, posTo, king, side), netInd(rPiece, rFrom, king, side), netInd(rPiece, rTo, king, side));
         }
-        break;
+                   break;
         default: {
             int promPiece = getType(promoted(move) + KNIGHT, turn);
             if (!captured)
@@ -339,7 +339,7 @@ public:
             else
                 applySubAddSub(a, b, netInd(pieceFrom, posFrom, king, side), netInd(promPiece, posTo, king, side), netInd(captured, posTo, king, side));
         }
-        break;
+               break;
         }
     }
 
