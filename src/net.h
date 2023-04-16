@@ -70,8 +70,8 @@ const int NUM_REGS = SIDE_NEURONS / REG_LENGTH;
 const int BUCKET_UNROLL = 256;
 const int UNROLL_LENGTH = BUCKET_UNROLL / REG_LENGTH;
 
-const int Q_IN = 16;
-const int Q_HIDDEN = 256;
+const int Q_IN = 32;
+const int Q_HIDDEN = 512;
 
 enum {
     SUB = 0, ADD
@@ -410,20 +410,31 @@ public:
 
         sz = SIDE_NEURONS;
 
+        int mn = 1e9, mx = -1e9;
         for (int i = 0; i < SIDE_NEURONS * INPUT_NEURONS; i++) {
             float val = *(floatData++);
+            mn = std::min<int>(mn, round(val * Q_IN));
+            mx = std::max<int>(mx, round(val * Q_IN));
             inputWeights[(i / SIDE_NEURONS) * SIDE_NEURONS + (i % SIDE_NEURONS)] = round(val * Q_IN);
         }
+        std::cout << mn << " " << mx << "\n";
 
+        mn = 1e9, mx = -1e9;
         for (int j = 0; j < sz; j++) {
             float val = *(floatData++);
+            mn = std::min<int>(mn, round(val * Q_IN));
+            mx = std::max<int>(mx, round(val * Q_IN));
             inputBiases[j] = round(val * Q_IN);
         }
+        std::cout << mn << " " << mx << "\n";
 
         for (int j = 0; j < HIDDEN_NEURONS; j++) {
             float val = *(floatData++);
+            mn = std::min<int>(mn, round(val * Q_HIDDEN));
+            mx = std::max<int>(mx, round(val * Q_HIDDEN));
             outputWeights[j] = round(val * Q_HIDDEN);
         }
+        //std::cout << mn << " " << mx << "\n";
 
         outputBias = round(*(floatData++) * Q_HIDDEN);
     }

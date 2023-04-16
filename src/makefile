@@ -1,7 +1,7 @@
 CC  = g++
 SRC = *.cpp tbprobe.c
 EXE = Clover.4.1.2-3
-EVALFILE = weights-4buckets-epoch110.nnue
+EVALFILE = weights-epoch205.nnue
 
 ifeq ($(OS), Windows_NT)
 	EXT = .exe

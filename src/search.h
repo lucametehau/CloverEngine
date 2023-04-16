@@ -1015,6 +1015,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
                         std::cout << "  ";
                         printPv();
                         std::cout << std::endl;
+                        std::cout << "Branching factor is " << pow(nodes, 1.0 / tDepth) << std::endl;
                         //average_changes.print_mean();
                         //values[0].print_mean();
                         //std::cout << cnt << '\n';
