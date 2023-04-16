@@ -70,8 +70,8 @@ const int NUM_REGS = SIDE_NEURONS / REG_LENGTH;
 const int BUCKET_UNROLL = 256;
 const int UNROLL_LENGTH = BUCKET_UNROLL / REG_LENGTH;
 
-const int Q_IN = 32;
-const int Q_HIDDEN = 512;
+const int Q_IN = 16;
+const int Q_HIDDEN = 128;
 
 enum {
     SUB = 0, ADD
@@ -118,28 +118,45 @@ public:
 
     int32_t calc(NetInput& input, bool stm) {
         int32_t sum;
+        //float sum_f;
 
         for (int n = 0; n < SIDE_NEURONS; n++) {
             sum = inputBiases[n];
+            //sum_f = inputBiases_f[n];
 
             for (auto& prevN : input.ind[WHITE]) {
                 sum += inputWeights[prevN * SIDE_NEURONS + n];
+                //sum_f += inputWeights_f[prevN * SIDE_NEURONS + n];
             }
 
             assert(-32768 <= sum && sum <= 32767);
 
             histOutput[0][WHITE][n] = sum;
+            //histOutput_f[0][WHITE][n] = sum_f;
 
             sum = inputBiases[n];
+            //sum_f = inputBiases_f[n];
 
             for (auto& prevN : input.ind[BLACK]) {
                 sum += inputWeights[prevN * SIDE_NEURONS + n];
+                //sum_f += inputWeights_f[prevN * SIDE_NEURONS + n];
             }
 
             histOutput[0][BLACK][n] = sum;
+            //histOutput_f[0][BLACK][n] = sum_f;
 
             assert(-32768 <= sum && sum <= 32767);
         }
+
+        /*std::cout << "WHITE\n";
+        for (int n = 0; n < 16; n++)
+            std::cout << std::setw(10) << histOutput_f[0][WHITE][n];
+        std::cout << std::setw(10) << histOutput_f[0][WHITE][SIDE_NEURONS - 1];
+        std::cout << "\nBLACK\n";
+        for (int n = 0; n < 16; n++)
+            std::cout << std::setw(10) << histOutput_f[0][BLACK][n];
+        std::cout << std::setw(10) << histOutput_f[0][BLACK][SIDE_NEURONS - 1];
+        std::cout << "\n";*/
 
         histSz = 1;
         hist[0].calc[0] = hist[0].calc[1] = 1;
@@ -205,11 +222,11 @@ public:
 
         for (int b = 0; b < SIDE_NEURONS / BUCKET_UNROLL; b++) {
             const int offset = b * BUCKET_UNROLL;
-            reg_type* reg_in = (reg_type*) &inputBiases[offset];
+            reg_type* reg_in = (reg_type*)&inputBiases[offset];
             for (int i = 0; i < UNROLL_LENGTH; i++)
                 regs[i] = reg_load(&reg_in[i]);
             for (int idx = 0; idx < addSz; idx++) {
-                reg_type* reg = (reg_type*) &inputWeights[add_ind[idx] * SIDE_NEURONS + offset];
+                reg_type* reg = (reg_type*)&inputWeights[add_ind[idx] * SIDE_NEURONS + offset];
                 for (int i = 0; i < UNROLL_LENGTH; i++)
                     regs[i] = reg_add16(regs[i], reg[i]);
             }
@@ -313,12 +330,12 @@ public:
             else
                 applySubAddSub(a, b, netInd(pieceFrom, posFrom, king, side), netInd(pieceFrom, posTo, king, side), netInd(captured, posTo, king, side));
         }
-        break;
+                 break;
         case ENPASSANT: {
             int pos = sqDir(turn, SOUTH, posTo), pieceCap = getType(PAWN, 1 ^ turn);
             applySubAddSub(a, b, netInd(pieceFrom, posFrom, king, side), netInd(pieceFrom, posTo, king, side), netInd(pieceCap, pos, king, side));
         }
-        break;
+                      break;
         case CASTLE: {
             int rFrom, rTo, rPiece = getType(ROOK, turn);
             if (posTo == mirror(turn, C1)) {
@@ -331,7 +348,7 @@ public:
             }
             applySubAddSubAdd(a, b, netInd(pieceFrom, posFrom, king, side), netInd(pieceFrom, posTo, king, side), netInd(rPiece, rFrom, king, side), netInd(rPiece, rTo, king, side));
         }
-        break;
+                   break;
         default: {
             int promPiece = getType(promoted(move) + KNIGHT, turn);
             if (!captured)
@@ -339,7 +356,7 @@ public:
             else
                 applySubAddSub(a, b, netInd(pieceFrom, posFrom, king, side), netInd(promPiece, posTo, king, side), netInd(captured, posTo, king, side));
         }
-        break;
+               break;
         }
     }
 
@@ -363,7 +380,8 @@ public:
     }
 
     int32_t getOutput(bool stm) {
-        const int32_t sum = outputBias * Q_IN;
+        int32_t sum = outputBias * Q_IN;
+        //float sum_f = outputBias_f;
 
         const reg_type zero{};
         reg_type acc0{}, acc1{}, acc2{}, acc3{};
@@ -387,22 +405,30 @@ public:
             acc3 = reg_add32(acc3, reg_madd16(reg_max16(w2[j + 3], zero), v2[j + 3]));
         }
 
+        /*for (int j = 0; j < SIDE_NEURONS; j++) {
+            sum_f += std::max<float>(histOutput_f[histSz - 1][stm][j], 0) * outputWeights_f[j];
+            sum_f += std::max<float>(histOutput_f[histSz - 1][stm ^ 1][j], 0)* outputWeights_f[j + SIDE_NEURONS];
+        }*/
+
         acc0 = reg_add32(acc0, acc1);
         acc2 = reg_add32(acc2, acc3);
         acc0 = reg_add32(acc0, acc2);
+
+        //std::cout << "Float output is " << sum_f << "\n";
 
         return (sum + get_sum(acc0)) / (Q_IN * Q_HIDDEN);
     }
 
     void load() {
-        int* intData;
+        uint64_t* intData;
         float* floatData;
 
-        int x;
-        intData = (int*)gNetData;
+        uint64_t x;
+        intData = (uint64_t*)gNetData;
 
-        x = *(intData++);
+        x = *intData;
         assert(x == 2361601);
+        intData++;
 
         floatData = (float*)intData;
 
@@ -410,22 +436,46 @@ public:
 
         sz = SIDE_NEURONS;
 
+        int mn = 1e9, mx = -1e9;
         for (int i = 0; i < SIDE_NEURONS * INPUT_NEURONS; i++) {
-            float val = *(floatData++);
+            float val = *floatData;
+            mn = std::min<int>(mn, round(val * Q_IN));
+            mx = std::max<int>(mx, round(val * Q_IN));
             inputWeights[(i / SIDE_NEURONS) * SIDE_NEURONS + (i % SIDE_NEURONS)] = round(val * Q_IN);
+            //inputWeights_f[(i / SIDE_NEURONS) * SIDE_NEURONS + (i % SIDE_NEURONS)] = val;
+            floatData++;
         }
+        //std::cout << "\n";
+        //std::cout << mn << " " << mx << "\n";
 
+        mn = 1e9, mx = -1e9;
         for (int j = 0; j < sz; j++) {
-            float val = *(floatData++);
+            float val = *floatData;
+            mn = std::min<int>(mn, round(val * Q_IN));
+            mx = std::max<int>(mx, round(val * Q_IN));
             inputBiases[j] = round(val * Q_IN);
+            //inputBiases_f[j] = val;
+            floatData++;
+            //std::cout << val << "\n";
         }
+        //std::cout << mn << " " << mx << "\n";
 
+        mn = 1e9, mx = -1e9;
         for (int j = 0; j < HIDDEN_NEURONS; j++) {
-            float val = *(floatData++);
+            float val = *floatData;
+            mn = std::min<int>(mn, round(val * Q_HIDDEN));
+            mx = std::max<int>(mx, round(val * Q_HIDDEN));
             outputWeights[j] = round(val * Q_HIDDEN);
+            //outputWeights_f[j] = val;
+            floatData++;
         }
+        //std::cout << mn << " " << mx << "\n";
 
-        outputBias = round(*(floatData++) * Q_HIDDEN);
+        float val = *floatData;
+        outputBias = round(val * Q_HIDDEN);
+        //outputBias_f = val;
+
+        //std::cout << outputBias_f << "\n";
     }
 
     int histSz;
@@ -435,6 +485,11 @@ public:
     int16_t histOutput[2005][2][SIDE_NEURONS] __attribute__((aligned(ALIGN)));
     int16_t inputWeights[INPUT_NEURONS * SIDE_NEURONS] __attribute__((aligned(ALIGN)));
     int16_t outputWeights[HIDDEN_NEURONS] __attribute__((aligned(ALIGN)));
+    //float inputBiases_f[SIDE_NEURONS];
+    //float inputWeights_f[INPUT_NEURONS * SIDE_NEURONS];
+    //float histOutput_f[2005][2][SIDE_NEURONS];
+    //float outputWeights_f[HIDDEN_NEURONS];
+    //float outputBias_f;
 
     int addSz;
     int16_t add_ind[32];

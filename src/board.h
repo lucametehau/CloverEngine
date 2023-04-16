@@ -152,6 +152,7 @@ public:
                 uint64_t b2 = lsb(b);
                 ans.ind[WHITE].push_back(netInd(i, Sq(b2), kingsSide[WHITE], WHITE));
                 ans.ind[BLACK].push_back(netInd(i, Sq(b2), kingsSide[BLACK], BLACK));
+                //std::cout << ans.ind[WHITE].back() << " " << ans.ind[BLACK].back() << "\n";
                 b ^= b2;
             }
         }
