@@ -324,17 +324,17 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
     if (depth <= 0)
         return quiesce(alpha, beta, stack);
 
-    bool pvNode = (alpha < beta - 1);
+    const bool pvNode = (alpha < beta - 1), allNode = (!pvNode && !cutNode);
+    const bool nullSearch = ((stack - 1)->move == NULLMOVE);
+    const int alphaOrig = alpha;
+    const uint64_t key = board.key;
     uint16_t ttMove = NULLMOVE;
-    int alphaOrig = alpha;
-    uint64_t key = board.key;
     uint16_t nrQuiets = 0;
     uint16_t nrCaptures = 0;
     int played = 0, bound = NONE, skip = 0;
     int best = -INF;
     uint16_t bestMove = NULLMOVE;
     int ttHit = 0, ttValue = 0;
-    bool nullSearch = ((stack - 1)->move == NULLMOVE);
 
     nodes++;
     selDepth = std::max(selDepth, ply);
@@ -411,7 +411,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
     }
 
     int staticEval = stack->eval;
-    bool improving = (!isCheck && staticEval > (stack - 2)->eval); /// (TO DO: make all pruning dependent of this variable?)
+    const bool improving = (!isCheck && staticEval > (stack - 2)->eval); /// (TO DO: make all pruning dependent of this variable?)
 
     (stack + 1)->killer = NULLMOVE;
 
@@ -544,7 +544,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         /// avoid extending too far (might cause stack overflow)
         if (ply < 2 * tDepth) {
             /// singular extension (look if the tt move is better than the rest)
-            if (!excluded && move == ttMove && abs(ttValue) < MATE && depth >= 6 && entry.depth() >= depth - 3 && (bound & LOWER)) {
+            if (!excluded && !allNode && move == ttMove && abs(ttValue) < MATE && depth >= 6 && entry.depth() >= depth - 3 && (bound & LOWER)) {
                 int rBeta = ttValue - depth;
 
                 int score = search(rBeta - 1, rBeta, depth / 2, cutNode, stack, move);
@@ -560,7 +560,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                 ex = 1;
             }
         }
-        else if (!pvNode && !cutNode && played >= 1 && entry.depth() >= depth - 3 && bound == UPPER)
+        else if (allNode && played >= 1 && entry.depth() >= depth - 3 && bound == UPPER)
             ex = -1;
 
         /// update stack info
