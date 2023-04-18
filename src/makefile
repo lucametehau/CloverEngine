@@ -11,13 +11,15 @@ endif
 
 
 WFLAGS = -Wall -g
-RFLAGS = $(WFLAGS) -std=c++17 -O3 -fopenmp
+RFLAGS = $(WFLAGS) -std=c++17 -O3
+LIBS =
 
 ifeq ($(EXT), .exe)
 	RFLAGS += -static -static-libgcc -static-libstdc++
+	LIBS += -pthread
+else
+	LIBS += -lpthread
 endif
-
-LIBS   = -pthread
 
 AVX2FLAGS     = -march=core-avx2
 NATIVEFLAGS   = -mno-avx512f -march=native
