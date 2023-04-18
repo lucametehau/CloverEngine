@@ -15,6 +15,9 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #pragma once
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 #include <string>
 #include <chrono>
 #include <ctime>
