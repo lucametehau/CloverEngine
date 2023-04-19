@@ -73,8 +73,8 @@
 #define reg_max16   vmaxq_s16
 #define reg_add32   vaddq_s32
 #define reg_madd16(a, b) (vpaddq_s32(vmull_s16(vget_low_s16(a), vget_low_s16(b)), vmull_high_s16(a, b)))
-#define reg_load    vldrq_p128
-#define reg_save    vstrq_p128
+#define reg_load(a)    (*(a))
+#define reg_save(a, b) (*(a)) = (b)
 #define ALIGN       16
 #endif
 
@@ -120,11 +120,9 @@ public:
     }
 
     int32_t get_sum(reg_type_s& x) {
-#if defined(__ARM_NEON)
+#if   defined(__ARM_NEON)
         return vaddvq_s32(x);
-#endif
-
-#if defined(__AVX512F__)
+#elif defined(__AVX512F__)
         __m256i reg_256 = _mm256_add_epi32(_mm512_castsi512_si256(x), _mm512_extracti32x8_epi32(x, 1));
         __m128i a = _mm_add_epi32(_mm256_castsi256_si128(reg_256), _mm256_extractf128_si256(reg_256, 1));
 #elif defined(__AVX2__) || defined(__AVX__)
@@ -215,7 +213,7 @@ public:
         sum = outputBias * Q_IN;
 
         reg_type zero{};
-        reg_type acc{}, acc2{};
+        reg_type_s acc{}, acc2{};
 
         reg_type* v = (reg_type*)outputWeights;
         reg_type* w = (reg_type*)va[stm];

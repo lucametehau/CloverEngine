@@ -650,6 +650,13 @@ void UCI::Bench(int depth) {
 
     /// do fixed depth searches for some positions
 
+    searcher.values[STAGE_HASHMOVE].init("hash_move_fail_high");
+    searcher.values[STAGE_GOOD_NOISY].init("good_noisy_fail_high");
+    searcher.values[STAGE_COUNTER].init("counter_fail_high");
+    searcher.values[STAGE_KILLER].init("killer_fail_high");
+    searcher.values[STAGE_QUIETS].init("quiets_fail_high");
+    searcher.values[STAGE_BAD_NOISY].init("bad_noisy_fail_high");
+
     uint64_t start = getTime();
     uint64_t totalNodes = 0;
 
@@ -674,6 +681,13 @@ void UCI::Bench(int depth) {
     printStats = true;
 
     std::cout << totalNodes << " nodes " << int(totalNodes / t) << " nps" << std::endl;
+
+    searcher.values[STAGE_HASHMOVE].print_mean();
+    searcher.values[STAGE_GOOD_NOISY].print_mean();
+    searcher.values[STAGE_COUNTER].print_mean();
+    searcher.values[STAGE_KILLER].print_mean();
+    searcher.values[STAGE_QUIETS].print_mean();
+    searcher.values[STAGE_BAD_NOISY].print_mean();
 
     /*std::ofstream fout("history_value.txt");
 

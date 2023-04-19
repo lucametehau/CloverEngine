@@ -648,6 +648,8 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                 updatePv(ply, move);
 
                 if (alpha >= beta) {
+//                    for (int i = STAGE_HASHMOVE; i <= STAGE_BAD_NOISY; i++)
+//                        values[i].upd((picker.trueStage == i ? 100 : 0));
                     break;
                 }
             }
