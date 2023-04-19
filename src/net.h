@@ -120,9 +120,7 @@ public:
     }
 
     int32_t get_sum(reg_type_s& x) {
-#if   defined(__ARM_NEON)
-        return vaddvq_s32(x);
-#elif defined(__AVX512F__)
+#if   defined(__AVX512F__)
         __m256i reg_256 = _mm256_add_epi32(_mm512_castsi512_si256(x), _mm512_extracti32x8_epi32(x, 1));
         __m128i a = _mm_add_epi32(_mm256_castsi256_si128(reg_256), _mm256_extractf128_si256(reg_256, 1));
 #elif defined(__AVX2__) || defined(__AVX__)
@@ -130,10 +128,15 @@ public:
 #elif defined(__SSE2__)
         __m128i a = x;
 #endif
+
+#if   defined(__ARM_NEON)
+        return vaddvq_s32(x);
+#else
         __m128i b = _mm_add_epi32(a, _mm_srli_si128(a, 8));
         __m128i c = _mm_add_epi32(b, _mm_srli_si128(b, 4));
 
         return _mm_cvtsi128_si32(c);
+#endif
     }
 
     int32_t calc(NetInput& input, bool stm) {
