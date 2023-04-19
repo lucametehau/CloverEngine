@@ -258,9 +258,13 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack, bool useTT) {
     Movepick noisyPicker((!isCheck && see(board, ttMove, 0) ? ttMove : NULLMOVE), NULLMOVE, NULLMOVE, 0);
 
     uint16_t move;
+    int played = 0;
 
     while ((move = noisyPicker.nextMove(this, stack, board, !isCheck, true))) {
         // futility pruning
+        played++;
+        if (played == 4)
+            break;
         if (best > -MATE) {
             if (futilityValue > -MATE) {
                 int value = futilityValue + seeVal[board.piece_type_at(sqTo(move))];
@@ -648,8 +652,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                 updatePv(ply, move);
 
                 if (alpha >= beta) {
-//                    for (int i = STAGE_HASHMOVE; i <= STAGE_BAD_NOISY; i++)
-//                        values[i].upd((picker.trueStage == i ? 100 : 0));
                     break;
                 }
             }
@@ -1060,7 +1062,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
 
                 /// adjust time based on how many nodes from the total searched nodes were used for the best move
                 nodesSearchedPercentage = 1.0 * nodesSearched[isNoisyMove(board, bestMoves[1])][sqFrom(bestMoves[1])][sqTo(bestMoves[1])] / nodes;
-                nodesSearchedPercentage = _tmNodesSearchedMaxPercentage - nodesSearchedPercentage; 
+                nodesSearchedPercentage = _tmNodesSearchedMaxPercentage - nodesSearchedPercentage;
 
                 bestMoveStreak = _tmBestMoveMax - _tmBestMoveStep * std::min(10, bestMoveCnt); /// adjust time based on how long the best move was the same
             }
