@@ -72,7 +72,7 @@
 #define reg_sub16   vsubq_s16
 #define reg_max16   vmaxq_s16
 #define reg_add32   vaddq_s32
-#define reg_madd16  (vpaddq_s32(vmull_s16(vget_low_s16(a), vget_low_s16(b)), vmull_high_s16(a, b)))
+#define reg_madd16(a, b) (vpaddq_s32(vmull_s16(vget_low_s16(a), vget_low_s16(b)), vmull_high_s16(a, b)))
 #define reg_load    vldrq_p128
 #define reg_save    vstrq_p128
 #define ALIGN       16
@@ -402,11 +402,8 @@ public:
     }
 
     int32_t getOutput(bool stm) {
-        int32_t sum = outputBias * Q_IN;
-        //float sum_f = outputBias_f;
-
         const reg_type zero{};
-        reg_type acc0{}, acc1{}, acc2{}, acc3{};
+        reg_type_s acc0{}, acc1{}, acc2{}, acc3{};
 
         const reg_type* w = reinterpret_cast<const reg_type*>(histOutput[histSz - 1][stm]);
         const reg_type* w2 = reinterpret_cast<const reg_type*>(histOutput[histSz - 1][stm ^ 1]);
@@ -427,18 +424,13 @@ public:
             acc3 = reg_add32(acc3, reg_madd16(reg_max16(w2[j + 3], zero), v2[j + 3]));
         }
 
-        /*for (int j = 0; j < SIDE_NEURONS; j++) {
-            sum_f += std::max<float>(histOutput_f[histSz - 1][stm][j], 0) * outputWeights_f[j];
-            sum_f += std::max<float>(histOutput_f[histSz - 1][stm ^ 1][j], 0)* outputWeights_f[j + SIDE_NEURONS];
-        }*/
-
         acc0 = reg_add32(acc0, acc1);
         acc2 = reg_add32(acc2, acc3);
         acc0 = reg_add32(acc0, acc2);
 
         //std::cout << "Float output is " << sum_f << "\n";
 
-        return (sum + get_sum(acc0)) / (Q_IN * Q_HIDDEN);
+        return (outputBias * Q_IN + get_sum(acc0)) / (Q_IN * Q_HIDDEN);
     }
 
     void load() {
