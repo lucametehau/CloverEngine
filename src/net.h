@@ -24,7 +24,12 @@
 #include <cmath>
 #include <cstring>
 #include <random>
+
+#if defined(__ARM_NEON)
+#include <arm_neon.h>
+#else
 #include <immintrin.h>
+#endif
 
 #if defined(__AVX512F__)
 #define reg_type    __m512i
