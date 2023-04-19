@@ -258,9 +258,13 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack, bool useTT) {
     Movepick noisyPicker((!isCheck && see(board, ttMove, 0) ? ttMove : NULLMOVE), NULLMOVE, NULLMOVE, 0);
 
     uint16_t move;
+    int played = 0;
 
     while ((move = noisyPicker.nextMove(this, stack, board, !isCheck, true))) {
         // futility pruning
+        played++;
+        if (played == 4)
+            break;
         if (best > -MATE) {
             if (futilityValue > -MATE) {
                 int value = futilityValue + seeVal[board.piece_type_at(sqTo(move))];
