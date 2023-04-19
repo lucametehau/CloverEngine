@@ -179,7 +179,7 @@ struct MeanValue {
     }
 
     void print_mean() {
-        std::cout << name << " has the mean value " << static_cast<long long>(round(valuesSum / valuesCount)) << "\n";
+        std::cout << name << " has the mean value " << valuesSum / valuesCount << "\n";
     }
 };
 

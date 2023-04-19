@@ -24,10 +24,16 @@
 #include <cmath>
 #include <cstring>
 #include <random>
+
+#if defined(__ARM_NEON)
+#include <arm_neon.h>
+#else
 #include <immintrin.h>
+#endif
 
 #if defined(__AVX512F__)
 #define reg_type    __m512i
+#define reg_type_s  __m512i
 #define reg_add16   _mm512_add_epi16
 #define reg_sub16   _mm512_sub_epi16
 #define reg_max16   _mm512_max_epi16
@@ -39,6 +45,7 @@
 #define ALIGN       64
 #elif defined(__AVX2__) || defined(__AVX__)
 #define reg_type    __m256i
+#define reg_type_s  __m256i
 #define reg_add16   _mm256_add_epi16
 #define reg_sub16   _mm256_sub_epi16
 #define reg_max16   _mm256_max_epi16
@@ -49,14 +56,25 @@
 #define ALIGN       32
 #elif defined(__SSE2__)
 #define reg_type    __m128i
+#define reg_type_s  __m128i
 #define reg_add16   _mm_add_epi16
 #define reg_sub16   _mm_sub_epi16
 #define reg_max16   _mm_max_epi16
 #define reg_add32   _mm_add_epi32
 #define reg_madd16  _mm_madd_epi16
-#define reg_madd16  _mm_madd_epi16
 #define reg_load    _mm_load_si128
 #define reg_save    _mm_store_si128
+#define ALIGN       16
+#elif defined(__ARM_NEON)
+#define reg_type    int16x8_t
+#define reg_type_s  int32x4_t
+#define reg_add16   vaddq_s16
+#define reg_sub16   vsubq_s16
+#define reg_max16   vmaxq_s16
+#define reg_add32   vaddq_s32
+#define reg_madd16(a, b) (vpaddq_s32(vmull_s16(vget_low_s16(a), vget_low_s16(b)), vmull_high_s16(a, b)))
+#define reg_load(a)    (*(a))
+#define reg_save(a, b) (*(a)) = (b)
 #define ALIGN       16
 #endif
 
@@ -101,19 +119,24 @@ public:
         add_ind[addSz++] = ind;
     }
 
-    int32_t get_sum(reg_type& x) {
-#if defined(__AVX512F__)
+    int32_t get_sum(reg_type_s& x) {
+#if   defined(__AVX512F__)
         __m256i reg_256 = _mm256_add_epi32(_mm512_castsi512_si256(x), _mm512_extracti32x8_epi32(x, 1));
         __m128i a = _mm_add_epi32(_mm256_castsi256_si128(reg_256), _mm256_extractf128_si256(reg_256, 1));
 #elif defined(__AVX2__) || defined(__AVX__)
         __m128i a = _mm_add_epi32(_mm256_castsi256_si128(x), _mm256_extractf128_si256(x, 1));
-#else
+#elif defined(__SSE2__)
         __m128i a = x;
 #endif
+
+#if   defined(__ARM_NEON)
+        return vaddvq_s32(x);
+#else
         __m128i b = _mm_add_epi32(a, _mm_srli_si128(a, 8));
         __m128i c = _mm_add_epi32(b, _mm_srli_si128(b, 4));
 
         return _mm_cvtsi128_si32(c);
+#endif
     }
 
     int32_t calc(NetInput& input, bool stm) {
@@ -193,7 +216,7 @@ public:
         sum = outputBias * Q_IN;
 
         reg_type zero{};
-        reg_type acc{}, acc2{};
+        reg_type_s acc{}, acc2{};
 
         reg_type* v = (reg_type*)outputWeights;
         reg_type* w = (reg_type*)va[stm];
@@ -380,11 +403,8 @@ public:
     }
 
     int32_t getOutput(bool stm) {
-        int32_t sum = outputBias * Q_IN;
-        //float sum_f = outputBias_f;
-
         const reg_type zero{};
-        reg_type acc0{}, acc1{}, acc2{}, acc3{};
+        reg_type_s acc0{}, acc1{}, acc2{}, acc3{};
 
         const reg_type* w = reinterpret_cast<const reg_type*>(histOutput[histSz - 1][stm]);
         const reg_type* w2 = reinterpret_cast<const reg_type*>(histOutput[histSz - 1][stm ^ 1]);
@@ -405,18 +425,13 @@ public:
             acc3 = reg_add32(acc3, reg_madd16(reg_max16(w2[j + 3], zero), v2[j + 3]));
         }
 
-        /*for (int j = 0; j < SIDE_NEURONS; j++) {
-            sum_f += std::max<float>(histOutput_f[histSz - 1][stm][j], 0) * outputWeights_f[j];
-            sum_f += std::max<float>(histOutput_f[histSz - 1][stm ^ 1][j], 0)* outputWeights_f[j + SIDE_NEURONS];
-        }*/
-
         acc0 = reg_add32(acc0, acc1);
         acc2 = reg_add32(acc2, acc3);
         acc0 = reg_add32(acc0, acc2);
 
         //std::cout << "Float output is " << sum_f << "\n";
 
-        return (sum + get_sum(acc0)) / (Q_IN * Q_HIDDEN);
+        return (outputBias * Q_IN + get_sum(acc0)) / (Q_IN * Q_HIDDEN);
     }
 
     void load() {

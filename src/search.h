@@ -1062,7 +1062,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
 
                 /// adjust time based on how many nodes from the total searched nodes were used for the best move
                 nodesSearchedPercentage = 1.0 * nodesSearched[isNoisyMove(board, bestMoves[1])][sqFrom(bestMoves[1])][sqTo(bestMoves[1])] / nodes;
-                nodesSearchedPercentage = _tmNodesSearchedMaxPercentage - nodesSearchedPercentage; 
+                nodesSearchedPercentage = _tmNodesSearchedMaxPercentage - nodesSearchedPercentage;
 
                 bestMoveStreak = _tmBestMoveMax - _tmBestMoveStep * std::min(10, bestMoveCnt); /// adjust time based on how long the best move was the same
             }
