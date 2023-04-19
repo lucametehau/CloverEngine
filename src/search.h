@@ -1041,7 +1041,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
                     break;
                 }
 
-                window += window / 2;
+                window += window / 4;
             }
         }
 
