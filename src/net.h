@@ -67,7 +67,7 @@
 #define ALIGN       16
 #elif defined(__ARM_NEON)
 #define reg_type    int16_t
-#define reg_type_s  int16_t
+#define reg_type_s  int32_t
 #define reg_add16(a, b)   ((a) + (b))
 #define reg_sub16(a, b)   ((a) - (b))
 #define reg_max16(a, b)   ((a) > (b) ? (a) : (b))   
@@ -130,7 +130,7 @@ public:
 #endif
 
 #if   defined(__ARM_NEON)
-        return vaddvq_s32(x);
+        return x;
 #else
         __m128i b = _mm_add_epi32(a, _mm_srli_si128(a, 8));
         __m128i c = _mm_add_epi32(b, _mm_srli_si128(b, 4));
