@@ -66,15 +66,15 @@
 #define reg_save    _mm_store_si128
 #define ALIGN       16
 #elif defined(__ARM_NEON)
-#define reg_type    int16x8_t
-#define reg_type_s  int32x4_t
-#define reg_add16   vaddq_s16
-#define reg_sub16   vsubq_s16
-#define reg_max16   vmaxq_s16
-#define reg_add32   vaddq_s32
-#define reg_madd16(a, b) (vpaddq_s32(vmull_s16(vget_low_s16(a), vget_low_s16(b)), vmull_high_s16(a, b)))
-#define reg_load(a)    (*(a))
-#define reg_save(a, b) (*(a)) = (b)
+#define reg_type    int16_t
+#define reg_type_s  int16_t
+#define reg_add16(a, b)   ((a) + (b))
+#define reg_sub16(a, b)   ((a) - (b))
+#define reg_max16(a, b)   ((a) > (b) ? (a) : (b))   
+#define reg_add32(a, b)   ((a) + (b))
+#define reg_madd16(a, b)  ((a) * (b))
+#define reg_load(a)       (*(a))
+#define reg_save(a, b)    (*(a)) = (b)
 #define ALIGN       16
 #endif
 
