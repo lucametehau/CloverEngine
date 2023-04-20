@@ -74,6 +74,16 @@ public:
         }
     }
 
+    void getBestMove(int offset, int nrMoves, uint16_t moves[], int scores[]) {
+        int ind = offset;
+        for (int i = offset + 1; i < nrMoves; i++) {
+            if (scores[ind] < scores[i])
+                ind = i;
+        }
+        std::swap(scores[ind], scores[offset]);
+        std::swap(moves[ind], moves[offset]);
+    }
+
     uint16_t nextMove(Search* searcher, StackEntry* stack, Board& board, bool skip, bool noisyPicker) {
         switch (stage) {
         case STAGE_HASHMOVE:
@@ -115,13 +125,14 @@ public:
             }
 
             nrNoisy = m;
-            sortMoves(nrNoisy, moves, scores);
+            //sortMoves(nrNoisy, moves, scores);
             index = 0;
             stage++;
         }
         case STAGE_GOOD_NOISY:
             trueStage = STAGE_GOOD_NOISY;
             while (index < nrNoisy) {
+                getBestMove(index, nrNoisy, moves, scores);
                 if (see(board, moves[index], threshold))
                     return moves[index++];
                 else {
@@ -183,7 +194,7 @@ public:
                 }
 
                 nrQuiets = m;
-                sortMoves(nrQuiets, moves, scores);
+                //sortMoves(nrQuiets, moves, scores);
                 index = 0;
             }
 
@@ -192,6 +203,7 @@ public:
         case STAGE_QUIETS:
             trueStage = STAGE_QUIETS;
             if (!skip && index < nrQuiets) {
+                getBestMove(index, nrQuiets, moves, scores);
                 return moves[index++];
             }
             else {

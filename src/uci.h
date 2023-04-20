@@ -674,25 +674,4 @@ void UCI::Bench(int depth) {
     printStats = true;
 
     std::cout << totalNodes << " nodes " << int(totalNodes / t) << " nps" << std::endl;
-
-    /*std::ofstream fout("history_value.txt");
-
-    for (int i = 250000 - 100000; i < 250000 + 100000; i++)
-        fout << searcher.temp[i] << "\n";*/
-
-        /*int temp[500], cnt = searcher.cnt;
-        for (int i = 0; i < 30; i++)
-            temp[i] = searcher.temp[i];
-
-        std::cout << std::setw(8) << temp[STAGE_HASHMOVE] << "/" << cnt << " hash move\n";
-        std::cout << std::setw(8) << temp[STAGE_GOOD_NOISY] << "/" << cnt << " good noisy\n";
-        std::cout << std::setw(8) << temp[STAGE_KILLER_1] << "/" << cnt << " killer1\n";
-        //std::cout << std::setw(8) << temp[STAGE_KILLER_2] << "/" << cnt << " killer2\n";
-        std::cout << std::setw(8) << temp[STAGE_COUNTER] << "/" << cnt << " counter\n";
-        std::cout << std::setw(8) << temp[STAGE_QUIETS] << "/" << cnt << " quiets\n";
-        std::cout << std::setw(8) << temp[STAGE_BAD_NOISY] << "/" << cnt << " bad noisy\n";*/
-
-        /*std::cout << "nodes: " << totalNodes << "\n";
-        std::cout << " time: " << t << "\n";
-        std::cout << "  nps: " << int(totalNodes / t) << "\n";*/
 }
