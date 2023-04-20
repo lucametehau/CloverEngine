@@ -733,10 +733,6 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv, StackEntry* 
 
     (stack + 1)->killer = NULLMOVE;
 
-    /// internal iterative deepening (search at reduced depth to find a ttMove) (Rebel like)
-    if (!isCheck && depth >= 4 && !ttHit)
-        depth--;
-
     Movepick picker(ttMove, stack->killer, NULLMOVE, -(10 - (rootEval != INF ? rootEval / 100 : 0)) * depth);
 
     uint16_t move;
