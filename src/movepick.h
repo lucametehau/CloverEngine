@@ -46,7 +46,6 @@ public:
 
     uint16_t moves[256], badNoisy[256];
     int scores[256];
-    long long v[256];
 
     Movepick(const uint16_t HashMove, const uint16_t Killer, const uint16_t Counter, const int Threshold) {
         stage = STAGE_HASHMOVE;
@@ -59,19 +58,14 @@ public:
         threshold = Threshold;
     }
 
-    long long codify(uint16_t move, int score) {
-        return ((-1LL * score) << 16) | move;
-    }
-
-    void sortMoves(int nrMoves, uint16_t moves[], int scores[]) {
-        for (int i = 0; i < nrMoves; i++)
-            v[i] = codify(moves[i], scores[i]);
-
-        std::sort(v, v + nrMoves);
-
-        for (int i = 0; i < nrMoves; i++) {
-            moves[i] = v[i] & 65535;
+    void getBestMove(int offset, int nrMoves, uint16_t moves[], int scores[]) {
+        int ind = offset;
+        for (int i = offset + 1; i < nrMoves; i++) {
+            if (scores[ind] < scores[i])
+                ind = i;
         }
+        std::swap(scores[ind], scores[offset]);
+        std::swap(moves[ind], moves[offset]);
     }
 
     uint16_t nextMove(Search* searcher, StackEntry* stack, Board& board, bool skip, bool noisyPicker) {
@@ -115,13 +109,14 @@ public:
             }
 
             nrNoisy = m;
-            sortMoves(nrNoisy, moves, scores);
+            //sortMoves(nrNoisy, moves, scores);
             index = 0;
             stage++;
         }
         case STAGE_GOOD_NOISY:
             trueStage = STAGE_GOOD_NOISY;
             while (index < nrNoisy) {
+                getBestMove(index, nrNoisy, moves, scores);
                 if (see(board, moves[index], threshold))
                     return moves[index++];
                 else {
@@ -183,7 +178,7 @@ public:
                 }
 
                 nrQuiets = m;
-                sortMoves(nrQuiets, moves, scores);
+                //sortMoves(nrQuiets, moves, scores);
                 index = 0;
             }
 
@@ -192,6 +187,7 @@ public:
         case STAGE_QUIETS:
             trueStage = STAGE_QUIETS;
             if (!skip && index < nrQuiets) {
+                getBestMove(index, nrQuiets, moves, scores);
                 return moves[index++];
             }
             else {

@@ -1,12 +1,10 @@
 /*
   Clover is a UCI chess playing engine authored by Luca Metehau.
   <https://github.com/lucametehau/CloverEngine>
-
   Clover is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation, either version 3 of the License, or
   (at your option) any later version.
-
   Clover is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -30,19 +28,16 @@ uint64_t getPinnedPieces(Board& board, bool turn) {
     int color = board.turn, enemy = color ^ 1;
     int king = board.king(color);
     uint64_t mask, us = board.pieces[color], them = board.pieces[enemy];
-    uint64_t b, b2;
+    uint64_t b2;
     uint64_t pinned = 0; /// squares attacked by enemy / pinned pieces
     uint64_t enemyOrthSliders = board.orthSliders(enemy), enemyDiagSliders = board.diagSliders(enemy);
 
     mask = (genAttacksRook(them, king) & enemyOrthSliders) | (genAttacksBishop(them, king) & enemyDiagSliders);
 
     while (mask) {
-        b = lsb(mask);
-        int pos = Sq(b);
-        b2 = us & between[pos][king];
+        b2 = us & between[sq_lsb(mask)][king];
         if (!(b2 & (b2 - 1)))
             pinned ^= b2;
-        mask ^= b;
     }
 
     return pinned;
@@ -50,11 +45,8 @@ uint64_t getPinnedPieces(Board& board, bool turn) {
 
 uint16_t* addMoves(uint16_t* moves, int& nrMoves, int pos, uint64_t att) {
     while (att) {
-        uint64_t b = lsb(att);
-        int pos2 = Sq(b);
-        *(moves++) = getMove(pos, pos2, 0, NEUT);
+        *(moves++) = getMove(pos, sq_lsb(att), 0, NEUT);
         nrMoves++;
-        att ^= b;
     }
     return moves;
 }
@@ -376,23 +368,17 @@ int genLegal(Board& board, uint16_t* moves) {
 
     pieces = board.bb[getType(KNIGHT, enemy)];
     while (pieces) {
-        b = lsb(pieces);
-        attacked |= knightBBAttacks[Sq(b)];
-        pieces ^= b;
+        attacked |= knightBBAttacks[sq_lsb(pieces)];
     }
 
     pieces = enemyDiagSliders;
     while (pieces) {
-        b = lsb(pieces);
-        attacked |= genAttacksBishop(all ^ (1ULL << king), Sq(b));
-        pieces ^= b;
+        attacked |= genAttacksBishop(all ^ (1ULL << king), sq_lsb(pieces));
     }
 
     pieces = enemyOrthSliders;
     while (pieces) {
-        b = lsb(pieces);
-        attacked |= genAttacksRook(all ^ (1ULL << king), Sq(b));
-        pieces ^= b;
+        attacked |= genAttacksRook(all ^ (1ULL << king), sq_lsb(pieces));
     }
 
     attacked |= kingBBAttacks[enemyKing];
@@ -416,10 +402,8 @@ int genLegal(Board& board, uint16_t* moves) {
             if (board.enPas != -1 && board.checkers == (1ULL << (sqDir(enemy, NORTH, board.enPas)))) {
                 mask = pawnAttacksMask[enemy][board.enPas] & notPinned & board.bb[getType(PAWN, color)];
                 while (mask) {
-                    b = lsb(mask);
-                    *(moves++) = (getMove(Sq(b), board.enPas, 0, ENPASSANT));
+                    *(moves++) = (getMove(sq_lsb(mask), board.enPas, 0, ENPASSANT));
                     nrMoves++;
-                    mask ^= b;
                 }
             }
         case KNIGHT:
@@ -441,9 +425,10 @@ int genLegal(Board& board, uint16_t* moves) {
             b1 = b2 & notPinned;
             while (b1) {
                 b = lsb(b1);
+                int sq = Sq(b);
                 if (!(genAttacksRook(all ^ b ^ (1ULL << sq2) ^ (1ULL << ep), king) & enemyOrthSliders) &&
                     !(genAttacksBishop(all ^ b ^ (1ULL << sq2) ^ (1ULL << ep), king) & enemyDiagSliders)) {
-                    *(moves++) = (getMove(Sq(b), ep, 0, ENPASSANT));
+                    *(moves++) = (getMove(sq, ep, 0, ENPASSANT));
                     nrMoves++;
                 }
                 b1 ^= b;
@@ -475,38 +460,32 @@ int genLegal(Board& board, uint16_t* moves) {
 
         b1 = ~notPinned & board.diagSliders(color);
         while (b1) {
-            b = lsb(b1);
-            int sq = Sq(b);
+            int sq = sq_lsb(b1);
             b2 = genAttacksBishop(all, sq) & Line[king][sq];
             moves = addMoves(moves, nrMoves, sq, b2 & quietMask);
             moves = addMoves(moves, nrMoves, sq, b2 & capMask);
-            b1 ^= b;
         }
         b1 = ~notPinned & board.orthSliders(color);
         while (b1) {
-            b = lsb(b1);
-            int sq = Sq(b);
+            int sq = sq_lsb(b1);
             b2 = genAttacksRook(all, sq) & Line[king][sq];
             moves = addMoves(moves, nrMoves, sq, b2 & quietMask);
             moves = addMoves(moves, nrMoves, sq, b2 & capMask);
-            b1 ^= b;
         }
 
         /// pinned pawns
 
         b1 = ~notPinned & board.bb[getType(PAWN, color)];
         while (b1) {
-            b = lsb(b1);
-            int sq = Sq(b), rank7 = (color == WHITE ? 6 : 1), rank3 = (color == WHITE ? 2 : 5);
+            int sq = sq_lsb(b1), rank7 = (color == WHITE ? 6 : 1), rank3 = (color == WHITE ? 2 : 5);
             if (sq / 8 == rank7) { /// promotion captures
                 b2 = pawnAttacksMask[color][sq] & capMask & Line[king][sq];
                 while (b2) {
-                    b3 = lsb(b2);
+                    int sq2 = sq_lsb(b2);
                     for (int j = 0; j < 4; j++) {
-                        *(moves++) = (getMove(sq, Sq(b3), j, PROMOTION));
+                        *(moves++) = (getMove(sq, sq2, j, PROMOTION));
                         nrMoves++;
                     }
-                    b2 ^= b3;
                 }
             }
             else {
@@ -527,7 +506,6 @@ int genLegal(Board& board, uint16_t* moves) {
                     }
                 }
             }
-            b1 ^= b;
         }
     }
 
@@ -536,28 +514,20 @@ int genLegal(Board& board, uint16_t* moves) {
 
     mask = board.bb[getType(KNIGHT, color)] & notPinned;
     while (mask) {
-        uint64_t b = lsb(mask);
-        int sq = Sq(b);
+        int sq = sq_lsb(mask);
         moves = addMoves(moves, nrMoves, sq, knightBBAttacks[sq] & mobMask);
-        mask ^= b;
     }
 
     mask = board.diagSliders(color) & notPinned;
     while (mask) {
-        b = lsb(mask);
-        int sq = Sq(b);
-        b2 = genAttacksBishop(all, sq);
-        moves = addMoves(moves, nrMoves, sq, b2 & mobMask);
-        mask ^= b;
+        int sq = sq_lsb(mask);
+        moves = addMoves(moves, nrMoves, sq, genAttacksBishop(all, sq) & mobMask);
     }
 
     mask = board.orthSliders(color) & notPinned;
     while (mask) {
-        b = lsb(mask);
-        int sq = Sq(b);
-        b2 = genAttacksRook(all, sq);
-        moves = addMoves(moves, nrMoves, sq, b2 & mobMask);
-        mask ^= b;
+        int sq = sq_lsb(mask);
+        moves = addMoves(moves, nrMoves, sq, genAttacksRook(all, sq) & mobMask);
     }
 
     int rank7 = (color == WHITE ? 6 : 1), rank3 = (color == WHITE ? 2 : 5);
@@ -569,18 +539,14 @@ int genLegal(Board& board, uint16_t* moves) {
     b2 &= quietMask;
 
     while (b2) {
-        b = lsb(b2);
-        int sq = Sq(b);
+        int sq = sq_lsb(b2);
         *(moves++) = (getMove(sqDir(color, SOUTH, sq), sq, 0, NEUT));
         nrMoves++;
-        b2 ^= b;
     }
     while (b3) {
-        b = lsb(b3);
-        int sq = Sq(b), sq2 = sqDir(color, SOUTH, sq);
+        int sq = sq_lsb(b3), sq2 = sqDir(color, SOUTH, sq);
         *(moves++) = (getMove(sqDir(color, SOUTH, sq2), sq, 0, NEUT));
         nrMoves++;
-        b3 ^= b;
     }
 
     b2 = shift(color, NORTHWEST, b1 & ~fileMask[fileA]) & capMask;
@@ -588,18 +554,14 @@ int genLegal(Board& board, uint16_t* moves) {
     /// captures
 
     while (b2) {
-        b = lsb(b2);
-        int sq = Sq(b);
+        int sq = sq_lsb(b2);
         *(moves++) = (getMove(sqDir(color, SOUTHEAST, sq), sq, 0, NEUT));
         nrMoves++;
-        b2 ^= b;
     }
     while (b3) {
-        b = lsb(b3);
-        int sq = Sq(b);
+        int sq = sq_lsb(b3);
         *(moves++) = (getMove(sqDir(color, SOUTHWEST, sq), sq, 0, NEUT));
         nrMoves++;
-        b3 ^= b;
     }
 
     b1 = board.bb[getType(PAWN, color)] & notPinned & rankMask[rank7];
@@ -607,13 +569,11 @@ int genLegal(Board& board, uint16_t* moves) {
         /// quiet promotions
         b2 = shift(color, NORTH, b1) & quietMask;
         while (b2) {
-            b = lsb(b2);
-            int sq = Sq(b);
+            int sq = sq_lsb(b2);
             for (int i = 0; i < 4; i++) {
                 *(moves++) = (getMove(sqDir(color, SOUTH, sq), sq, i, PROMOTION));
                 nrMoves++;
             }
-            b2 ^= b;
         }
 
         /// capture promotions
@@ -621,22 +581,18 @@ int genLegal(Board& board, uint16_t* moves) {
         b2 = shift(color, NORTHWEST, b1 & ~fileMask[fileA]) & capMask;
         b3 = shift(color, NORTHEAST, b1 & ~fileMask[fileH]) & capMask;
         while (b2) {
-            b = lsb(b2);
-            int sq = Sq(b);
+            int sq = sq_lsb(b2);
             for (int i = 0; i < 4; i++) {
                 *(moves++) = (getMove(sqDir(color, SOUTHEAST, sq), sq, i, PROMOTION));
                 nrMoves++;
             }
-            b2 ^= b;
         }
         while (b3) {
-            b = lsb(b3);
-            int sq = Sq(b);
+            int sq = sq_lsb(b3);
             for (int i = 0; i < 4; i++) {
                 *(moves++) = (getMove(sqDir(color, SOUTHWEST, sq), sq, i, PROMOTION));
                 nrMoves++;
             }
-            b3 ^= b;
         }
     }
 
@@ -659,23 +615,17 @@ int genLegalNoisy(Board& board, uint16_t* moves) {
 
     pieces = board.bb[getType(KNIGHT, enemy)];
     while (pieces) {
-        b = lsb(pieces);
-        attacked |= knightBBAttacks[Sq(b)];
-        pieces ^= b;
+        attacked |= knightBBAttacks[sq_lsb(pieces)];
     }
 
     pieces = enemyDiagSliders;
     while (pieces) {
-        b = lsb(pieces);
-        attacked |= genAttacksBishop(all ^ (1ULL << king), Sq(b));
-        pieces ^= b;
+        attacked |= genAttacksBishop(all ^ (1ULL << king), sq_lsb(pieces));
     }
 
     pieces = enemyOrthSliders;
     while (pieces) {
-        b = lsb(pieces);
-        attacked |= genAttacksRook(all ^ (1ULL << king), Sq(b));
-        pieces ^= b;
+        attacked |= genAttacksRook(all ^ (1ULL << king), sq_lsb(pieces));
     }
 
     attacked |= kingBBAttacks[enemyKing];
@@ -698,10 +648,8 @@ int genLegalNoisy(Board& board, uint16_t* moves) {
             if (board.enPas != -1 && board.checkers == (1ULL << (sqDir(enemy, NORTH, board.enPas)))) {
                 mask = pawnAttacksMask[enemy][board.enPas] & notPinned & board.bb[getType(PAWN, color)];
                 while (mask) {
-                    b = lsb(mask);
-                    *(moves++) = (getMove(Sq(b), board.enPas, 0, ENPASSANT));
+                    *(moves++) = (getMove(sq_lsb(mask), board.enPas, 0, ENPASSANT));
                     nrMoves++;
-                    mask ^= b;
                 }
             }
         case KNIGHT:
@@ -723,9 +671,10 @@ int genLegalNoisy(Board& board, uint16_t* moves) {
             b1 = b2 & notPinned;
             while (b1) {
                 b = lsb(b1);
+                int sq = Sq(b);
                 if (!(genAttacksRook(all ^ b ^ (1ULL << sq2) ^ (1ULL << ep), king) & enemyOrthSliders) &&
                     !(genAttacksBishop(all ^ b ^ (1ULL << sq2) ^ (1ULL << ep), king) & enemyDiagSliders)) {
-                    *(moves++) = (getMove(Sq(b), ep, 0, ENPASSANT));
+                    *(moves++) = (getMove(sq, ep, 0, ENPASSANT));
                     nrMoves++;
                 }
                 b1 ^= b;
@@ -741,19 +690,15 @@ int genLegalNoisy(Board& board, uint16_t* moves) {
         /// for pinned pieces they move on the same line with the king
         b1 = pinned & board.diagSliders(color);
         while (b1) {
-            b = lsb(b1);
-            int sq = Sq(b);
+            int sq = sq_lsb(b1);
             b2 = genAttacksBishop(all, sq) & Line[king][sq];
             moves = addMoves(moves, nrMoves, sq, b2 & capMask);
-            b1 ^= b;
         }
         b1 = pinned & board.orthSliders(color);
         while (b1) {
-            b = lsb(b1);
-            int sq = Sq(b);
+            int sq = sq_lsb(b1);
             b2 = genAttacksRook(all, sq) & Line[king][sq];
             moves = addMoves(moves, nrMoves, sq, b2 & capMask);
-            b1 ^= b;
         }
 
         /// pinned pawns
@@ -765,12 +710,11 @@ int genLegalNoisy(Board& board, uint16_t* moves) {
             if (sq / 8 == rank7) { /// promotion captures
                 b2 = pawnAttacksMask[color][sq] & capMask & Line[king][sq];
                 while (b2) {
-                    b3 = lsb(b2);
+                    int sq2 = sq_lsb(b2);
                     for (int j = 0; j < 4; j++) {
-                        *(moves++) = (getMove(sq, Sq(b3), j, PROMOTION));
+                        *(moves++) = (getMove(sq, sq2, j, PROMOTION));
                         nrMoves++;
                     }
-                    b2 ^= b3;
                 }
             }
             else {
@@ -785,28 +729,20 @@ int genLegalNoisy(Board& board, uint16_t* moves) {
 
     mask = board.bb[getType(KNIGHT, color)] & notPinned;
     while (mask) {
-        uint64_t b = lsb(mask);
-        int sq = Sq(b);
+        int sq = sq_lsb(mask);
         moves = addMoves(moves, nrMoves, sq, knightBBAttacks[sq] & capMask);
-        mask ^= b;
     }
 
     mask = board.diagSliders(color) & notPinned;
     while (mask) {
-        b = lsb(mask);
-        int sq = Sq(b);
-        b2 = genAttacksBishop(all, sq);
-        moves = addMoves(moves, nrMoves, sq, b2 & capMask);
-        mask ^= b;
+        int sq = sq_lsb(mask);
+        moves = addMoves(moves, nrMoves, sq, genAttacksBishop(all, sq) & capMask);
     }
 
     mask = board.orthSliders(color) & notPinned;
     while (mask) {
-        b = lsb(mask);
-        int sq = Sq(b);
-        b2 = genAttacksRook(all, sq);
-        moves = addMoves(moves, nrMoves, sq, b2 & capMask);
-        mask ^= b;
+        int sq = sq_lsb(mask);
+        moves = addMoves(moves, nrMoves, sq, genAttacksRook(all, sq) & capMask);
     }
 
     int rank7 = (color == WHITE ? 6 : 1);
@@ -818,18 +754,14 @@ int genLegalNoisy(Board& board, uint16_t* moves) {
     /// captures
 
     while (b2) {
-        b = lsb(b2);
-        int sq = Sq(b);
+        int sq = sq_lsb(b2);
         *(moves++) = (getMove(sqDir(color, SOUTHEAST, sq), sq, 0, NEUT));
         nrMoves++;
-        b2 ^= b;
     }
     while (b3) {
-        b = lsb(b3);
-        int sq = Sq(b);
+        int sq = sq_lsb(b3);
         *(moves++) = (getMove(sqDir(color, SOUTHWEST, sq), sq, 0, NEUT));
         nrMoves++;
-        b3 ^= b;
     }
 
     b1 = board.bb[getType(PAWN, color)] & notPinned & rankMask[rank7];
@@ -837,13 +769,11 @@ int genLegalNoisy(Board& board, uint16_t* moves) {
         /// quiet promotions
         b2 = shift(color, NORTH, b1) & quietMask;
         while (b2) {
-            b = lsb(b2);
-            int sq = Sq(b);
+            int sq = sq_lsb(b2);
             for (int i = 0; i < 4; i++) {
                 *(moves++) = (getMove(sqDir(color, SOUTH, sq), sq, i, PROMOTION));
                 nrMoves++;
             }
-            b2 ^= b;
         }
 
         /// capture promotions
@@ -851,22 +781,18 @@ int genLegalNoisy(Board& board, uint16_t* moves) {
         b2 = shift(color, NORTHWEST, b1 & ~fileMask[fileA]) & capMask;
         b3 = shift(color, NORTHEAST, b1 & ~fileMask[fileH]) & capMask;
         while (b2) {
-            b = lsb(b2);
-            int sq = Sq(b);
+            int sq = sq_lsb(b2);
             for (int i = 0; i < 4; i++) {
                 *(moves++) = (getMove(sqDir(color, SOUTHEAST, sq), sq, i, PROMOTION));
                 nrMoves++;
             }
-            b2 ^= b;
         }
         while (b3) {
-            b = lsb(b3);
-            int sq = Sq(b);
+            int sq = sq_lsb(b3);
             for (int i = 0; i < 4; i++) {
                 *(moves++) = (getMove(sqDir(color, SOUTHWEST, sq), sq, i, PROMOTION));
                 nrMoves++;
             }
-            b3 ^= b;
         }
     }
 
@@ -880,7 +806,7 @@ int genLegalQuiets(Board& board, uint16_t* moves) {
     int color = board.turn, enemy = color ^ 1;
     int king = board.king(color), enemyKing = board.king(enemy), pos = board.king(board.turn);
     uint64_t pieces, mask, us = board.pieces[color], them = board.pieces[enemy];
-    uint64_t b, b1, b2, b3;
+    uint64_t b1, b2, b3;
     uint64_t attacked = 0, pinned = board.pinnedPieces; /// squares attacked by enemy / pinned pieces
     uint64_t enemyOrthSliders = board.orthSliders(enemy), enemyDiagSliders = board.diagSliders(enemy);
     uint64_t all = board.pieces[WHITE] | board.pieces[BLACK], emptySq = ~all;
@@ -889,23 +815,17 @@ int genLegalQuiets(Board& board, uint16_t* moves) {
 
     pieces = board.bb[getType(KNIGHT, enemy)];
     while (pieces) {
-        b = lsb(pieces);
-        attacked |= knightBBAttacks[Sq(b)];
-        pieces ^= b;
+        attacked |= knightBBAttacks[sq_lsb(pieces)];
     }
 
     pieces = enemyDiagSliders;
     while (pieces) {
-        b = lsb(pieces);
-        attacked |= genAttacksBishop(all ^ (1ULL << king), Sq(b));
-        pieces ^= b;
+        attacked |= genAttacksBishop(all ^ (1ULL << king), sq_lsb(pieces));
     }
 
     pieces = enemyOrthSliders;
     while (pieces) {
-        b = lsb(pieces);
-        attacked |= genAttacksRook(all ^ (1ULL << king), Sq(b));
-        pieces ^= b;
+        attacked |= genAttacksRook(all ^ (1ULL << king), sq_lsb(pieces));
     }
 
     attacked |= kingBBAttacks[enemyKing];
@@ -945,26 +865,21 @@ int genLegalQuiets(Board& board, uint16_t* moves) {
         /// for pinned pieces they move on the same line with the king
         b1 = pinned & board.diagSliders(color);
         while (b1) {
-            b = lsb(b1);
-            int sq = Sq(b);
+            int sq = sq_lsb(b1);
             b2 = genAttacksBishop(all, sq) & Line[king][sq];
             moves = addMoves(moves, nrMoves, sq, b2 & quietMask);
-            b1 ^= b;
         }
         b1 = pinned & board.orthSliders(color);
         while (b1) {
-            b = lsb(b1);
-            int sq = Sq(b);
+            int sq = sq_lsb(b1);
             b2 = genAttacksRook(all, sq) & Line[king][sq];
             moves = addMoves(moves, nrMoves, sq, b2 & quietMask);
-            b1 ^= b;
         }
 
         /// pinned pawns
         b1 = pinned & board.bb[getType(PAWN, color)];
         while (b1) {
-            b = lsb(b1);
-            int sq = Sq(b), rank7 = (color == WHITE ? 6 : 1), rank3 = (color == WHITE ? 2 : 5);
+            int sq = sq_lsb(b1), rank7 = (color == WHITE ? 6 : 1), rank3 = (color == WHITE ? 2 : 5);
             if (sq / 8 != rank7) {
                 /// single pawn push
                 b2 = (1ULL << (sqDir(color, NORTH, sq))) & emptySq & Line[king][sq];
@@ -981,35 +896,28 @@ int genLegalQuiets(Board& board, uint16_t* moves) {
                 }
 
             }
-            b1 ^= b;
         }
     }
 
     /// not pinned pieces (excluding pawns)
     mask = board.bb[getType(KNIGHT, color)] & notPinned;
     while (mask) {
-        uint64_t b = lsb(mask);
-        int sq = Sq(b);
+        int sq = sq_lsb(mask);
         moves = addMoves(moves, nrMoves, sq, knightBBAttacks[sq] & quietMask);
-        mask ^= b;
     }
 
     mask = board.diagSliders(color) & notPinned;
     while (mask) {
-        b = lsb(mask);
-        int sq = Sq(b);
+        int sq = sq_lsb(mask);
         b2 = genAttacksBishop(all, sq);
         moves = addMoves(moves, nrMoves, sq, b2 & quietMask);
-        mask ^= b;
     }
 
     mask = board.orthSliders(color) & notPinned;
     while (mask) {
-        b = lsb(mask);
-        int sq = Sq(b);
+        int sq = sq_lsb(mask);
         b2 = genAttacksRook(all, sq);
         moves = addMoves(moves, nrMoves, sq, b2 & quietMask);
-        mask ^= b;
     }
 
     int rank7 = (color == WHITE ? 6 : 1), rank3 = (color == WHITE ? 2 : 5);
@@ -1021,18 +929,14 @@ int genLegalQuiets(Board& board, uint16_t* moves) {
     b2 &= quietMask;
 
     while (b2) {
-        b = lsb(b2);
-        int sq = Sq(b);
+        int sq = sq_lsb(b2);
         *(moves++) = (getMove(sqDir(color, SOUTH, sq), sq, 0, NEUT));
         nrMoves++;
-        b2 ^= b;
     }
     while (b3) {
-        b = lsb(b3);
-        int sq = Sq(b), sq2 = sqDir(color, SOUTH, sq);
+        int sq = sq_lsb(b3), sq2 = sqDir(color, SOUTH, sq);
         *(moves++) = (getMove(sqDir(color, SOUTH, sq2), sq, 0, NEUT));
         nrMoves++;
-        b3 ^= b;
     }
 
     return nrMoves;

@@ -196,6 +196,16 @@ inline uint64_t lsb(uint64_t nr) {
     return nr & -nr;
 }
 
+inline int Sq(uint64_t bb) {
+    return 63 - __builtin_clzll(bb);
+}
+
+int sq_lsb(uint64_t &b) {
+    const int sq = Sq(lsb(b));
+    b &= b - 1;
+    return sq;
+}
+
 inline int piece_type(int piece) {
     return (piece > 6 ? piece - 6 : piece);
 }
@@ -237,10 +247,6 @@ inline int mirror(int color, int sq) {
 
 inline int mirrorVert(int sq) {
     return (sq % 8 >= 4 ? 7 - sq % 8 : sq % 8) + 8 * (sq / 8);
-}
-
-inline int Sq(uint64_t bb) {
-    return 63 - __builtin_clzll(bb);
 }
 
 inline int getFrontBit(int color, uint64_t bb) {
