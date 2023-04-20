@@ -46,7 +46,6 @@ public:
 
     uint16_t moves[256], badNoisy[256];
     int scores[256];
-    long long v[256];
 
     Movepick(const uint16_t HashMove, const uint16_t Killer, const uint16_t Counter, const int Threshold) {
         stage = STAGE_HASHMOVE;
@@ -57,21 +56,6 @@ public:
 
         nrNoisy = nrQuiets = nrBadNoisy = 0;
         threshold = Threshold;
-    }
-
-    long long codify(uint16_t move, int score) {
-        return ((-1LL * score) << 16) | move;
-    }
-
-    void sortMoves(int nrMoves, uint16_t moves[], int scores[]) {
-        for (int i = 0; i < nrMoves; i++)
-            v[i] = codify(moves[i], scores[i]);
-
-        std::sort(v, v + nrMoves);
-
-        for (int i = 0; i < nrMoves; i++) {
-            moves[i] = v[i] & 65535;
-        }
     }
 
     void getBestMove(int offset, int nrMoves, uint16_t moves[], int scores[]) {
