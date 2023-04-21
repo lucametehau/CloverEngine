@@ -3,6 +3,7 @@
 *.depend
 *.layout
 *.exe
+*.pdb
 *.pgn
 .vs
 bin

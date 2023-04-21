@@ -15,6 +15,14 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #pragma once
+
+#ifdef _MSC_VER
+#ifndef __clang__
+#error MSVC not supported
+#endif
+#undef _MSC_VER // clang on windows
+#endif
+
 #include "incbin.h"
 #include <fstream>
 #include <iomanip>

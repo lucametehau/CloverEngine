@@ -27,14 +27,6 @@
 #include <array>
 #include <chrono>
 
-#ifdef _MSC_VER
-#  include <intrin.h>
-#  define __builtin_popcountll __popcnt64
-#  define __builtin_clzll _lzcnt_u64
-#  define __builtin_ctzll _tzcnt_u64
-#  define _byteswap_ulong __builtin_bswap32 
-#endif
-
 std::mt19937_64 gen(0xBEEF);
 std::uniform_int_distribution <uint64_t> rng;
 
