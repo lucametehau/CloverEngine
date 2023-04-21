@@ -18,9 +18,6 @@
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
-#ifdef _MSC_VER // clang on windows
-#undef _MSC_VER
-#endif
 #include <string>
 #include <chrono>
 #include <ctime>
