@@ -20,7 +20,7 @@
 #include "defs.h"
 #include "thread.h"
 
-int histMax = 7616;
+int histMax = 4800;
 
 int histUpdateDiv = 16384;
 
