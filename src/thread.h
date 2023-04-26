@@ -31,11 +31,11 @@ int nmpR = 3;
 int nmpDepthDiv = 4;
 int nmpEvalDiv = 135;
 
-int RazorCoef = 380;
+int RazorCoef = 385;
 
 int SNMPDepth = 10;
 int SNMPCoef1 = 82;
-int SNMPCoef2 = 15;
+int SNMPCoef2 = 18;
 
 int seeCoefQuiet = 71;
 int seeCoefNoisy = 10;
@@ -46,7 +46,7 @@ int probcutMargin = 100;
 int probcutR = 3;
 
 int fpMargin = 100;
-int fpCoef = 101;
+int fpCoef = 100;
 
 int histDiv = 5102;
 
@@ -73,7 +73,7 @@ int tmNodesSearchedMaxPercentage = 1570;
 
 int quiesceFutilityCoef = 200;
 
-int aspirationWindow = 9;
+int aspirationWindow = 8;
 
 int pawnAttackedCoef = 36;
 int pawnPushBonus = 9520;

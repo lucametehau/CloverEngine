@@ -697,7 +697,7 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv, StackEntry* 
     int played = 0, bound = NONE;
     int best = -INF;
     uint16_t bestMove = NULLMOVE;
-    int ttHit = 0, ttValue = 0;
+    int ttValue = 0;
 
     nodes++;
 
@@ -711,7 +711,6 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv, StackEntry* 
 
     if (TT->probe(key, entry)) {
         int score = entry.value(0);
-        ttHit = 1;
         ttValue = score;
         bound = entry.bound(), ttMove = entry.move;
         eval = entry.eval;
