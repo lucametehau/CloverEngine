@@ -487,10 +487,10 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
 
     /// internal iterative deepening (search at reduced depth to find a ttMove) (Rebel like)
     /// also for cut nodes
-    if (pvNode && !isCheck && depth >= 4 && !ttHit)
+    if (pvNode && depth >= 3 && !ttHit)
         depth--;
 
-    if (cutNode && depth >= 4 && !ttHit)
+    if (cutNode && depth >= 3 && !ttHit)
         depth--;
 
     /// get counter move for move picker
