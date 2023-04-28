@@ -499,6 +499,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
     Movepick picker(ttMove, stack->killer, counter, -(seeDepthCoef - (ply % 2 == 0 && rootEval != INF ? rootEval / 100 : 0)) * depth);
 
     uint16_t move;
+    bool ttCapture = ttMove && isNoisyMove(board, ttMove);
 
     while ((move = picker.nextMove(this, stack, board, skip, false)) != NULLMOVE) {
 
@@ -594,6 +595,8 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                 R += !pvNode + !improving; /// not on pv or not improving
 
                 R -= pvNode;
+
+                R += ttCapture;
 
                 R += quietUs && !isCheck && eval - seeVal[KNIGHT] > beta; /// if the position is relatively quiet and eval is bigger than beta by a margin
 
