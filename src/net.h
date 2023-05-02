@@ -51,7 +51,7 @@
 #define reg_load    _mm512_load_si512
 #define reg_save    _mm512_store_si512
 #define ALIGN       64
-#elif defined(__AVX2__) || defined(__AVX__)
+#elif defined(__AVX2__) 
 #define reg_type    __m256i
 #define reg_type_s  __m256i
 #define reg_add16   _mm256_add_epi16
@@ -62,7 +62,7 @@
 #define reg_load    _mm256_load_si256
 #define reg_save    _mm256_store_si256
 #define ALIGN       32
-#elif defined(__SSE2__)
+#elif defined(__SSE2__) || defined(__AVX__)
 #define reg_type    __m128i
 #define reg_type_s  __m128i
 #define reg_add16   _mm_add_epi16
