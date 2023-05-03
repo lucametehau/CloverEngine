@@ -131,9 +131,9 @@ public:
 #if   defined(__AVX512F__)
         __m256i reg_256 = _mm256_add_epi32(_mm512_castsi512_si256(x), _mm512_extracti32x8_epi32(x, 1));
         __m128i a = _mm_add_epi32(_mm256_castsi256_si128(reg_256), _mm256_extractf128_si256(reg_256, 1));
-#elif defined(__AVX2__) || defined(__AVX__)
+#elif defined(__AVX2__)
         __m128i a = _mm_add_epi32(_mm256_castsi256_si128(x), _mm256_extractf128_si256(x, 1));
-#elif defined(__SSE2__)
+#elif defined(__SSE2__) || defined(__AVX__)
         __m128i a = x;
 #endif
 
