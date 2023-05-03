@@ -139,14 +139,14 @@ const int kingIndTable2[64] = {
 };
 
 const int kingIndTable[64] = {
-    0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0,
-    1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 0, 0, 0, 0, 1, 1,
+    1, 1, 0, 0, 0, 0, 1, 1,
     2, 2, 2, 2, 2, 2, 2, 2,
     2, 2, 2, 2, 2, 2, 2, 2,
     3, 3, 3, 3, 3, 3, 3, 3,
-    3, 3, 3, 3, 3, 3, 3, 3
+    3, 3, 3, 3, 3, 3, 3, 3,
+    4, 4, 4, 4, 4, 4, 4, 4,
+    4, 4, 4, 4, 4, 4, 4, 4,
 };
 
 const int oppositepieceChar[13] = {
@@ -210,11 +210,11 @@ inline int16_t netInd(int piece, int sq, int kingSq, int side) {
     }
     if ((kingSq & 7) >= 4)
         kingSq ^= 7, sq ^= 7;
-    return 4 * 64 * (piece - 1) + 64 * kingIndTable[kingSq] + sq;
+    return 5 * 64 * (piece - 1) + 64 * kingIndTable[kingSq] + sq;
 }
 
-inline bool recalc(int from, int to) {
-    return (from & 4) != (to & 4) || kingIndTable[from] != kingIndTable[to];
+inline bool recalc(int from, int to, bool side) {
+    return (from & 4) != (to & 4) || kingIndTable[from ^ (56 * !side)] != kingIndTable[to ^ (56 * !side)];
 }
 
 inline int hashVal(int value, int ply) {

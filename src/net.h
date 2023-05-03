@@ -88,7 +88,7 @@
 
 INCBIN(Net, EVALFILE);
 
-const int INPUT_NEURONS = 3072;
+const int INPUT_NEURONS = 3840;
 const int SIDE_NEURONS = 768;
 const int HIDDEN_NEURONS = 2 * SIDE_NEURONS;
 const int REG_LENGTH = sizeof(reg_type) / sizeof(int16_t);
@@ -97,7 +97,7 @@ const int BUCKET_UNROLL = 256;
 const int UNROLL_LENGTH = BUCKET_UNROLL / REG_LENGTH;
 
 const int Q_IN = 16;
-const int Q_HIDDEN = 128;
+const int Q_HIDDEN = 512;
 
 enum {
     SUB = 0, ADD
@@ -376,7 +376,7 @@ public:
     }
 
     void addHistory(uint16_t move, uint8_t piece, uint8_t captured) {
-        hist[histSz] = { move, piece, captured, (piece_type(piece) == KING && recalc(sqFrom(move), sqTo(move))), { 0, 0 } };
+        hist[histSz] = { move, piece, captured, (piece_type(piece) == KING && recalc(sqFrom(move), sqTo(move), color_of(piece))), { 0, 0 } };
         histSz++;
     }
 
@@ -432,7 +432,7 @@ public:
         intData = (uint64_t*)gNetData;
 
         x = *intData;
-        assert(x == 2361601);
+        assert(x == 2951425);
         intData++;
 
         floatData = (float*)intData;
@@ -450,6 +450,8 @@ public:
             floatData++;
         }
 
+        //std::cout << mn << " " << mx << "\n";
+
         mn = 1e9, mx = -1e9;
         for (int j = 0; j < sz; j++) {
             float val = *floatData;
@@ -458,6 +460,7 @@ public:
             inputBiases[j] = round(val * Q_IN);
             floatData++;
         }
+        //std::cout << mn << " " << mx << "\n";
 
         mn = 1e9, mx = -1e9;
         for (int j = 0; j < HIDDEN_NEURONS; j++) {
@@ -467,6 +470,7 @@ public:
             outputWeights[j] = round(val * Q_HIDDEN);
             floatData++;
         }
+        //std::cout << mn << " " << mx << "\n";
 
         float val = *floatData;
         outputBias = round(val * Q_HIDDEN);
