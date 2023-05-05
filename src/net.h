@@ -450,7 +450,7 @@ public:
             floatData++;
         }
 
-        //std::cout << mn << " " << mx << "\n";
+        std::cout << mn << " " << mx << "\n";
 
         mn = 1e9, mx = -1e9;
         for (int j = 0; j < sz; j++) {
@@ -460,7 +460,7 @@ public:
             inputBiases[j] = round(val * Q_IN);
             floatData++;
         }
-        //std::cout << mn << " " << mx << "\n";
+        std::cout << mn << " " << mx << "\n";
 
         mn = 1e9, mx = -1e9;
         for (int j = 0; j < HIDDEN_NEURONS; j++) {
@@ -470,7 +470,7 @@ public:
             outputWeights[j] = round(val * Q_HIDDEN);
             floatData++;
         }
-        //std::cout << mn << " " << mx << "\n";
+        std::cout << mn << " " << mx << "\n";
 
         float val = *floatData;
         outputBias = round(val * Q_HIDDEN);
