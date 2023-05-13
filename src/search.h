@@ -625,13 +625,15 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
 
         /// principal variation search
         uint64_t initNodes = nodes;
+        bool interesting = false;
 
         if (R != 1) {
             score = -search(-alpha - 1, -alpha, newDepth - R, true, stack + 1);
+            interesting = (score > best + 75);
         }
 
         if ((R != 1 && score > alpha) || (R == 1 && (!pvNode || played > 1))) {
-            score = -search(-alpha - 1, -alpha, newDepth - 1, !cutNode, stack + 1);
+            score = -search(-alpha - 1, -alpha, newDepth + interesting - 1, !cutNode, stack + 1);
         }
 
         if (pvNode && (played == 1 || score > alpha)) {
