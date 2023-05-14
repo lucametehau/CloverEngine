@@ -415,7 +415,10 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
     }
 
     int staticEval = stack->eval;
-    const bool improving = (!isCheck && staticEval > (stack - 2)->eval); /// (TO DO: make all pruning dependent of this variable?)
+    const int evalDiff = staticEval > (stack - 2)->eval;
+    const int improving = (isCheck ? 0 : 
+                            evalDiff > 0 ? 1 : 
+                            evalDiff < -200 ? -1 : 0); /// (TO DO: make all pruning dependent of this variable?)
 
     (stack + 1)->killer = NULLMOVE;
 
@@ -528,7 +531,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                     skip = 1;
 
                 /// late move pruning
-                if (newDepth <= lmpDepth && nrQuiets >= lmrCnt[improving][newDepth])
+                if (newDepth <= lmpDepth && nrQuiets >= (3 + newDepth * newDepth) / (2 - improving))
                     skip = 1;
 
                 if (depth <= seePruningQuietDepth && !isCheck && !see(board, move, -seeCoefQuiet * depth))
@@ -625,15 +628,13 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
 
         /// principal variation search
         uint64_t initNodes = nodes;
-        bool interesting = false;
 
         if (R != 1) {
             score = -search(-alpha - 1, -alpha, newDepth - R, true, stack + 1);
-            interesting = (score > best + 75);
         }
 
         if ((R != 1 && score > alpha) || (R == 1 && (!pvNode || played > 1))) {
-            score = -search(-alpha - 1, -alpha, newDepth + interesting - 1, !cutNode, stack + 1);
+            score = -search(-alpha - 1, -alpha, newDepth - 1, !cutNode, stack + 1);
         }
 
         if (pvNode && (played == 1 || score > alpha)) {
