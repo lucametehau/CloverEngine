@@ -415,10 +415,10 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
     }
 
     int staticEval = stack->eval;
-    const int evalDiff = staticEval > (stack - 2)->eval;
-    const int improving = (isCheck ? 0 : 
+    const int evalDiff = staticEval - (stack - 2)->eval;
+    const int improving = (isCheck || (stack - 2)->eval == INF ? 0 :
                             evalDiff > 0 ? 1 : 
-                            evalDiff < -200 ? -1 : 0); /// (TO DO: make all pruning dependent of this variable?)
+                            evalDiff < -200 ? -1 : 0);
 
     (stack + 1)->killer = NULLMOVE;
 
@@ -490,10 +490,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
 
     /// internal iterative deepening (search at reduced depth to find a ttMove) (Rebel like)
     /// also for cut nodes
-    if (pvNode && depth >= 3 && !ttHit)
-        depth--;
-
-    if (cutNode && depth >= 3 && !ttHit)
+    if ((pvNode || cutNode) && depth >= 3 && !ttHit)
         depth--;
 
     /// get counter move for move picker
