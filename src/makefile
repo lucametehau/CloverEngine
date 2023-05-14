@@ -1,6 +1,6 @@
 CC  = g++
 SRC = *.cpp tbprobe.c
-EXE = Clover.4.1.18
+EXE = Clover.4.1.19
 EVALFILE = weights-5buckets-epoch210.nnue
 
 ifeq ($(OS), Windows_NT)

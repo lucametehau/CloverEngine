@@ -415,7 +415,10 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
     }
 
     int staticEval = stack->eval;
-    const bool improving = (!isCheck && staticEval > (stack - 2)->eval); /// (TO DO: make all pruning dependent of this variable?)
+    const int evalDiff = staticEval > (stack - 2)->eval;
+    const int improving = (isCheck ? 0 : 
+                            evalDiff > 0 ? 1 : 
+                            evalDiff < -200 ? -1 : 0); /// (TO DO: make all pruning dependent of this variable?)
 
     (stack + 1)->killer = NULLMOVE;
 
@@ -528,7 +531,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                     skip = 1;
 
                 /// late move pruning
-                if (newDepth <= lmpDepth && nrQuiets >= lmrCnt[improving][newDepth])
+                if (newDepth <= lmpDepth && nrQuiets >= (3 + newDepth * newDepth) / (2 - improving))
                     skip = 1;
 
                 if (depth <= seePruningQuietDepth && !isCheck && !see(board, move, -seeCoefQuiet * depth))
