@@ -63,9 +63,6 @@ int lmrMargin = 10;
 int lmrDiv = 25;
 int lmrCapDiv = 15;
 
-int lmpStart1 = 3, lmpMult1 = 1, lmpDiv1 = 2;
-int lmpStart2 = 3, lmpMult2 = 1, lmpDiv2 = 1;
-
 int tmScoreDiv = 111;
 int tmBestMoveStep = 50;
 int tmBestMoveMax = 1250;
@@ -94,10 +91,6 @@ struct Search {
                 lmrRed[i][j] = 1.0 * lmrMargin / 10 + log(i) * log(j) / (1.0 * lmrDiv / 10);
                 lmrRedNoisy[i][j] = lmrRed[i][j] / (1.0 * lmrCapDiv / 10);
             }
-        }
-        for (int i = 1; i < 20; i++) {
-            lmrCnt[0][i] = (lmpStart1 + lmpMult1 * i * i) / lmpDiv1;
-            lmrCnt[1][i] = (lmpStart2 + lmpMult2 * i * i) / lmpDiv2;
         }
     }
 
@@ -149,7 +142,6 @@ struct Search {
     int hist[2][64][64];
     TablePieceTo continuationHistory[13][64];
     int capHist[13][64][7];
-    int lmrCnt[2][20];
     int lmrRed[64][64], lmrRedNoisy[64][64];
     int bestMoves[256], scores[256];
     MeanValue values[10];
