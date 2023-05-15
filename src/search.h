@@ -592,7 +592,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
             if (isQuiet) {
                 R = lmrRed[std::min(63, depth)][std::min(63, played)];
 
-                R += !pvNode + !improving; /// not on pv or not improving
+                R += !pvNode + (improving <= 0); /// not on pv or not improving
 
                 R -= pvNode;
 
@@ -611,7 +611,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
             else if (!pvNode) {
                 R = lmrRedNoisy[std::min(63, depth)][std::min(63, played)];
 
-                R += !improving; /// not improving
+                R += improving <= 0; /// not improving
 
                 R += quietUs && picker.trueStage == STAGE_BAD_NOISY; /// if the position is relatively quiet and the capture is "very losing"
             }
