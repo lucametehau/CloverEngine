@@ -23,13 +23,9 @@
 
 int pawnScaleStart = 73;
 int pawnScaleStep = 2;
-int pawnsOn1Flank = 13;
 
-int scale(Board& board) {
-    int pawnCount = count(board.bb[getType(PAWN, board.turn)]);
-    uint64_t allPawns = board.bb[WP] | board.bb[BP];
-
-    return std::min(100, pawnScaleStart + pawnScaleStep * pawnCount - pawnsOn1Flank * !((allPawns & flankMask[0]) && (allPawns & flankMask[1])));
+inline int scale(Board& board) {
+    return std::min(100, pawnScaleStart + pawnScaleStep * count(board.bb[getType(PAWN, board.turn)]));
 }
 
 void bringUpToDate(Board& board, Network& NN) {
