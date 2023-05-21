@@ -109,12 +109,12 @@ int getCapHist(Search* searcher, uint16_t move) {
     return searcher->capHist[piece][to][cap];
 }
 
-void getHistory(Search* searcher, StackEntry* stack, uint16_t move, int &h, int &ch, int &fh) {
+void getHistory(Search* searcher, StackEntry* stack, uint16_t move, int &hist) {
     int from = sqFrom(move), to = sqTo(move), piece = searcher->board.piece_at(from);
 
-    h = searcher->hist[searcher->board.turn][from][to];
+    hist = searcher->hist[searcher->board.turn][from][to];
 
-    ch = (*(stack - 1)->continuationHist)[piece][to];
+    hist += (*(stack - 1)->continuationHist)[piece][to];
     
-    fh = (*(stack - 2)->continuationHist)[piece][to];
+    hist += (*(stack - 2)->continuationHist)[piece][to];
 }

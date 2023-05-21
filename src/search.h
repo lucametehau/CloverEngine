@@ -507,14 +507,12 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
             continue;
 
         bool isQuiet = !isNoisyMove(board, move), refutationMove = (picker.trueStage < STAGE_QUIETS);
-        int hist = 0, h, ch, fh;
+        int hist = 0;
 
         /// quiet move pruning
         if (best > -MATE && board.hasNonPawnMaterial(board.turn)) {
             if (isQuiet) {
-                getHistory(this, stack, move, h, ch, fh);
-
-                hist = h + fh + ch;
+                getHistory(this, stack, move, hist);
 
                 /// approximately the new depth for the next search
                 int newDepth = std::max(0, depth - lmrRed[std::min(63, depth)][std::min(63, played)] + improving);
@@ -540,8 +538,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
 
                 if (depth <= 8 && !isCheck && staticEval + fpMargin + seeVal[board.piece_type_at(sqTo(move))] + fpCoef * depth <= alpha)
                     continue;
-
-                hist = getCapHist(this, move);
             }
         }
 
