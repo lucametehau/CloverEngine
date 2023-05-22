@@ -20,16 +20,11 @@
 #include "defs.h"
 #include "thread.h"
 
-int histMax = 4800;
-
 int histUpdateDiv = 16384;
 
 int counterHistUpdateDiv = 16384;
 
 int capHistUpdateDiv = 16384;
-
-int A_mult = 16;
-int B_mult = 320;
 
 void updateHist(int& hist, int score) {
     hist += score - hist * abs(score) / histUpdateDiv;
