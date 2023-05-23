@@ -62,7 +62,6 @@ private:
 };
 
 UCI::UCI(Search& _searcher) : searcher(_searcher) {
-    addOption("RazorCoef", RazorCoef);
     addOption("SNMPCoef1", SNMPCoef1);
     addOption("SNMPCoef2", SNMPCoef2);
     addOption("seeCoefQuiet", seeCoefQuiet);
@@ -320,10 +319,7 @@ void UCI::Uci_Loop() {
 
             /// search params, used by ctt
 
-            if (name == "RazorCoef") {
-                setOptionI(iss, RazorCoef);
-            }
-            else if (name == "SNMPCoef1") {
+            if (name == "SNMPCoef1") {
                 setOptionI(iss, SNMPCoef1);
             }
             else if (name == "SNMPCoef2") {

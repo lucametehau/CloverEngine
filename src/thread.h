@@ -31,8 +31,6 @@ int nmpR = 4;
 int nmpDepthDiv = 4;
 int nmpEvalDiv = 135;
 
-int RazorCoef = 385;
-
 int SNMPDepth = 10;
 int SNMPCoef1 = 82;
 int SNMPCoef2 = 18;
