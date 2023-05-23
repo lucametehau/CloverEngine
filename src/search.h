@@ -423,10 +423,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
     (stack + 1)->killer = NULLMOVE;
 
     if (!pvNode && !isCheck) {
-        /// razoring (searching 1 more ply can't change the score much, drop in quiesce)
-        if (depth <= 1 && staticEval + RazorCoef < alpha) {
-            return quiesce(alpha, beta, stack);
-        }
 
         /// static null move pruning (don't prune when having a mate line, again stability)
         if (depth <= SNMPDepth && eval > beta && eval - (SNMPCoef1 - SNMPCoef2 * improving) * (depth - quietUs) > beta && eval < MATE) {
