@@ -547,7 +547,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                 int score = search(rBeta - 1, rBeta, depth / 2, cutNode, stack, move);
 
                 if (score < rBeta)
-                    ex = 1 + (!pvNode && rBeta - score > 100);
+                    ex = 1 + (!pvNode && rBeta - score > 25);
                 else if (rBeta >= beta) /// multicut
                     return rBeta;
                 else if (ttValue >= beta || ttValue <= alpha)
