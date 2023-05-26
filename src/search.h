@@ -577,10 +577,9 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
             stack->captures[nrCaptures++] = move;
 
         int newDepth = depth + ex, R = 1;
-        bool didLmr = false;
 
         uint64_t initNodes = nodes;
-        int score;
+        int score = -INF;
 
         if (depth >= 3 && played > 1 + pvNode) { /// first few moves we don't reduce
             if (isQuiet) {
@@ -612,7 +611,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
 
             R += cutNode;
 
-            R = std::min(depth - 1, std::max(R, 1)); /// clamp R
+            R = std::min(newDepth - 1, std::max(R, 1)); /// clamp R
             score = -search(-alpha - 1, -alpha, newDepth - R, true, stack + 1);
 
             if (R > 1 && score > alpha)
