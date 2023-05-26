@@ -417,8 +417,8 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
     int staticEval = stack->eval;
     const int evalDiff = staticEval - (stack - 2)->eval;
     const int improving = (isCheck || (stack - 2)->eval == INF ? 0 :
-                            evalDiff > 0 ? 1 : 
-                            evalDiff < -200 ? -1 : 0);
+        evalDiff > 0 ? 1 :
+        evalDiff < -200 ? -1 : 0);
 
     (stack + 1)->killer = NULLMOVE;
 
@@ -577,8 +577,10 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
             stack->captures[nrCaptures++] = move;
 
         int newDepth = depth + ex, R = 1;
+        bool didLmr = false;
 
-        /// quiet late move reduction
+        uint64_t initNodes = nodes;
+        int score;
 
         if (depth >= 3 && played > 1 + pvNode) { /// first few moves we don't reduce
             if (isQuiet) {
@@ -611,18 +613,12 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
             R += cutNode;
 
             R = std::min(depth - 1, std::max(R, 1)); /// clamp R
-        }
-
-        int score = -INF;
-
-        /// principal variation search
-        uint64_t initNodes = nodes;
-
-        if (R != 1) {
             score = -search(-alpha - 1, -alpha, newDepth - R, true, stack + 1);
-        }
 
-        if ((R != 1 && score > alpha) || (R == 1 && (!pvNode || played > 1))) {
+            if (R > 1 && score > alpha)
+                score = -search(-alpha - 1, -alpha, newDepth - 1, !cutNode, stack + 1);
+        }
+        else if (!pvNode || played > 1) {
             score = -search(-alpha - 1, -alpha, newDepth - 1, !cutNode, stack + 1);
         }
 
