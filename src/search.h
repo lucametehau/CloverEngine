@@ -576,7 +576,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         else
             stack->captures[nrCaptures++] = move;
 
-        int newDepth = depth + ex, R = 1;
+        int newDepth = depth + ex - 1, R = 1;
 
         uint64_t initNodes = nodes;
         int score = -INF;
@@ -615,14 +615,14 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
             score = -search(-alpha - 1, -alpha, newDepth - R, true, stack + 1);
 
             if (R > 1 && score > alpha)
-                score = -search(-alpha - 1, -alpha, newDepth - 1, !cutNode, stack + 1);
+                score = -search(-alpha - 1, -alpha, newDepth, !cutNode, stack + 1);
         }
         else if (!pvNode || played > 1) {
-            score = -search(-alpha - 1, -alpha, newDepth - 1, !cutNode, stack + 1);
+            score = -search(-alpha - 1, -alpha, newDepth, !cutNode, stack + 1);
         }
 
         if (pvNode && (played == 1 || score > alpha)) {
-            score = -search(-beta, -alpha, newDepth - 1, false, stack + 1);
+            score = -search(-beta, -alpha, newDepth, false, stack + 1);
         }
 
         board.undoMove(move);
