@@ -614,7 +614,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
             R = std::min(newDepth - 1, std::max(R, 1)); /// clamp R
             score = -search(-alpha - 1, -alpha, newDepth - R, true, stack + 1);
 
-            if (R > 1 && score > alpha)
+            if (R >= 1 && score > alpha)
                 score = -search(-alpha - 1, -alpha, newDepth, !cutNode, stack + 1);
         }
         else if (!pvNode || played > 1) {
