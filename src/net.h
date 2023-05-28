@@ -470,7 +470,7 @@ public:
             outputWeights[j] = round(val * Q_HIDDEN);
             floatData++;
         }
-        //sstd::cout << mn << " " << mx << "\n";
+        //std::cout << mn << " " << mx << "\n";
 
         float val = *floatData;
         outputBias = round(val * Q_HIDDEN);
