@@ -654,7 +654,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
 
     /// update killer and history heuristics in case of a cutoff
     if (best >= beta) {
-        //cnt2 += flaggy;
         if (!isNoisyMove(board, bestMove)) {
             if (stack->killer != bestMove)
                 stack->killer = bestMove;
