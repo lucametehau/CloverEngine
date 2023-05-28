@@ -609,7 +609,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                 R += quietUs && picker.trueStage == STAGE_BAD_NOISY; /// if the position is relatively quiet and the capture is "very losing"
             }
 
-            R += 2 * cutNode;
+            R += cutNode;
 
             R = std::min(newDepth - 1, std::max(R, 1)); /// clamp R
             score = -search(-alpha - 1, -alpha, newDepth - R, true, stack + 1);
