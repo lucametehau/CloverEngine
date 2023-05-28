@@ -97,7 +97,7 @@ const int BUCKET_UNROLL = 256;
 const int UNROLL_LENGTH = BUCKET_UNROLL / REG_LENGTH;
 
 const int Q_IN = 16;
-const int Q_HIDDEN = 256;
+const int Q_HIDDEN = 512;
 
 enum {
     SUB = 0, ADD
