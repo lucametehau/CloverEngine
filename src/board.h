@@ -106,8 +106,8 @@ public:
         return Sq(bb[getType(KING, color)]);
     }
 
-    bool isCapture(int move) {
-        return (board[sqTo(move)] > 0);
+    bool isCapture(uint16_t move) {
+        return type(move) != CASTLE && (board[sqTo(move)] > 0);
     }
 
     void makeMove(uint16_t move);
