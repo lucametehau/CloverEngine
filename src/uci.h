@@ -169,7 +169,7 @@ void UCI::Uci_Loop() {
                     std::string moveStr;
 
                     while (iss >> moveStr) {
-                        int move = parseMove(searcher.board, moveStr);
+                        int move = parseMove(searcher.board, moveStr, info);
 
                         searcher._makeMove(move);
                     }
@@ -270,7 +270,7 @@ void UCI::Uci_Loop() {
         else if (cmd == "checkmove") {
             std::string moveStr;
             iss >> moveStr;
-            uint16_t move = parseMove(searcher.board, moveStr);
+            uint16_t move = parseMove(searcher.board, moveStr, info);
             std::cout << isLegalMove(searcher.board, move) << " " << isLegalMoveSlow(searcher.board, move) << "\n";
         }
         else if (cmd == "setoption") {
@@ -319,11 +319,11 @@ void UCI::Uci_Loop() {
             else if (name == "UCI_Chess960") {
                 iss >> value;
 
-                bool chess960;
+                std::string truth;
 
-                iss >> chess960;
+                iss >> truth;
 
-                info->chess960 = chess960;
+                info->chess960 = (truth == "true");
             }
 
             /// search params, used by ctt
@@ -488,7 +488,7 @@ void UCI::Uci_Loop() {
             int th;
             iss >> mv >> th;
 
-            uint16_t move = parseMove(searcher.board, mv);
+            uint16_t move = parseMove(searcher.board, mv, info);
 
             std::cout << see(searcher.board, move, th) << std::endl;
         }

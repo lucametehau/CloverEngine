@@ -1130,7 +1130,7 @@ bool isLegalMoveDummy(Board& board, uint16_t move) {
     return legal;
 }
 
-uint16_t parseMove(Board& board, std::string moveStr) {
+uint16_t parseMove(Board& board, std::string moveStr, Info *info) {
     if (moveStr[1] > '8' || moveStr[1] < '1' || 
         moveStr[3] > '8' || moveStr[3] < '1' || 
         moveStr[0] > 'h' || moveStr[0] < 'a' || 
@@ -1138,7 +1138,7 @@ uint16_t parseMove(Board& board, std::string moveStr) {
         return NULLMOVE;
 
     int from = getSq(moveStr[1] - '1', moveStr[0] - 'a');
-    if (board.piece_type_at(from) == KING) {
+    if (!info->chess960 && board.piece_type_at(from) == KING) {
         if (moveStr == "e1c1") moveStr = "e1a1";
         else if (moveStr == "e1g1") moveStr = "e1h1";
         else if (moveStr == "e8c8") moveStr = "e8a8";
