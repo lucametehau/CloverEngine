@@ -1130,6 +1130,8 @@ uint16_t parseMove(Board& board, std::string moveStr) {
     if (board.piece_type_at(from) == KING) {
         if (moveStr == "e1c1") moveStr = "e1a1";
         else if (moveStr == "e1g1") moveStr = "e1h1";
+        else if (moveStr == "e8c8") moveStr = "e8a8";
+        else if (moveStr == "e8g8") moveStr = "e8h8";
     }
 
     int to = getSq(moveStr[3] - '1', moveStr[2] - 'a');
