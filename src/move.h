@@ -867,7 +867,8 @@ int genLegalQuiets(Board& board, uint16_t* moves) {
             int kingTo = mirror(color, C1), rook = board.rookSq[color][0], rookTo = mirror(color, D1);
             if (!(attacked & (between[king][kingTo] | (1ULL << king) | (1ULL << kingTo))) &&
                 (!((all ^ (1ULL << rook)) & (between[king][kingTo] | (1ULL << kingTo))) || king == kingTo) &&
-                (!((all ^ (1ULL << king)) & (between[rook][rookTo] | (1ULL << rookTo))) || rook == rookTo)) {
+                (!((all ^ (1ULL << king)) & (between[rook][rookTo] | (1ULL << rookTo))) || rook == rookTo) &&
+                !getAttackers(board, enemy, all ^ (1ULL << rook), king)) {
                 *(moves++) = (getMove(king, rook, 0, CASTLE));
                 nrMoves++;
             }
@@ -878,7 +879,8 @@ int genLegalQuiets(Board& board, uint16_t* moves) {
             int kingTo = mirror(color, G1), rook = board.rookSq[color][1], rookTo = mirror(color, F1);
             if (!(attacked & (between[king][kingTo] | (1ULL << king) | (1ULL << kingTo))) &&
                 (!((all ^ (1ULL << rook)) & (between[king][kingTo] | (1ULL << kingTo))) || king == kingTo) &&
-                (!((all ^ (1ULL << king)) & (between[rook][rookTo] | (1ULL << rookTo))) || rook == rookTo)) {
+                (!((all ^ (1ULL << king)) & (between[rook][rookTo] | (1ULL << rookTo))) || rook == rookTo) &&
+                !getAttackers(board, enemy, all ^ (1ULL << rook), king)) {
                 *(moves++) = (getMove(king, rook, 0, CASTLE));
                 nrMoves++;
             }
@@ -1072,13 +1074,14 @@ bool isLegalMove(Board& board, int move) {
             if (board.checkers)
                 return 0;
             uint64_t mask = between[from][to];
+            //printBB(mask);
             while (mask) {
                 if (isSqAttacked(board, enemy, sq_lsb(mask)))
                     return 0;
             }
 
-            if (!(((all ^ (1ULL << rFrom)) & (between[from][to] | (1ULL << to))) || from == to) &&
-                !(((all ^ (1ULL << from)) & (between[rFrom][rTo] | (1ULL << rTo))) || rFrom == rTo)) {
+            if ((!((all ^ (1ULL << rFrom)) & (between[from][to] | (1ULL << to))) || from == to) &&
+                (!((all ^ (1ULL << from)) & (between[rFrom][rTo] | (1ULL << rTo))) || rFrom == rTo)) {
                 bool legal = false;
                 board.makeMove(move);
                 legal = !isSqAttacked(board, board.turn, board.king(board.turn ^ 1));
