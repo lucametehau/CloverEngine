@@ -316,6 +316,15 @@ void UCI::Uci_Loop() {
 
                 info->multipv = multipv;
             }
+            else if (name == "UCI_Chess960") {
+                iss >> value;
+
+                bool chess960;
+
+                iss >> chess960;
+
+                info->chess960 = chess960;
+            }
 
             /// search params, used by ctt
 
@@ -445,6 +454,9 @@ void UCI::Uci_Loop() {
 
             generateData(nrFens, nrThreads, path);
         }
+        else if (cmd == "show") {
+            searcher.board.print();
+        }
         else if (cmd == "eval") {
             Eval();
         }
@@ -493,6 +505,7 @@ void UCI::Uci() {
     std::cout << "option name Threads type spin default 1 min 1 max 256" << std::endl;
     std::cout << "option name SyzygyPath type string default <empty>" << std::endl;
     std::cout << "option name MultiPV type spin default 1 min 1 max 255" << std::endl;
+    std::cout << "option name UCI_Chess960 type check default false" << std::endl;
     for (auto& option : options)
         std::cout << "option name " << option.name << " type spin default " << option.value << " min " << option.min << " max " << option.max << std::endl;
     std::cout << "uciok" << std::endl;
@@ -529,7 +542,7 @@ void UCI::IsReady() {
 
 void UCI::Perft(int depth) {
     long double t1 = getTime();
-    uint64_t nodes = perft(searcher.board, depth);
+    uint64_t nodes = perft(searcher.board, depth, 1);
     long double t2 = getTime();
     long double t = (t2 - t1) / 1000.0;
     uint64_t nps = nodes / t;
@@ -619,6 +632,8 @@ void UCI::Bench(int depth) {
 
     for (auto& fen : benchPos) {
         searcher._setFen(fen);
+
+        //std::cout << fen << "\n";
 
         info->timeset = 0;
         info->depth = (depth == -1 ? 12 : depth);

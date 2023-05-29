@@ -104,7 +104,7 @@ const std::pair <int, int> pawnCapDirBlack[] = { {-1, -1}, {-1, 1} };
 
 int deltaPos[8]; /// how does my position change when moving in direction D
 
-const int castleRightsDelta[2][64] = {
+int castleRightsDelta[2][64] = {
     {
         15, 15, 15, 15, 15, 15, 15, 15,
         15, 15, 15, 15, 15, 15, 15, 15,
