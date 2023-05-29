@@ -1052,7 +1052,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
             }
 
             //std::cout << "Scale factor for tm is " << scoreChange * bestMoveStreak * nodesSearchedPercentage * 100 << "%\n";
-            //std::cout << scoreChange * 100 << " " << bestMoveStreak * 100 << " " << nodesSearchedPercentage * 100 << "\n";
+            //std::cout << scoreChange * 100 << " " << bestMoveStreak * 100 << " " << _tmNodesSearchedMaxPercentage - nodesSearchedPercentage << "\n";
 
             info->stopTime = info->startTime + info->goodTimeLim * scoreChange * bestMoveStreak * nodesSearchedPercentage;
 

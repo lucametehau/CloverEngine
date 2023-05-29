@@ -232,13 +232,11 @@ inline uint64_t genAttacksKnight(int sq) {
 }
 
 inline uint64_t genAttacksBishop(uint64_t blockers, int sq) {
-    blockers &= bishopAttacksMask[sq];
-    return bishopTable[sq][(blockers * bishopMagics[sq]) >> (64 - bishopIndexBits[sq])];
+    return bishopTable[sq][((blockers & bishopAttacksMask[sq]) * bishopMagics[sq]) >> (64 - bishopIndexBits[sq])];
 }
 
 inline uint64_t genAttacksRook(uint64_t blockers, int sq) {
-    blockers &= rookAttacksMask[sq];
-    return rookTable[sq][(blockers * rookMagics[sq]) >> (64 - rookIndexBits[sq])];
+    return rookTable[sq][((blockers & rookAttacksMask[sq]) * rookMagics[sq]) >> (64 - rookIndexBits[sq])];
 }
 
 inline uint64_t genAttacksQueen(uint64_t blockers, int sq) {
@@ -264,6 +262,10 @@ inline uint64_t getAttackers(Board& board, int color, uint64_t blockers, int sq)
     return (pawnAttacksMask[color ^ 1][sq] & board.bb[getType(PAWN, color)]) |
         (knightBBAttacks[sq] & board.bb[getType(KNIGHT, color)]) | (genAttacksBishop(blockers, sq) & board.diagSliders(color)) |
         (genAttacksRook(blockers, sq) & board.orthSliders(color)) | (kingBBAttacks[sq] & board.bb[getType(KING, color)]);
+}
+
+inline uint64_t getOrthSliderAttackers(Board& board, int color, uint64_t blockers, int sq) {
+    return genAttacksRook(blockers, sq) & board.orthSliders(color);
 }
 
 /// same as the below one, only difference is that b is known

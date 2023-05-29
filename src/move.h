@@ -463,7 +463,7 @@ int genLegal(Board& board, uint16_t* moves) {
             int kingTo = mirror(color, G1), rook = board.rookSq[color][1], rookTo = mirror(color, F1);
             if (!(attacked & (between[king][kingTo] | (1ULL << king) | (1ULL << kingTo))) &&
                 (!((all ^ (1ULL << rook)) & (between[king][kingTo] | (1ULL << kingTo))) || king == kingTo) &&
-                (!((all ^ (1ULL << king)) & (between[rook][rookTo] | (1ULL << rookTo))) || rook == rookTo) && 
+                (!((all ^ (1ULL << king)) & (between[rook][rookTo] | (1ULL << rookTo))) || rook == rookTo) &&
                 !getAttackers(board, enemy, all ^ (1ULL << rook), king)) {
                 *(moves++) = (getMove(king, rook, 0, CASTLE));
                 nrMoves++;
@@ -471,7 +471,6 @@ int genLegal(Board& board, uint16_t* moves) {
         }
 
         /// for pinned pieces they move on the same line with the king
-
         b1 = ~notPinned & board.diagSliders(color);
         while (b1) {
             int sq = sq_lsb(b1);
@@ -1064,16 +1063,14 @@ bool isLegalMove(Board& board, int move) {
     int king = board.king(us);
 
     if (type(move) == CASTLE) {
-        if (from != board.king(us))
+        if (from != board.king(us) || board.checkers)
             return 0;
         int side = (to > from); /// queen side or king side
 
         if (board.castleRights & (1 << (2 * us + side))) { /// can i castle
             int rFrom = to, rTo = mirror(us, (side ? F1 : D1));
             to = mirror(us, (side ? G1 : C1));
-            if (board.checkers)
-                return 0;
-            uint64_t mask = between[from][to];
+            uint64_t mask = between[from][to] | (1ULL << to);
             //printBB(mask);
             while (mask) {
                 if (isSqAttacked(board, enemy, sq_lsb(mask)))
@@ -1082,11 +1079,7 @@ bool isLegalMove(Board& board, int move) {
 
             if ((!((all ^ (1ULL << rFrom)) & (between[from][to] | (1ULL << to))) || from == to) &&
                 (!((all ^ (1ULL << from)) & (between[rFrom][rTo] | (1ULL << rTo))) || rFrom == rTo)) {
-                bool legal = false;
-                board.makeMove(move);
-                legal = !isSqAttacked(board, board.turn, board.king(board.turn ^ 1));
-                board.undoMove(move);
-                return legal;
+                return !getAttackers(board, enemy, board.pieces[WHITE] ^ board.pieces[BLACK] ^ (1ULL << rFrom), from);
             }
             return 0;
         }
