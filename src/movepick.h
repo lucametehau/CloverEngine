@@ -74,6 +74,12 @@ public:
             trueStage = STAGE_HASHMOVE;
             stage++;
 
+            /*if (isLegalMove(board, hashMove) != isLegalMoveSlow(board, hashMove)) {
+                board.print();
+                std::cout << toString(hashMove) << "\n";
+                exit(0);
+            }*/
+
             if (hashMove && isLegalMove(board, hashMove)) {
                 return hashMove;
             }
