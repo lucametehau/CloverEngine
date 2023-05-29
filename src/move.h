@@ -1132,6 +1132,11 @@ uint16_t parseMove(Board& board, std::string moveStr) {
     uint16_t moves[256];
     int nrMoves = genLegal(board, moves);
 
+    if (board.piece_type_at(from) == KING) {
+        if (moveStr == "e1c1") moveStr = "e1a1";
+        else if (moveStr == "e1g1") moveStr = "e1h1";
+    }
+
     for (int i = 0; i < nrMoves; i++) {
         int move = moves[i];
         if (sqFrom(move) == from && sqTo(move) == to) {
