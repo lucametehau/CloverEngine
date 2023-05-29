@@ -1127,15 +1127,15 @@ uint16_t parseMove(Board& board, std::string moveStr) {
         return NULLMOVE;
 
     int from = getSq(moveStr[1] - '1', moveStr[0] - 'a');
-    int to = getSq(moveStr[3] - '1', moveStr[2] - 'a');
-
-    uint16_t moves[256];
-    int nrMoves = genLegal(board, moves);
-
     if (board.piece_type_at(from) == KING) {
         if (moveStr == "e1c1") moveStr = "e1a1";
         else if (moveStr == "e1g1") moveStr = "e1h1";
     }
+
+    int to = getSq(moveStr[3] - '1', moveStr[2] - 'a');
+
+    uint16_t moves[256];
+    int nrMoves = genLegal(board, moves);
 
     for (int i = 0; i < nrMoves; i++) {
         int move = moves[i];
