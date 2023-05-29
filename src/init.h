@@ -37,6 +37,7 @@ void init(Info* info) {
     info->depth = DEPTH;
     info->multipv = 1;
     info->nodes = -1;
+    info->chess960 = false;
 }
 
 void Board::setFen(const std::string fen) {
