@@ -33,7 +33,7 @@ public:
 
 class Board {
 public:
-    bool turn;
+    bool turn, chess960;
 
     uint8_t captured; /// keeping track of last captured piece so i reduce the size of move
     uint8_t castleRights; /// 1 - bq, 2 - bk, 4 - wq, 8 - wk

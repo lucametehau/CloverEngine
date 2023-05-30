@@ -1233,12 +1233,14 @@ void Search::killMainThread() {
     }
 }
 
-void Search::_setFen(std::string fen) {
+void Search::_setFen(std::string fen, bool chess960) {
     for (int i = 0; i < threadCount; i++) {
         params[i].board.setFen(fen);
+        params[i].board.chess960 = chess960;
     }
 
     board.setFen(fen);
+    board.chess960 = chess960;
 }
 
 void Search::_makeMove(uint16_t move) {

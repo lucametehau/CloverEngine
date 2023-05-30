@@ -111,7 +111,7 @@ struct Search {
     void stopPrincipalSearch();
     void isReady();
 
-    void _setFen(std::string fen);
+    void _setFen(std::string fen, bool chess960 = false);
     void _makeMove(uint16_t move);
 
     std::pair <int, uint16_t> startSearch(Info* info);

@@ -163,7 +163,7 @@ void UCI::Uci_Loop() {
                         fen += component + " ";
                     }
 
-                    searcher._setFen(fen);
+                    searcher._setFen(fen, info->chess960);
                 }
                 else if (type == "moves") {
                     std::string moveStr;
