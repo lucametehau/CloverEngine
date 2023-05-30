@@ -107,7 +107,7 @@ public:
     }
 
     bool isCapture(uint16_t move) {
-        return (board[sqTo(move)] > 0);
+        return type(move) != CASTLE && (board[sqTo(move)] > 0);
     }
 
     void makeMove(uint16_t move);
