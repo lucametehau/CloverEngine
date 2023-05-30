@@ -446,27 +446,45 @@ int genLegal(Board& board, uint16_t* moves) {
             }
         }
 
-        /// castle queen side
-        if ((board.castleRights >> (2 * color)) & 1) {
-            int kingTo = mirror(color, C1), rook = board.rookSq[color][0], rookTo = mirror(color, D1);
-            if (!(attacked & maskLine(kingTo, king)) &&
-                (!((all ^ (1ULL << rook)) & maskLine(kingTo, king - 1)) || king == kingTo) &&
-                (!((all ^ (1ULL << king)) & (between[rook][rookTo] | (1ULL << rookTo))) || rook == rookTo) &&
-                !getAttackers(board, enemy, all ^ (1ULL << rook), king)) {
-                *(moves++) = (getMove(king, rook, 0, CASTLE));
-                nrMoves++;
+
+
+        if (!board.chess960) {
+            /// castle queen side
+            if (board.castleRights & (1 << (2 * color))) {
+                if (!(attacked & (7ULL << (king - 2))) && !(all & (7ULL << (king - 3)))) {
+                    *(moves++) = (getMove(king, king - 4, 0, CASTLE));
+                    nrMoves++;
+                }
+            }
+            /// castle king side
+            if (board.castleRights & (1 << (2 * color + 1))) {
+                if (!(attacked & (7ULL << king)) && !(all & (3ULL << (king + 1)))) {
+                    *(moves++) = (getMove(king, king + 3, 0, CASTLE));
+                    nrMoves++;
+                }
             }
         }
-
-        /// castle king side
-        if ((board.castleRights >> (2 * color + 1)) & 1) {
-            int kingTo = mirror(color, G1), rook = board.rookSq[color][1], rookTo = mirror(color, F1);
-            if (!(attacked & maskLine(king, kingTo)) &&
-                (!((all ^ (1ULL << rook)) & maskLine(king + 1, kingTo)) || king == kingTo) &&
-                (!((all ^ (1ULL << king)) & (between[rook][rookTo] | (1ULL << rookTo))) || rook == rookTo) &&
-                !getAttackers(board, enemy, all ^ (1ULL << rook), king)) {
-                *(moves++) = (getMove(king, rook, 0, CASTLE));
-                nrMoves++;
+        else {
+            if ((board.castleRights >> (2 * color)) & 1) {
+                int kingTo = mirror(color, C1), rook = board.rookSq[color][0], rookTo = mirror(color, D1);
+                if (!(attacked & maskLine(kingTo, king)) &&
+                    (!((all ^ (1ULL << rook)) & maskLine(kingTo, king - 1)) || king == kingTo) &&
+                    (!((all ^ (1ULL << king)) & (between[rook][rookTo] | (1ULL << rookTo))) || rook == rookTo) &&
+                    !getAttackers(board, enemy, all ^ (1ULL << rook), king)) {
+                    *(moves++) = (getMove(king, rook, 0, CASTLE));
+                    nrMoves++;
+                }
+            }
+            /// castle king side
+            if ((board.castleRights >> (2 * color + 1)) & 1) {
+                int kingTo = mirror(color, G1), rook = board.rookSq[color][1], rookTo = mirror(color, F1);
+                if (!(attacked & maskLine(king, kingTo)) &&
+                    (!((all ^ (1ULL << rook)) & maskLine(king + 1, kingTo)) || king == kingTo) &&
+                    (!((all ^ (1ULL << king)) & (between[rook][rookTo] | (1ULL << rookTo))) || rook == rookTo) &&
+                    !getAttackers(board, enemy, all ^ (1ULL << rook), king)) {
+                    *(moves++) = (getMove(king, rook, 0, CASTLE));
+                    nrMoves++;
+                }
             }
         }
 
@@ -861,27 +879,44 @@ int genLegalQuiets(Board& board, uint16_t* moves) {
     else {
         quietMask = ~all;
 
-        /// castle queen side
-        if ((board.castleRights >> (2 * color)) & 1) {
-            int kingTo = mirror(color, C1), rook = board.rookSq[color][0], rookTo = mirror(color, D1);
-            if (!(attacked & maskLine(kingTo, king)) &&
-                (!((all ^ (1ULL << rook)) & maskLine(kingTo, king - 1)) || king == kingTo) &&
-                (!((all ^ (1ULL << king)) & (between[rook][rookTo] | (1ULL << rookTo))) || rook == rookTo) &&
-                (!board.chess960 || !getAttackers(board, enemy, all ^ (1ULL << rook), king))) {
-                *(moves++) = (getMove(king, rook, 0, CASTLE));
-                nrMoves++;
+        if (!board.chess960) {
+            /// castle queen side
+            if (board.castleRights & (1 << (2 * color))) {
+                if (!(attacked & (7ULL << (king - 2))) && !(all & (7ULL << (king - 3)))) {
+                    *(moves++) = (getMove(king, king - 4, 0, CASTLE));
+                    nrMoves++;
+                }
+            }
+            /// castle king side
+            if (board.castleRights & (1 << (2 * color + 1))) {
+                if (!(attacked & (7ULL << king)) && !(all & (3ULL << (king + 1)))) {
+                    *(moves++) = (getMove(king, king + 3, 0, CASTLE));
+                    nrMoves++;
+                }
             }
         }
-
-        /// castle king side
-        if ((board.castleRights >> (2 * color + 1)) & 1) {
-            int kingTo = mirror(color, G1), rook = board.rookSq[color][1], rookTo = mirror(color, F1);
-            if (!(attacked & maskLine(king, kingTo)) &&
-                (!((all ^ (1ULL << rook)) & maskLine(king + 1, kingTo)) || king == kingTo) &&
-                (!((all ^ (1ULL << king)) & (between[rook][rookTo] | (1ULL << rookTo))) || rook == rookTo) &&
-                (!board.chess960 || !getAttackers(board, enemy, all ^ (1ULL << rook), king))) {
-                *(moves++) = (getMove(king, rook, 0, CASTLE));
-                nrMoves++;
+        else {
+            /// castle queen side
+            if ((board.castleRights >> (2 * color)) & 1) {
+                int kingTo = mirror(color, C1), rook = board.rookSq[color][0], rookTo = mirror(color, D1);
+                if (!(attacked & maskLine(kingTo, king)) &&
+                    (!((all ^ (1ULL << rook)) & maskLine(kingTo, king - 1)) || king == kingTo) &&
+                    (!((all ^ (1ULL << king)) & (between[rook][rookTo] | (1ULL << rookTo))) || rook == rookTo) &&
+                    !getAttackers(board, enemy, all ^ (1ULL << rook), king)) {
+                    *(moves++) = (getMove(king, rook, 0, CASTLE));
+                    nrMoves++;
+                }
+            }
+            /// castle king side
+            if ((board.castleRights >> (2 * color + 1)) & 1) {
+                int kingTo = mirror(color, G1), rook = board.rookSq[color][1], rookTo = mirror(color, F1);
+                if (!(attacked & maskLine(king, kingTo)) &&
+                    (!((all ^ (1ULL << rook)) & maskLine(king + 1, kingTo)) || king == kingTo) &&
+                    (!((all ^ (1ULL << king)) & (between[rook][rookTo] | (1ULL << rookTo))) || rook == rookTo) &&
+                    !getAttackers(board, enemy, all ^ (1ULL << rook), king)) {
+                    *(moves++) = (getMove(king, rook, 0, CASTLE));
+                    nrMoves++;
+                }
             }
         }
 
@@ -1076,10 +1111,15 @@ bool isLegalMove(Board& board, int move) {
                 if (isSqAttacked(board, enemy, sq_lsb(mask)))
                     return 0;
             }
-
+            if (!board.chess960) {
+                if (!side) {
+                    return !(all & (7ULL << (from - 3)));
+                }
+                return !(all & (3ULL << (from + 1)));
+            }
             if ((!((all ^ (1ULL << rFrom)) & (between[from][to] | (1ULL << to))) || from == to) &&
                 (!((all ^ (1ULL << from)) & (between[rFrom][rTo] | (1ULL << rTo))) || rFrom == rTo)) {
-                return !board.chess960 || !getAttackers(board, enemy, board.pieces[WHITE] ^ board.pieces[BLACK] ^ (1ULL << rFrom), from);
+                return !getAttackers(board, enemy, board.pieces[WHITE] ^ board.pieces[BLACK] ^ (1ULL << rFrom), from);
             }
             return 0;
         }

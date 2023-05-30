@@ -299,12 +299,16 @@ inline int sqTo(uint16_t move) {
     return (move & 4095) >> 6;
 }
 
-inline int promoted(uint16_t move) {
-    return (move & 16383) >> 12;
-}
-
 inline int type(uint16_t move) {
     return move >> 14;
+}
+
+inline int specialSqTo(uint16_t move) {
+    return type(move) != CASTLE ? sqTo(move) : 8 * (sqFrom(move) / 8) + (sqFrom(move) < sqTo(move) ? 6 : 2);
+}
+
+inline int promoted(uint16_t move) {
+    return (move & 16383) >> 12;
 }
 
 inline std::string toString(uint16_t move) {

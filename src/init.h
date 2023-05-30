@@ -99,6 +99,7 @@ void Board::setFen(const std::string fen) {
             castleRights |= (1 << 1), key ^= castleKey[BLACK][1], ind++;
         if ('a' <= fen[ind] && fen[ind] <= 'h' && kingSq > 56 + fen[ind] - 'a')
             castleRights |= (1 << 0), key ^= castleKey[BLACK][0], ind++;
+        chess960 = true;
 
     }
     else {
