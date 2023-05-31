@@ -353,13 +353,15 @@ public:
                       break;
         case CASTLE: {
             int rFrom, rTo, rPiece = getType(ROOK, turn);
-            if (posTo == mirror(turn, C1)) {
-                rFrom = mirror(turn, A1);
-                rTo = mirror(turn, D1);
-            }
-            else {
-                rFrom = mirror(turn, H1);
+            if (posTo > posFrom) { // king side castle
+                rFrom = posTo;
+                posTo = mirror(turn, G1);
                 rTo = mirror(turn, F1);
+            }
+            else { // queen side castle
+                rFrom = posTo;
+                posTo = mirror(turn, C1);
+                rTo = mirror(turn, D1);
             }
             applySubAddSubAdd(a, b, netInd(pieceFrom, posFrom, king, side), netInd(pieceFrom, posTo, king, side), netInd(rPiece, rFrom, king, side), netInd(rPiece, rTo, king, side));
         }

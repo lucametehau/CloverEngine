@@ -135,7 +135,7 @@ bool quietness(Board& board, bool us) {
 
 std::string getSanString(Board& board, uint16_t move) {
     if (type(move) == CASTLE)
-        return ((sqTo(move) & 7) == 6 ? "O-O" : "O-O-O");
+        return (sqTo(move) > sqFrom(move) ? "O-O" : "O-O-O");
     int from = sqFrom(move), to = sqTo(move), prom = (type(move) == PROMOTION ? promoted(move) + KNIGHT + 6 : 0), piece = board.piece_type_at(from);
     std::string san = "";
 
@@ -463,7 +463,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
 
                 stack->move = move;
                 stack->piece = board.piece_at(sqFrom(move));
-                stack->continuationHist = &continuationHistory[stack->piece][sqTo(move)];
+                stack->continuationHist = &continuationHistory[stack->piece][specialSqTo(move)];
 
                 board.makeMove(move);
 

@@ -55,6 +55,7 @@ void updateMoveHistory(Search* searcher, StackEntry*& stack, uint16_t move, int 
 }
 
 void updateCaptureMoveHistory(Search* searcher, uint16_t move, int bonus) {
+    assert(type(move) != CASTLE);
     int to = sqTo(move), from = sqFrom(move), cap = searcher->board.piece_type_at(to), piece = searcher->board.piece_at(from);
 
     if (type(move) == ENPASSANT)
