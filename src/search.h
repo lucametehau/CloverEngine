@@ -451,7 +451,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         }
 
         /// probcut
-        if (depth >= probcutDepth && abs(beta) < MATE && cutNode) {
+        /*if (depth >= probcutDepth && abs(beta) < MATE && cutNode) {
             int cutBeta = beta + probcutMargin;
             Movepick noisyPicker(NULLMOVE, NULLMOVE, NULLMOVE, cutBeta - staticEval);
 
@@ -481,7 +481,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                     return score;
                 }
             }
-        }
+        }*/
     }
 
     /// internal iterative deepening (search at reduced depth to find a ttMove) (Rebel like)
