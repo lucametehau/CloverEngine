@@ -449,39 +449,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                 return (abs(score) > MATE ? beta : score); /// don't trust mate scores
             }
         }
-
-        /// probcut
-        /*if (depth >= probcutDepth && abs(beta) < MATE && cutNode) {
-            int cutBeta = beta + probcutMargin;
-            Movepick noisyPicker(NULLMOVE, NULLMOVE, NULLMOVE, cutBeta - staticEval);
-
-            uint16_t move;
-
-            while ((move = noisyPicker.nextMove(this, stack, board, true, true)) != NULLMOVE) {
-                if (move == excluded)
-                    continue;
-
-                stack->move = move;
-                stack->piece = board.piece_at(sqFrom(move));
-                stack->continuationHist = &continuationHistory[stack->piece][specialSqTo(move)];
-
-                board.makeMove(move);
-
-                /// do we have a good sequence of captures that beats cutBeta ?
-                int score = -quiesce(-cutBeta, -cutBeta + 1, stack + 1);
-
-                if (score >= cutBeta) /// then we should try searching this capture
-                    score = -search(-cutBeta, -cutBeta + 1, depth - probcutR, !cutNode, stack + 1);
-
-                board.undoMove(move);
-
-
-                if (score >= cutBeta) {
-                    //TT->save(key, score, depth - probcutR, ply, LOWER, move, staticEval); // save probcut score in tt
-                    return score;
-                }
-            }
-        }*/
     }
 
     /// internal iterative deepening (search at reduced depth to find a ttMove) (Rebel like)
