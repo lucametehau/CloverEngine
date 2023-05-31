@@ -33,12 +33,12 @@ public:
 
 class Board {
 public:
-    bool turn;
+    bool turn, chess960;
 
     uint8_t captured; /// keeping track of last captured piece so i reduce the size of move
     uint8_t castleRights; /// 1 - bq, 2 - bk, 4 - wq, 8 - wk
     int8_t enPas;
-    uint8_t board[64];
+    uint8_t board[64], rookSq[2][2];
 
     uint16_t ply, gamePly;
     uint16_t halfMoves, moveIndex;
@@ -73,7 +73,6 @@ public:
         key = other.key;
         gamePly = other.gamePly;
         ply = other.ply;
-        //checkers = other.checkers;
         for (int i = 0; i <= 12; i++)
             bb[i] = other.bb[i];
         for (int i = BLACK; i <= WHITE; i++)
@@ -107,8 +106,8 @@ public:
         return Sq(bb[getType(KING, color)]);
     }
 
-    bool isCapture(int move) {
-        return (board[sqTo(move)] > 0);
+    bool isCapture(uint16_t move) {
+        return type(move) != CASTLE && (board[sqTo(move)] > 0);
     }
 
     void makeMove(uint16_t move);
@@ -152,7 +151,6 @@ public:
                 uint64_t b2 = lsb(b);
                 ans.ind[WHITE].push_back(netInd(i, Sq(b2), kingsSide[WHITE], WHITE));
                 ans.ind[BLACK].push_back(netInd(i, Sq(b2), kingsSide[BLACK], BLACK));
-                //std::cout << ans.ind[WHITE].back() << " " << ans.ind[BLACK].back() << "\n";
                 b ^= b2;
             }
         }
@@ -227,13 +225,10 @@ public:
             if (board[i])
                 h ^= hashKey[board[i]][i];
         }
-        //cout << h << "\n";
         for (int i = 0; i < 4; i++)
             h ^= castleKey[i / 2][i % 2] * ((castleRights >> i) & 1);
-        //cout << h << "\n";
 
         h ^= (enPas >= 0 ? enPasKey[enPas] : 0);
-        //cout << h << "\n";
         return h;
     }
 
@@ -257,4 +252,5 @@ public:
     bool sanMode;
 
     bool quit, stopped;
+    bool chess960;
 };

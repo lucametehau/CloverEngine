@@ -135,7 +135,7 @@ bool quietness(Board& board, bool us) {
 
 std::string getSanString(Board& board, uint16_t move) {
     if (type(move) == CASTLE)
-        return ((sqTo(move) & 7) == 6 ? "O-O" : "O-O-O");
+        return (sqTo(move) > sqFrom(move) ? "O-O" : "O-O-O");
     int from = sqFrom(move), to = sqTo(move), prom = (type(move) == PROMOTION ? promoted(move) + KNIGHT + 6 : 0), piece = board.piece_type_at(from);
     std::string san = "";
 
@@ -267,7 +267,7 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack, bool useTT) {
             break;
         if (best > -MATE) {
             if (futilityValue > -MATE) {
-                int value = futilityValue + seeVal[board.piece_type_at(sqTo(move))];
+                int value = futilityValue + seeVal[board.piece_type_at(specialSqTo(move))];
                 if (type(move) != PROMOTION && value <= alpha) {
                     best = std::max(best, value);
                     continue;
@@ -281,7 +281,7 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack, bool useTT) {
         // update stack info
         stack->move = move;
         stack->piece = board.piece_at(sqFrom(move));
-        stack->continuationHist = &continuationHistory[stack->piece][sqTo(move)];
+        stack->continuationHist = &continuationHistory[stack->piece][specialSqTo(move)];
 
         board.makeMove(move);
         TT->prefetch(board.key);
@@ -463,7 +463,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
 
                 stack->move = move;
                 stack->piece = board.piece_at(sqFrom(move));
-                stack->continuationHist = &continuationHistory[stack->piece][sqTo(move)];
+                stack->continuationHist = &continuationHistory[stack->piece][specialSqTo(move)];
 
                 board.makeMove(move);
 
@@ -490,7 +490,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         depth--;
 
     /// get counter move for move picker
-    uint16_t counter = (nullSearch ? NULLMOVE : cmTable[1 ^ board.turn][(stack - 1)->piece][sqTo((stack - 1)->move)]);
+    uint16_t counter = (nullSearch ? NULLMOVE : cmTable[1 ^ board.turn][(stack - 1)->piece][specialSqTo((stack - 1)->move)]);
 
     Movepick picker(ttMove, stack->killer, counter, -(seeDepthCoef - (ply % 2 == 0 && rootEval != INF ? rootEval / 100 : 0)) * depth);
 
@@ -563,7 +563,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         /// update stack info
         stack->move = move;
         stack->piece = board.piece_at(sqFrom(move));
-        stack->continuationHist = &continuationHistory[stack->piece][sqTo(move)];
+        stack->continuationHist = &continuationHistory[stack->piece][specialSqTo(move)];
 
         board.makeMove(move);
         TT->prefetch(board.key);
@@ -627,7 +627,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
 
         board.undoMove(move);
 
-        nodesSearched[!isQuiet][sqFrom(move)][sqTo(move)] += nodes - initNodes;
+        nodesSearched[!isQuiet][sqFrom(move)][specialSqTo(move)] += nodes - initNodes;
 
         if (flag & TERMINATED_SEARCH) /// stop search
             return ABORT;
@@ -743,7 +743,7 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv, StackEntry* 
         /// update stack info
         stack->move = move;
         stack->piece = board.piece_at(sqFrom(move));
-        stack->continuationHist = &continuationHistory[stack->piece][sqTo(move)];
+        stack->continuationHist = &continuationHistory[stack->piece][specialSqTo(move)];
 
         board.makeMove(move);
         played++;
@@ -791,7 +791,7 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv, StackEntry* 
 
         board.undoMove(move);
 
-        nodesSearched[isNoisyMove(board, move)][sqFrom(move)][sqTo(move)] += nodes - initNodes;
+        nodesSearched[isNoisyMove(board, move)][sqFrom(move)][specialSqTo(move)] += nodes - initNodes;
 
         if (flag & TERMINATED_SEARCH) /// stop search
             return ABORT;
@@ -1045,14 +1045,14 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
                 bestMoveCnt = (bestMoves[1] == mainThreadBestMove ? bestMoveCnt + 1 : 1);
 
                 /// adjust time based on how many nodes from the total searched nodes were used for the best move
-                nodesSearchedPercentage = 1.0 * nodesSearched[isNoisyMove(board, bestMoves[1])][sqFrom(bestMoves[1])][sqTo(bestMoves[1])] / nodes;
+                nodesSearchedPercentage = 1.0 * nodesSearched[isNoisyMove(board, bestMoves[1])][sqFrom(bestMoves[1])][specialSqTo(bestMoves[1])] / nodes;
                 nodesSearchedPercentage = _tmNodesSearchedMaxPercentage - nodesSearchedPercentage;
 
                 bestMoveStreak = _tmBestMoveMax - _tmBestMoveStep * std::min(10, bestMoveCnt); /// adjust time based on how long the best move was the same
             }
 
             //std::cout << "Scale factor for tm is " << scoreChange * bestMoveStreak * nodesSearchedPercentage * 100 << "%\n";
-            //std::cout << scoreChange * 100 << " " << bestMoveStreak * 100 << " " << nodesSearchedPercentage * 100 << "\n";
+            //std::cout << scoreChange * 100 << " " << bestMoveStreak * 100 << " " << _tmNodesSearchedMaxPercentage - nodesSearchedPercentage << "\n";
 
             info->stopTime = info->startTime + info->goodTimeLim * scoreChange * bestMoveStreak * nodesSearchedPercentage;
 
@@ -1233,11 +1233,13 @@ void Search::killMainThread() {
     }
 }
 
-void Search::_setFen(std::string fen) {
+void Search::_setFen(std::string fen, bool chess960) {
     for (int i = 0; i < threadCount; i++) {
+        params[i].board.chess960 = chess960;
         params[i].board.setFen(fen);
     }
 
+    board.chess960 = chess960;
     board.setFen(fen);
 }
 

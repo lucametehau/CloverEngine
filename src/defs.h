@@ -104,7 +104,7 @@ const std::pair <int, int> pawnCapDirBlack[] = { {-1, -1}, {-1, 1} };
 
 int deltaPos[8]; /// how does my position change when moving in direction D
 
-const int castleRightsDelta[2][64] = {
+int castleRightsDelta[2][64] = {
     {
         15, 15, 15, 15, 15, 15, 15, 15,
         15, 15, 15, 15, 15, 15, 15, 15,
@@ -271,6 +271,10 @@ inline uint64_t shift(int color, int dir, uint64_t mask) {
     return (mask >> (-deltaPos[dir]));
 }
 
+inline uint64_t maskLine(int x, int y) {
+    return ((1ULL << (y - x + 1)) - 1) << x;
+}
+
 inline int getType(int type, int color) {
     return 6 * color + type;
 }
@@ -295,12 +299,16 @@ inline int sqTo(uint16_t move) {
     return (move & 4095) >> 6;
 }
 
-inline int promoted(uint16_t move) {
-    return (move & 16383) >> 12;
-}
-
 inline int type(uint16_t move) {
     return move >> 14;
+}
+
+inline int specialSqTo(uint16_t move) {
+    return type(move) != CASTLE ? sqTo(move) : 8 * (sqFrom(move) / 8) + (sqFrom(move) < sqTo(move) ? 6 : 2);
+}
+
+inline int promoted(uint16_t move) {
+    return (move & 16383) >> 12;
 }
 
 inline std::string toString(uint16_t move) {

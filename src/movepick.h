@@ -158,7 +158,7 @@ public:
 
                     moves[m] = move;
                     int score = 0;
-                    int from = sqFrom(move), to = sqTo(move), piece = board.piece_at(from), pt = piece_type(piece);
+                    int from = sqFrom(move), to = specialSqTo(move), piece = board.piece_at(from), pt = piece_type(piece);
 
                     score = searcher->hist[board.turn][from][to];
                     score += (*(stack - 1)->continuationHist)[piece][to];
@@ -217,7 +217,7 @@ public:
 };
 
 bool see(Board& board, uint16_t move, int threshold) {
-    int from = sqFrom(move), to = sqTo(move), t = type(move), col, nextVictim, score = -threshold;
+    int from = sqFrom(move), to = specialSqTo(move), t = type(move), col, nextVictim, score = -threshold;
     uint64_t diag, orth, occ, att, myAtt;
 
     nextVictim = (t != PROMOTION ? board.piece_type_at(from) : promoted(move) + KNIGHT);
