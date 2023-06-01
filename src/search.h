@@ -632,7 +632,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
     /// update tt only if we aren't in a singular search
     if (!excluded) {
         bound = (best >= beta ? LOWER : (best > alphaOrig ? EXACT : UPPER));
-        TT->save(key, best, depth, ply, bound, bestMove, staticEval);
+        TT->save(key, best, depth, ply, bound, (bound == UPPER ? NULLMOVE : bestMove), staticEval);
     }
 
     return best;
