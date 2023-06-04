@@ -100,8 +100,6 @@ UCI::UCI(Search& _searcher) : searcher(_searcher) {
     addOption("pawnAttackedCoef", pawnAttackedCoef);
     addOption("pawnPushBonus", pawnPushBonus);
     addOption("kingAttackBonus", kingAttackBonus);
-    addOption("pawnScaleStart", pawnScaleStart);
-    addOption("pawnScaleStep", pawnScaleStep);
     addOption("seePruningQuietDepth", seePruningQuietDepth);
     addOption("seePruningNoisyDepth", seePruningNoisyDepth);
     addOption("aspirationWindow", aspirationWindow);
@@ -429,12 +427,6 @@ void UCI::Uci_Loop() {
             }
             else if (name == "kingAttackBonus") {
                 setOptionI(iss, kingAttackBonus);
-            }
-            else if (name == "pawnScaleStart") {
-                setOptionI(iss, pawnScaleStart);
-            }
-            else if (name == "pawnScaleStep") {
-                setOptionI(iss, pawnScaleStep);
             }
             else if (name == "seePruningQuietDepth") {
                 setOptionI(iss, seePruningQuietDepth);

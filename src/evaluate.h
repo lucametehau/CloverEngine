@@ -21,11 +21,12 @@
 #include "board.h"
 #include "thread.h"
 
-int pawnScaleStart = 73;
-int pawnScaleStep = 2;
-
 inline int scale(Board& board) {
-    return std::min(100, pawnScaleStart + pawnScaleStep * count(board.bb[getType(PAWN, board.turn)]));
+    return 600 +
+        (count(board.bb[WN] | board.bb[BN]) * seeVal[KNIGHT] +
+        count(board.bb[WB] | board.bb[BB]) * seeVal[BISHOP] +
+        count(board.bb[WR] | board.bb[BR]) * seeVal[ROOK] +
+        count(board.bb[WQ] | board.bb[BQ]) * seeVal[QUEEN]) / 32;
 }
 
 void bringUpToDate(Board& board, Network& NN) {
@@ -61,7 +62,9 @@ int evaluate(Board& board) {
 
     int eval = board.NN.getOutput(board.turn);
 
-    eval = eval * scale(board) / 100;
+    //std::cout << scale(board) << "\n";
+
+    eval = eval * scale(board) / 1024;
 
     return eval;
 }
