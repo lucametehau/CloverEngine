@@ -23,10 +23,10 @@
 
 inline int scale(Board& board) {
     return 600 +
-        (count(board.pieces[WN] | board.pieces[BN]) * seeVal[KNIGHT] +
-        count(board.pieces[WB] | board.pieces[BB]) * seeVal[BISHOP] +
-        count(board.pieces[WR] | board.pieces[BR]) * seeVal[ROOK] +
-        count(board.pieces[WQ] | board.pieces[BQ]) * seeVal[QUEEN]) / 32;
+        (count(board.bb[WN] | board.bb[BN]) * seeVal[KNIGHT] +
+        count(board.bb[WB] | board.bb[BB]) * seeVal[BISHOP] +
+        count(board.bb[WR] | board.bb[BR]) * seeVal[ROOK] +
+        count(board.bb[WQ] | board.bb[BQ]) * seeVal[QUEEN]) / 32;
 }
 
 void bringUpToDate(Board& board, Network& NN) {
