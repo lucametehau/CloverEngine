@@ -271,10 +271,6 @@ inline uint64_t shift(int color, int dir, uint64_t mask) {
     return (mask >> (-deltaPos[dir]));
 }
 
-inline uint64_t maskLine(int x, int y) {
-    return ((1ULL << (y - x + 1)) - 1) << x;
-}
-
 inline int getType(int type, int color) {
     return 6 * color + type;
 }
