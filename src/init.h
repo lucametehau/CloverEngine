@@ -124,6 +124,7 @@ void Board::setFen(const std::string fen) {
 
     for (auto& rook : { a, b }) {
         if (rook != 64) {
+            if (rook % 8 && rook % 8 != 7) chess960 = true;
             if (rook < king(WHITE) && (castleRights & 4)) rookSq[WHITE][0] = rook;
             if (king(WHITE) < rook && (castleRights & 8)) rookSq[WHITE][1] = rook;
         }
@@ -137,6 +138,7 @@ void Board::setFen(const std::string fen) {
     }
     for (auto& rook : { a, b }) {
         if (rook != 64) {
+            if (rook % 8 && rook % 8 != 7) chess960 = true;
             if (rook < king(BLACK) && (castleRights & 1)) rookSq[BLACK][0] = rook;
             if (king(BLACK) < rook && (castleRights & 2)) rookSq[BLACK][1] = rook;
         }
