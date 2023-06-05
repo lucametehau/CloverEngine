@@ -22,7 +22,7 @@
 #include "thread.h"
 
 inline int scale(Board& board) {
-    return 600 +
+    return 700 +
         (count(board.bb[WN] | board.bb[BN]) * seeVal[KNIGHT] +
         count(board.bb[WB] | board.bb[BB]) * seeVal[BISHOP] +
         count(board.bb[WR] | board.bb[BR]) * seeVal[ROOK] +
@@ -61,8 +61,6 @@ int evaluate(Board& board) {
     bringUpToDate(board, board.NN);
 
     int eval = board.NN.getOutput(board.turn);
-
-    //std::cout << scale(board) << "\n";
 
     eval = eval * scale(board) / 1024;
 
