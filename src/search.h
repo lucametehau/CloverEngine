@@ -937,11 +937,16 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
                         else if (scores[i] < -MATE)
                             std::cout << "mate -" << (INF + scores[i] + 1) / 2;
                         else
-                            std::cout << "cp " << scores[i];
+                            std::cout << "cp " << scores[i] * NormalizeToPawnValue / 100;
                         if (scores[i] >= beta)
                             std::cout << " lowerbound";
                         else if (scores[i] <= alpha)
                             std::cout << " upperbound";
+                        int ply = board.moveIndex * 2 - 1 - board.turn;
+                        int wdlWin = winRateModel(scores[i], ply);
+                        int wdlLose = winRateModel(-scores[i], ply);
+                        int wdlDraw = 1000 - wdlWin - wdlLose;
+                        std::cout << " wdl " << wdlWin << " " << wdlDraw << " " << wdlLose;
                         std::cout << " depth " << depth << " seldepth " << selDepth << " nodes " << totalNodes << " qsNodes " << qsNodes;
                         if (t)
                             std::cout << " nps " << totalNodes * 1000 / t;
@@ -963,7 +968,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
                         else if (scores[i] < -MATE)
                             std::cout << "#-" << (INF + scores[i] + 1) / 2 << " ";
                         else {
-                            int score = abs(scores[i]);
+                            int score = abs(scores[i] * NormalizeToPawnValue / 100);
                             std::cout << (scores[i] >= 0 ? "+" : "-") <<
                                 score / 100 << "." << (score % 100 >= 10 ? std::to_string(score % 100) : "0" + std::to_string(score % 100)) << " ";
                         }
