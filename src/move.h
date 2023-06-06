@@ -865,13 +865,13 @@ int genLegalQuiets(Board& board, uint16_t* moves) {
 
     uint64_t notPinned = ~pinned, quietMask = 0;
 
-    int cnt = count(board.checkers);
+    const int cnt = count(board.checkers);
 
     if (cnt == 2) { /// double check, only king moves are legal
         return nrMoves;
     }
     else if (cnt == 1) { /// one check
-        int sq = Sq(lsb(board.checkers));
+        const int sq = Sq(lsb(board.checkers));
         quietMask = between[king][sq];
         if (board.piece_type_at(sq) == KNIGHT || !quietMask)
             return nrMoves;
@@ -924,14 +924,12 @@ int genLegalQuiets(Board& board, uint16_t* moves) {
         b1 = pinned & board.diagSliders(color);
         while (b1) {
             int sq = sq_lsb(b1);
-            b2 = genAttacksBishop(all, sq) & Line[king][sq];
-            moves = addMoves(moves, nrMoves, sq, b2 & quietMask);
+            moves = addMoves(moves, nrMoves, sq, genAttacksBishop(all, sq) & Line[king][sq] & quietMask);
         }
         b1 = pinned & board.orthSliders(color);
         while (b1) {
             int sq = sq_lsb(b1);
-            b2 = genAttacksRook(all, sq) & Line[king][sq];
-            moves = addMoves(moves, nrMoves, sq, b2 & quietMask);
+            moves = addMoves(moves, nrMoves, sq, genAttacksRook(all, sq) & Line[king][sq] & quietMask);
         }
 
         /// pinned pawns
@@ -967,18 +965,16 @@ int genLegalQuiets(Board& board, uint16_t* moves) {
     mask = board.diagSliders(color) & notPinned;
     while (mask) {
         int sq = sq_lsb(mask);
-        b2 = genAttacksBishop(all, sq);
-        moves = addMoves(moves, nrMoves, sq, b2 & quietMask);
+        moves = addMoves(moves, nrMoves, sq, genAttacksBishop(all, sq) & quietMask);
     }
 
     mask = board.orthSliders(color) & notPinned;
     while (mask) {
         int sq = sq_lsb(mask);
-        b2 = genAttacksRook(all, sq);
-        moves = addMoves(moves, nrMoves, sq, b2 & quietMask);
+        moves = addMoves(moves, nrMoves, sq, genAttacksRook(all, sq) & quietMask);
     }
 
-    int rank7 = (color == WHITE ? 6 : 1), rank3 = (color == WHITE ? 2 : 5);
+    const int rank7 = (color == WHITE ? 6 : 1), rank3 = (color == WHITE ? 2 : 5);
 
     b1 = board.bb[getType(PAWN, color)] & notPinned & ~rankMask[rank7];
 

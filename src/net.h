@@ -346,11 +346,6 @@ public:
                 applySubAddSub(a, b, netInd(pieceFrom, posFrom, king, side), netInd(pieceFrom, posTo, king, side), netInd(captured, posTo, king, side));
         }
                  break;
-        case ENPASSANT: {
-            int pos = sqDir(turn, SOUTH, posTo), pieceCap = getType(PAWN, 1 ^ turn);
-            applySubAddSub(a, b, netInd(pieceFrom, posFrom, king, side), netInd(pieceFrom, posTo, king, side), netInd(pieceCap, pos, king, side));
-        }
-                      break;
         case CASTLE: {
             int rFrom, rTo, rPiece = getType(ROOK, turn);
             if (posTo > posFrom) { // king side castle
@@ -366,6 +361,11 @@ public:
             applySubAddSubAdd(a, b, netInd(pieceFrom, posFrom, king, side), netInd(pieceFrom, posTo, king, side), netInd(rPiece, rFrom, king, side), netInd(rPiece, rTo, king, side));
         }
                    break;
+        case ENPASSANT: {
+            int pos = sqDir(turn, SOUTH, posTo), pieceCap = getType(PAWN, 1 ^ turn);
+            applySubAddSub(a, b, netInd(pieceFrom, posFrom, king, side), netInd(pieceFrom, posTo, king, side), netInd(pieceCap, pos, king, side));
+        }
+                      break;
         default: {
             int promPiece = getType(promoted(move) + KNIGHT, turn);
             if (!captured)
