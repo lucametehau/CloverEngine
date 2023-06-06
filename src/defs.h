@@ -328,6 +328,19 @@ inline void printBB(uint64_t mask) {
     std::cout << " mask\n";
 }
 
+const int NormalizeToPawnValue = 130;
+
+int winRateModel(int score, int ply) {
+    constexpr double as[] = { -0.66398391,   -0.49826081,   39.11399082,   92.97752809 };
+    constexpr double bs[] = { -2.53637448,   19.01555550,  -41.44937435,   63.22725557 };
+    assert(NormalizeToPawnValue == static_cast<int>(as[0] + as[1] + as[2] + as[3]));
+    const double m = std::min<double>(240, ply) / 64.0;
+    const double a = ((as[0] * m + as[1]) * m + as[2]) * m + as[3];
+    const double b = ((bs[0] * m + bs[1]) * m + bs[2]) * m + bs[3];
+    const double x = std::min<double>(std::max<double>(-4000, score), 4000);
+    return static_cast<int>(0.5 + 1000.0 / (1.0 + std::exp((a - x) / b)));
+}
+
 inline void init_defs() {
     deltaPos[NORTH] = 8, deltaPos[SOUTH] = -8;
     deltaPos[WEST] = -1, deltaPos[EAST] = 1;
