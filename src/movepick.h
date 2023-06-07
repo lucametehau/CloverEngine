@@ -94,14 +94,7 @@ public:
                 int p = board.piece_at(sqFrom(move)), cap = board.piece_type_at(sqTo(move)), to = sqTo(move);
                 int score = 0; // so that move score isn't negative
 
-                if (type(move) == ENPASSANT)
-                    cap = PAWN;
-
-                score = 10 * seeVal[cap];
-                if (promoted(move) + KNIGHT == QUEEN)
-                    score += 10000;
-
-                score += searcher->capHist[p][to][cap] + 1000000;
+                score += searcher->capHist[p][to][cap];
 
                 score += searcher->nodesSearched[1][sqFrom(move)][sqTo(move)] / nodesSearchedDiv;
 
@@ -173,7 +166,7 @@ public:
                     if (pt != KING && pt != PAWN)
                         score += kingAttackBonus * count(genAttacksSq(allPieces, to, pt) & enemyKingRing);
 
-                    score += searcher->nodesSearched[0][from][to] / nodesSearchedDiv + 1000000; // the longer it takes a move to be refuted, the higher its chance to become the best move
+                    score += searcher->nodesSearched[0][from][to] / nodesSearchedDiv; // the longer it takes a move to be refuted, the higher its chance to become the best move
                     scores[m++] = score;
                 }
 
