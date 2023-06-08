@@ -232,6 +232,11 @@ public:
         return h;
     }
 
+    uint64_t nextKey(uint64_t move) {
+        const int from = sqFrom(move), to = sqTo(move), piece = board[from];
+        return key ^ hashKey[piece][from] ^ hashKey[piece][to] ^ (board[to] ? hashKey[board[to]][to] : 0);
+    }
+
     bool isMaterialDraw() {
         /// KvK, KBvK, KNvK, KNNvK
         int num = count(pieces[WHITE]) + count(pieces[BLACK]);
