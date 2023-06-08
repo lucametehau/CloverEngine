@@ -43,7 +43,7 @@ int getHistoryBonus(int depth) {
 }
 
 void updateMoveHistory(Search* searcher, StackEntry*& stack, uint16_t move, int bonus) {
-    int from = sqFrom(move), to = specialSqTo(move), piece = searcher->board.piece_at(from);
+    int from = sqFrom(move), to = sqTo(move), piece = searcher->board.piece_at(from);
 
     updateHist(searcher->hist[searcher->board.turn][from][to], bonus);
 
@@ -70,7 +70,7 @@ void updateHistory(Search* searcher, StackEntry* stack, int nrQuiets, int ply, i
 
     uint16_t counterMove = (stack - 1)->move;
     int counterPiece = (stack - 1)->piece;
-    int counterTo = specialSqTo(counterMove);
+    int counterTo = sqTo(counterMove);
 
     uint16_t best = stack->quiets[nrQuiets - 1];
     bool turn = searcher->board.turn;
@@ -106,7 +106,7 @@ int getCapHist(Search* searcher, uint16_t move) {
 }
 
 void getHistory(Search* searcher, StackEntry* stack, uint16_t move, int &hist) {
-    int from = sqFrom(move), to = specialSqTo(move), piece = searcher->board.piece_at(from);
+    int from = sqFrom(move), to = sqTo(move), piece = searcher->board.piece_at(from);
 
     hist = searcher->hist[searcher->board.turn][from][to];
 

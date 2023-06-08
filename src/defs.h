@@ -27,7 +27,12 @@
 #include <array>
 #include <chrono>
 #include <map>
+
+#if defined(__ARM_NEON)
+#include <arm_neon.h>
+#else
 #include <immintrin.h>
+#endif
 
 std::mt19937_64 gen(0xBEEF);
 std::uniform_int_distribution <uint64_t> rng;
@@ -292,10 +297,6 @@ inline int sqTo(uint16_t move) {
 
 inline int type(uint16_t move) {
     return move >> 14;
-}
-
-inline int specialSqTo(uint16_t move) {
-    return type(move) != CASTLE ? sqTo(move) : 8 * (sqFrom(move) / 8) + (sqFrom(move) < sqTo(move) ? 6 : 2);
 }
 
 inline int promoted(uint16_t move) {
