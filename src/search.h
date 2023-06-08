@@ -207,8 +207,6 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack, bool useTT) {
     int bound = NONE;
     uint16_t bestMove = NULLMOVE, ttMove = NULLMOVE;
 
-    TT->prefetch(key);
-
     tt::Entry entry = {};
 
     int eval = INF, ttValue = 0;
@@ -279,12 +277,12 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack, bool useTT) {
             }
         }
         // update stack info
+        TT->prefetch(board.nextKey(move));
         stack->move = move;
         stack->piece = board.piece_at(sqFrom(move));
         stack->continuationHist = &continuationHistory[stack->piece][sqTo(move)];
 
         board.makeMove(move);
-        TT->prefetch(board.key);
         score = -quiesce(-beta, -alpha, stack + 1);
         board.undoMove(move);
 
@@ -528,12 +526,12 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
             ex = -1;
 
         /// update stack info
+        TT->prefetch(board.nextKey(move));
         stack->move = move;
         stack->piece = board.piece_at(sqFrom(move));
         stack->continuationHist = &continuationHistory[stack->piece][sqTo(move)];
 
         board.makeMove(move);
-        TT->prefetch(board.key);
         played++;
 
         /// store quiets for history
