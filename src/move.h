@@ -642,26 +642,28 @@ int genLegalNoisy(Board& board, uint16_t* moves) {
     uint64_t enemyOrthSliders = board.orthSliders(enemy), enemyDiagSliders = board.diagSliders(enemy);
     uint64_t all = board.pieces[WHITE] | board.pieces[BLACK];
 
-    attacked |= pawnAttacks(board, enemy);
+    if (kingBBAttacks[king] & them) {
+        attacked |= pawnAttacks(board, enemy);
 
-    pieces = board.bb[getType(KNIGHT, enemy)];
-    while (pieces) {
-        attacked |= knightBBAttacks[sq_lsb(pieces)];
+        pieces = board.bb[getType(KNIGHT, enemy)];
+        while (pieces) {
+            attacked |= knightBBAttacks[sq_lsb(pieces)];
+        }
+
+        pieces = enemyDiagSliders;
+        while (pieces) {
+            attacked |= genAttacksBishop(all ^ (1ULL << king), sq_lsb(pieces));
+        }
+
+        pieces = enemyOrthSliders;
+        while (pieces) {
+            attacked |= genAttacksRook(all ^ (1ULL << king), sq_lsb(pieces));
+        }
+
+        attacked |= kingBBAttacks[enemyKing];
+
+        moves = addMoves(moves, nrMoves, king, kingBBAttacks[king] & ~(us | attacked) & them);
     }
-
-    pieces = enemyDiagSliders;
-    while (pieces) {
-        attacked |= genAttacksBishop(all ^ (1ULL << king), sq_lsb(pieces));
-    }
-
-    pieces = enemyOrthSliders;
-    while (pieces) {
-        attacked |= genAttacksRook(all ^ (1ULL << king), sq_lsb(pieces));
-    }
-
-    attacked |= kingBBAttacks[enemyKing];
-
-    moves = addMoves(moves, nrMoves, king, kingBBAttacks[king] & ~(us | attacked) & them);
 
     uint64_t notPinned = ~pinned, capMask = 0, quietMask = 0;
 

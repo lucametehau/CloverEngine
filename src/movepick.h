@@ -101,7 +101,7 @@ public:
                 if (promoted(move) + KNIGHT == QUEEN)
                     score += 10000;
 
-                score += searcher->capHist[p][to][cap] + 1000000;
+                score += searcher->capHist[p][to][cap];
 
                 score += searcher->nodesSearched[1][sqFrom(move)][sqTo(move)] / nodesSearchedDiv;
 
@@ -158,7 +158,7 @@ public:
 
                     moves[m] = move;
                     int score = 0;
-                    int from = sqFrom(move), to = specialSqTo(move), piece = board.piece_at(from), pt = piece_type(piece);
+                    int from = sqFrom(move), to = sqTo(move), piece = board.piece_at(from), pt = piece_type(piece);
 
                     score = searcher->hist[board.turn][from][to];
                     score += (*(stack - 1)->continuationHist)[piece][to];
@@ -173,7 +173,7 @@ public:
                     if (pt != KING && pt != PAWN)
                         score += kingAttackBonus * count(genAttacksSq(allPieces, to, pt) & enemyKingRing);
 
-                    score += searcher->nodesSearched[0][from][to] / nodesSearchedDiv + 1000000; // the longer it takes a move to be refuted, the higher its chance to become the best move
+                    score += searcher->nodesSearched[0][from][to] / nodesSearchedDiv; // the longer it takes a move to be refuted, the higher its chance to become the best move
                     scores[m++] = score;
                 }
 
@@ -217,7 +217,7 @@ public:
 };
 
 bool see(Board& board, uint16_t move, int threshold) {
-    int from = sqFrom(move), to = specialSqTo(move), t = type(move), col, nextVictim, score = -threshold;
+    int from = sqFrom(move), to = sqTo(move), t = type(move), col, nextVictim, score = -threshold;
     uint64_t diag, orth, occ, att, myAtt;
 
     nextVictim = (t != PROMOTION ? board.piece_type_at(from) : promoted(move) + KNIGHT);
