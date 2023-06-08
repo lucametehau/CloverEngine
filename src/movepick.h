@@ -94,6 +94,13 @@ public:
                 int p = board.piece_at(sqFrom(move)), cap = board.piece_type_at(sqTo(move)), to = sqTo(move);
                 int score = 0; // so that move score isn't negative
 
+                if (type(move) == ENPASSANT)
+                    cap = PAWN;
+
+                score = 10 * seeVal[cap];
+                if (promoted(move) + KNIGHT == QUEEN)
+                    score += 10000;
+
                 score += searcher->capHist[p][to][cap];
 
                 score += searcher->nodesSearched[1][sqFrom(move)][sqTo(move)] / nodesSearchedDiv;

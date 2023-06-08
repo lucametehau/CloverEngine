@@ -26,6 +26,8 @@
 #include <cassert>
 #include <array>
 #include <chrono>
+#include <map>
+#include <immintrin.h>
 
 std::mt19937_64 gen(0xBEEF);
 std::uniform_int_distribution <uint64_t> rng;
@@ -86,13 +88,12 @@ const int DEPTH = 100;
 const uint64_t ALL = 18446744073709551615ULL;
 const std::string START_POS_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
-int cod[256];
+std::map <char, int> cod;
 uint64_t hashKey[13][64], castleKey[2][2], enPasKey[64];
 uint64_t castleKeyModifier[16];
 char pieceChar[13];
 uint64_t fileMask[8], rankMask[8];
 uint64_t between[64][64], Line[64][64];
-uint64_t flankMask[2];
 int mirrorSq[2][64];
 
 const std::pair <int, int> knightDir[] = { {-1, -2}, {-2, -1}, {-2, 1}, {-1, 2}, {1, 2}, {2, 1}, {2, -1}, {1, -2} };
@@ -147,12 +148,6 @@ const int kingIndTable[64] = {
     3, 3, 3, 3, 3, 3, 3, 3,
     4, 4, 4, 4, 4, 4, 4, 4,
     4, 4, 4, 4, 4, 4, 4, 4,
-};
-
-const int oppositepieceChar[13] = {
-    0,
-    WP, WN, WB, WR, WQ, WK,
-    BP, BN, BB, BR, BQ, BK
 };
 
 struct MeanValue {
@@ -417,7 +412,4 @@ inline void init_defs() {
             }
         }
     }
-
-    flankMask[0] = fileMask[0] | fileMask[1] | fileMask[2] | fileMask[3];
-    flankMask[1] = fileMask[4] | fileMask[5] | fileMask[6] | fileMask[7];
 }
