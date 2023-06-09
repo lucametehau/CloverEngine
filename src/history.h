@@ -20,29 +20,23 @@
 #include "defs.h"
 #include "thread.h"
 
-int histUpdateDiv = 16384;
-
-int counterHistUpdateDiv = 16384;
-
-int capHistUpdateDiv = 16384;
-
-void updateHist(int& hist, int score) {
-    hist += score - hist * abs(score) / histUpdateDiv;
+void updateHist(int16_t& hist, int16_t score) {
+    hist += score - hist * abs(score) / 16384;
 }
 
-void updateCounterHist(int& hist, int score) {
-    hist += score - hist * abs(score) / counterHistUpdateDiv;
+void updateCounterHist(int16_t& hist, int16_t score) {
+    hist += score - hist * abs(score) / 16384;
 }
 
-void updateCapHist(int& hist, int score) {
-    hist += score - hist * abs(score) / capHistUpdateDiv;
+void updateCapHist(int16_t& hist, int16_t score) {
+    hist += score - hist * abs(score) / 16384;
 }
 
 int getHistoryBonus(int depth) {
     return std::min(300 * (depth - 1), 2400);
 }
 
-void updateMoveHistory(Search* searcher, StackEntry*& stack, uint16_t move, int bonus) {
+void updateMoveHistory(Search* searcher, StackEntry*& stack, uint16_t move, int16_t bonus) {
     int from = sqFrom(move), to = sqTo(move), piece = searcher->board.piece_at(from);
 
     updateHist(searcher->hist[searcher->board.turn][from][to], bonus);
@@ -54,7 +48,7 @@ void updateMoveHistory(Search* searcher, StackEntry*& stack, uint16_t move, int 
         updateCounterHist((*(stack - 2)->continuationHist)[piece][to], bonus);
 }
 
-void updateCaptureMoveHistory(Search* searcher, uint16_t move, int bonus) {
+void updateCaptureMoveHistory(Search* searcher, uint16_t move, int16_t bonus) {
     assert(type(move) != CASTLE);
     int to = sqTo(move), from = sqFrom(move), cap = searcher->board.piece_type_at(to), piece = searcher->board.piece_at(from);
 
@@ -64,7 +58,7 @@ void updateCaptureMoveHistory(Search* searcher, uint16_t move, int bonus) {
     updateCapHist(searcher->capHist[piece][to][cap], bonus);
 }
 
-void updateHistory(Search* searcher, StackEntry* stack, int nrQuiets, int ply, int bonus) {
+void updateHistory(Search* searcher, StackEntry* stack, int nrQuiets, int ply, int16_t bonus) {
     if (ply < 2 || !nrQuiets) /// we can't update if we don't have a follow move or no quiets
         return;
 
@@ -83,7 +77,7 @@ void updateHistory(Search* searcher, StackEntry* stack, int nrQuiets, int ply, i
     updateMoveHistory(searcher, stack, best, bonus);
 }
 
-void updateCapHistory(Search* searcher, StackEntry* stack, int nrCaptures, uint16_t best, int ply, int bonus) {
+void updateCapHistory(Search* searcher, StackEntry* stack, int nrCaptures, uint16_t best, int ply, int16_t bonus) {
     for (int i = 0; i < nrCaptures; i++) {
         int move = stack->captures[i];
         int score = (move == best ? bonus : -bonus);
@@ -96,7 +90,7 @@ void updateCapHistory(Search* searcher, StackEntry* stack, int nrCaptures, uint1
     }
 }
 
-int getCapHist(Search* searcher, uint16_t move) {
+int16_t getCapHist(Search* searcher, uint16_t move) {
     int from = sqFrom(move), to = sqTo(move), piece = searcher->board.piece_at(from), cap = searcher->board.piece_type_at(to);
 
     if (type(move) == ENPASSANT)

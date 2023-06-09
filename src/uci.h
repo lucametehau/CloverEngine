@@ -70,8 +70,6 @@ UCI::UCI(Search& _searcher) : searcher(_searcher) {
     addOption("chCoef", chCoef);
     addOption("fhCoef", fhCoef);
     addOption("histDiv", histDiv);
-    addOption("histUpdateDiv", histUpdateDiv);
-    addOption("counterHistUpdateDiv", counterHistUpdateDiv);
     addOption("tmScoreDiv", tmScoreDiv);
     addOption("tmBestMoveStep", tmBestMoveStep);
     addOption("tmBestMoveMax", tmBestMoveMax);
@@ -349,12 +347,6 @@ void UCI::Uci_Loop() {
             }
             else if (name == "histDiv") {
                 setOptionI(iss, histDiv);
-            }
-            else if (name == "histUpdateDiv") {
-                setOptionI(iss, histUpdateDiv);
-            }
-            else if (name == "counterHistUpdateDiv") {
-                setOptionI(iss, counterHistUpdateDiv);
             }
             else if (name == "tmScoreDiv") {
                 setOptionI(iss, tmScoreDiv);

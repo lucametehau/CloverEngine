@@ -37,7 +37,7 @@
 std::mt19937_64 gen(0xBEEF);
 std::uniform_int_distribution <uint64_t> rng;
 
-#define TablePieceTo std::array <std::array <int, 64>, 13>
+#define TablePieceTo std::array <std::array <int16_t, 64>, 13>
 
 struct StackEntry { /// info to keep in the stack
     uint16_t move, piece;
