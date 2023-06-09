@@ -10,11 +10,11 @@ Clover now has a page with all the features: https://www.chessprogramming.org/Cl
 
 Clover is and was tested in multiple rating lists (thanks to all testers btw), such as:
 
-- [CCRL 40/15](https://ccrl.chessdom.com/ccrl/4040/) - 3424 4CPU, 3356 1CPU (v3.3.1, #15)
-- [CCRL 2+1](https://ccrl.chessdom.com/ccrl/404/) - 3430 1CPU (v3.2.1)
-- [SP-CC](https://www.sp-cc.de/) - 3515 1CPU (v3.3.1)
-- [CEGT](http://www.cegt.net/40_4_Ratinglist/40_4_single/rangliste.html) - 3391 (v3.3.1)
-- [IPMAN CHESS](https://ipmanchess.yolasite.com/i7-11800h.php) - 3369 (dev version of 4.0)
+- [CCRL 40/15](https://ccrl.chessdom.com/ccrl/4040/) - 3448 4CPU, 3394 1CPU (v4.1, #12)
+- [CCRL 2+1](https://ccrl.chessdom.com/ccrl/404/) - 3540 1CPU (v4.1)
+- [SP-CC](https://www.sp-cc.de/) - 3604 1CPU (v4.1)
+- [CEGT](http://www.cegt.net/40_4_Ratinglist/40_4_single/rangliste.html) - 3473 (v4.1)
+- [IPMAN CHESS](https://ipmanchess.yolasite.com/i7-11800h.php) - 3432 (v4.1)
 
 There may be other that I omited, if so please bring to my attention =).
 
