@@ -137,9 +137,9 @@ struct Search {
     uint16_t pvTable[DEPTH + 5][2 * DEPTH + 5];
     int pvTableLen[DEPTH + 5];
     uint16_t cmTable[2][13][64];
-    int hist[2][64][64];
+    int16_t hist[2][64][64];
     TablePieceTo continuationHistory[13][64];
-    int capHist[13][64][7];
+    int16_t capHist[13][64][7];
     int lmrRed[64][64], lmrRedNoisy[64][64];
     int bestMoves[256], scores[256];
     MeanValue values[10];
