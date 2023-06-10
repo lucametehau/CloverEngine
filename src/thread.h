@@ -115,7 +115,7 @@ struct Search {
     void _makeMove(uint16_t move);
 
     std::pair <int, uint16_t> startSearch(Info* info);
-    int quiesce(int alpha, int beta, StackEntry* stack, bool useTT = true); /// for quiet position check (tuning)
+    int quiesce(int alpha, int beta, StackEntry* stack); /// for quiet position check (tuning)
     int search(int alpha, int beta, int depth, bool cutNode, StackEntry* stack, uint16_t excluded = NULLMOVE);
     int rootSearch(int alpha, int beta, int depth, int multipv, StackEntry* stack);
 
@@ -133,11 +133,11 @@ struct Search {
 
     bool checkForStop();
 
-    uint64_t nodesSearched[2][64][64];
+    uint64_t nodesSearched[2][64 * 64];
     uint16_t pvTable[DEPTH + 5][2 * DEPTH + 5];
     int pvTableLen[DEPTH + 5];
     uint16_t cmTable[2][13][64];
-    int16_t hist[2][64][64];
+    int16_t hist[2][64 * 64];
     TablePieceTo continuationHistory[13][64];
     int16_t capHist[13][64][7];
     int lmrRed[64][64], lmrRedNoisy[64][64];

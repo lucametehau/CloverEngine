@@ -93,7 +93,7 @@ const int SIDE_NEURONS = 768;
 const int HIDDEN_NEURONS = 2 * SIDE_NEURONS;
 const int REG_LENGTH = sizeof(reg_type) / sizeof(int16_t);
 const int NUM_REGS = SIDE_NEURONS / REG_LENGTH;
-const int BUCKET_UNROLL = 256;
+const int BUCKET_UNROLL = 128;
 const int UNROLL_LENGTH = BUCKET_UNROLL / REG_LENGTH;
 
 const int Q_IN = 8;
@@ -237,11 +237,11 @@ public:
 
         for (int b = 0; b < SIDE_NEURONS / BUCKET_UNROLL; b++) {
             const int offset = b * BUCKET_UNROLL;
-            reg_type* reg_in = (reg_type*)&inputBiases[offset];
+            const reg_type* reg_in = reinterpret_cast<const reg_type*>(&inputBiases[offset]);
             for (int i = 0; i < UNROLL_LENGTH; i++)
                 regs[i] = reg_load(&reg_in[i]);
             for (int idx = 0; idx < addSz; idx++) {
-                reg_type* reg = (reg_type*)&inputWeights[add_ind[idx] * SIDE_NEURONS + offset];
+                reg_type* reg = reinterpret_cast<reg_type*>(&inputWeights[add_ind[idx] * SIDE_NEURONS + offset]);
                 for (int i = 0; i < UNROLL_LENGTH; i++)
                     regs[i] = reg_add16(regs[i], reg[i]);
             }

@@ -29,12 +29,7 @@ bool Search::checkForStop() {
     if (flag & TERMINATED_SEARCH)
         return 1;
 
-    if (SMPThreadExit) {
-        flag |= TERMINATED_BY_LIMITS;
-        return 1;
-    }
-
-    if (info->nodes != -1 && info->nodes <= (int64_t)nodes) {
+    if (SMPThreadExit || (info->nodes != -1 && info->nodes <= (int64_t)nodes)) {
         flag |= TERMINATED_BY_LIMITS;
         return 1;
     }
@@ -86,7 +81,7 @@ uint32_t probe_TB(Board& board, int depth, bool probeAtRoot = 0, int halfMoves =
     return TB_RESULT_FAILED;
 }
 
-bool quietness(Board& board, bool us) {
+bool quietness(const Board& board, const bool us) {
     if (board.checkers)
         return 0;
     uint64_t att;
@@ -184,7 +179,7 @@ void Search::updatePv(int ply, int move) {
     pvTableLen[ply] = 1 + pvTableLen[ply + 1];
 }
 
-int Search::quiesce(int alpha, int beta, StackEntry* stack, bool useTT) {
+int Search::quiesce(int alpha, int beta, StackEntry* stack) {
     int ply = board.ply;
 
     if (ply >= DEPTH)
@@ -592,7 +587,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
 
         board.undoMove(move);
 
-        nodesSearched[!isQuiet][sqFrom(move)][sqTo(move)] += nodes - initNodes;
+        nodesSearched[!isQuiet][fromTo(move)] += nodes - initNodes;
 
         if (flag & TERMINATED_SEARCH) /// stop search
             return ABORT;
@@ -756,7 +751,7 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv, StackEntry* 
 
         board.undoMove(move);
 
-        nodesSearched[isNoisyMove(board, move)][sqFrom(move)][sqTo(move)] += nodes - initNodes;
+        nodesSearched[isNoisyMove(board, move)][fromTo(move)] += nodes - initNodes;
 
         if (flag & TERMINATED_SEARCH) /// stop search
             return ABORT;
@@ -1015,7 +1010,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
                 bestMoveCnt = (bestMoves[1] == mainThreadBestMove ? bestMoveCnt + 1 : 1);
 
                 /// adjust time based on how many nodes from the total searched nodes were used for the best move
-                nodesSearchedPercentage = 1.0 * nodesSearched[isNoisyMove(board, bestMoves[1])][sqFrom(bestMoves[1])][sqTo(bestMoves[1])] / nodes;
+                nodesSearchedPercentage = 1.0 * nodesSearched[isNoisyMove(board, bestMoves[1])][fromTo(bestMoves[1])] / nodes;
                 nodesSearchedPercentage = _tmNodesSearchedMaxPercentage - nodesSearchedPercentage;
 
                 bestMoveStreak = _tmBestMoveMax - _tmBestMoveStep * std::min(10, bestMoveCnt); /// adjust time based on how long the best move was the same
