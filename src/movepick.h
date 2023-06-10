@@ -84,18 +84,15 @@ public:
             int m = 0;
 
             for (int i = 0; i < nrNoisy; i++) {
-                uint16_t move = moves[i];
+                const uint16_t move = moves[i];
 
                 if (move == hashMove || move == killer || move == counter)
                     continue;
 
                 moves[m] = move;
 
-                int p = board.piece_at(sqFrom(move)), cap = board.piece_type_at(sqTo(move)), to = sqTo(move);
+                const int p = board.piece_at(sqFrom(move)), cap = (type(move) == ENPASSANT ? PAWN : board.piece_type_at(sqTo(move))), to = sqTo(move);
                 int score = 0; // so that move score isn't negative
-
-                if (type(move) == ENPASSANT)
-                    cap = PAWN;
 
                 score = 10 * seeVal[cap];
                 if (promoted(move) + KNIGHT == QUEEN)
@@ -103,7 +100,7 @@ public:
 
                 score += searcher->capHist[p][to][cap];
 
-                score += searcher->nodesSearched[1][sqFrom(move)][sqTo(move)] / nodesSearchedDiv;
+                score += searcher->nodesSearched[1][fromTo(move)] / nodesSearchedDiv;
 
                 scores[m++] = score;
             }
@@ -144,23 +141,23 @@ public:
         {
             if (!skip) {
                 nrQuiets = genLegalQuiets(board, moves);
-                bool turn = board.turn, enemy = 1 ^ turn;
-                uint64_t enemyPawns = board.bb[getType(PAWN, turn ^ 1)], allPieces = board.pieces[WHITE] | board.pieces[BLACK];
-                uint64_t pawnAttacks = getPawnAttacks(enemy, enemyPawns);
-                uint64_t enemyKingRing = kingRingMask[board.king(enemy)] & ~(shift(enemy, NORTHEAST, enemyPawns & ~fileMask[(enemy == WHITE ? 7 : 0)]) & shift(enemy, NORTHWEST, enemyPawns & ~fileMask[(enemy == WHITE ? 0 : 7)]));
+                const bool turn = board.turn, enemy = 1 ^ turn;
+                const uint64_t enemyPawns = board.bb[getType(PAWN, turn ^ 1)], allPieces = board.pieces[WHITE] | board.pieces[BLACK];
+                const uint64_t pawnAttacks = getPawnAttacks(enemy, enemyPawns);
+                const uint64_t enemyKingRing = kingRingMask[board.king(enemy)] & ~(shift(enemy, NORTHEAST, enemyPawns & ~fileMask[(enemy == WHITE ? 7 : 0)]) & shift(enemy, NORTHWEST, enemyPawns & ~fileMask[(enemy == WHITE ? 0 : 7)]));
                 int m = 0;
 
                 for (int i = 0; i < nrQuiets; i++) {
-                    uint16_t move = moves[i];
+                    const uint16_t move = moves[i];
 
                     if (move == hashMove || move == killer || move == counter)
                         continue;
 
                     moves[m] = move;
                     int score = 0;
-                    int from = sqFrom(move), to = sqTo(move), piece = board.piece_at(from), pt = piece_type(piece);
+                    const int from = sqFrom(move), to = sqTo(move), piece = board.piece_at(from), pt = piece_type(piece);
 
-                    score = searcher->hist[board.turn][from][to];
+                    score = searcher->hist[board.turn][fromTo(move)];
                     score += (*(stack - 1)->continuationHist)[piece][to];
                     score += (*(stack - 2)->continuationHist)[piece][to];
 
@@ -173,7 +170,7 @@ public:
                     if (pt != KING && pt != PAWN)
                         score += kingAttackBonus * count(genAttacksSq(allPieces, to, pt) & enemyKingRing);
 
-                    score += searcher->nodesSearched[0][from][to] / nodesSearchedDiv; // the longer it takes a move to be refuted, the higher its chance to become the best move
+                    score += searcher->nodesSearched[0][fromTo(move)] / nodesSearchedDiv; // the longer it takes a move to be refuted, the higher its chance to become the best move
                     scores[m++] = score;
                 }
 

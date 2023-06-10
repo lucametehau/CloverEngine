@@ -295,6 +295,10 @@ inline int sqTo(uint16_t move) {
     return (move & 4095) >> 6;
 }
 
+inline int fromTo(uint16_t move) {
+    return move & 4095;
+}
+
 inline int type(uint16_t move) {
     return move >> 14;
 }
