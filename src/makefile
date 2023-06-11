@@ -1,6 +1,6 @@
 CC  = g++
 SRC = *.cpp tbprobe.c
-EXE = Clover.5.0.22
+EXE = Clover.5.0.23
 EVALFILE = weights-5buckets-epoch310.nnue
 
 ifeq ($(OS), Windows_NT)
@@ -21,14 +21,26 @@ else
 	LIBS += -lpthread
 endif
 
+ifneq ($(findstring g++, $(CC)),)
+	PGO_GENERATE = -fprofile-generate
+	PGO_USE      = -fprofile-use
+else ifneq ($(findstring clang++, $(CC)),)
+	PGO_MERGE    = llvm-profdata merge -output=clover.profdata *.profraw
+	PGO_GENERATE = -fprofile-instr-generate
+	PGO_USE      = -fprofile-instr-use=clover.profdata
+endif
+
 AVX2FLAGS     = -march=core-avx2
 NATIVEFLAGS   = -mno-avx512f -march=native
 OLDFLAGS      = -march=core2
 AVX512FLAGS   = $(AVX2FLAGS) -mavx512f -mavx512bw -mavx512dq
 EVALFILEFLAGS = -DEVALFILE=\"$(EVALFILE)\"
 
-ob:
-	$(CC)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(NATIVEFLAGS) -o Clover$(EXT)
+pgo:
+	$(CC)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(NATIVEFLAGS) -o Clover$(EXT) $(PGO_GENERATE)
+	./Clover$(EXT) bench 15
+	$(PGO_MERGE)
+	$(CC)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(NATIVEFLAGS) -o Clover$(EXT) $(PGO_USE)
 debug:
 	clang++ $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(NATIVEFLAGS) -o $(EXE)$(EXT)
 native:

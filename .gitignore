@@ -12,3 +12,6 @@ gmon.out
 search.cpp
 *.txt
 *.ilk
+*.gcda
+*.profraw
+*.profdata
