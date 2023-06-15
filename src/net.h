@@ -149,7 +149,6 @@ public:
 
     int32_t calc(NetInput& input, bool stm) {
         int32_t sum;
-        //float sum_f;
 
         for (int n = 0; n < SIDE_NEURONS; n++) {
             sum = inputBiases[n];
