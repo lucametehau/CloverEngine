@@ -99,6 +99,63 @@ const int UNROLL_LENGTH = BUCKET_UNROLL / REG_LENGTH;
 const int Q_IN = 8;
 const int Q_HIDDEN = 256;
 
+int16_t inputBiases[SIDE_NEURONS] __attribute__((aligned(ALIGN)));
+int32_t outputBias;
+int16_t inputWeights[INPUT_NEURONS * SIDE_NEURONS] __attribute__((aligned(ALIGN)));
+int16_t outputWeights[HIDDEN_NEURONS] __attribute__((aligned(ALIGN)));
+
+void loadNNUEWeights() {
+    uint64_t* intData;
+    float* floatData;
+
+    uint64_t x;
+    intData = (uint64_t*)gNetData;
+
+    x = *intData;
+    assert(x == 2951425);
+    intData++;
+
+    floatData = (float*)intData;
+
+    int sz;
+
+    sz = SIDE_NEURONS;
+
+    int mn = 1e9, mx = -1e9;
+    for (int i = 0; i < SIDE_NEURONS * INPUT_NEURONS; i++) {
+        float val = *floatData;
+        mn = std::min<int>(mn, round(val * Q_IN));
+        mx = std::max<int>(mx, round(val * Q_IN));
+        inputWeights[(i / SIDE_NEURONS) * SIDE_NEURONS + (i % SIDE_NEURONS)] = round(val * Q_IN);
+        floatData++;
+    }
+
+    //std::cout << mn << " " << mx << "\n";
+
+    mn = 1e9, mx = -1e9;
+    for (int j = 0; j < sz; j++) {
+        float val = *floatData;
+        mn = std::min<int>(mn, round(val * Q_IN));
+        mx = std::max<int>(mx, round(val * Q_IN));
+        inputBiases[j] = round(val * Q_IN);
+        floatData++;
+    }
+    //std::cout << mn << " " << mx << "\n";
+
+    mn = 1e9, mx = -1e9;
+    for (int j = 0; j < HIDDEN_NEURONS; j++) {
+        float val = *floatData;
+        mn = std::min<int>(mn, round(val * Q_HIDDEN));
+        mx = std::max<int>(mx, round(val * Q_HIDDEN));
+        outputWeights[j] = round(val * Q_HIDDEN);
+        floatData++;
+    }
+    //std::cout << mn << " " << mx << "\n";
+
+    float val = *floatData;
+    outputBias = round(val * Q_HIDDEN);
+}
+
 enum {
     SUB = 0, ADD
 };
@@ -119,8 +176,6 @@ public:
 
     Network() {
         histSz = 0;
-
-        load();
     }
 
     void addInput(int ind) {
@@ -425,67 +480,12 @@ public:
         return (outputBias * Q_IN + get_sum(acc0)) / (Q_IN * Q_HIDDEN);
     }
 
-    void load() {
-        uint64_t* intData;
-        float* floatData;
-
-        uint64_t x;
-        intData = (uint64_t*)gNetData;
-
-        x = *intData;
-        assert(x == 2951425);
-        intData++;
-
-        floatData = (float*)intData;
-
-        int sz;
-
-        sz = SIDE_NEURONS;
-
-        int mn = 1e9, mx = -1e9;
-        for (int i = 0; i < SIDE_NEURONS * INPUT_NEURONS; i++) {
-            float val = *floatData;
-            mn = std::min<int>(mn, round(val * Q_IN));
-            mx = std::max<int>(mx, round(val * Q_IN));
-            inputWeights[(i / SIDE_NEURONS) * SIDE_NEURONS + (i % SIDE_NEURONS)] = round(val * Q_IN);
-            floatData++;
-        }
-
-        //std::cout << mn << " " << mx << "\n";
-
-        mn = 1e9, mx = -1e9;
-        for (int j = 0; j < sz; j++) {
-            float val = *floatData;
-            mn = std::min<int>(mn, round(val * Q_IN));
-            mx = std::max<int>(mx, round(val * Q_IN));
-            inputBiases[j] = round(val * Q_IN);
-            floatData++;
-        }
-        //std::cout << mn << " " << mx << "\n";
-
-        mn = 1e9, mx = -1e9;
-        for (int j = 0; j < HIDDEN_NEURONS; j++) {
-            float val = *floatData;
-            mn = std::min<int>(mn, round(val * Q_HIDDEN));
-            mx = std::max<int>(mx, round(val * Q_HIDDEN));
-            outputWeights[j] = round(val * Q_HIDDEN);
-            floatData++;
-        }
-        //std::cout << mn << " " << mx << "\n";
-
-        float val = *floatData;
-        outputBias = round(val * Q_HIDDEN);
-    }
-
     int histSz;
 
-    int16_t inputBiases[SIDE_NEURONS] __attribute__((aligned(ALIGN)));
-    int32_t outputBias;
-    int16_t histOutput[2005][2][SIDE_NEURONS] __attribute__((aligned(ALIGN)));
-    int16_t inputWeights[INPUT_NEURONS * SIDE_NEURONS] __attribute__((aligned(ALIGN)));
-    int16_t outputWeights[HIDDEN_NEURONS] __attribute__((aligned(ALIGN)));
-
     int addSz;
+
+    int16_t histOutput[2005][2][SIDE_NEURONS] __attribute__((aligned(ALIGN)));
+
     int16_t add_ind[32];
     NetHist hist[2005];
 };
