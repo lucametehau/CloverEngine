@@ -23,6 +23,7 @@
 int main(int argc, char** argv) {
     init_defs();
     initAttacks();
+    loadNNUEWeights();
 
     std::unique_ptr <Search> searcher(new Search);
 
