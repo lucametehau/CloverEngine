@@ -37,7 +37,7 @@ int getHistoryBonus(int depth) {
 }
 
 void updateMoveHistory(Search* searcher, StackEntry*& stack, uint16_t move, int16_t bonus) {
-    int from = sqFrom(move), to = sqTo(move), piece = searcher->board.piece_at(from);
+    const int from = sqFrom(move), to = sqTo(move), piece = searcher->board.piece_at(from);
 
     updateHist(searcher->hist[searcher->board.turn][fromTo(move)], bonus);
 
@@ -50,10 +50,7 @@ void updateMoveHistory(Search* searcher, StackEntry*& stack, uint16_t move, int1
 
 void updateCaptureMoveHistory(Search* searcher, uint16_t move, int16_t bonus) {
     assert(type(move) != CASTLE);
-    int to = sqTo(move), from = sqFrom(move), cap = searcher->board.piece_type_at(to), piece = searcher->board.piece_at(from);
-
-    if (type(move) == ENPASSANT)
-        cap = PAWN;
+    const int to = sqTo(move), from = sqFrom(move), cap = (type(move) == ENPASSANT ? PAWN : searcher->board.piece_type_at(to)), piece = searcher->board.piece_at(from);
 
     updateCapHist(searcher->capHist[piece][to][cap], bonus);
 }
@@ -67,10 +64,9 @@ void updateHistory(Search* searcher, StackEntry* stack, int nrQuiets, int ply, i
     const int counterTo = sqTo(counterMove);
 
     const uint16_t best = stack->quiets[nrQuiets - 1];
-    const bool turn = searcher->board.turn;
 
     if (counterMove)
-        searcher->cmTable[1 ^ turn][counterPiece][counterTo] = best; /// update counter move table
+        searcher->cmTable[counterPiece][counterTo] = best; /// update counter move table
 
     for (int i = 0; i < nrQuiets - 1; i++)
         updateMoveHistory(searcher, stack, stack->quiets[i], -bonus);
