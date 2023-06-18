@@ -56,7 +56,7 @@ void updateCaptureMoveHistory(Search* searcher, uint16_t move, int16_t bonus) {
 }
 
 void updateHistory(Search* searcher, StackEntry* stack, int nrQuiets, int ply, int16_t bonus) {
-    if (ply < 2 || !nrQuiets) /// we can't update if we don't have a follow move or no quiets
+    if (!nrQuiets) /// we can't update if we don't have a follow move or no quiets
         return;
 
     const uint16_t counterMove = (stack - 1)->move;
