@@ -41,7 +41,7 @@ std::uniform_int_distribution <uint64_t> rng;
 
 struct StackEntry { /// info to keep in the stack
     uint16_t move, piece;
-    uint16_t killer;
+    uint16_t killer, excluded;
     uint16_t quiets[256], captures[256];
     int eval;
     TablePieceTo* continuationHist;

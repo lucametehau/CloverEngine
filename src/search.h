@@ -24,6 +24,7 @@
 #include <cstring>
 #include <cmath>
 #include <fstream>
+#include <iomanip>
 
 bool Search::checkForStop() {
     if (flag & TERMINATED_SEARCH)
@@ -179,8 +180,9 @@ void Search::updatePv(int ply, int move) {
     pvTableLen[ply] = 1 + pvTableLen[ply + 1];
 }
 
+template <bool pvNode>
 int Search::quiesce(int alpha, int beta, StackEntry* stack) {
-    int ply = board.ply;
+    const int ply = board.ply;
 
     if (ply >= DEPTH)
         return evaluate(board);
@@ -196,8 +198,7 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack) {
     if (checkForStop())
         return ABORT;
 
-    bool pvNode = (beta - alpha > 1);
-    uint64_t key = board.key;
+    const uint64_t key = board.key;
     int score = 0, best = -INF, alphaOrig = alpha;
     int bound = NONE;
     uint16_t bestMove = NULLMOVE, ttMove = NULLMOVE;
@@ -213,11 +214,13 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack) {
         bound = entry.bound();
         ttMove = entry.move;
 
-        if (!pvNode && (bound == EXACT || (bound == LOWER && score >= beta) || (bound == UPPER && score <= alpha)))
-            return score;
+        if constexpr (!pvNode) {
+            if ((bound == EXACT || (bound == LOWER && score >= beta) || (bound == UPPER && score <= alpha)))
+                return score;
+        }
     }
 
-    bool isCheck = (board.checkers != 0);
+    const bool isCheck = (board.checkers != 0);
     int futilityValue;
 
     if (isCheck) {
@@ -248,7 +251,10 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack) {
 
     alpha = std::max(alpha, best);
 
-    Movepick noisyPicker((!isCheck && see(board, ttMove, 0) ? ttMove : NULLMOVE), NULLMOVE, NULLMOVE, 0);
+    Movepick noisyPicker(!isCheck && see(board, ttMove, 0) ? ttMove : NULLMOVE, 
+        NULLMOVE, 
+        NULLMOVE, 
+        0);
 
     uint16_t move;
     int played = 0;
@@ -260,7 +266,7 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack) {
             break;
         if (best > -MATE) {
             if (futilityValue > -MATE) {
-                int value = futilityValue + seeVal[board.piece_type_at(sqTo(move))];
+                const int value = futilityValue + seeVal[board.piece_type_at(sqTo(move))];
                 if (type(move) != PROMOTION && value <= alpha) {
                     best = std::max(best, value);
                     continue;
@@ -278,7 +284,7 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack) {
         stack->continuationHist = &continuationHistory[stack->piece][sqTo(move)];
 
         board.makeMove(move);
-        score = -quiesce(-beta, -alpha, stack + 1);
+        score = -quiesce<pvNode>(-beta, -alpha, stack + 1);
         board.undoMove(move);
 
         if (flag & TERMINATED_SEARCH)
@@ -308,9 +314,9 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack) {
 
     return best;
 }
-
-int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* stack, uint16_t excluded) {
-    int ply = board.ply;
+template <bool pvNode>
+int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* stack) {
+    const int ply = board.ply;
 
     if (checkForStop())
         return ABORT;
@@ -319,9 +325,9 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         return evaluate(board);
 
     if (depth <= 0)
-        return quiesce(alpha, beta, stack);
+        return quiesce<pvNode>(alpha, beta, stack);
 
-    const bool pvNode = (alpha < beta - 1), allNode = (!pvNode && !cutNode);
+    const bool allNode = (!pvNode && !cutNode);
     const bool nullSearch = ((stack - 1)->move == NULLMOVE);
     const int alphaOrig = alpha;
     const uint64_t key = board.key;
@@ -346,24 +352,25 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
     if (alpha >= beta)
         return alpha;
 
-    tt::Entry entry = {};
+    tt::Entry entry{};
 
     /// transposition table probing
     int eval = INF;
 
-    if (!excluded && TT->probe(key, entry)) {
-        int score = entry.value(ply);
+    if (!stack->excluded && TT->probe(key, entry)) {
+        const int score = entry.value(ply);
         ttHit = 1;
         ttValue = score;
         bound = entry.bound(), ttMove = entry.move;
         eval = entry.eval;
-        if (entry.depth() >= depth && !pvNode && (bound == EXACT || (bound == LOWER && score >= beta) || (bound == UPPER && score <= alpha))) {
-            return score;
+        if constexpr (!pvNode) {
+            if (entry.depth() >= depth && (bound == EXACT || (bound == LOWER && score >= beta) || (bound == UPPER && score <= alpha)))
+                return score;
         }
     }
 
     /// tablebase probing
-    auto probe = probe_TB(board, depth);
+    const auto probe = probe_TB(board, depth);
     if (probe != TB_RESULT_FAILED) {
         int type = NONE, score;
         tbHits++;
@@ -388,15 +395,15 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         }
     }
 
-    bool isCheck = (board.checkers != 0);
-    bool quietUs = quietness(board, board.turn);
+    const bool isCheck = (board.checkers != 0);
+    const bool quietUs = quietness(board, board.turn);
     //int quietEnemy = quietness(board, 1 ^ board.turn);
 
     if (isCheck) { /// when in check, don't evaluate
         stack->eval = eval = INF;
     }
     else if (!ttHit) { /// if we are in a singular search, we already know the evaluation
-        if (excluded)
+        if (stack->excluded)
             eval = stack->eval;
         else
             stack->eval = eval = evaluate(board);
@@ -407,7 +414,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
             eval = ttValue;
     }
 
-    int staticEval = stack->eval;
+    const int staticEval = stack->eval;
     const int evalDiff = staticEval - (stack - 2)->eval;
     const int improving = (isCheck || (stack - 2)->eval == INF ? 0 :
         evalDiff > 0 ? 1 :
@@ -415,31 +422,33 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
 
     (stack + 1)->killer = NULLMOVE;
 
-    if (!pvNode && !isCheck) {
+    if constexpr (!pvNode) {
+        if (!isCheck) {
 
-        /// static null move pruning (don't prune when having a mate line, again stability)
-        if (depth <= SNMPDepth && eval > beta && eval - (SNMPCoef1 - SNMPCoef2 * improving) * (depth - quietUs) > beta && eval < MATE) {
-            return eval;
-        }
+            /// static null move pruning (don't prune when having a mate line, again stability)
+            if (depth <= SNMPDepth && eval > beta && eval - (SNMPCoef1 - SNMPCoef2 * improving) * (depth - quietUs) > beta && eval < MATE) {
+                return eval;
+            }
 
-        /// null move pruning (when last move wasn't null, we still have non pawn material, we have a good position)
-        if (!nullSearch && !excluded && (quietUs || eval - 100 * depth > beta) &&
-            eval >= beta + 30 * (depth <= 3) && eval >= staticEval &&
-            board.hasNonPawnMaterial(board.turn)) {
-            int R = nmpR + depth / nmpDepthDiv + (eval - beta) / nmpEvalDiv + improving;
+            /// null move pruning (when last move wasn't null, we still have non pawn material, we have a good position)
+            if (!nullSearch && !stack->excluded && (quietUs || eval - 100 * depth > beta) &&
+                eval >= beta + 30 * (depth <= 3) && eval >= staticEval &&
+                board.hasNonPawnMaterial(board.turn)) {
+                int R = nmpR + depth / nmpDepthDiv + (eval - beta) / nmpEvalDiv + improving;
 
-            stack->move = NULLMOVE;
-            stack->piece = 0;
-            stack->continuationHist = &continuationHistory[0][0];
+                stack->move = NULLMOVE;
+                stack->piece = 0;
+                stack->continuationHist = &continuationHistory[0][0];
 
-            board.makeNullMove();
+                board.makeNullMove();
 
-            int score = -search(-beta, -beta + 1, depth - R, !cutNode, stack + 1);
+                int score = -search<false>(-beta, -beta + 1, depth - R, !cutNode, stack + 1);
 
-            board.undoNullMove();
+                board.undoNullMove();
 
-            if (score >= beta) {
-                return (abs(score) > MATE ? beta : score); /// don't trust mate scores
+                if (score >= beta) {
+                    return (abs(score) > MATE ? beta : score); /// don't trust mate scores
+                }
             }
         }
     }
@@ -449,20 +458,20 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
     if ((pvNode || cutNode) && depth >= 3 && !ttHit)
         depth--;
 
-    /// get counter move for move picker
-    uint16_t counter = (nullSearch ? NULLMOVE : cmTable[1 ^ board.turn][(stack - 1)->piece][sqTo((stack - 1)->move)]);
-
-    Movepick picker(ttMove, stack->killer, counter, -(seeDepthCoef - (ply % 2 == 0 && rootEval != INF ? rootEval / 100 : 0)) * depth);
+    Movepick picker(ttMove, 
+        stack->killer, 
+        nullSearch ? NULLMOVE : cmTable[(stack - 1)->piece][sqTo((stack - 1)->move)], // counter
+        -(seeDepthCoef - (ply % 2 == 0 && rootEval != INF ? rootEval / 100 : 0)) * depth);
 
     uint16_t move;
-    bool ttCapture = ttMove && isNoisyMove(board, ttMove);
+    const bool ttCapture = ttMove && isNoisyMove(board, ttMove);
 
     while ((move = picker.nextMove(this, stack, board, skip, false)) != NULLMOVE) {
 
-        if (move == excluded)
+        if (move == stack->excluded)
             continue;
 
-        bool isQuiet = !isNoisyMove(board, move), refutationMove = (picker.trueStage < STAGE_QUIETS);
+        const bool isQuiet = !isNoisyMove(board, move), refutationMove = (picker.trueStage < STAGE_QUIETS);
         int hist = 0;
 
         /// quiet move pruning
@@ -497,10 +506,12 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         /// avoid extending too far (might cause stack overflow)
         if (ply < 2 * tDepth) {
             /// singular extension (look if the tt move is better than the rest)
-            if (!excluded && !allNode && move == ttMove && abs(ttValue) < MATE && depth >= 6 && entry.depth() >= depth - 3 && (bound & LOWER)) {
+            if (!stack->excluded && !allNode && move == ttMove && abs(ttValue) < MATE && depth >= 6 && entry.depth() >= depth - 3 && (bound & LOWER)) {
                 int rBeta = ttValue - depth;
 
-                int score = search(rBeta - 1, rBeta, depth / 2, cutNode, stack, move);
+                stack->excluded = move;
+                int score = search<false>(rBeta - 1, rBeta, depth / 2, cutNode, stack);
+                stack->excluded = NULLMOVE;
 
                 if (score < rBeta)
                     ex = 1 + (!pvNode && rBeta - score > 25);
@@ -557,7 +568,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
 
                 R -= hist / histDiv; /// reduce based on move history
             }
-            else if (!pvNode) {
+            else if constexpr (!pvNode) {
                 R = lmrRedNoisy[std::min(63, depth)][std::min(63, played)];
 
                 R += improving <= 0; /// not improving
@@ -568,17 +579,18 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
             R += 2 * cutNode;
 
             R = std::min(newDepth - 1, std::max(R, 1)); /// clamp R
-            score = -search(-alpha - 1, -alpha, newDepth - R, true, stack + 1);
+            score = -search<false>(-alpha - 1, -alpha, newDepth - R, true, stack + 1);
 
             if (R > 1 && score > alpha)
-                score = -search(-alpha - 1, -alpha, newDepth - 1, !cutNode, stack + 1);
+                score = -search<false>(-alpha - 1, -alpha, newDepth - 1, !cutNode, stack + 1);
         }
         else if (!pvNode || played > 1) {
-            score = -search(-alpha - 1, -alpha, newDepth - 1, !cutNode, stack + 1);
+            score = -search<false>(-alpha - 1, -alpha, newDepth - 1, !cutNode, stack + 1);
         }
 
-        if (pvNode && (played == 1 || score > alpha)) {
-            score = -search(-beta, -alpha, newDepth - 1, false, stack + 1);
+        if constexpr (pvNode) {
+            if(played == 1 || score > alpha)
+                score = -search<true>(-beta, -alpha, newDepth - 1, false, stack + 1);
         }
 
         board.undoMove(move);
@@ -619,7 +631,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
     }
 
     /// update tt only if we aren't in a singular search
-    if (!excluded) {
+    if (!stack->excluded) {
         bound = (best >= beta ? LOWER : (best > alphaOrig ? EXACT : UPPER));
         TT->save(key, best, depth, ply, bound, (bound == UPPER ? NULLMOVE : bestMove), staticEval);
     }
@@ -632,7 +644,7 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv, StackEntry* 
         return ABORT;
 
     if (depth <= 0)
-        return quiesce(alpha, beta, stack);
+        return quiesce<true>(alpha, beta, stack);
 
     uint16_t ttMove = NULLMOVE;
     int alphaOrig = alpha;
@@ -734,15 +746,15 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv, StackEntry* 
         uint64_t initNodes = nodes;
 
         if (R != 1) {
-            score = -search(-alpha - 1, -alpha, newDepth - R, true, stack + 1);
+            score = -search<false>(-alpha - 1, -alpha, newDepth - R, true, stack + 1);
         }
 
         if ((R != 1 && score > alpha) || (R == 1 && played > 1)) {
-            score = -search(-alpha - 1, -alpha, newDepth - 1, true, stack + 1);
+            score = -search<false>(-alpha - 1, -alpha, newDepth - 1, true, stack + 1);
         }
 
         if (played == 1 || score > alpha) {
-            score = -search(-beta, -alpha, newDepth - 1, false, stack + 1);
+            score = -search<true>(-beta, -alpha, newDepth - 1, false, stack + 1);
         }
 
         board.undoMove(move);
@@ -964,7 +976,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
                         std::cout << "  ";
                         printPv();
                         std::cout << std::endl;
-                        std::cout << "Branching factor is " << pow(nodes, 1.0 / tDepth) << std::endl;
+                        std::cout << "Branching factor is " << std::fixed << std::setprecision(5) << pow(nodes, 1.0 / tDepth) << std::endl;
                         //average_changes.print_mean();
                         //values[0].print_mean();
                         //std::cout << cnt << '\n';
