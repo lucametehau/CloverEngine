@@ -171,15 +171,32 @@ struct NetHist {
     bool calc[2];
 };
 
+struct KingBucketState {
+    int16_t output[SIDE_NEURONS] __attribute__((aligned(ALIGN)));
+
+    uint64_t bb[13]{};
+};
+
 class Network {
 public:
 
     Network() {
         histSz = 0;
+
+        for (auto& c : { BLACK, WHITE }) {
+            for (int i = 0; i < 10; i++) {
+                memcpy(state[c][i].output, inputBiases, sizeof(inputBiases));
+                memset(state[c][i].bb, 0, sizeof(state[c][i].bb));
+            }
+        }
     }
 
     void addInput(int ind) {
         add_ind[addSz++] = ind;
+    }
+
+    void remInput(int ind) {
+        sub_ind[subSz++] = ind;
     }
 
     int32_t get_sum(reg_type_s& x) {
@@ -286,12 +303,12 @@ public:
         return sum / Q_IN / Q_HIDDEN;
     }
 
-    void applyInitial(int c) { // refresh output
+    void applyAdditions(int16_t* output, int16_t* input) {
         reg_type regs[UNROLL_LENGTH];
 
         for (int b = 0; b < SIDE_NEURONS / BUCKET_UNROLL; b++) {
             const int offset = b * BUCKET_UNROLL;
-            const reg_type* reg_in = reinterpret_cast<const reg_type*>(&inputBiases[offset]);
+            const reg_type* reg_in = reinterpret_cast<const reg_type*>(&input[offset]);
             for (int i = 0; i < UNROLL_LENGTH; i++)
                 regs[i] = reg_load(&reg_in[i]);
             for (int idx = 0; idx < addSz; idx++) {
@@ -299,7 +316,66 @@ public:
                 for (int i = 0; i < UNROLL_LENGTH; i++)
                     regs[i] = reg_add16(regs[i], reg[i]);
             }
-            reg_type* reg_out = (reg_type*)&histOutput[histSz - 1][c][offset];
+            reg_type* reg_out = (reg_type*)&output[offset];
+            for (int i = 0; i < UNROLL_LENGTH; i++)
+                reg_save(&reg_out[i], regs[i]);
+        }
+    }
+
+    void applySubs(int16_t* output, int16_t* input) {
+        reg_type regs[UNROLL_LENGTH];
+
+        for (int b = 0; b < SIDE_NEURONS / BUCKET_UNROLL; b++) {
+            const int offset = b * BUCKET_UNROLL;
+            const reg_type* reg_in = reinterpret_cast<const reg_type*>(&input[offset]);
+            for (int i = 0; i < UNROLL_LENGTH; i++)
+                regs[i] = reg_load(&reg_in[i]);
+            for (int idx = 0; idx < subSz; idx++) {
+                reg_type* reg = reinterpret_cast<reg_type*>(&inputWeights[sub_ind[idx] * SIDE_NEURONS + offset]);
+                for (int i = 0; i < UNROLL_LENGTH; i++)
+                    regs[i] = reg_sub16(regs[i], reg[i]);
+            }
+            reg_type* reg_out = (reg_type*)&output[offset];
+            for (int i = 0; i < UNROLL_LENGTH; i++)
+                reg_save(&reg_out[i], regs[i]);
+        }
+    }
+
+    void applyAdd(int16_t* output, int16_t* input, int ind) {
+        reg_type regs[UNROLL_LENGTH];
+        const int16_t* inputWeights1 = reinterpret_cast<const int16_t*>(&inputWeights[ind * SIDE_NEURONS]);
+
+        for (int b = 0; b < SIDE_NEURONS / BUCKET_UNROLL; b++) {
+            const int offset = b * BUCKET_UNROLL;
+            const reg_type* reg_in = reinterpret_cast<const reg_type*>(&input[offset]);
+            for (int i = 0; i < UNROLL_LENGTH; i++)
+                regs[i] = reg_load(&reg_in[i]);
+
+            const reg_type* reg1 = reinterpret_cast<const reg_type*>(&inputWeights1[offset]);
+            for (int i = 0; i < UNROLL_LENGTH; i++)
+                regs[i] = reg_add16(regs[i], reg1[i]);
+
+            reg_type* reg_out = (reg_type*)&output[offset];
+            for (int i = 0; i < UNROLL_LENGTH; i++)
+                reg_save(&reg_out[i], regs[i]);
+        }
+    }
+
+    void applySub(int16_t* output, int16_t* input, int ind) {
+        reg_type regs[UNROLL_LENGTH];
+        const int16_t* inputWeights1 = reinterpret_cast<const int16_t*>(&inputWeights[ind * SIDE_NEURONS]);
+
+        for (int b = 0; b < SIDE_NEURONS / BUCKET_UNROLL; b++) {
+            const int offset = b * BUCKET_UNROLL;
+            const reg_type* reg_in = reinterpret_cast<const reg_type*>(&input[offset]);
+            for (int i = 0; i < UNROLL_LENGTH; i++)
+                regs[i] = reg_load(&reg_in[i]);
+
+            const reg_type* reg1 = reinterpret_cast<const reg_type*>(&inputWeights1[offset]);
+            for (int i = 0; i < UNROLL_LENGTH; i++)
+                regs[i] = reg_sub16(regs[i], reg1[i]);
+
+            reg_type* reg_out = (reg_type*)&output[offset];
             for (int i = 0; i < UNROLL_LENGTH; i++)
                 reg_save(&reg_out[i], regs[i]);
         }
@@ -432,7 +508,7 @@ public:
     }
 
     void addHistory(uint16_t move, uint8_t piece, uint8_t captured) {
-        hist[histSz] = { move, piece, captured, (piece_type(piece) == KING && recalc(sqFrom(move), sqTo(move), color_of(piece))), { 0, 0 } };
+        hist[histSz] = { move, piece, captured, (piece_type(piece) == KING && recalc(sqFrom(move), specialSqTo(move), color_of(piece))), { 0, 0 } };
         histSz++;
     }
 
@@ -482,10 +558,11 @@ public:
 
     int histSz;
 
-    int addSz;
+    int addSz, subSz;
 
     int16_t histOutput[2005][2][SIDE_NEURONS] __attribute__((aligned(ALIGN)));
+    KingBucketState state[2][10];
 
-    int16_t add_ind[32];
+    int16_t add_ind[32], sub_ind[32];
     NetHist hist[2005];
 };

@@ -42,15 +42,31 @@ void bringUpToDate(Board& board, Network& NN) {
                 }
             }
             else {
-                uint64_t b = board.pieces[BLACK] | board.pieces[WHITE];
+                const int kingSq = board.king(c);
+                KingBucketState* state = &NN.state[c][5 * ((kingSq & 7) >= 4) + kingIndTable[kingSq ^ (56 * (c == BLACK))]];
                 NN.addSz = 0;
-                while (b) {
-                    uint64_t b2 = lsb(b);
-                    int sq = Sq(b2);
-                    NN.addInput(netInd(board.piece_at(sq), sq, board.king(c), c));
-                    b ^= b2;
+                NN.subSz = 0;
+                for (int i = 1; i <= 12; i++) {
+                    uint64_t prev = state->bb[i];
+                    uint64_t curr = board.bb[i];
+
+                    uint64_t b = curr & ~prev; // additions
+                    while (b) {
+                        int sq = sq_lsb(b);
+                        NN.addInput(netInd(i, sq, kingSq, c));
+                    }
+
+                    b = prev & ~curr; // removals
+                    while (b) {
+                        int sq = sq_lsb(b);
+                        NN.remInput(netInd(i, sq, kingSq, c));
+                    }
+
+                    state->bb[i] = board.bb[i];
                 }
-                NN.applyInitial(c);
+                NN.applyAdditions(state->output, state->output);
+                NN.applySubs(state->output, state->output);
+                memcpy(NN.histOutput[histSz - 1][c], state->output, sizeof(NN.histOutput[histSz - 1][c]));
                 NN.hist[histSz - 1].calc[c] = 1;
             }
         }
