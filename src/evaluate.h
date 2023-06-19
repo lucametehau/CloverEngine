@@ -36,14 +36,14 @@ void bringUpToDate(Board& board, Network& NN) {
             int i = NN.getGoodParent(c) + 1;
             if (i != 0) { // no full refresh required
                 for (int j = i; j < histSz; j++) {
-                    NetHist hist = NN.hist[j];
-                    NN.hist[j].calc[c] = 1;
-                    NN.processMove(hist.move, hist.piece, hist.cap, board.king(c), c, NN.histOutput[j][c], NN.histOutput[j - 1][c]);
+                    NetHist *hist = &NN.hist[j];
+                    hist->calc[c] = 1;
+                    NN.processMove(hist->move, hist->piece, hist->cap, board.king(c), c, NN.histOutput[j][c], NN.histOutput[j - 1][c]);
                 }
             }
             else {
                 const int kingSq = board.king(c);
-                KingBucketState* state = &NN.state[c][5 * ((kingSq & 7) >= 4) + kingIndTable[kingSq ^ (56 * (c == BLACK))]];
+                KingBucketState* state = &NN.state[c][5 * ((kingSq & 7) >= 4) + kingIndTable[kingSq ^ (56 * !c)]];
                 NN.addSz = 0;
                 NN.subSz = 0;
                 for (int i = 1; i <= 12; i++) {
@@ -64,8 +64,7 @@ void bringUpToDate(Board& board, Network& NN) {
 
                     state->bb[i] = board.bb[i];
                 }
-                NN.applyAdditions(state->output, state->output);
-                NN.applySubs(state->output, state->output);
+                NN.applyUpdates(state->output, state->output);
                 memcpy(NN.histOutput[histSz - 1][c], state->output, sizeof(NN.histOutput[histSz - 1][c]));
                 NN.hist[histSz - 1].calc[c] = 1;
             }
