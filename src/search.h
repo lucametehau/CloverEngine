@@ -452,8 +452,8 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
             }
 
             // probcut
-            if (depth >= 5 && abs(beta) < MATE) {
-                int probBeta = beta + 150 - 40 * improving;
+            int probBeta = beta + 200 - 50 * improving;
+            if (depth >= 5 && abs(beta) < MATE && !(ttHit && entry.depth() >= depth - 3 && ttValue < probBeta)) {
                 Movepick picker(ttMove,
                     NULLMOVE,
                     NULLMOVE,
