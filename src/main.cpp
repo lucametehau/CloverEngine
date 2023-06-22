@@ -42,6 +42,6 @@ int main(int argc, char** argv) {
         }
     }
 
-    uci.Uci_Loop();
+    uci.uciLoop();
     return 0;
 }

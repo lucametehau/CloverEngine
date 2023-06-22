@@ -39,7 +39,7 @@ public:
     ~UCI() {}
 
 public:
-    void Uci_Loop();
+    void uciLoop();
     void Bench(int depth);
 
 private:
@@ -116,13 +116,13 @@ void UCI::setOptionI(std::istringstream& iss, int& value) {
     value = newValue;
 }
 
-void UCI::Uci_Loop() {
+void UCI::uciLoop() {
 
     uint64_t ttSize = 8;
 
     std::cout << "Clover " << VERSION << " by Luca Metehau" << std::endl;
 
-    TT = new tt::HashTable();
+    TT = new HashTable();
 
     Info info[1];
 
@@ -597,7 +597,7 @@ std::string benchPos[] = {
 void UCI::Bench(int depth) {
     Info info[1];
 
-    TT = new tt::HashTable();
+    TT = new HashTable();
 
     init(info);
 

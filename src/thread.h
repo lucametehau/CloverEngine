@@ -76,13 +76,13 @@ int kingAttackBonus = 3579;
 
 const int TERMINATED_BY_USER = 1;
 const int TERMINATED_BY_LIMITS = 2;
-const int TERMINATED_SEARCH = 3; /// 1 | 2
+const int TERMINATED_SEARCH = TERMINATED_BY_USER | TERMINATED_BY_LIMITS;
 
 struct Search {
     Search() : threads(nullptr), params(nullptr) {
         threadCount = flag = checkCount = 0;
         principalSearcher = terminateSMP = SMPThreadExit = false;
-        lazyFlag = 0;
+        lazyFlag = false;
 
         for (int i = 0; i < 64; i++) { /// depth
             for (int j = 0; j < 64; j++) { /// moves played 
@@ -152,7 +152,7 @@ struct Search {
     volatile int flag;
 
     uint64_t tbHits;
-    uint64_t t0;
+    int64_t t0;
     Info* info;
     int checkCount;
 

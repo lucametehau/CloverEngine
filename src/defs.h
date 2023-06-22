@@ -99,7 +99,6 @@ uint64_t castleKeyModifier[16];
 char pieceChar[13];
 uint64_t fileMask[8], rankMask[8];
 uint64_t between[64][64], Line[64][64];
-int mirrorSq[2][64];
 
 const std::pair <int, int> knightDir[] = { {-1, -2}, {-2, -1}, {-2, 1}, {-1, 2}, {1, 2}, {2, 1}, {2, -1}, {1, -2} };
 const std::pair <int, int> rookDir[] = { {-1, 0}, {1, 0}, {0, -1}, {0, 1} };
@@ -160,9 +159,10 @@ struct MeanValue {
     double valuesSum;
     int valuesCount;
 
-    void init(std::string _name) {
+    void init(std::string& _name) {
         name = _name;
-        valuesSum = valuesCount = 0;
+        valuesSum = 0.0;
+        valuesCount = 0;
     }
 
     void upd(double value) {
@@ -175,11 +175,9 @@ struct MeanValue {
     }
 };
 
-MeanValue average_changes;
+const auto t_init = std::chrono::steady_clock::now();
 
-auto t_init = std::chrono::steady_clock::now();
-
-inline long double getTime() {
+inline int64_t getTime() {
     auto t = std::chrono::steady_clock::now();
     return std::chrono::duration_cast<std::chrono::milliseconds>(t - t_init).count();
 }
@@ -233,8 +231,8 @@ inline int getSq(int rank, int file) {
     return (rank << 3) | file;
 }
 
-inline int mirror(int color, int sq) {
-    return (color == WHITE ? sq : (7 - sq / 8) * 8 + sq % 8);
+inline int mirror(bool color, int sq) {
+    return sq ^ (56 * !color);
 }
 
 inline int mirrorVert(int sq) {
@@ -313,7 +311,7 @@ inline int promoted(uint16_t move) {
 
 inline std::string toString(uint16_t move) {
     int sq1 = sqFrom(move), sq2 = sqTo(move);
-    std::string ans = "";
+    std::string ans;
     ans += char((sq1 & 7) + 'a');
     ans += char((sq1 >> 3) + '1');
     ans += char((sq2 & 7) + 'a');
@@ -381,11 +379,6 @@ inline void init_defs() {
 
     for (int i = 0; i < 64; i++)
         enPasKey[i] = rng(gen);
-
-    for (int i = 0; i < 2; i++) {
-        for (int j = 0; j < 64; j++)
-            mirrorSq[i][j] = mirror(i, j);
-    }
 
     for (int i = 0; i < 8; i++)
         fileMask[i] = rankMask[i] = 0;

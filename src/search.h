@@ -86,7 +86,7 @@ bool quietness(const Board& board, const bool us) {
     if (board.checkers)
         return 0;
     uint64_t att;
-    int enemy = 1 ^ us;
+    bool enemy = 1 ^ us;
     uint64_t pieces, b, all = board.pieces[WHITE] | board.pieces[BLACK];
 
     if (getPawnAttacks(enemy, board.bb[getType(PAWN, enemy)]) &
@@ -133,7 +133,7 @@ std::string getSanString(Board& board, uint16_t move) {
     if (type(move) == CASTLE)
         return (sqTo(move) > sqFrom(move) ? "O-O" : "O-O-O");
     int from = sqFrom(move), to = sqTo(move), prom = (type(move) == PROMOTION ? promoted(move) + KNIGHT + 6 : 0), piece = board.piece_type_at(from);
-    std::string san = "";
+    std::string san;
 
     if (piece != PAWN) {
         san += pieceChar[piece + 6];
@@ -203,7 +203,7 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack) {
     int bound = NONE;
     uint16_t bestMove = NULLMOVE, ttMove = NULLMOVE;
 
-    tt::Entry entry = {};
+    Entry entry = {};
 
     int eval = INF, ttValue = 0;
 
@@ -352,7 +352,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
     if (alpha >= beta)
         return alpha;
 
-    tt::Entry entry{};
+    Entry entry{};
 
     /// transposition table probing
     int eval = INF;
@@ -661,7 +661,7 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv, StackEntry* 
     TT->prefetch(key);
     pvTableLen[0] = 0;
 
-    tt::Entry entry = {};
+    Entry entry = {};
 
     /// transposition table probing
     int eval = INF;

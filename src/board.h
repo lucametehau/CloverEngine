@@ -161,7 +161,7 @@ public:
     void setFen(const std::string fen); // check init.h
 
     std::string fen() {
-        std::string fen = "";
+        std::string fen;
         for (int i = 7; i >= 0; i--) {
             int cnt = 0;
             for (int j = 0, sq = i * 8; j < 8; j++, sq++) {
@@ -200,7 +200,7 @@ public:
         else
             fen += "-";
         fen += " ";
-        std::string s = "";
+        std::string s;
         int nr = halfMoves;
         while (nr)
             s += char('0' + nr % 10), nr /= 10;
@@ -218,20 +218,6 @@ public:
         return fen;
     }
 
-    uint64_t hash() {
-        uint64_t h = 0;
-        h ^= turn;
-        for (int i = 0; i < 64; i++) {
-            if (board[i])
-                h ^= hashKey[board[i]][i];
-        }
-        for (int i = 0; i < 4; i++)
-            h ^= castleKey[i / 2][i % 2] * ((castleRights >> i) & 1);
-
-        h ^= (enPas >= 0 ? enPasKey[enPas] : 0);
-        return h;
-    }
-
     uint64_t nextKey(uint64_t move) {
         const int from = sqFrom(move), to = sqTo(move), piece = board[from];
         return key ^ hashKey[piece][from] ^ hashKey[piece][to] ^ (board[to] ? hashKey[board[to]][to] : 0);
@@ -247,8 +233,8 @@ public:
 
 class Info {
 public:
-    long double startTime, stopTime;
-    long double goodTimeLim, hardTimeLim;
+    int64_t startTime, stopTime;
+    int64_t goodTimeLim, hardTimeLim;
     int depth, sel_depth, multipv;
     int timeset;
     int movestogo;
