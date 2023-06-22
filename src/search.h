@@ -454,13 +454,16 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
             // probcut
             if (depth >= 5 && abs(beta) < MATE) {
                 int probBeta = beta + 150 - 40 * improving;
-                Movepick picker(NULLMOVE,
+                Movepick picker(ttMove,
                     NULLMOVE,
                     NULLMOVE,
                     probBeta - staticEval);
 
                 uint16_t move;
                 while ((move = picker.nextMove(this, stack, board, true, true)) != NULLMOVE) {
+                    if (move == stack->excluded)
+                        continue;
+
                     stack->move = move;
                     stack->piece = board.piece_at(sqFrom(move));
                     stack->continuationHist = &continuationHistory[stack->piece][sqTo(move)];
