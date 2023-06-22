@@ -117,10 +117,6 @@ void loadNNUEWeights() {
 
     floatData = (float*)intData;
 
-    int sz;
-
-    sz = SIDE_NEURONS;
-
     int mn = 1e9, mx = -1e9;
     for (int i = 0; i < SIDE_NEURONS * INPUT_NEURONS; i++) {
         float val = *floatData;
@@ -133,7 +129,7 @@ void loadNNUEWeights() {
     //std::cout << mn << " " << mx << "\n";
 
     mn = 1e9, mx = -1e9;
-    for (int j = 0; j < sz; j++) {
+    for (int j = 0; j < SIDE_NEURONS; j++) {
         float val = *floatData;
         mn = std::min<int>(mn, round(val * Q_IN));
         mx = std::max<int>(mx, round(val * Q_IN));
