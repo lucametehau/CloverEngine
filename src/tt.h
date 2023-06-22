@@ -20,67 +20,65 @@
 const int MB = (1 << 20);
 const int BUCKET = 4;
 
-namespace tt {
-    struct Entry {
-        uint64_t hash;
-        uint16_t about;
-        int16_t score;
-        int16_t eval;
-        uint16_t move;
-        void refresh(int gen) {
-            about = (about & 1023u) | (gen << 10u);
-        }
+struct Entry {
+    uint64_t hash;
+    uint16_t about;
+    int16_t score;
+    int16_t eval;
+    uint16_t move;
+    void refresh(int gen) {
+        about = (about & 1023u) | (gen << 10u);
+    }
 
-        int value(int ply) {
-            if (score >= TB_WIN_SCORE)
-                return score - ply;
-            else if (score <= -TB_WIN_SCORE)
-                return score + ply;
-            return score;
-        }
+    int value(int ply) const {
+        if (score >= TB_WIN_SCORE)
+            return score - ply;
+        else if (score <= -TB_WIN_SCORE)
+            return score + ply;
+        return score;
+    }
 
-        int bound() {
-            return about & 3u;
-        }
+    int bound() const {
+        return about & 3u;
+    }
 
-        int depth() {
-            return (about >> 2u) & 255u;
-        }
+    int depth() const {
+        return (about >> 2u) & 255u;
+    }
 
-        int generation() {
-            return about >> 10u;
-        }
-    };
+    int generation() const {
+        return about >> 10u;
+    }
+};
 
-    class HashTable {
-    public:
-        Entry* table;
-        uint64_t entries;
-        int generation = 1;
+class HashTable {
+public:
+    Entry* table;
+    uint64_t entries;
+    int generation = 1;
 
-        HashTable();
+    HashTable();
 
-        void initTable(uint64_t size);
+    void initTable(uint64_t size);
 
-        ~HashTable();
+    ~HashTable();
 
-        HashTable(const HashTable&) = delete;
+    HashTable(const HashTable&) = delete;
 
-        void prefetch(uint64_t hash);
+    void prefetch(uint64_t hash);
 
-        bool probe(uint64_t hash, Entry& entry);
+    bool probe(uint64_t hash, Entry& entry);
 
-        void save(uint64_t hash, int score, int depth, int ply, int bound, uint16_t move, int eval);
+    void save(uint64_t hash, int score, int depth, int ply, int bound, uint16_t move, int eval);
 
-        void resetAge();
+    void resetAge();
 
-        void age();
+    void age();
 
-        int tableFull();
-    };
-}
+    int tableFull();
+};
 
-tt::HashTable* TT; /// shared hash table
+HashTable* TT; /// shared hash table
 
 inline uint64_t pow2(uint64_t size) {
     if (size & (size - 1)) {
@@ -92,16 +90,16 @@ inline uint64_t pow2(uint64_t size) {
     return size;
 }
 
-inline tt::HashTable::HashTable() {
+inline HashTable::HashTable() {
     entries = 0;
     initTable(128LL * MB);
 }
 
-inline tt::HashTable :: ~HashTable() {
+inline HashTable::~HashTable() {
     delete[] table;
 }
 
-inline void tt::HashTable::initTable(uint64_t size) {
+inline void HashTable::initTable(uint64_t size) {
     size /= (sizeof(Entry) * BUCKET);
     size = pow2(size);
 
@@ -120,13 +118,13 @@ inline void tt::HashTable::initTable(uint64_t size) {
     memset(table, 0, entries * BUCKET * sizeof(Entry) + BUCKET);
 }
 
-inline void tt::HashTable::prefetch(uint64_t hash) {
+inline void HashTable::prefetch(uint64_t hash) {
     uint64_t ind = (hash & entries) * BUCKET;
     Entry* bucket = table + ind;
     __builtin_prefetch(bucket);
 }
 
-inline bool tt::HashTable::probe(uint64_t hash, Entry& entry) {
+inline bool HashTable::probe(uint64_t hash, Entry& entry) {
     uint64_t ind = (hash & entries) * BUCKET;
     Entry* bucket = table + ind;
 
@@ -141,7 +139,7 @@ inline bool tt::HashTable::probe(uint64_t hash, Entry& entry) {
     return 0;
 }
 
-inline void tt::HashTable::save(uint64_t hash, int score, int depth, int ply, int bound, uint16_t move, int eval) {
+inline void HashTable::save(uint64_t hash, int score, int depth, int ply, int bound, uint16_t move, int eval) {
     uint64_t ind = (hash & entries) * BUCKET;
     Entry* bucket = table + ind;
 
@@ -165,7 +163,7 @@ inline void tt::HashTable::save(uint64_t hash, int score, int depth, int ply, in
         return;
     }
 
-    tt::Entry* replace = bucket;
+    Entry* replace = bucket;
 
     for (int i = 1; i < BUCKET; i++) {
         if ((bucket + i)->hash == hash) {
@@ -186,14 +184,14 @@ inline void tt::HashTable::save(uint64_t hash, int score, int depth, int ply, in
     *replace = temp;
 }
 
-inline void tt::HashTable::resetAge() {
+inline void HashTable::resetAge() {
     generation = 1;
 
     for (uint64_t i = 0; i < (uint64_t)entries * BUCKET; i++)
         table[i].refresh(0);
 }
 
-inline void tt::HashTable::age() {
+inline void HashTable::age() {
     generation++;
 
     if (generation == 63) {
@@ -204,7 +202,7 @@ inline void tt::HashTable::age() {
     }
 }
 
-inline int tt::HashTable::tableFull() {
+inline int HashTable::tableFull() {
     int tempSize = 4000, divis = 4, cnt = 0;
 
     for (int i = 0; i < tempSize; i++) {
