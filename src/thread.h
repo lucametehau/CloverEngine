@@ -31,8 +31,8 @@ int nmpR = 4;
 int nmpDepthDiv = 4;
 int nmpEvalDiv = 135;
 
-int SNMPDepth = 10;
-int SNMPCoef1 = 82;
+int SNMPDepth = 12;
+int SNMPCoef1 = 83;
 int SNMPCoef2 = 18;
 
 int seeCoefQuiet = 71;
@@ -44,9 +44,9 @@ int probcutMargin = 100;
 int probcutR = 3;
 
 int fpMargin = 100;
-int fpCoef = 100;
+int fpCoef = 96;
 
-int histDiv = 5102;
+int histDiv = 5104;
 
 int chCoef = -2000;
 int fhCoef = -2000;
@@ -57,9 +57,9 @@ int lmpDepth = 8;
 
 int nodesSearchedDiv = 10000;
 
-int lmrMargin = 10;
+int lmrMargin = 11;
 int lmrDiv = 25;
-int lmrCapDiv = 15;
+int lmrCapDiv = 17;
 
 int tmScoreDiv = 111;
 int tmBestMoveStep = 50;

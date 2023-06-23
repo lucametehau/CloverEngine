@@ -251,9 +251,9 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack) {
 
     alpha = std::max(alpha, best);
 
-    Movepick noisyPicker(!isCheck && see(board, ttMove, 0) ? ttMove : NULLMOVE, 
-        NULLMOVE, 
-        NULLMOVE, 
+    Movepick noisyPicker(!isCheck && see(board, ttMove, 0) ? ttMove : NULLMOVE,
+        NULLMOVE,
+        NULLMOVE,
         0);
 
     uint16_t move;
@@ -450,6 +450,38 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                     return (abs(score) > MATE ? beta : score); /// don't trust mate scores
                 }
             }
+
+            // probcut
+            int probBeta = beta + 200;
+            if (depth >= 5 && abs(beta) < MATE && !(ttHit && entry.depth() >= depth - 3 && ttValue < probBeta)) {
+                Movepick picker((ttMove && isNoisyMove(board, ttMove) && see(board, ttMove, probBeta - staticEval) ? ttMove : NULLMOVE),
+                    NULLMOVE,
+                    NULLMOVE,
+                    probBeta - staticEval);
+
+                uint16_t move;
+                while ((move = picker.nextMove(this, stack, board, true, true)) != NULLMOVE) {
+                    if (move == stack->excluded)
+                        continue;
+
+                    stack->move = move;
+                    stack->piece = board.piece_at(sqFrom(move));
+                    stack->continuationHist = &continuationHistory[stack->piece][sqTo(move)];
+
+                    board.makeMove(move);
+
+                    int score = -quiesce<false>(-probBeta, -probBeta + 1, stack + 1);
+
+                    if (score >= probBeta)
+                        score = -search<false>(-probBeta, -probBeta + 1, depth - 4, !cutNode, stack + 1);
+                    board.undoMove(move);
+
+                    if (score >= probBeta) {
+                        TT->save(key, score, depth - 3, ply, LOWER, move, staticEval);
+                        return score;
+                    }
+                }
+            }
         }
     }
 
@@ -458,8 +490,8 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
     if ((pvNode || cutNode) && depth >= 3 && !ttHit)
         depth--;
 
-    Movepick picker(ttMove, 
-        stack->killer, 
+    Movepick picker(ttMove,
+        stack->killer,
         nullSearch ? NULLMOVE : cmTable[(stack - 1)->piece][sqTo((stack - 1)->move)], // counter
         -(seeDepthCoef - (ply % 2 == 0 && rootEval != INF ? rootEval / 100 : 0)) * depth);
 
@@ -589,7 +621,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         }
 
         if constexpr (pvNode) {
-            if(played == 1 || score > alpha)
+            if (played == 1 || score > alpha)
                 score = -search<true>(-beta, -alpha, newDepth - 1, false, stack + 1);
         }
 
