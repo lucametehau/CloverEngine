@@ -79,4 +79,5 @@ I inspired myself from:
 - [Ethereal](https://github.com/AndyGrant/Ethereal)
 - [Igel](https://github.com/vshcherbyna/igel)
 - [Topple](https://github.com/konsolas/ToppleChess)
+- [Koivisto](https://github.com/Luecx/Koivisto)
 - and of course [ChessProgrammingWiki](https://www.chessprogramming.org/Main_Page)
