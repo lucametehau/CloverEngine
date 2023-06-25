@@ -37,7 +37,7 @@ uint64_t perft(Board& board, int depth, bool print = 0) {
         nodes += x;
         board.undoMove(move);
         if (print)
-            std::cout << toString(move) << " " << x << "\n";
+            std::cout << toString(move, false) << " " << x << "\n";
     }
     return nodes;
 }

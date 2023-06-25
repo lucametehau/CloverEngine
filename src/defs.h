@@ -309,8 +309,8 @@ inline int promoted(uint16_t move) {
     return (move & 16383) >> 12;
 }
 
-inline std::string toString(uint16_t move) {
-    int sq1 = sqFrom(move), sq2 = sqTo(move);
+inline std::string toString(uint16_t move, bool chess960) {
+    int sq1 = sqFrom(move), sq2 = (!chess960 ? specialSqTo(move) : sqTo(move));
     std::string ans;
     ans += char((sq1 & 7) + 'a');
     ans += char((sq1 >> 3) + '1');

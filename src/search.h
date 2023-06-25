@@ -160,7 +160,7 @@ std::string getSanString(Board& board, uint16_t move) {
 void Search::printPv() {
     for (int i = 0; i < pvTableLen[0]; i++) {
         if (!info->sanMode)
-            std::cout << toString(pvTable[0][i]) << " ";
+            std::cout << toString(pvTable[0][i], info->chess960) << " ";
         else {
             std::cout << getSanString(board, pvTable[0][i]) << " ";
             board.makeMove(pvTable[0][i]);
@@ -750,7 +750,7 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv, StackEntry* 
 
         /// current root move info
         if (principalSearcher && printStats && getTime() > info->startTime + 2500 && !info->sanMode) {
-            std::cout << "info depth " << depth << " currmove " << toString(move) << " currmovenumber " << played << std::endl;
+            std::cout << "info depth " << depth << " currmove " << toString(move, info->chess960) << " currmovenumber " << played << std::endl;
         }
 
         /// store quiets for history
@@ -858,7 +858,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
 
         if (PROBE_ROOT && nrMoves == 1) {
             if (printStats)
-                std::cout << "bestmove " << toString(moves[0]) << std::endl;
+                std::cout << "bestmove " << toString(moves[0], info->chess960) << std::endl;
             return { 0, moves[0] };
         }
 
@@ -896,7 +896,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
             for (int i = 0; i < nrMoves; i++) {
                 if (moves[i] == move) {
                     if (printStats)
-                        std::cout << "bestmove " << toString(move) << std::endl;
+                        std::cout << "bestmove " << toString(move, info->chess960) << std::endl;
                     return { 0, move };
                 }
             }
@@ -1084,7 +1084,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
     int bm = (bestMoves[1] ? bestMoves[1] : mainThreadBestMove);
 
     if (principalSearcher && printStats)
-        std::cout << "bestmove " << toString(bm) << std::endl;
+        std::cout << "bestmove " << toString(bm, info->chess960) << std::endl;
 
     //TT->age();
 

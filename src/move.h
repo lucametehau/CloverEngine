@@ -1158,7 +1158,7 @@ bool isLegalMoveDummy(Board& board, uint16_t move) {
     board.undoMove(move);
     if (legal != isLegalMove(board, move)) {
         board.print();
-        std::cout << toString(move) << " " << legal << " " << isLegalMoveSlow(board, move) << " " << isLegalMove(board, move) << "\n";
+        std::cout << toString(move, board.chess960) << " " << legal << " " << isLegalMoveSlow(board, move) << " " << isLegalMove(board, move) << "\n";
         exit(0);
     }
     return legal;
