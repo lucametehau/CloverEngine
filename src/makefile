@@ -41,6 +41,8 @@ pgo:
 	./$(EXE)$(EXT) bench 15
 	$(PGO_MERGE)
 	$(CC)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(NATIVEFLAGS) -o $(EXE)$(EXT) $(PGO_USE)
+generate:
+	$(CC)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(NATIVEFLAGS) -DGENERATE -o Clover-generator.exe
 debug:
 	clang++ $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(NATIVEFLAGS) -o $(EXE)$(EXT)
 native:

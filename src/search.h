@@ -196,7 +196,7 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack) {
         return 1 - (nodes & 2);
 
     if (checkForStop())
-        return ABORT;
+        return evaluate(board);
 
     const uint64_t key = board.key;
     int score = 0, best = -INF, alphaOrig = alpha;
@@ -288,7 +288,7 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack) {
         board.undoMove(move);
 
         if (flag & TERMINATED_SEARCH)
-            return ABORT;
+            return best;
 
         if (score > best) {
             best = score;
@@ -319,7 +319,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
     const int ply = board.ply;
 
     if (checkForStop())
-        return ABORT;
+        return evaluate(board);
 
     if (ply >= DEPTH)
         return evaluate(board);
@@ -630,7 +630,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         nodesSearched[!isQuiet][fromTo(move)] += nodes - initNodes;
 
         if (flag & TERMINATED_SEARCH) /// stop search
-            return ABORT;
+            return best;
 
         if (score > best) {
             best = score;
@@ -673,7 +673,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
 
 int Search::rootSearch(int alpha, int beta, int depth, int multipv, StackEntry* stack) {
     if (checkForStop())
-        return ABORT;
+        return evaluate(board);
 
     if (depth <= 0)
         return quiesce<true>(alpha, beta, stack);
@@ -794,11 +794,13 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv, StackEntry* 
         nodesSearched[isNoisyMove(board, move)][fromTo(move)] += nodes - initNodes;
 
         if (flag & TERMINATED_SEARCH) /// stop search
-            return ABORT;
+            return best;
 
         if (score > best) {
             best = score;
             bestMove = move;
+
+            rootScores[multipv] = score;
 
             if (score > alpha) {
                 alpha = score;
@@ -1088,7 +1090,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
 
     //TT->age();
 
-    return std::make_pair(scores[1], bm);
+    return std::make_pair(rootScores[1], bm);
 }
 
 void Search::clearHistory() {
