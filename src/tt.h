@@ -78,7 +78,9 @@ public:
     int tableFull();
 };
 
+#ifndef GENERATE
 HashTable* TT; /// shared hash table
+#endif
 
 inline uint64_t pow2(uint64_t size) {
     if (size & (size - 1)) {
