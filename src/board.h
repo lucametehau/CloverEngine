@@ -43,6 +43,8 @@ public:
     uint16_t ply, gamePly;
     uint16_t halfMoves, moveIndex;
     
+    uint8_t castleRightsDelta[2][64];
+
     uint64_t checkers, pinnedPieces;
     uint64_t bb[13];
     uint64_t pieces[2];
@@ -156,6 +158,25 @@ public:
         }
 
         return ans;
+    }
+
+    bool sanityCheck() {
+        uint64_t temp[13];
+        for (int i = 1; i <= 12; i++) temp[i] = bb[i];
+        for (int i = 0; i < 64; i++) {
+            int pc = board[i];
+            if (pc) {
+                if (!(temp[pc] & (1ULL << i))) {
+                    return false;
+                }
+                temp[pc] ^= (1ULL << i);
+            }
+        }
+        for (int i = 1; i <= 12; i++) {
+            if (temp[i])
+                return false;
+        }
+        return true;
     }
 
     void setFen(const std::string fen); // check init.h
