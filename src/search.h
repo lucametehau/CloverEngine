@@ -941,7 +941,6 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
 
             int depth = tDepth;
             while (true) {
-
                 depth = std::max({ depth, 1, tDepth - 4 });
 
                 selDepth = 0;
@@ -953,7 +952,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
 
                 rootScores[i] = scores[i];
 
-                if (pvTableLen[0])
+                if (pvTableLen[0] && pvTable[0][0])
                     bestMoves[i] = pvTable[0][0];
 
                 if (principalSearcher && printStats && ((alpha < scores[i] && scores[i] < beta) || (i == 1 && getTime() > t0 + 3000))) {
