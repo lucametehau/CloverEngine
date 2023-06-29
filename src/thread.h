@@ -83,7 +83,6 @@ struct Search {
         threadCount = flag = checkCount = 0;
         principalSearcher = terminateSMP = SMPThreadExit = false;
         lazyFlag = false;
-        threadId = 1;
 
         for (int i = 0; i < 64; i++) { /// depth
             for (int j = 0; j < 64; j++) { /// moves played 
@@ -149,8 +148,6 @@ struct Search {
     int lmrRed[64][64], lmrRedNoisy[64][64];
     int bestMoves[256], scores[256], rootScores[256];
     MeanValue values[10];
-
-    int threadId;
 
     volatile int flag;
 

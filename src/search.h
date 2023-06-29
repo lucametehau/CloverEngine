@@ -610,8 +610,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
 
             R += 2 * cutNode;
 
-            R += threadId % 2 == 0;
-
             R = std::min(newDepth - 1, std::max(R, 1)); /// clamp R
             score = -search<false>(-alpha - 1, -alpha, newDepth - R, true, stack + 1);
 
@@ -802,8 +800,6 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv, StackEntry* 
             best = score;
             bestMove = move;
 
-            rootScores[multipv] = score;
-
             if (score > alpha) {
                 alpha = score;
 
@@ -911,7 +907,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
         startWorkerThreads(info);
 
     uint64_t totalNodes = 0, totalHits = 0;
-    int limitDepth = (principalSearcher ? info->depth : 255); /// when limited by depth, allow helper threads to pass the fixed depth
+    int limitDepth = (principalSearcher ? info->depth : DEPTH); /// when limited by depth, allow helper threads to pass the fixed depth
     int mainThreadScore = 0;
     uint16_t mainThreadBestMove = NULLMOVE;
 
@@ -954,6 +950,8 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
 
                 if (flag & TERMINATED_SEARCH)
                     break;
+
+                rootScores[i] = scores[i];
 
                 if (principalSearcher && printStats && ((alpha < scores[i] && scores[i] < beta) || (i == 1 && getTime() > t0 + 3000))) {
                     if (principalSearcher) {
@@ -1083,16 +1081,28 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
         }
     }
 
-    stopWorkerThreads();
+    int bs = 0, bm = NULLMOVE;
+    if (principalSearcher) {
+        stopWorkerThreads();
 
-    int bm = (bestMoves[1] ? bestMoves[1] : mainThreadBestMove);
+        int bestDepth = tDepth;
+        bs = rootScores[1];
+        bm = bestMoves[1];
+        for (int i = 0; i < threadCount; i++) {
+            if (params[i].rootScores[1] > bs && params[i].tDepth >= bestDepth) {
+                bs = params[i].rootScores[1];
+                bm = params[i].bestMoves[1];
+                bestDepth = params[i].tDepth;
+            }
+        }
+    }
 
     if (principalSearcher && printStats)
         std::cout << "bestmove " << toString(bm, info->chess960) << std::endl;
 
     //TT->age();
 
-    return std::make_pair(rootScores[1], bm);
+    return std::make_pair(bs, bm);
 }
 
 void Search::clearHistory() {
@@ -1135,8 +1145,6 @@ void Search::startWorkerThreads(Info* info) {
 
         params[i].lazyFlag = 1;
         params[i].flag = flag;
-
-        params[i].threadId = i + 2;
 
         params[i].readyMutex.unlock();
 
