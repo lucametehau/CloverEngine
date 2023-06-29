@@ -162,7 +162,7 @@ struct Search {
     bool lastNullMove;
 
     int threadCount;
-    int tDepth, selDepth;
+    int tDepth, completedDepth, selDepth;
 
     int rootEval, rootDepth;
 

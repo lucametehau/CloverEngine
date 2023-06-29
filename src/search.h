@@ -953,6 +953,9 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
 
                 rootScores[i] = scores[i];
 
+                if (pvTableLen[0])
+                    bestMoves[i] = pvTable[0][0];
+
                 if (principalSearcher && printStats && ((alpha < scores[i] && scores[i] < beta) || (i == 1 && getTime() > t0 + 3000))) {
                     if (principalSearcher) {
                         totalNodes = nodes;
@@ -1026,13 +1029,8 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
                 else if (beta <= scores[i]) {
                     beta = std::min(INF, beta + window);
                     depth--;
-
-                    if (pvTableLen[0])
-                        bestMoves[i] = pvTable[0][0];
                 }
                 else {
-                    if (pvTableLen[0])
-                        bestMoves[i] = pvTable[0][0];
                     break;
                 }
 
@@ -1079,20 +1077,22 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
             flag |= TERMINATED_BY_LIMITS;
             break;
         }
+
+        completedDepth = tDepth;
     }
 
     int bs = 0, bm = NULLMOVE;
     if (principalSearcher) {
         stopWorkerThreads();
 
-        int bestDepth = tDepth;
+        int bestDepth = completedDepth;
         bs = rootScores[1];
         bm = bestMoves[1];
         for (int i = 0; i < threadCount; i++) {
-            if (params[i].rootScores[1] > bs && params[i].tDepth >= bestDepth) {
+            if (params[i].rootScores[1] > bs && params[i].completedDepth >= bestDepth) {
                 bs = params[i].rootScores[1];
                 bm = params[i].bestMoves[1];
-                bestDepth = params[i].tDepth;
+                bestDepth = params[i].completedDepth;
             }
         }
     }
