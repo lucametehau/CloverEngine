@@ -926,6 +926,8 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
 
     //values[0].init("nmp_pv_rate");
 
+    completedDepth = 0;
+
     for (tDepth = 1; tDepth <= limitDepth; tDepth++) {
         for (int i = 1; i <= info->multipv; i++) {
             int window = aspirationWindow;
