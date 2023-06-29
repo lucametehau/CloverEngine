@@ -610,6 +610,8 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
 
             R += 2 * cutNode;
 
+            R += threadId % 2 == 0;
+
             R = std::min(newDepth - 1, std::max(R, 1)); /// clamp R
             score = -search<false>(-alpha - 1, -alpha, newDepth - R, true, stack + 1);
 
@@ -1133,6 +1135,8 @@ void Search::startWorkerThreads(Info* info) {
 
         params[i].lazyFlag = 1;
         params[i].flag = flag;
+
+        params[i].threadId = i + 2;
 
         params[i].readyMutex.unlock();
 
