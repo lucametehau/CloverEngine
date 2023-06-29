@@ -903,7 +903,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
         }
     }
 
-    if (threadCount)
+    if (principalSearcher)
         startWorkerThreads(info);
 
     uint64_t totalNodes = 0, totalHits = 0;
@@ -916,6 +916,8 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
     StackEntry* stack = search_stack + 3;
 
     memset(search_stack, 0, sizeof(search_stack));
+    memset(bestMoves, 0, sizeof(bestMoves));
+    memset(rootScores, 0, sizeof(rootScores));
 
     rootEval = (!board.checkers ? evaluate(board) : INF);
 
@@ -925,8 +927,6 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
     //values[0].init("nmp_pv_rate");
 
     for (tDepth = 1; tDepth <= limitDepth; tDepth++) {
-        memset(bestMoves, 0, sizeof(bestMoves));
-
         for (int i = 1; i <= info->multipv; i++) {
             int window = aspirationWindow;
 
