@@ -16,6 +16,7 @@
 */
 #pragma once
 #include "defs.h"
+#include <thread>
 
 const int MB = (1 << 20);
 const int BUCKET = 4;
@@ -59,7 +60,9 @@ public:
 
     HashTable();
 
-    void initTable(uint64_t size);
+    void initTableSlice(uint64_t start, uint64_t size);
+
+    void initTable(uint64_t size, int nr_threads = 1);
 
     ~HashTable();
 
@@ -94,14 +97,18 @@ inline uint64_t pow2(uint64_t size) {
 
 inline HashTable::HashTable() {
     entries = 0;
-    initTable(128LL * MB);
+    //initTable(128LL * MB);
 }
 
 inline HashTable::~HashTable() {
     delete[] table;
 }
 
-inline void HashTable::initTable(uint64_t size) {
+void HashTable::initTableSlice(uint64_t start, uint64_t size) {
+    memset(&table[start], 0, size * sizeof(Entry));
+}
+
+inline void HashTable::initTable(uint64_t size, int nr_threads) {
     size /= (sizeof(Entry) * BUCKET);
     size = pow2(size);
 
@@ -117,7 +124,18 @@ inline void HashTable::initTable(uint64_t size) {
     }
 
     table = new Entry[entries * BUCKET + BUCKET]();
-    memset(table, 0, entries * BUCKET * sizeof(Entry) + BUCKET);
+
+    std::vector <std::thread> threads(nr_threads);
+    uint64_t start = 0;
+    uint64_t slice_size = (entries * BUCKET + BUCKET) / nr_threads + 1;
+
+    for (auto& t : threads) {
+        uint64_t good_size = std::min(entries * BUCKET + BUCKET - start, slice_size);
+        t = std::thread{ &HashTable::initTableSlice, this, start, good_size };
+        start += slice_size;
+    }
+    for (auto& t : threads)
+        t.join();
 }
 
 inline void HashTable::prefetch(uint64_t hash) {
