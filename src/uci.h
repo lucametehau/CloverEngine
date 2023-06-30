@@ -25,7 +25,7 @@
 #include "perft.h"
 #include "generate.h"
 
-const std::string VERSION = "6.0.3";
+const std::string VERSION = "6.0.4";
 
 struct Option {
     std::string name;
@@ -57,7 +57,7 @@ private:
     void addOption(std::string name, int value);
     void setOptionI(std::istringstream& iss, int& value);
 
-private:
+public:
     Search& searcher;
 };
 
@@ -284,7 +284,7 @@ void UCI::uciLoop() {
 
                 iss >> ttSize;
 #ifndef GENERATE
-                TT->initTable(ttSize * MB);
+                TT->initTable(ttSize * MB, searcher.threadCount + 1);
 #endif
             }
             else if (name == "Threads") {
@@ -506,7 +506,7 @@ void UCI::UciNewGame(uint64_t ttSize) {
 
 #ifndef GENERATE
     TT->resetAge();
-    TT->initTable(ttSize * MB);
+    TT->initTable(ttSize * MB, searcher.threadCount + 1);
 #endif
 }
 
