@@ -800,8 +800,6 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv, StackEntry* 
             best = score;
             bestMove = move;
 
-            rootScores[multipv] = score;
-
             if (score > alpha) {
                 alpha = score;
 
@@ -905,11 +903,11 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
         }
     }
 
-    if (threadCount)
+    if (principalSearcher)
         startWorkerThreads(info);
 
     uint64_t totalNodes = 0, totalHits = 0;
-    int limitDepth = (principalSearcher ? info->depth : 255); /// when limited by depth, allow helper threads to pass the fixed depth
+    int limitDepth = (principalSearcher ? info->depth : DEPTH); /// when limited by depth, allow helper threads to pass the fixed depth
     int mainThreadScore = 0;
     uint16_t mainThreadBestMove = NULLMOVE;
 
@@ -918,6 +916,8 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
     StackEntry* stack = search_stack + 3;
 
     memset(search_stack, 0, sizeof(search_stack));
+    memset(bestMoves, 0, sizeof(bestMoves));
+    memset(rootScores, 0, sizeof(rootScores));
 
     rootEval = (!board.checkers ? evaluate(board) : INF);
 
@@ -926,9 +926,9 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
 
     //values[0].init("nmp_pv_rate");
 
-    for (tDepth = 1; tDepth <= limitDepth; tDepth++) {
-        memset(bestMoves, 0, sizeof(bestMoves));
+    completedDepth = 0;
 
+    for (tDepth = 1; tDepth <= limitDepth; tDepth++) {
         for (int i = 1; i <= info->multipv; i++) {
             int window = aspirationWindow;
 
@@ -943,7 +943,6 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
 
             int depth = tDepth;
             while (true) {
-
                 depth = std::max({ depth, 1, tDepth - 4 });
 
                 selDepth = 0;
@@ -952,6 +951,8 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
 
                 if (flag & TERMINATED_SEARCH)
                     break;
+
+                rootScores[i] = scores[i];
 
                 if (principalSearcher && printStats && ((alpha < scores[i] && scores[i] < beta) || (i == 1 && getTime() > t0 + 3000))) {
                     if (principalSearcher) {
@@ -1022,16 +1023,18 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
                     beta = (beta + alpha) / 2;
                     alpha = std::max(-INF, alpha - window);
                     depth = tDepth;
+                    completedDepth = tDepth - 1;
                 }
                 else if (beta <= scores[i]) {
                     beta = std::min(INF, beta + window);
                     depth--;
-
-                    if (pvTableLen[0])
+                    completedDepth = tDepth;
+                    if (pvTableLen[0] && pvTable[0][0])
                         bestMoves[i] = pvTable[0][0];
                 }
                 else {
-                    if (pvTableLen[0])
+                    completedDepth = tDepth;
+                    if (pvTableLen[0] && pvTable[0][0])
                         bestMoves[i] = pvTable[0][0];
                     break;
                 }
@@ -1081,16 +1084,28 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
         }
     }
 
-    stopWorkerThreads();
+    int bs = 0, bm = NULLMOVE;
+    if (principalSearcher) {
+        stopWorkerThreads();
 
-    int bm = (bestMoves[1] ? bestMoves[1] : mainThreadBestMove);
+        int bestDepth = completedDepth;
+        bs = rootScores[1];
+        bm = bestMoves[1];
+        for (int i = 0; i < threadCount; i++) {
+            if (params[i].rootScores[1] > bs && params[i].completedDepth >= bestDepth) {
+                bs = params[i].rootScores[1];
+                bm = params[i].bestMoves[1];
+                bestDepth = params[i].completedDepth;
+            }
+        }
+    }
 
     if (principalSearcher && printStats)
         std::cout << "bestmove " << toString(bm, info->chess960) << std::endl;
 
     //TT->age();
 
-    return std::make_pair(rootScores[1], bm);
+    return std::make_pair(bs, bm);
 }
 
 void Search::clearHistory() {
