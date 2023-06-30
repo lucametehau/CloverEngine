@@ -954,9 +954,6 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
 
                 rootScores[i] = scores[i];
 
-                if (pvTableLen[0] && pvTable[0][0])
-                    bestMoves[i] = pvTable[0][0];
-
                 if (principalSearcher && printStats && ((alpha < scores[i] && scores[i] < beta) || (i == 1 && getTime() > t0 + 3000))) {
                     if (principalSearcher) {
                         totalNodes = nodes;
@@ -1026,12 +1023,19 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
                     beta = (beta + alpha) / 2;
                     alpha = std::max(-INF, alpha - window);
                     depth = tDepth;
+                    completedDepth = tDepth - 1;
                 }
                 else if (beta <= scores[i]) {
                     beta = std::min(INF, beta + window);
                     depth--;
+                    completedDepth = tDepth;
+                    if (pvTableLen[0] && pvTable[0][0])
+                        bestMoves[i] = pvTable[0][0];
                 }
                 else {
+                    completedDepth = tDepth;
+                    if (pvTableLen[0] && pvTable[0][0])
+                        bestMoves[i] = pvTable[0][0];
                     break;
                 }
 
@@ -1078,8 +1082,6 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
             flag |= TERMINATED_BY_LIMITS;
             break;
         }
-
-        completedDepth = tDepth;
     }
 
     int bs = 0, bm = NULLMOVE;
