@@ -1242,7 +1242,7 @@ void Search::releaseThreads() {
 }
 
 void Search::killMainThread() {
-    if (principalThread->joinable()) {
+    if (principalThread && principalThread->joinable()) {
         terminateSMP = true;
 
         {
