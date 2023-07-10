@@ -32,7 +32,7 @@ struct FenData {
 
 void generateFens(std::atomic <uint64_t>& sumFens, uint64_t nrFens, std::string path, uint64_t seed) {
     std::ofstream out(path);
-    std::mt19937_64 gn((std::chrono::system_clock::now().time_since_epoch().count() + 246515411586195ULL) ^ 43298590881908ULL);
+    std::mt19937_64 gn((std::chrono::system_clock::now().time_since_epoch().count() + 2465154586195ULL) ^ 432980881908ULL);
 
     Info info[1];
     int gameInd = 1;
@@ -119,7 +119,7 @@ void generateFens(std::atomic <uint64_t>& sumFens, uint64_t nrFens, std::string 
 
                 searcher->flag = 0;
 
-                if (!searcher->board.checkers && !isNoisyMove(searcher->board, move)) { /// relatively quiet position
+                if (!searcher->board.checkers && !isNoisyMove(searcher->board, move) && abs(score) < 1000) { /// relatively quiet position
                     data.fen = searcher->board.fen();
                     data.score = score;
                     fens[nr_fens++] = data;
