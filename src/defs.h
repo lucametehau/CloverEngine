@@ -135,7 +135,7 @@ struct MeanValue {
     double valuesSum;
     int valuesCount;
 
-    void init(std::string& _name) {
+    void init(std::string _name) {
         name = _name;
         valuesSum = 0.0;
         valuesCount = 0;
