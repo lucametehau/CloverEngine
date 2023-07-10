@@ -40,16 +40,21 @@ struct Entry {
     }
 
     int bound() const {
-        return about & 3u;
+        return about & 3;
     }
 
     int depth() const {
-        return (about >> 2u) & 255u;
+        return (about >> 2) & 127;
+    }
+
+    bool wasPV() const {
+        return (about >> 9) & 1;
     }
 
     int generation() const {
-        return about >> 10u;
+        return (about >> 10);
     }
+
 };
 
 class HashTable {
@@ -72,7 +77,7 @@ public:
 
     bool probe(uint64_t hash, Entry& entry);
 
-    void save(uint64_t hash, int score, int depth, int ply, int bound, uint16_t move, int eval);
+    void save(uint64_t hash, int score, int depth, int ply, int bound, uint16_t move, int eval, bool wasPV);
 
     void resetAge();
 
@@ -159,7 +164,7 @@ inline bool HashTable::probe(uint64_t hash, Entry& entry) {
     return 0;
 }
 
-inline void HashTable::save(uint64_t hash, int score, int depth, int ply, int bound, uint16_t move, int eval) {
+inline void HashTable::save(uint64_t hash, int score, int depth, int ply, int bound, uint16_t move, int eval, bool wasPV) {
     uint64_t ind = (hash & entries) * BUCKET;
     Entry* bucket = table + ind;
 
@@ -171,7 +176,7 @@ inline void HashTable::save(uint64_t hash, int score, int depth, int ply, int bo
     Entry temp;
 
     temp.move = move; temp.eval = short(eval); temp.score = short(score);
-    temp.about = uint16_t(bound | (depth << 2u) | (generation << 10u));
+    temp.about = uint16_t(bound | (depth << 2) | (wasPV << 9) | (generation << 10));
     temp.hash = hash;
 
     if (bucket->hash == hash) {
