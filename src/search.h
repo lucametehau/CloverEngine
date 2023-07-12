@@ -605,7 +605,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
 
                 R -= hist / histDiv; /// reduce based on move history
             }
-            else if constexpr (!pvNode) {
+            else if (!wasPV) {
                 R = lmrRedNoisy[std::min(63, depth)][std::min(63, played)];
 
                 R += improving <= 0; /// not improving
