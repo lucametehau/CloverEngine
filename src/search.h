@@ -439,7 +439,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
             if (!nullSearch && !stack->excluded && (quietUs || eval - 100 * depth > beta) &&
                 eval >= beta + 30 * (depth <= 3) && eval >= staticEval &&
                 board.hasNonPawnMaterial(board.turn)) {
-                int R = nmpR + depth / nmpDepthDiv + (eval - beta) / nmpEvalDiv + improving;
+                int R = nmpR + depth / nmpDepthDiv + (eval - beta) / nmpEvalDiv + improving - wasPV;
 
                 stack->move = NULLMOVE;
                 stack->piece = 0;
@@ -605,7 +605,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
 
                 R -= hist / histDiv; /// reduce based on move history
             }
-            else if (!wasPV) {
+            else if constexpr (!pvNode) {
                 R = lmrRedNoisy[std::min(63, depth)][std::min(63, played)];
 
                 R += improving <= 0; /// not improving
