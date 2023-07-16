@@ -128,8 +128,6 @@ inline void HashTable::initTable(uint64_t size, int nr_threads) {
         entries = size - 1;
     }
 
-    uint64_t t1 = getTime();
-
     table = (Entry*)malloc((entries * BUCKET + BUCKET) * sizeof(Entry));
 
     std::vector <std::thread> threads(nr_threads);
@@ -143,8 +141,6 @@ inline void HashTable::initTable(uint64_t size, int nr_threads) {
     }
     for (auto& t : threads)
         t.join();
-
-    std::cout << "info string " << (getTime() - t1) / 1000.0 << "s time\n";
 }
 
 inline void HashTable::prefetch(uint64_t hash) {
