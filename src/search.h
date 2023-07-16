@@ -429,6 +429,12 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
 
     if constexpr (!pvNode) {
         if (!isCheck) {
+            // razoring
+            if (depth <= 2 && eval + 150 * depth <= alpha) {
+                int value = quiesce<false>(alpha, alpha + 1, stack);
+                if (value <= alpha)
+                    return value;
+            }
 
             /// static null move pruning (don't prune when having a mate line, again stability)
             if (depth <= SNMPDepth && eval > beta && eval - (SNMPCoef1 - SNMPCoef2 * improving) * (depth - quietUs) > beta && eval < MATE) {
