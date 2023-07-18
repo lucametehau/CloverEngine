@@ -25,6 +25,9 @@
 
 
 #ifdef GENERATE
+
+const bool FRC_DATAGEN = true;
+
 struct FenData {
     int score;
     std::string fen;
@@ -60,9 +63,14 @@ void generateFens(std::atomic <uint64_t>& sumFens, uint64_t nrFens, std::string 
         int ply = 0;
         int nr_fens = 0;
 
-        int winCnt = 0, drawCnt = 0;
+        int winCnt = 0, drawCnt = 0, idx = 0;
 
-        searcher->_setFen(START_POS_FEN);
+        if (FRC_DATAGEN) {
+            std::uniform_int_distribution <uint32_t> rnd(0, 960 * 960);
+            idx = rnd(gn) % (960 * 960);
+        }
+
+        searcher->_setDFRC(idx);
 
         searcher->clearHistory();
         searcher->clearStack();

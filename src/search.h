@@ -1276,6 +1276,16 @@ void Search::_setFen(std::string fen, bool chess960) {
     board.setFen(fen);
 }
 
+void Search::_setDFRC(int idx) {
+    for (int i = 0; i < threadCount; i++) {
+        params[i].board.chess960 = (idx > 0);
+        params[i].board.setDFRC(idx);
+    }
+
+    board.chess960 = (idx > 0);
+    board.setDFRC(idx);
+}
+
 void Search::_makeMove(uint16_t move) {
     for (int i = 0; i < threadCount; i++)
         params[i].board.makeMove(move);
