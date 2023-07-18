@@ -179,7 +179,19 @@ public:
         return true;
     }
 
+    void placePiece(int piece, int sq) {
+        board[sq] = piece;
+        key ^= hashKey[board[sq]][sq];
+
+        pieces[(board[sq] > 6)] |= (1ULL << sq);
+        bb[board[sq]] |= (1ULL << sq);
+    }
+
     void setFen(const std::string fen); // check init.h
+
+    void setFRCside(bool color, int idx);
+    
+    void setDFRC(int idx);
 
     std::string fen() {
         std::string fen;

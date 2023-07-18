@@ -48,11 +48,7 @@ void Board::setFen(const std::string fen) {
         while (fen[ind] != '/' && fen[ind] != ' ') {
             int sq = getSq(i, j);
             if (fen[ind] < '0' || '9' < fen[ind]) {
-                board[sq] = cod[int(fen[ind])];
-                key ^= hashKey[board[sq]][sq];
-
-                pieces[(board[sq] > 6)] |= (1ULL << sq);
-                bb[board[sq]] |= (1ULL << sq);
+                placePiece(cod[int(fen[ind])], sq);
                 j++;
             }
             else {
@@ -170,6 +166,140 @@ void Board::setFen(const std::string fen) {
     while ('0' <= fen[ind] && fen[ind] <= '9')
         nr = nr * 10 + fen[ind] - '0', ind++;
     moveIndex = nr;
+
+    NetInput input = toNetInput();
+
+    checkers = getAttackers(*this, 1 ^ turn, pieces[WHITE] | pieces[BLACK], king(turn));
+    pinnedPieces = getPinnedPieces(*this, turn);
+
+    NN.calc(input, turn);
+}
+
+void Board::setFRCside(bool color, int idx) {
+    int ind = (color == WHITE ? 0 : 56);
+
+    placePiece(getType(BISHOP, color), ind + 1 + (idx % 4) * 2);
+    idx /= 4;
+    placePiece(getType(BISHOP, color), ind + 0 + (idx % 4) * 2);
+    idx /= 4;
+    int cnt = 0;
+    for (int i = ind; i < ind + 8; i++) {
+        if (!board[i]) {
+            if (idx % 6 == cnt) {
+                placePiece(getType(QUEEN, color), i);
+                break;
+            }
+            cnt++;
+        }
+    }
+    idx /= 6;
+
+    constexpr int vals[10][2] = {
+        {0, 1},
+        {0, 2},
+        {0, 3},
+        {0, 4},
+        {1, 2},
+        {1, 3},
+        {1, 4},
+        {2, 3},
+        {2, 4},
+        {3, 4},
+    };
+    cnt = 0;
+    for (int i = ind; i < ind + 8; i++) {
+        if (!board[i]) {
+            if (cnt == vals[idx][0] || cnt == vals[idx][1]) {
+                placePiece(getType(KNIGHT, color), i);
+            }
+            cnt++;
+        }
+    }
+    cnt = 0;
+    for (int i = ind; i < ind + 8; i++) {
+        if (!board[i]) {
+            if (cnt == 0 || cnt == 2) {
+                placePiece(getType(ROOK, color), i);
+            }
+            else {
+                placePiece(getType(KING, color), i);
+            }
+            cnt++;
+        }
+    }
+}
+
+void Board::setDFRC(int idx) {
+    ply = gamePly = 0;
+    captured = 0;
+
+    //checkers = 0;
+
+    for (int i = 0; i <= 12; i++)
+        bb[i] = 0;
+
+    for (int i = 0; i < 64; i++)
+        board[i] = 0;
+
+    pieces[BLACK] = pieces[WHITE] = 0;
+
+    int idxw = idx / 960, idxb = idx % 960;
+    setFRCside(WHITE, idxw);
+    setFRCside(BLACK, idxb);
+
+    for (int i = 8; i < 16; i++)
+        placePiece(WP, i);
+    for (int i = 48; i < 56; i++)
+        placePiece(BP, i);
+
+    turn = WHITE;
+    key ^= turn;
+
+    castleRights = 15;
+
+    int a = 64, b = 64;
+    for (int i = 0; i < 8; i++) {
+        if (piece_at(i) == WR) {
+            a = b;
+            b = i;
+        }
+    }
+
+    for (auto& rook : { a, b }) {
+        if (rook != 64) {
+            if (rook % 8 && rook % 8 != 7) chess960 = true;
+            if (rook < king(WHITE) && (castleRights & 4)) rookSq[WHITE][0] = rook;
+            if (king(WHITE) < rook && (castleRights & 8)) rookSq[WHITE][1] = rook;
+        }
+    }
+    a = 64, b = 64;
+    for (int i = 56; i < 64; i++) {
+        if (piece_at(i) == BR) {
+            b = a;
+            a = i;
+        }
+    }
+    for (auto& rook : { a, b }) {
+        if (rook != 64) {
+            if (rook % 8 && rook % 8 != 7) chess960 = true;
+            if (rook < king(BLACK) && (castleRights & 1)) rookSq[BLACK][0] = rook;
+            if (king(BLACK) < rook && (castleRights & 2)) rookSq[BLACK][1] = rook;
+        }
+    }
+
+    for (int i = 0; i < 64; i++) castleRightsDelta[BLACK][i] = castleRightsDelta[WHITE][i] = 15;
+    if (rookSq[BLACK][0] != 64)
+        castleRightsDelta[BLACK][rookSq[BLACK][0]] = 14, castleRightsDelta[BLACK][king(BLACK)] = 12;
+    if (rookSq[BLACK][1] != 64)
+        castleRightsDelta[BLACK][rookSq[BLACK][1]] = 13, castleRightsDelta[BLACK][king(BLACK)] = 12;
+    if (rookSq[WHITE][0] != 64)
+        castleRightsDelta[WHITE][rookSq[WHITE][0]] = 11, castleRightsDelta[WHITE][king(WHITE)] = 3;
+    if (rookSq[WHITE][1] != 64)
+        castleRightsDelta[WHITE][rookSq[WHITE][1]] = 7, castleRightsDelta[WHITE][king(WHITE)] = 3;
+
+    enPas = -1;
+    halfMoves = 0;
+    moveIndex = 1;
 
     NetInput input = toNetInput();
 

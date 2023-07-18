@@ -112,6 +112,7 @@ struct Search {
     void isReady();
 
     void _setFen(std::string fen, bool chess960 = false);
+    void _setDFRC(int idx);
     void _makeMove(uint16_t move);
 
     std::pair <int, uint16_t> startSearch(Info* info);
