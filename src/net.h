@@ -89,7 +89,7 @@
 INCBIN(Net, EVALFILE);
 
 const int INPUT_NEURONS = 3840;
-const int SIDE_NEURONS = 768;
+const int SIDE_NEURONS = 1024;
 const int HIDDEN_NEURONS = 2 * SIDE_NEURONS;
 const int REG_LENGTH = sizeof(reg_type) / sizeof(int16_t);
 const int NUM_REGS = SIDE_NEURONS / REG_LENGTH;
@@ -97,7 +97,7 @@ const int BUCKET_UNROLL = 128;
 const int UNROLL_LENGTH = BUCKET_UNROLL / REG_LENGTH;
 
 const int Q_IN = 8;
-const int Q_HIDDEN = 128;
+const int Q_HIDDEN = 512;
 
 int16_t inputBiases[SIDE_NEURONS] __attribute__((aligned(ALIGN)));
 int32_t outputBias;
@@ -112,7 +112,7 @@ void loadNNUEWeights() {
     intData = (uint64_t*)gNetData;
 
     x = *intData;
-    assert(x == 2951425);
+    assert(x == 3935233);
     intData++;
 
     floatData = (float*)intData;
