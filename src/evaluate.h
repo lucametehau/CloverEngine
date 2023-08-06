@@ -26,7 +26,8 @@ inline int scale(Board& board) {
         (count(board.bb[WN] | board.bb[BN]) * seeVal[KNIGHT] +
         count(board.bb[WB] | board.bb[BB]) * seeVal[BISHOP] +
         count(board.bb[WR] | board.bb[BR]) * seeVal[ROOK] +
-        count(board.bb[WQ] | board.bb[BQ]) * seeVal[QUEEN]) / 32;
+        count(board.bb[WQ] | board.bb[BQ]) * seeVal[QUEEN]) / 32 - 
+        board.halfMoves * 5;
 }
 
 void bringUpToDate(Board& board, Network& NN) {
