@@ -25,7 +25,7 @@
 #include "perft.h"
 #include "generate.h"
 
-const std::string VERSION = "6.0.17";
+const std::string VERSION = "6.0.18";
 
 struct Option {
     std::string name;

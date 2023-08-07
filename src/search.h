@@ -192,7 +192,7 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack) {
     nodes++;
     qsNodes++;
 
-    if (isRepetition(board, ply) || board.halfMoves >= 100 || board.isMaterialDraw()) /// check for draw
+    if (board.isDraw(ply)) /// check for draw
         return 1 - (nodes & 2);
 
     if (checkForStop())
@@ -347,7 +347,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
 
     pvTableLen[ply] = 0;
 
-    if (isRepetition(board, ply) || board.halfMoves >= 100 || board.isMaterialDraw())
+    if (board.isDraw(ply))
         return 1 - (nodes & 2); /// beal effect apparently, credit to Ethereal for this
 
     /// mate distance pruning   
