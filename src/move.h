@@ -1005,20 +1005,6 @@ inline bool isNoisyMove(Board& board, uint16_t move) {
     return board.isCapture(move);
 }
 
-bool isRepetition(Board& board, int ply) {
-    int cnt = 1;
-    for (int i = board.gamePly - 2; i >= board.gamePly - board.halfMoves; i -= 2) {
-        if (board.history[i].key == board.key) {
-            cnt++;
-            if (i > board.gamePly - ply)
-                return 1;
-            if (cnt == 3)
-                return 1;
-        }
-    }
-    return 0;
-}
-
 bool isPseudoLegalMove(Board& board, uint16_t move) {
     if (!move)
         return 0;

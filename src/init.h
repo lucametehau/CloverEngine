@@ -308,3 +308,12 @@ void Board::setDFRC(int idx) {
 
     NN.calc(input, turn);
 }
+
+bool Board::isDraw(int ply) {
+    if (halfMoves < 100 || !checkers)
+        return isMaterialDraw() || isRepetition(ply) || halfMoves >= 100;
+    int nrmoves = 0;
+    uint16_t moves[256];
+    nrmoves = genLegal(*this, moves);
+    return nrmoves > 0;
+}

@@ -262,6 +262,22 @@ public:
         return (num == 2 || (num == 3 && (bb[WN] || bb[BN] || bb[WB] || bb[BB])) ||
             (num == 4 && (count(bb[WN]) == 2 || count(bb[BN]) == 2)));
     }
+    
+    bool isRepetition(int ply) {
+        int cnt = 1;
+        for (int i = gamePly - 2; i >= gamePly - halfMoves; i -= 2) {
+            if (history[i].key == key) {
+                cnt++;
+                if (i > gamePly - ply)
+                    return 1;
+                if (cnt == 3)
+                    return 1;
+            }
+        }
+        return 0;
+    }
+
+    bool isDraw(int ply);
 };
 
 class Info {
