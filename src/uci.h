@@ -25,7 +25,7 @@
 #include "perft.h"
 #include "generate.h"
 
-const std::string VERSION = "6.0.18";
+const std::string VERSION = "6.0.19";
 
 struct Option {
     std::string name;
@@ -134,6 +134,8 @@ void UCI::uciLoop() {
     UciNewGame(ttSize);
     std::string input;
 
+    info->ponder = false;
+
     while (getline(std::cin, input)) {
 
         std::istringstream iss(input);
@@ -218,7 +220,10 @@ void UCI::uciLoop() {
                     iss >> nodes;
                 }
                 else if (param == "san") {
-                    info->sanMode = 1;
+                    info->sanMode = true;
+                }
+                else if (param == "ponder") {
+                    info->ponder = true;
                 }
             }
 
@@ -253,13 +258,18 @@ void UCI::uciLoop() {
 
             Go(info);
         }
+        else if (cmd == "ponderhit") {
+            info->ponder = false;
+        }
         else if (cmd == "quit") {
+            info->ponder = false;
             Stop();
             searcher.stopWorkerThreads();
             searcher.killMainThread();
             return;
         }
         else if (cmd == "stop") {
+            info->ponder = false;
             Stop();
         }
         else if (cmd == "uci") {
@@ -493,6 +503,7 @@ void UCI::Uci() {
     std::cout << "option name SyzygyPath type string default <empty>" << std::endl;
     std::cout << "option name MultiPV type spin default 1 min 1 max 255" << std::endl;
     std::cout << "option name UCI_Chess960 type check default false" << std::endl;
+    std::cout << "option name Ponder type check default false" << std::endl;
     for (auto& option : options)
         std::cout << "option name " << option.name << " type spin default " << option.value << " min " << option.min << " max " << option.max << std::endl;
     std::cout << "uciok" << std::endl;

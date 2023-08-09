@@ -38,7 +38,7 @@ bool Search::checkForStop() {
     checkCount++;
 
     if (checkCount == (1 << 10)) {
-        if (info->timeset && getTime() > info->startTime + info->hardTimeLim)
+        if (info->timeset && getTime() > info->startTime + info->hardTimeLim && !info->ponder)
             flag |= TERMINATED_BY_LIMITS;
         checkCount = 0;
     }
@@ -928,6 +928,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
 
     memset(search_stack, 0, sizeof(search_stack));
     memset(bestMoves, 0, sizeof(bestMoves));
+    memset(ponderMoves, 0, sizeof(ponderMoves));
     memset(rootScores, 0, sizeof(rootScores));
 
     rootEval = (!board.checkers ? evaluate(board) : INF);
@@ -1040,13 +1041,17 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
                     beta = std::min(INF, beta + window);
                     depth--;
                     completedDepth = tDepth;
-                    if (pvTableLen[0] && pvTable[0][0])
+                    if (pvTableLen[0] > 0 && pvTable[0][0])
                         bestMoves[i] = pvTable[0][0];
+                    if (pvTableLen[0] > 1 && pvTable[0][0])
+                        ponderMoves[i] = pvTable[0][0];
                 }
                 else {
                     completedDepth = tDepth;
-                    if (pvTableLen[0] && pvTable[0][0])
+                    if (pvTableLen[0] > 0 && pvTable[0][0])
                         bestMoves[i] = pvTable[0][0];
+                    if (pvTableLen[0] > 1 && pvTable[0][0])
+                        ponderMoves[i] = pvTable[0][1];
                     break;
                 }
 
@@ -1095,24 +1100,31 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
         }
     }
 
-    int bs = 0, bm = NULLMOVE;
+    int bs = 0;
+    uint16_t bm = NULLMOVE, pm = NULLMOVE;
     if (principalSearcher) {
         stopWorkerThreads();
 
         int bestDepth = completedDepth;
         bs = rootScores[1];
         bm = bestMoves[1];
+        pm = ponderMoves[1];
         for (int i = 0; i < threadCount; i++) {
             if (params[i].rootScores[1] > bs && params[i].completedDepth >= bestDepth) {
                 bs = params[i].rootScores[1];
                 bm = params[i].bestMoves[1];
+                pm = params[i].ponderMoves[1];
                 bestDepth = params[i].completedDepth;
             }
         }
     }
 
-    if (principalSearcher && printStats)
-        std::cout << "bestmove " << toString(bm, info->chess960) << std::endl;
+    if (principalSearcher && printStats) {
+        std::cout << "bestmove " << toString(bm, info->chess960);
+        if (pm)
+            std::cout << " ponder " << toString(pm, info->chess960);
+        std::cout << std::endl;
+    }
 
     //TT->age();
 
