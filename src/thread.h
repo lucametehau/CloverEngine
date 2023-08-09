@@ -147,7 +147,7 @@ struct Search {
     TablePieceTo continuationHistory[13][64];
     int16_t capHist[13][64][7];
     int lmrRed[64][64], lmrRedNoisy[64][64];
-    int bestMoves[256], scores[256], rootScores[256];
+    int bestMoves[256], ponderMoves[256], scores[256], rootScores[256];
     MeanValue values[10];
 
     volatile int flag;
