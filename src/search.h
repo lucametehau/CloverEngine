@@ -518,6 +518,35 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         int hist = 0;
 
         /// quiet move pruning
+
+#ifdef GENERATE
+        if (best > -MATE && board.hasNonPawnMaterial(board.turn) && !pvNode) {
+            if (isQuiet) {
+                getHistory(this, stack, move, hist);
+
+                /// approximately the new depth for the next search
+                int newDepth = std::max(0, depth - lmrRed[std::min(63, depth)][std::min(63, played)] + improving);
+
+                /// futility pruning
+                if (newDepth <= 8 && !isCheck && staticEval + fpMargin + fpCoef * newDepth <= alpha)
+                    skip = 1;
+
+                /// late move pruning
+                if (newDepth <= lmpDepth && played >= (3 + newDepth * newDepth) / (2 - improving))
+                    skip = 1;
+
+                if (depth <= seePruningQuietDepth && !isCheck && !see(board, move, -seeCoefQuiet * depth))
+                    continue;
+            }
+            else {
+                if (depth <= seePruningNoisyDepth && !isCheck && picker.trueStage > STAGE_GOOD_NOISY && !see(board, move, -seeCoefNoisy * depth * depth))
+                    continue;
+
+                if (depth <= 8 && !isCheck && staticEval + fpMargin + seeVal[board.piece_type_at(sqTo(move))] + fpCoef * depth <= alpha)
+                    continue;
+            }
+        }
+#else
         if (best > -MATE && board.hasNonPawnMaterial(board.turn)) {
             if (isQuiet) {
                 getHistory(this, stack, move, hist);
@@ -544,6 +573,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                     continue;
             }
         }
+#endif
 
         int ex = 0;
         /// avoid extending too far (might cause stack overflow)
