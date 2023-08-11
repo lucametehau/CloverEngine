@@ -1,6 +1,6 @@
 CC  = g++
 SRC = *.cpp tbprobe.c
-EXE = Clover.6.0.20
+EXE = Clover.6.0
 EVALFILE = trinity.nnue
 
 ifeq ($(OS), Windows_NT)
