@@ -1073,15 +1073,19 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
                     completedDepth = tDepth;
                     if (pvTableLen[0] > 0 && pvTable[0][0])
                         bestMoves[i] = pvTable[0][0];
-                    if (pvTableLen[0] > 1 && pvTable[0][0])
-                        ponderMoves[i] = pvTable[0][0];
+                    if (pvTableLen[0] > 1)
+                        ponderMoves[i] = pvTable[0][1];
+                    else
+                        ponderMoves[i] = NULLMOVE;
                 }
                 else {
                     completedDepth = tDepth;
                     if (pvTableLen[0] > 0 && pvTable[0][0])
                         bestMoves[i] = pvTable[0][0];
-                    if (pvTableLen[0] > 1 && pvTable[0][0])
+                    if (pvTableLen[0] > 1)
                         ponderMoves[i] = pvTable[0][1];
+                    else
+                        ponderMoves[i] = NULLMOVE;
                     break;
                 }
 
