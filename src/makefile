@@ -36,9 +36,6 @@ OLDFLAGS      = -march=core2
 AVX512FLAGS   = $(AVX2FLAGS) -mavx512f -mavx512bw -mavx512dq
 EVALFILEFLAGS = -DEVALFILE=\"$(EVALFILE)\" -I . -IFathom
 
-fathom:
-	git submodule update --init src/Fathom
-
 pgo:
 	$(CC)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(NATIVEFLAGS) -o $(EXE)$(EXT) $(PGO_GENERATE)
 	./$(EXE)$(EXT) bench 15
@@ -57,7 +54,8 @@ avx2:
 avx512:
 	$(CC)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(AVX512FLAGS) -o $(EXE)-avx512$(EXT)
 
-release: fathom
+release:
+	git submodule update --init src/Fathom
 	make old
 	make avx2
 	make avx512
