@@ -1123,6 +1123,8 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
         if (flag & TERMINATED_SEARCH)
             break;
 
+        if (info->ponder) continue;
+
         if (info->timeset && getTime() > info->stopTime) {
             flag |= TERMINATED_BY_LIMITS;
             break;
