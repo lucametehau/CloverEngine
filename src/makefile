@@ -1,6 +1,6 @@
 CC  = g++
-SRC = *.cpp tbprobe.c
-EXE = Clover.6.0.1
+SRC = *.cpp Fathom/src/tbprobe.c
+EXE = Clover.6.0.2
 EVALFILE = trinity.nnue
 
 ifeq ($(OS), Windows_NT)
@@ -34,7 +34,10 @@ AVX2FLAGS     = -march=core-avx2
 NATIVEFLAGS   = -mno-avx512f -march=native
 OLDFLAGS      = -march=core2
 AVX512FLAGS   = $(AVX2FLAGS) -mavx512f -mavx512bw -mavx512dq
-EVALFILEFLAGS = -DEVALFILE=\"$(EVALFILE)\"
+EVALFILEFLAGS = -DEVALFILE=\"$(EVALFILE)\" -I . -IFathom
+
+fathom:
+	git submodule update --init Fathom
 
 pgo:
 	$(CC)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(NATIVEFLAGS) -o $(EXE)$(EXT) $(PGO_GENERATE)
@@ -45,7 +48,7 @@ generate:
 	$(CC)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(NATIVEFLAGS) -DGENERATE -o Clover-generator.exe
 debug:
 	clang++ $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(NATIVEFLAGS) -o $(EXE)$(EXT)
-native:
+native: fathom
 	$(CC)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(NATIVEFLAGS) -o $(EXE)$(EXT)
 old:
 	$(CC)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(OLDFLAGS) -o $(EXE)-old$(EXT)
@@ -54,7 +57,7 @@ avx2:
 avx512:
 	$(CC)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(AVX512FLAGS) -o $(EXE)-avx512$(EXT)
 
-release:
+release: fathom
 	make old
 	make avx2
 	make avx512

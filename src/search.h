@@ -19,7 +19,7 @@
 #include "evaluate.h"
 #include "movepick.h"
 #include "tt.h"
-#include "tbprobe.h"
+#include "Fathom/src/tbprobe.h"
 #include "thread.h"
 #include <cstring>
 #include <cmath>
