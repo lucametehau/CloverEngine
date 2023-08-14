@@ -1,6 +1,6 @@
 CC  = g++
 SRC = *.cpp Fathom/src/tbprobe.c
-EXE = Clover.6.0.3
+EXE = Clover.6.0.4
 EVALFILE = trinity.nnue
 
 ifeq ($(OS), Windows_NT)
@@ -11,7 +11,7 @@ endif
 
 
 WFLAGS = -Wall -g
-RFLAGS = $(WFLAGS) -std=c++17 -O3
+RFLAGS = $(WFLAGS) -std=c++17 -O3 -funroll-loops
 LIBS =
 
 ifeq ($(EXT), .exe)
