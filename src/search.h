@@ -639,7 +639,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
 
                 R -= board.checkers != 0; /// move gives check
 
-                R -= hist / histDiv; /// reduce based on move history
+                R -= hist / 1700; /// reduce based on move history
             }
             else if (!wasPV) {
                 R = lmrRedNoisy[std::min(63, depth)][std::min(63, played)];
