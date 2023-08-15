@@ -25,7 +25,7 @@
 #include "perft.h"
 #include "generate.h"
 
-const std::string VERSION = "6.0.3";
+const std::string VERSION = "6.0.4";
 
 struct Option {
     std::string name;
@@ -259,17 +259,15 @@ void UCI::uciLoop() {
             Go(info);
         }
         else if (cmd == "ponderhit") {
-            info->ponder = false;
+            searcher.info->ponder = false;
         }
         else if (cmd == "quit") {
-            info->ponder = false;
             Stop();
             searcher.stopWorkerThreads();
             searcher.killMainThread();
             return;
         }
         else if (cmd == "stop") {
-            info->ponder = false;
             Stop();
         }
         else if (cmd == "uci") {

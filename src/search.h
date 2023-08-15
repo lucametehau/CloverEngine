@@ -1155,6 +1155,8 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
         }
     }
 
+    while (!(flag & TERMINATED_SEARCH) && info->ponder && info->timeset);
+
     if (principalSearcher && printStats) {
         std::cout << "bestmove " << toString(bm, info->chess960);
         if (pm)
@@ -1250,6 +1252,7 @@ void Search::startPrincipalSearch(Info* info) {
 }
 
 void Search::stopPrincipalSearch() {
+    info->ponder = false;
     flag |= TERMINATED_BY_USER;
 }
 
