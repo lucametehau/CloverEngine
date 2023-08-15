@@ -259,17 +259,15 @@ void UCI::uciLoop() {
             Go(info);
         }
         else if (cmd == "ponderhit") {
-            info->ponder = false;
+            searcher.info->ponder = false;
         }
         else if (cmd == "quit") {
-            info->ponder = false;
             Stop();
             searcher.stopWorkerThreads();
             searcher.killMainThread();
             return;
         }
         else if (cmd == "stop") {
-            info->ponder = false;
             Stop();
         }
         else if (cmd == "uci") {
