@@ -144,7 +144,7 @@ struct Search {
     int pvTableLen[DEPTH + 5];
     uint16_t cmTable[13][64];
     int16_t hist[2][64 * 64];
-    TablePieceTo continuationHistory[13][64];
+    TablePieceTo continuationHistory[2][13][64];
     int16_t capHist[13][64][7];
     int lmrRed[64][64], lmrRedNoisy[64][64];
     int bestMoves[256], ponderMoves[256], scores[256], rootScores[256];
