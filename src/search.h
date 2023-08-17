@@ -284,7 +284,7 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack) {
         TT->prefetch(board.nextKey(move));
         stack->move = move;
         stack->piece = board.piece_at(sqFrom(move));
-        stack->continuationHist = &continuationHistory[stack->piece][sqTo(move)];
+        stack->continuationHist = &continuationHistory[!isNoisyMove(board, move)][stack->piece][sqTo(move)];
 
         board.makeMove(move);
         score = -quiesce<pvNode>(-beta, -alpha, stack + 1);
@@ -449,7 +449,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
 
                 stack->move = NULLMOVE;
                 stack->piece = 0;
-                stack->continuationHist = &continuationHistory[0][0];
+                stack->continuationHist = &continuationHistory[0][0][0];
 
                 board.makeNullMove();
 
@@ -477,7 +477,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
 
                     stack->move = move;
                     stack->piece = board.piece_at(sqFrom(move));
-                    stack->continuationHist = &continuationHistory[stack->piece][sqTo(move)];
+                    stack->continuationHist = &continuationHistory[0][stack->piece][sqTo(move)];
 
                     board.makeMove(move);
 
@@ -604,7 +604,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         TT->prefetch(board.nextKey(move));
         stack->move = move;
         stack->piece = board.piece_at(sqFrom(move));
-        stack->continuationHist = &continuationHistory[stack->piece][sqTo(move)];
+        stack->continuationHist = &continuationHistory[isQuiet][stack->piece][sqTo(move)];
 
         board.makeMove(move);
         played++;
@@ -784,7 +784,7 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv, StackEntry* 
         /// update stack info
         stack->move = move;
         stack->piece = board.piece_at(sqFrom(move));
-        stack->continuationHist = &continuationHistory[stack->piece][sqTo(move)];
+        stack->continuationHist = &continuationHistory[isQuiet][stack->piece][sqTo(move)];
 
         board.makeMove(move);
         played++;
@@ -964,7 +964,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
     rootEval = (!board.checkers ? evaluate(board) : INF);
 
     for (int i = 1; i <= 3; i++)
-        (stack - i)->continuationHist = &continuationHistory[0][0], (stack - i)->eval = INF, (stack - i)->move = NULLMOVE;
+        (stack - i)->continuationHist = &continuationHistory[0][0][0], (stack - i)->eval = INF, (stack - i)->move = NULLMOVE;
 
     //values[0].init("nmp_pv_rate");
 
