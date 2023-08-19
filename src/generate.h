@@ -56,6 +56,7 @@ void generateFens(std::atomic <uint64_t>& sumFens, uint64_t nrFens, std::string 
     searcher->TT = new HashTable();
     searcher->principalSearcher = true;
     FenData fens[10000];
+    std::uniform_int_distribution <uint32_t> rnd_dfrc(0, 960 * 960);
 
     while (totalFens < nrFens) {
         FenData data;
@@ -66,8 +67,7 @@ void generateFens(std::atomic <uint64_t>& sumFens, uint64_t nrFens, std::string 
         int winCnt = 0, drawCnt = 0, idx = 0;
 
         if (FRC_DATAGEN) {
-            std::uniform_int_distribution <uint32_t> rnd(0, 960 * 960);
-            idx = rnd(gn) % (960 * 960);
+            idx = rnd_dfrc(gn) % (960 * 960);
         }
 
         searcher->_setDFRC(idx);
@@ -76,7 +76,6 @@ void generateFens(std::atomic <uint64_t>& sumFens, uint64_t nrFens, std::string 
         searcher->clearStack();
 
         searcher->TT->initTable(4 * MB);
-        searcher->TT->resetAge();
 
         while (true) {
             uint16_t move;
