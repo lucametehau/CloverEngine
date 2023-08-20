@@ -610,7 +610,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         played++;
 
         /// store quiets for history
-
         if (isQuiet)
             stack->quiets[nrQuiets++] = move;
         else
