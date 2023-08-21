@@ -92,7 +92,7 @@ public:
                 moves[m] = move;
 
                 const int p = board.piece_at(sqFrom(move)), cap = (type(move) == ENPASSANT ? PAWN : board.piece_type_at(sqTo(move))), to = sqTo(move);
-                int score = 0; // so that move score isn't negative
+                int score = 0;
 
                 score = 10 * seeVal[cap];
                 if (promoted(move) + KNIGHT == QUEEN)
@@ -100,13 +100,10 @@ public:
 
                 score += searcher->capHist[p][to][cap];
 
-                //score += searcher->nodesSearched[1][fromTo(move)] / nodesSearchedDiv;
-
                 scores[m++] = score;
             }
 
             nrNoisy = m;
-            //sortMoves(nrNoisy, moves, scores);
             index = 0;
             stage++;
         }
@@ -170,12 +167,10 @@ public:
                     if (pt != KING && pt != PAWN)
                         score += kingAttackBonus * count(genAttacksSq(allPieces, to, pt) & enemyKingRing);
 
-                    //score += searcher->nodesSearched[0][fromTo(move)] / nodesSearchedDiv; // the longer it takes a move to be refuted, the higher its chance to become the best move
                     scores[m++] = score;
                 }
 
                 nrQuiets = m;
-                //sortMoves(nrQuiets, moves, scores);
                 index = 0;
             }
 
