@@ -149,7 +149,7 @@ void loadNNUEWeights() {
     //std::cout << mn << " " << mx << "\n";
 
     float val = *floatData;
-    outputBias = round(val * Q_HIDDEN);
+    outputBias = round(val * Q_HIDDEN) * Q_IN;
 }
 
 enum {
@@ -272,7 +272,7 @@ public:
             assert(-32768 <= sum && sum <= 32767);
         }
 
-        sum = outputBias * Q_IN;
+        sum = outputBias;
 
         reg_type zero{};
         reg_type_s acc{}, acc2{};
@@ -497,7 +497,7 @@ public:
         acc2 = reg_add32(acc2, acc3);
         acc0 = reg_add32(acc0, acc2);
 
-        return (outputBias * Q_IN + get_sum(acc0)) / (Q_IN * Q_HIDDEN);
+        return (outputBias + get_sum(acc0)) / (Q_IN * Q_HIDDEN);
     }
 
     int histSz;
