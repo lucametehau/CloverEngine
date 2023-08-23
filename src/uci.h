@@ -129,6 +129,7 @@ void UCI::uciLoop() {
     Info info[1];
 
     init(info);
+    searcher.info = info;
 
     //searcher.setThreadCount(1); /// 2 threads for debugging data races
     UciNewGame(ttSize);
