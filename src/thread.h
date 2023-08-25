@@ -32,7 +32,7 @@ int nmpDepthDiv = 4;
 int nmpEvalDiv = 135;
 
 int SNMPDepth = 12;
-int SNMPCoef1 = 94;
+int SNMPCoef1 = 84;
 int SNMPCoef2 = 19;
 
 int seeCoefQuiet = 71;
