@@ -29,11 +29,11 @@ int seeVal[] = { 0, 93, 308, 346, 521, 994, 20000 };
 
 int nmpR = 4;
 int nmpDepthDiv = 4;
-int nmpEvalDiv = 135;
+int nmpEvalDiv = 136;
 
 int SNMPDepth = 12;
-int SNMPCoef1 = 84;
-int SNMPCoef2 = 19;
+int SNMPCoef1 = 82;
+int SNMPCoef2 = 21;
 
 int seeCoefQuiet = 71;
 int seeCoefNoisy = 10;
@@ -44,9 +44,9 @@ int probcutMargin = 100;
 int probcutR = 3;
 
 int fpMargin = 100;
-int fpCoef = 99;
+int fpCoef = 100;
 
-int histDiv = 5196;
+int histDiv = 5298;
 
 int chCoef = -2000;
 int fhCoef = -2000;
@@ -59,7 +59,7 @@ int nodesSearchedDiv = 10000;
 
 int lmrMargin = 12;
 int lmrDiv = 24;
-int lmrCapDiv = 17;
+int lmrCapDiv = 16;
 
 int tmScoreDiv = 111;
 int tmBestMoveStep = 50;
