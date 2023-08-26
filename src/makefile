@@ -1,6 +1,6 @@
 CC  = g++
 SRC = *.cpp Fathom/src/tbprobe.c
-EXE = Clover.6.0.7
+EXE = Clover.6.0.8-2
 EVALFILE = trinity.nnue
 
 ifeq ($(OS), Windows_NT)
