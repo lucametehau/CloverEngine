@@ -267,7 +267,7 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack) {
         played++;
         if (played == 4)
             break;
-        if (best > -MATE) {
+        if (played > 1) {
             if (futilityValue > -MATE) {
                 const int value = futilityValue + seeVal[board.piece_type_at(sqTo(move))];
                 if (type(move) != PROMOTION && value <= alpha) {
@@ -276,8 +276,8 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack) {
                 }
             }
 
-            if (isCheck && !isNoisyMove(board, move) && !see(board, move, 0)) {
-                continue;
+            if (isCheck) {
+                break;
             }
         }
         // update stack info
