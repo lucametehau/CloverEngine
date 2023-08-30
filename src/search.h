@@ -562,11 +562,11 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                 if (newDepth <= lmpDepth && played >= (3 + newDepth * newDepth) / (2 - improving))
                     skip = 1;
 
-                if (depth <= seePruningQuietDepth && !isCheck && !see(board, move, -seeCoefQuiet * depth))
+                if (depth <= seePruningQuietDepth && !see(board, move, -seeCoefQuiet * depth))
                     continue;
             }
             else {
-                if (depth <= seePruningNoisyDepth && !isCheck && picker.trueStage > STAGE_GOOD_NOISY && !see(board, move, -seeCoefNoisy * depth * depth))
+                if (depth <= seePruningNoisyDepth && picker.trueStage > STAGE_GOOD_NOISY && !see(board, move, -seeCoefNoisy * depth * depth))
                     continue;
 
                 if (depth <= 8 && !isCheck && staticEval + fpMargin + seeVal[board.piece_type_at(sqTo(move))] + fpCoef * depth <= alpha)
