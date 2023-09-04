@@ -89,13 +89,18 @@ public:
                 if (move == hashMove || move == killer || move == counter)
                     continue;
 
+                if (type(move) == PROMOTION && promoted(move) + KNIGHT != QUEEN) {
+                    badNoisy[nrBadNoisy++] = move;
+                    continue;
+                }
+
                 moves[m] = move;
 
                 const int p = board.piece_at(sqFrom(move)), cap = (type(move) == ENPASSANT ? PAWN : board.piece_type_at(sqTo(move))), to = sqTo(move);
                 int score = 0;
 
                 score = 10 * seeVal[cap];
-                if (promoted(move) + KNIGHT == QUEEN)
+                if (type(move) == PROMOTION)
                     score += 10000;
 
                 score += searcher->capHist[p][to][cap];
