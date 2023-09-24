@@ -36,10 +36,10 @@ int getHistoryBonus(int depth) {
     return std::min(300 * (depth - 1), 2400);
 }
 
-void updateMoveHistory(Search* searcher, StackEntry*& stack, uint16_t move, int16_t bonus) {
+void updateMoveHistory(Search* searcher, StackEntry*& stack, uint16_t move, uint64_t threats, int16_t bonus) {
     const int from = sqFrom(move), to = sqTo(move), piece = searcher->board.piece_at(from);
 
-    updateHist(searcher->hist[searcher->board.turn][fromTo(move)], bonus);
+    updateHist(searcher->hist[searcher->board.turn][!!(threats & (1ULL << from))][!!(threats & (1ULL << to))][fromTo(move)], bonus);
 
     if ((stack - 1)->move)
         updateCounterHist((*(stack - 1)->continuationHist)[piece][to], bonus);
@@ -55,7 +55,7 @@ void updateCaptureMoveHistory(Search* searcher, uint16_t move, int16_t bonus) {
     updateCapHist(searcher->capHist[piece][to][cap], bonus);
 }
 
-void updateHistory(Search* searcher, StackEntry* stack, int nrQuiets, int ply, int16_t bonus) {
+void updateHistory(Search* searcher, StackEntry* stack, int nrQuiets, int ply, uint64_t threats, int16_t bonus) {
     if (!nrQuiets) /// we can't update if we don't have a follow move or no quiets
         return;
 
@@ -69,8 +69,8 @@ void updateHistory(Search* searcher, StackEntry* stack, int nrQuiets, int ply, i
         searcher->cmTable[counterPiece][counterTo] = best; /// update counter move table
 
     for (int i = 0; i < nrQuiets - 1; i++)
-        updateMoveHistory(searcher, stack, stack->quiets[i], -bonus);
-    updateMoveHistory(searcher, stack, best, bonus);
+        updateMoveHistory(searcher, stack, stack->quiets[i], threats, -bonus);
+    updateMoveHistory(searcher, stack, best, threats, bonus);
 }
 
 void updateCapHistory(Search* searcher, StackEntry* stack, int nrCaptures, uint16_t best, int ply, int16_t bonus) {
@@ -88,10 +88,10 @@ int16_t getCapHist(Search* searcher, uint16_t move) {
     return searcher->capHist[piece][to][cap];
 }
 
-void getHistory(Search* searcher, StackEntry* stack, uint16_t move, int &hist) {
+void getHistory(Search* searcher, StackEntry* stack, uint16_t move, uint64_t threats, int &hist) {
     const int from = sqFrom(move), to = sqTo(move), piece = searcher->board.piece_at(from);
 
-    hist = searcher->hist[searcher->board.turn][fromTo(move)];
+    hist = searcher->hist[searcher->board.turn][!!(threats & (1ULL << from))][!!(threats & (1ULL << to))][fromTo(move)];
 
     hist += (*(stack - 1)->continuationHist)[piece][to];
     

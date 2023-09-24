@@ -47,6 +47,11 @@ struct StackEntry { /// info to keep in the stack
     TablePieceTo* continuationHist;
 };
 
+struct Threats {
+    uint64_t threatsEnemy;
+    uint64_t threatsPieces;
+};
+
 enum {
     A1, B1, C1, D1, E1, F1, G1, H1,
     A2, B2, C2, D2, E2, F2, G2, H2,
