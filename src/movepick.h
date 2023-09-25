@@ -49,7 +49,7 @@ public:
     uint16_t moves[256], badNoisy[256];
     int scores[256];
 
-    Movepick(const uint16_t HashMove, const uint16_t Killer, const uint16_t Counter, const int Threshold, const int ThreatsEnemy) {
+    Movepick(const uint16_t HashMove, const uint16_t Killer, const uint16_t Counter, const int Threshold, const uint64_t ThreatsEnemy) {
         stage = STAGE_HASHMOVE;
 
         hashMove = HashMove;
