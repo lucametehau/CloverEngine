@@ -82,51 +82,50 @@ uint32_t probe_TB(Board& board, int depth, bool probeAtRoot = 0, int halfMoves =
     return TB_RESULT_FAILED;
 }
 
-bool quietness(const Board& board, const bool us) {
-    if (board.checkers)
-        return 0;
-    uint64_t att;
-    bool enemy = 1 ^ us;
+Threats getThreats(Board& board, const bool us) {
+    const bool enemy = 1 ^ us;
+    uint64_t ourPieces = board.pieces[us] ^ board.bb[getType(PAWN, us)];
+    uint64_t att = getPawnAttacks(enemy, board.bb[getType(PAWN, enemy)]), attPieces = att & ourPieces;
     uint64_t pieces, b, all = board.pieces[WHITE] | board.pieces[BLACK];
 
-    if (getPawnAttacks(enemy, board.bb[getType(PAWN, enemy)]) &
-        (board.bb[getType(KNIGHT, us)] | board.bb[getType(BISHOP, us)] | board.bb[getType(ROOK, us)] | board.bb[getType(QUEEN, us)]))
-        return 0;
+    ourPieces ^= board.bb[getType(KNIGHT, us)] | board.bb[getType(BISHOP, us)];
 
     pieces = board.bb[getType(KNIGHT, enemy)];
-    att = 0;
     while (pieces) {
         b = lsb(pieces);
         att |= knightBBAttacks[Sq(b)];
+        attPieces |= att & ourPieces;
         pieces ^= b;
     }
 
-    if (att & (board.bb[getType(QUEEN, us)] | board.bb[getType(ROOK, us)]))
-        return 0;
-
     pieces = board.bb[getType(BISHOP, enemy)];
-    att = 0;
     while (pieces) {
         b = lsb(pieces);
         att |= genAttacksBishop(all, Sq(b));
+        attPieces |= att & ourPieces;
         pieces ^= b;
     }
 
-    if (att & (board.bb[getType(QUEEN, us)] | board.bb[getType(ROOK, us)]))
-        return 0;
+    ourPieces ^= board.bb[getType(ROOK, us)];
 
     pieces = board.bb[getType(ROOK, enemy)];
-    att = 0;
+    while (pieces) {
+        b = lsb(pieces);
+        att |= genAttacksRook(all, Sq(b));
+        attPieces |= att & ourPieces;
+        pieces ^= b;
+    }
+
+    pieces = board.bb[getType(QUEEN, enemy)];
     while (pieces) {
         b = lsb(pieces);
         att |= genAttacksRook(all, Sq(b));
         pieces ^= b;
     }
 
-    if (att & board.bb[getType(QUEEN, us)])
-        return 0;
+    att |= kingBBAttacks[board.king(enemy)];
 
-    return 1;
+    return { att, attPieces };
 }
 
 std::string getSanString(Board& board, uint16_t move) {
@@ -224,6 +223,9 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack) {
     }
 
     const bool isCheck = (board.checkers != 0);
+    Threats threatsEnemy{};
+    if (isCheck)
+        threatsEnemy = getThreats(board, board.turn);
     int futilityValue;
 
     if (isCheck) {
@@ -257,7 +259,8 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack) {
     Movepick noisyPicker(!isCheck && see(board, ttMove, 0) ? ttMove : NULLMOVE,
         NULLMOVE,
         NULLMOVE,
-        0);
+        0,
+        threatsEnemy.threatsEnemy);
 
     uint16_t move;
     int played = 0;
@@ -401,7 +404,8 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
     }
 
     const bool isCheck = (board.checkers != 0);
-    const bool quietUs = quietness(board, board.turn);
+    const Threats threatsEnemy = getThreats(board, board.turn);
+    const bool quietUs = !threatsEnemy.threatsPieces;
     //int quietEnemy = quietness(board, 1 ^ board.turn);
 
     if (isCheck) { /// when in check, don't evaluate
@@ -468,7 +472,8 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                 Movepick picker((ttMove && isNoisyMove(board, ttMove) && see(board, ttMove, probBeta - staticEval) ? ttMove : NULLMOVE),
                     NULLMOVE,
                     NULLMOVE,
-                    probBeta - staticEval);
+                    probBeta - staticEval,
+                    threatsEnemy.threatsEnemy);
 
                 uint16_t move;
                 while ((move = picker.nextMove(this, stack, board, true, true)) != NULLMOVE) {
@@ -504,7 +509,8 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
     Movepick picker(ttMove,
         stack->killer,
         nullSearch ? NULLMOVE : cmTable[(stack - 1)->piece][sqTo((stack - 1)->move)], // counter
-        -(seeDepthCoef - (ply % 2 == 0 && rootEval != INF ? rootEval / 100 : 0)) * depth);
+        -(seeDepthCoef - (ply % 2 == 0 && rootEval != INF ? rootEval / 100 : 0)) * depth,
+        threatsEnemy.threatsEnemy);
 
     uint16_t move;
     const bool ttCapture = ttMove && isNoisyMove(board, ttMove);
@@ -522,7 +528,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
 #ifdef GENERATE
         if (best > -MATE && board.hasNonPawnMaterial(board.turn) && !pvNode) {
             if (isQuiet) {
-                getHistory(this, stack, move, hist);
+                getHistory(this, stack, move, threatsEnemy.threatsEnemy, hist);
 
                 /// approximately the new depth for the next search
                 int newDepth = std::max(0, depth - lmrRed[std::min(63, depth)][std::min(63, played)] + improving);
@@ -549,7 +555,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
 #else
         if (best > -MATE && board.hasNonPawnMaterial(board.turn)) {
             if (isQuiet) {
-                getHistory(this, stack, move, hist);
+                getHistory(this, stack, move, threatsEnemy.threatsEnemy, hist);
 
                 /// approximately the new depth for the next search
                 int newDepth = std::max(0, depth - lmrRed[std::min(63, depth)][std::min(63, played)] + improving);
@@ -697,7 +703,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         if (!isNoisyMove(board, bestMove)) {
             if (stack->killer != bestMove)
                 stack->killer = bestMove;
-            updateHistory(this, stack, nrQuiets, ply, getHistoryBonus(depth + pvNode));
+            updateHistory(this, stack, nrQuiets, ply, threatsEnemy.threatsEnemy, getHistoryBonus(depth + pvNode));
         }
         updateCapHistory(this, stack, nrCaptures, bestMove, ply, getHistoryBonus(depth));
     }
@@ -745,7 +751,8 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv, StackEntry* 
         eval = entry.eval;
     }
 
-    bool isCheck = (board.checkers != 0);
+    const bool isCheck = (board.checkers != 0);
+    const Threats threatsEnemy = getThreats(board, board.turn);
 
     if (isCheck) { /// when in check, don't evaluate (king safety evaluation might break)
         stack->eval = eval = INF;
@@ -761,7 +768,7 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv, StackEntry* 
 
     (stack + 1)->killer = NULLMOVE;
 
-    Movepick picker(ttMove, stack->killer, NULLMOVE, -(10 - (rootEval != INF ? rootEval / 100 : 0)) * depth);
+    Movepick picker(ttMove, stack->killer, NULLMOVE, -(10 - (rootEval != INF ? rootEval / 100 : 0)) * depth, threatsEnemy.threatsEnemy);
 
     uint16_t move;
 
@@ -863,7 +870,7 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv, StackEntry* 
         if (!isNoisyMove(board, bestMove)) {
             if (stack->killer != bestMove)
                 stack->killer = bestMove;
-            updateHistory(this, stack, nrQuiets, 0, getHistoryBonus(depth));
+            updateHistory(this, stack, nrQuiets, 0, threatsEnemy.threatsEnemy, getHistoryBonus(depth));
         }
         updateCapHistory(this, stack, nrCaptures, bestMove, 0, getHistoryBonus(depth));
     }

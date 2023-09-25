@@ -42,12 +42,14 @@ public:
     int nrNoisy, nrQuiets, nrBadNoisy;
     int index;
 
+    uint64_t threatsEnemy;
+
     int threshold;
 
     uint16_t moves[256], badNoisy[256];
     int scores[256];
 
-    Movepick(const uint16_t HashMove, const uint16_t Killer, const uint16_t Counter, const int Threshold) {
+    Movepick(const uint16_t HashMove, const uint16_t Killer, const uint16_t Counter, const int Threshold, const uint64_t ThreatsEnemy) {
         stage = STAGE_HASHMOVE;
 
         hashMove = HashMove;
@@ -56,6 +58,7 @@ public:
 
         nrNoisy = nrQuiets = nrBadNoisy = 0;
         threshold = Threshold;
+        threatsEnemy = ThreatsEnemy;
     }
 
     void getBestMove(int offset, int nrMoves, uint16_t moves[], int scores[]) {
@@ -159,7 +162,7 @@ public:
                     int score = 0;
                     const int from = sqFrom(move), to = sqTo(move), piece = board.piece_at(from), pt = piece_type(piece);
 
-                    score = searcher->hist[board.turn][fromTo(move)];
+                    score = searcher->hist[board.turn][!!(threatsEnemy & (1ULL << from))][!!(threatsEnemy & (1ULL << to))][fromTo(move)];
                     score += (*(stack - 1)->continuationHist)[piece][to];
                     score += (*(stack - 2)->continuationHist)[piece][to];
 
