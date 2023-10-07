@@ -46,7 +46,7 @@ int probcutR = 3;
 int fpMargin = 100;
 int fpCoef = 99;
 
-int histDiv = 5196;
+int histDiv = 6928;
 
 int chCoef = -2000;
 int fhCoef = -2000;
