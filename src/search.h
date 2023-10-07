@@ -969,7 +969,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
 
     rootEval = (!board.checkers ? evaluate(board) : INF);
 
-    for (int i = 1; i <= 3; i++)
+    for (int i = 1; i <= 10; i++)
         (stack - i)->continuationHist = &continuationHistory[0][0][0], (stack - i)->eval = INF, (stack - i)->move = NULLMOVE;
 
     //values[0].init("nmp_pv_rate");

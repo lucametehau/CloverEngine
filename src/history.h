@@ -46,6 +46,9 @@ void updateMoveHistory(Search* searcher, StackEntry*& stack, uint16_t move, uint
 
     if ((stack - 2)->move)
         updateCounterHist((*(stack - 2)->continuationHist)[piece][to], bonus);
+
+    if ((stack - 4)->move)
+        updateCounterHist((*(stack - 4)->continuationHist)[piece][to], bonus);
 }
 
 void updateCaptureMoveHistory(Search* searcher, uint16_t move, int16_t bonus) {
@@ -93,7 +96,9 @@ void getHistory(Search* searcher, StackEntry* stack, uint16_t move, uint64_t thr
 
     hist = searcher->hist[searcher->board.turn][!!(threats & (1ULL << from))][!!(threats & (1ULL << to))][fromTo(move)];
 
-    hist += 2 * (*(stack - 1)->continuationHist)[piece][to];
-    
+    hist += (*(stack - 1)->continuationHist)[piece][to];
+
     hist += (*(stack - 2)->continuationHist)[piece][to];
+
+    hist += (*(stack - 4)->continuationHist)[piece][to];
 }
