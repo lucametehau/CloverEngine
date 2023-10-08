@@ -165,6 +165,7 @@ public:
                     score = searcher->hist[board.turn][!!(threatsEnemy & (1ULL << from))][!!(threatsEnemy & (1ULL << to))][fromTo(move)];
                     score += (*(stack - 1)->continuationHist)[piece][to];
                     score += (*(stack - 2)->continuationHist)[piece][to];
+                    score += (*(stack - 4)->continuationHist)[piece][to];
 
                     if (pt != PAWN && (pawnAttacks & (1ULL << to)))
                         score -= pawnAttackedCoef * seeVal[pt];
