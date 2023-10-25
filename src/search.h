@@ -589,7 +589,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                 int rBeta = ttValue - depth;
 
                 stack->excluded = move;
-                int score = search<false>(rBeta - 1, rBeta, depth / 2, cutNode, stack);
+                int score = search<false>(rBeta - 1, rBeta, (depth - 1) / 2, cutNode, stack);
                 stack->excluded = NULLMOVE;
 
                 if (score < rBeta)
