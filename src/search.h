@@ -659,6 +659,8 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
             R = std::min(newDepth - 1, std::max(R, 1)); /// clamp R
             score = -search<false>(-alpha - 1, -alpha, newDepth - R, true, stack + 1);
 
+            R -= (score < alpha + newDepth && beta - alpha >= newDepth);
+
             if (R > 1 && score > alpha)
                 score = -search<false>(-alpha - 1, -alpha, newDepth - 1, !cutNode, stack + 1);
         }
