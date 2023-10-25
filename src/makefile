@@ -1,6 +1,6 @@
 CC  = g++
 SRC = *.cpp Fathom/src/tbprobe.c
-EXE = Clover.6.0.18
+EXE = Clover.6.0.19
 EVALFILE = acheron.nnue
 
 ifeq ($(OS), Windows_NT)
@@ -13,6 +13,16 @@ endif
 WFLAGS = -Wall -g
 RFLAGS = $(WFLAGS) -std=c++17 -O3 -funroll-loops
 LIBS =
+
+FLAGS = $(shell echo | $(CC) -march=native -E -dM -)
+
+ifneq ($(findstring __BMI2__, $(FLAGS)),)
+	ifeq ($(findstring __znver1, $(FLAGS)),)
+		ifeq ($(findstring __znver2, $(FLAGS)),)
+			RFLAGS += -DPEXT_GOOD
+		endif
+	endif
+endif
 
 ifeq ($(EXT), .exe)
 	RFLAGS += -static -static-libgcc -static-libstdc++

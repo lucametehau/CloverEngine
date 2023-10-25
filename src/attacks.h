@@ -197,7 +197,11 @@ inline void initRookMagic() {
         rookAttacksMask[sq] |= raysMask[sq][WEST] & ~fileMask[0];
         for (int blockerInd = 0; blockerInd < (1 << rookIndexBits[sq]); blockerInd++) {
             uint64_t blockers = getBlocker(rookAttacksMask[sq], blockerInd);
+#ifndef PEXT_GOOD
             rookTable[sq][(blockers * rookMagics[sq]) >> (64 - rookIndexBits[sq])] = genAttacksRookSlow(blockers, sq);
+#else
+            rookTable[sq][_pext_u64(blockers, rookAttacksMask[sq])] = genAttacksRookSlow(blockers, sq);
+#endif
         }
     }
 }
@@ -208,7 +212,11 @@ inline void initBishopMagic() {
         bishopAttacksMask[sq] = (raysMask[sq][NORTHWEST] | raysMask[sq][SOUTHWEST] | raysMask[sq][NORTHEAST] | raysMask[sq][SOUTHEAST]) & (~edge);
         for (int blockerInd = 0; blockerInd < (1 << bishopIndexBits[sq]); blockerInd++) {
             uint64_t blockers = getBlocker(bishopAttacksMask[sq], blockerInd);
+#ifndef PEXT_GOOD
             bishopTable[sq][(blockers * bishopMagics[sq]) >> (64 - bishopIndexBits[sq])] = genAttacksBishopSlow(blockers, sq);
+#else
+            bishopTable[sq][_pext_u64(blockers, bishopAttacksMask[sq])] = genAttacksBishopSlow(blockers, sq);
+#endif
         }
     }
 }
@@ -232,11 +240,19 @@ inline uint64_t genAttacksKnight(int sq) {
 }
 
 inline uint64_t genAttacksBishop(uint64_t blockers, int sq) {
+#ifndef PEXT_GOOD
     return bishopTable[sq][((blockers & bishopAttacksMask[sq]) * bishopMagics[sq]) >> (64 - bishopIndexBits[sq])];
+#else
+    return bishopTable[sq][_pext_u64(blockers, bishopAttacksMask[sq])];
+#endif
 }
 
 inline uint64_t genAttacksRook(uint64_t blockers, int sq) {
+#ifndef  PEXT_GOOD
     return rookTable[sq][((blockers & rookAttacksMask[sq]) * rookMagics[sq]) >> (64 - rookIndexBits[sq])];
+#else
+    return rookTable[sq][_pext_u64(blockers, rookAttacksMask[sq])];
+#endif
 }
 
 inline uint64_t genAttacksQueen(uint64_t blockers, int sq) {
