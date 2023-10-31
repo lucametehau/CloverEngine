@@ -509,7 +509,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
     Movepick picker(ttMove,
         stack->killer,
         nullSearch ? NULLMOVE : cmTable[(stack - 1)->piece][sqTo((stack - 1)->move)], // counter
-        0,
+        -seeDepthCoef * depth,
         threatsEnemy.threatsEnemy);
 
     uint16_t move;
@@ -768,7 +768,7 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv, StackEntry* 
 
     (stack + 1)->killer = NULLMOVE;
 
-    Movepick picker(ttMove, stack->killer, NULLMOVE, 0, threatsEnemy.threatsEnemy);
+    Movepick picker(ttMove, stack->killer, NULLMOVE, -10 * depth, threatsEnemy.threatsEnemy);
 
     uint16_t move;
 
