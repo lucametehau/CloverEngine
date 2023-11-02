@@ -27,6 +27,9 @@
 #include <iomanip>
 
 bool Search::checkForStop() {
+    if (!principalSearcher)
+        return 0;
+
     if (flag & TERMINATED_SEARCH)
         return 1;
 
