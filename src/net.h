@@ -97,7 +97,7 @@ const int BUCKET_UNROLL = 128;
 const int UNROLL_LENGTH = BUCKET_UNROLL / REG_LENGTH;
 
 const int Q_IN = 8;
-const int Q_HIDDEN = 128;
+const int Q_HIDDEN = 512;
 
 int16_t inputBiases[SIDE_NEURONS] __attribute__((aligned(ALIGN)));
 int32_t outputBias;
