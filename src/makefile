@@ -1,7 +1,7 @@
 CC  = g++
 SRC = *.cpp Fathom/src/tbprobe.c
-EXE = Clover.6.0.23
-EVALFILE = poapopao.nnue
+EXE = Clover.6.0.24
+EVALFILE = yea.nnue
 
 ifeq ($(OS), Windows_NT)
 	EXT = .exe
