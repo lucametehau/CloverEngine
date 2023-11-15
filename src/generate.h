@@ -35,7 +35,7 @@ struct FenData {
 
 void generateFens(std::atomic <uint64_t>& sumFens, uint64_t nrFens, std::string path, uint64_t seed) {
     std::ofstream out(path);
-    std::mt19937_64 gn((std::chrono::system_clock::now().time_since_epoch().count() + 87598275872958ULL) ^ 71548275687265ULL);
+    std::mt19937_64 gn((std::chrono::system_clock::now().time_since_epoch().count() + 19578275928ULL) ^ 8257298672678ULL);
 
     Info info[1];
     int gameInd = 1;
@@ -76,6 +76,9 @@ void generateFens(std::atomic <uint64_t>& sumFens, uint64_t nrFens, std::string 
         searcher->clearStack();
 
         searcher->TT->initTable(4 * MB);
+        std::uniform_int_distribution <int> rnd_ply(0, 100000);
+
+        int additionalPly = rnd_ply(gn) % 2;
 
         while (true) {
             uint16_t move;
@@ -103,7 +106,7 @@ void generateFens(std::atomic <uint64_t>& sumFens, uint64_t nrFens, std::string 
                 break;
             }
 
-            if (ply < 8) { /// simulating a book ?
+            if (ply < 8 + additionalPly) { /// simulating a book ?
                 std::uniform_int_distribution <uint32_t> rnd(0, nrMoves - 1);
                 move = moves[rnd(gn)];
                 searcher->_makeMove(move);
