@@ -146,7 +146,7 @@ void loadNNUEWeights() {
         outputWeights[j] = round(val * Q_HIDDEN);
         floatData++;
     }
-    //std::cout << mn << " " << mx << "\n";
+    //  std::cout << mn << " " << mx << "\n";
 
     float val = *floatData;
     outputBias = round(val * Q_HIDDEN) * Q_IN;
