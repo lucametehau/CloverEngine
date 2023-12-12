@@ -1,6 +1,6 @@
 CC  = g++
 SRC = *.cpp Fathom/src/tbprobe.c
-EXE = Clover.6.0.30-2
+EXE = Clover.6.1
 EVALFILE = alpha.nnue
 
 ifeq ($(OS), Windows_NT)
@@ -19,7 +19,7 @@ FLAGS = $(shell echo | $(CC) -march=native -E -dM -)
 ifneq ($(findstring __BMI2__, $(FLAGS)),)
 	ifeq ($(findstring __znver1, $(FLAGS)),)
 		ifeq ($(findstring __znver2, $(FLAGS)),)
-			RFLAGS += -DPEXT_GOOD
+			PEXT_FLAGS += -DPEXT_GOOD
 		endif
 	endif
 endif
@@ -56,22 +56,22 @@ generate:
 debug:
 	clang++ $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(NATIVEFLAGS) -o $(EXE)$(EXT)
 native:
-	$(CC)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(NATIVEFLAGS) -o $(EXE)$(EXT)
+	$(CC)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(PEXT_FLAGS) $(LIBS) $(NATIVEFLAGS) -o $(EXE)$(EXT)
 old:
 	$(CC)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(OLDFLAGS) -o $(EXE)-old$(EXT) $(PGO_GENERATE)
 	./$(EXE)-old$(EXT) bench 15
 	$(PGO_MERGE)
 	$(CC)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(OLDFLAGS) -o $(EXE)-old$(EXT) $(PGO_USE)
 avx2:
-	$(CC)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(AVX2FLAGS) -o $(EXE)-avx2$(EXT) $(PGO_GENERATE)
+	$(CC)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(PEXT_FLAGS) $(LIBS) $(AVX2FLAGS) -o $(EXE)-avx2$(EXT) $(PGO_GENERATE)
 	./$(EXE)-avx2$(EXT) bench 15
 	$(PGO_MERGE)
-	$(CC)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(AVX2FLAGS) -o $(EXE)-avx2$(EXT) $(PGO_USE)
+	$(CC)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(PEXT_FLAGS) $(LIBS) $(AVX2FLAGS) -o $(EXE)-avx2$(EXT) $(PGO_USE)
 avx512:
-	$(CC)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(AVX512FLAGS) -o $(EXE)-avx512$(EXT) $(PGO_GENERATE)
+	$(CC)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(PEXT_FLAGS) $(LIBS) $(AVX512FLAGS) -o $(EXE)-avx512$(EXT) $(PGO_GENERATE)
 	./$(EXE)-avx512$(EXT) bench 15
 	$(PGO_MERGE)
-	$(CC)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(AVX512FLAGS) -o $(EXE)-avx512$(EXT) $(PGO_USE)
+	$(CC)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(PEXT_FLAGS) $(LIBS) $(AVX512FLAGS) -o $(EXE)-avx512$(EXT) $(PGO_USE)
 
 release:
 	make old
