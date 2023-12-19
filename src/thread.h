@@ -137,6 +137,7 @@ struct Search {
     void printPv();
     void updatePv(int ply, int move);
 
+    template <bool checkTime>
     bool checkForStop();
 
     uint64_t nodesSearched[2][64 * 64];

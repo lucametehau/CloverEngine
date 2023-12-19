@@ -26,6 +26,7 @@
 #include <fstream>
 #include <iomanip>
 
+template <bool checkTime>
 bool Search::checkForStop() {
     if (!principalSearcher)
         return 0;
@@ -41,8 +42,10 @@ bool Search::checkForStop() {
     checkCount++;
 
     if (checkCount == (1 << 10)) {
-        if (info->timeset && getTime() > info->startTime + info->hardTimeLim && !info->ponder)
-            flag |= TERMINATED_BY_LIMITS;
+        if constexpr (checkTime) {
+            if (info->timeset && getTime() > info->startTime + info->hardTimeLim && !info->ponder)
+                flag |= TERMINATED_BY_LIMITS;
+        }
         checkCount = 0;
     }
 
@@ -197,7 +200,7 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack) {
     if (board.isDraw(ply)) /// check for draw
         return 1 - (nodes & 2);
 
-    if (checkForStop())
+    if (checkForStop<false>())
         return evaluate(board);
 
     const uint64_t key = board.key;
@@ -327,7 +330,7 @@ template <bool pvNode>
 int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* stack) {
     const int ply = board.ply;
 
-    if (checkForStop())
+    if (checkForStop<true>())
         return evaluate(board);
 
     if (ply >= DEPTH)
@@ -721,7 +724,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
 }
 
 int Search::rootSearch(int alpha, int beta, int depth, int multipv, StackEntry* stack) {
-    if (checkForStop())
+    if (checkForStop<true>())
         return evaluate(board);
 
     if (depth <= 0)
