@@ -19,7 +19,7 @@
 
 uint64_t perft(Board& board, int depth, bool print = 0) {
     uint16_t moves[256];
-    int nrMoves = gen_legal_moves(board, moves);
+    int nrMoves = genLegal(board, moves);
 
     if (depth == 1) {
         return nrMoves;
@@ -30,14 +30,14 @@ uint64_t perft(Board& board, int depth, bool print = 0) {
     for (int i = 0; i < nrMoves; i++) {
         uint16_t move = moves[i];
 
-        board.make_move(move);
+        board.makeMove(move);
 
         uint64_t x = perft(board, depth - 1);
 
         nodes += x;
-        board.undo_move(move);
+        board.undoMove(move);
         if (print)
-            std::cout << move_to_string(move, false) << " " << x << "\n";
+            std::cout << toString(move, false) << " " << x << "\n";
     }
     return nodes;
 }

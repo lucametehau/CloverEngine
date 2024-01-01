@@ -29,7 +29,7 @@ void init(Info* info) {
     info->chess960 = false;
 }
 
-void Board::set_fen(const std::string fen) {
+void Board::setFen(const std::string fen) {
     int ind = 0;
     key = 0;
 
@@ -46,9 +46,9 @@ void Board::set_fen(const std::string fen) {
     for (int i = 7; i >= 0; i--) {
         int j = 0;
         while (fen[ind] != '/' && fen[ind] != ' ') {
-            int sq = get_sq(i, j);
+            int sq = getSq(i, j);
             if (fen[ind] < '0' || '9' < fen[ind]) {
-                place_piece_at_sq(cod[int(fen[ind])], sq);
+                placePiece(cod[int(fen[ind])], sq);
                 j++;
             }
             else {
@@ -146,7 +146,7 @@ void Board::set_fen(const std::string fen) {
         ind++;
         int rank = fen[ind] - '1';
         ind += 2;
-        enPas = get_sq(rank, file);
+        enPas = getSq(rank, file);
 
         key ^= enPasKey[enPas];
     }
@@ -167,7 +167,7 @@ void Board::set_fen(const std::string fen) {
         nr = nr * 10 + fen[ind] - '0', ind++;
     moveIndex = nr;
 
-    NetInput input = to_netinput();
+    NetInput input = toNetInput();
 
     checkers = getAttackers(*this, 1 ^ turn, pieces[WHITE] | pieces[BLACK], king(turn));
     pinnedPieces = getPinnedPieces(*this, turn);
@@ -178,15 +178,15 @@ void Board::set_fen(const std::string fen) {
 void Board::setFRCside(bool color, int idx) {
     int ind = (color == WHITE ? 0 : 56);
 
-    place_piece_at_sq(get_piece(BISHOP, color), ind + 1 + (idx % 4) * 2);
+    placePiece(getType(BISHOP, color), ind + 1 + (idx % 4) * 2);
     idx /= 4;
-    place_piece_at_sq(get_piece(BISHOP, color), ind + 0 + (idx % 4) * 2);
+    placePiece(getType(BISHOP, color), ind + 0 + (idx % 4) * 2);
     idx /= 4;
     int cnt = 0;
     for (int i = ind; i < ind + 8; i++) {
         if (!board[i]) {
             if (idx % 6 == cnt) {
-                place_piece_at_sq(get_piece(QUEEN, color), i);
+                placePiece(getType(QUEEN, color), i);
                 break;
             }
             cnt++;
@@ -210,7 +210,7 @@ void Board::setFRCside(bool color, int idx) {
     for (int i = ind; i < ind + 8; i++) {
         if (!board[i]) {
             if (cnt == vals[idx][0] || cnt == vals[idx][1]) {
-                place_piece_at_sq(get_piece(KNIGHT, color), i);
+                placePiece(getType(KNIGHT, color), i);
             }
             cnt++;
         }
@@ -219,17 +219,17 @@ void Board::setFRCside(bool color, int idx) {
     for (int i = ind; i < ind + 8; i++) {
         if (!board[i]) {
             if (cnt == 0 || cnt == 2) {
-                place_piece_at_sq(get_piece(ROOK, color), i);
+                placePiece(getType(ROOK, color), i);
             }
             else {
-                place_piece_at_sq(get_piece(KING, color), i);
+                placePiece(getType(KING, color), i);
             }
             cnt++;
         }
     }
 }
 
-void Board::set_dfrc(int idx) {
+void Board::setDFRC(int idx) {
     ply = gamePly = 0;
     captured = 0;
 
@@ -248,9 +248,9 @@ void Board::set_dfrc(int idx) {
     setFRCside(BLACK, idxb);
 
     for (int i = 8; i < 16; i++)
-        place_piece_at_sq(WP, i);
+        placePiece(WP, i);
     for (int i = 48; i < 56; i++)
-        place_piece_at_sq(BP, i);
+        placePiece(BP, i);
 
     turn = WHITE;
     key ^= turn;
@@ -301,7 +301,7 @@ void Board::set_dfrc(int idx) {
     halfMoves = 0;
     moveIndex = 1;
 
-    NetInput input = to_netinput();
+    NetInput input = toNetInput();
 
     checkers = getAttackers(*this, 1 ^ turn, pieces[WHITE] | pieces[BLACK], king(turn));
     pinnedPieces = getPinnedPieces(*this, turn);
@@ -309,11 +309,11 @@ void Board::set_dfrc(int idx) {
     NN.calc(input, turn);
 }
 
-bool Board::is_draw(int ply) {
+bool Board::isDraw(int ply) {
     if (halfMoves < 100 || !checkers)
-        return isMaterialDraw() || is_repetition(ply) || halfMoves >= 100;
+        return isMaterialDraw() || isRepetition(ply) || halfMoves >= 100;
     int nrmoves = 0;
     uint16_t moves[256];
-    nrmoves = gen_legal_moves(*this, moves);
+    nrmoves = genLegal(*this, moves);
     return nrmoves > 0;
 }

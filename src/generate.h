@@ -70,10 +70,10 @@ void generateFens(std::atomic <uint64_t>& sumFens, uint64_t nrFens, std::string 
             idx = rnd_dfrc(gn) % (960 * 960);
         }
 
-        searcher->set_dfrc(idx);
+        searcher->_setDFRC(idx);
 
-        searcher->clear_history();
-        searcher->clear_stack();
+        searcher->clearHistory();
+        searcher->clearStack();
 
         searcher->TT->initTable(4 * MB);
         std::uniform_int_distribution <int> rnd_ply(0, 100000);
@@ -86,14 +86,14 @@ void generateFens(std::atomic <uint64_t>& sumFens, uint64_t nrFens, std::string 
 
             /// game over checking
 
-            if (searcher->board.is_draw(0)) {
+            if (searcher->board.isDraw(0)) {
                 result = 0.5;
                 break;
             }
 
             uint16_t moves[256];
 
-            int nrMoves = gen_legal_moves(searcher->board, moves);
+            int nrMoves = genLegal(searcher->board, moves);
 
             if (!nrMoves) {
                 if (searcher->board.checkers) {
@@ -109,20 +109,20 @@ void generateFens(std::atomic <uint64_t>& sumFens, uint64_t nrFens, std::string 
             if (ply < 8 + additionalPly) { /// simulating a book ?
                 std::uniform_int_distribution <uint32_t> rnd(0, nrMoves - 1);
                 move = moves[rnd(gn)];
-                searcher->make_move(move);
+                searcher->_makeMove(move);
             }
             else {
                 searcher->TT->age();
-                searcher->clear_board();
+                searcher->clearBoard();
 
                 //searcher->board.print();
-                std::pair <int, uint16_t> res = searcher->start_search(info);
+                std::pair <int, uint16_t> res = searcher->startSearch(info);
                 score = res.first, move = res.second;
 
-                //log << searcher->board.fen() << " " << move_to_string(move) << "\n";
+                //log << searcher->board.fen() << " " << toString(move) << "\n";
 
                 if (nrMoves == 1) { /// in this case, engine reports score 0, which might be misleading
-                    searcher->make_move(move);
+                    searcher->_makeMove(move);
                     ply++;
                     continue;
                 }
@@ -151,7 +151,7 @@ void generateFens(std::atomic <uint64_t>& sumFens, uint64_t nrFens, std::string 
                     break;
                 }
 
-                searcher->make_move(move);
+                searcher->_makeMove(move);
             }
 
             ply++;

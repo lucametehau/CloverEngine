@@ -25,7 +25,54 @@
 
 /// search params
 
-int seeVal[] = { 0, SeeValPawn, SeeValKnight, SeeValBishop, SeeValRook, SeeValQueen, 20000 };
+int seeVal[] = { 0, 93, 308, 346, 521, 994, 20000 };
+
+int nmpR = 3;
+int nmpDepthDiv = 3;
+int nmpEvalDiv = 135;
+
+int SNMPDepth = 12;
+int SNMPCoef1 = 84;
+int SNMPCoef2 = 19;
+
+int seeCoefQuiet = 71;
+int seeCoefNoisy = 10;
+int seeDepthCoef = 15;
+
+int probcutDepth = 10;
+int probcutMargin = 100;
+int probcutR = 3;
+
+int fpMargin = 100;
+int fpCoef = 99;
+
+int histDiv = 8350;
+
+int chCoef = -2000;
+int fhCoef = -2000;
+
+int seePruningQuietDepth = 8;
+int seePruningNoisyDepth = 8;
+int lmpDepth = 8;
+
+int nodesSearchedDiv = 10000;
+
+int lmrMargin = 12;
+int lmrDiv = 26;
+int lmrCapDiv = 19;
+
+int tmScoreDiv = 111;
+int tmBestMoveStep = 50;
+int tmBestMoveMax = 1250;
+int tmNodesSearchedMaxPercentage = 1570;
+
+int quiesceFutilityCoef = 203;
+
+int aspirationWindow = 8;
+
+int pawnAttackedCoef = 36;
+int pawnPushBonus = 9520;
+int kingAttackBonus = 3579;
 
 const int TERMINATED_BY_USER = 1;
 const int TERMINATED_BY_LIMITS = 2;
@@ -39,8 +86,8 @@ struct Search {
 
         for (int i = 0; i < 64; i++) { /// depth
             for (int j = 0; j < 64; j++) { /// moves played 
-                lmrRed[i][j] = LMRQuietBias / 100.0 + log(i) * log(j) / (LMRQuietDiv / 100.0);
-                lmrRedNoisy[i][j] = LMRNoisyBias / 100.0 + lmrRed[i][j] / (LMRNoisyDiv / 100.0);
+                lmrRed[i][j] = 1.0 * lmrMargin / 10 + log(i) * log(j) / (1.0 * lmrDiv / 10);
+                lmrRedNoisy[i][j] = lmrRed[i][j] / (1.0 * lmrCapDiv / 10);
             }
         }
     }
@@ -56,19 +103,19 @@ struct Search {
     void initSearch();
     void clearForSearch();
     void clearKillers();
-    void clear_history();
-    void clear_stack();
-    void clear_board();
-    void set_num_threads(int nrThreads);
-    void start_principal_search(Info* info);
-    void stop_principal_search();
+    void clearHistory();
+    void clearStack();
+    void clearBoard();
+    void setThreadCount(int nrThreads);
+    void startPrincipalSearch(Info* info);
+    void stopPrincipalSearch();
     void isReady();
 
-    void set_fen(std::string fen, bool chess960 = false);
-    void set_dfrc(int idx);
-    void make_move(uint16_t move);
+    void _setFen(std::string fen, bool chess960 = false);
+    void _setDFRC(int idx);
+    void _makeMove(uint16_t move);
 
-    std::pair <int, uint16_t> start_search(Info* info);
+    std::pair <int, uint16_t> startSearch(Info* info);
 
     template <bool pvNode>
     int quiesce(int alpha, int beta, StackEntry* stack); /// for quiet position check (tuning)
@@ -76,19 +123,19 @@ struct Search {
     template <bool pvNode>
     int search(int alpha, int beta, int depth, bool cutNode, StackEntry* stack);
 
-    int root_search(int alpha, int beta, int depth, int multipv, StackEntry* stack);
+    int rootSearch(int alpha, int beta, int depth, int multipv, StackEntry* stack);
 
     void setTime(Info* tInfo) { info = tInfo; }
 
-    void start_workers(Info* info);
-    void flag_workers_stop();
-    void stop_workers();
+    void startWorkerThreads(Info* info);
+    void flagWorkersStop();
+    void stopWorkerThreads();
     void lazySMPSearcher();
     void releaseThreads();
-    void kill_principal_search();
+    void killMainThread();
 
     void printPv();
-    void update_pv(int ply, int move);
+    void updatePv(int ply, int move);
 
     template <bool checkTime>
     bool checkForStop();
