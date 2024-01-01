@@ -102,9 +102,9 @@ public:
                 const int p = board.piece_at(sqFrom(move)), cap = (type(move) == ENPASSANT ? PAWN : board.piece_type_at(sqTo(move))), to = sqTo(move);
                 int score = 0;
 
-                score = 10 * seeVal[cap];
+                score = GoodNoisyValueCoef * seeVal[cap];
                 if (type(move) == PROMOTION)
-                    score += 10000;
+                    score += GoodNoisyPromotionBonus;
 
                 score += searcher->capHist[p][to][cap];
 
@@ -162,19 +162,19 @@ public:
                     int score = 0;
                     const int from = sqFrom(move), to = sqTo(move), piece = board.piece_at(from), pt = piece_type(piece);
 
-                    score = searcher->hist[board.turn][!!(threatsEnemy & (1ULL << from))][!!(threatsEnemy & (1ULL << to))][fromTo(move)];
-                    score += (*(stack - 1)->continuationHist)[piece][to];
-                    score += (*(stack - 2)->continuationHist)[piece][to];
-                    score += (*(stack - 4)->continuationHist)[piece][to];
+                    score =  QuietHistCoef * searcher->hist[board.turn][!!(threatsEnemy & (1ULL << from))][!!(threatsEnemy & (1ULL << to))][fromTo(move)];
+                    score += QuietContHist1 * (*(stack - 1)->continuationHist)[piece][to];
+                    score += QuietContHist2 * (*(stack - 2)->continuationHist)[piece][to];
+                    score += QuietContHist4 * (*(stack - 4)->continuationHist)[piece][to];
 
                     if (pt != PAWN && (pawnAttacks & (1ULL << to)))
-                        score -= pawnAttackedCoef * seeVal[pt];
+                        score -= QuietPawnAttackedCoef * seeVal[pt];
 
                     if (pt == PAWN) // pawn push, generally good?
-                        score += pawnPushBonus;
+                        score += QuietPawnPushBonus;
 
                     if (pt != KING && pt != PAWN)
-                        score += kingAttackBonus * count(genAttacksSq(allPieces, to, pt) & enemyKingRing);
+                        score += QuietKingRingAttackBonus * count(genAttacksSq(allPieces, to, pt) & enemyKingRing);
 
                     scores[m++] = score;
                 }

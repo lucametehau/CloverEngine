@@ -22,13 +22,13 @@
 #include "thread.h"
 
 inline int scale(Board& board) {
-    return 680 +
+    return EvalScaleBias +
         (count(board.bb[WP] | board.bb[BP]) * seeVal[PAWN] + 
         count(board.bb[WN] | board.bb[BN]) * seeVal[KNIGHT] +
         count(board.bb[WB] | board.bb[BB]) * seeVal[BISHOP] +
         count(board.bb[WR] | board.bb[BR]) * seeVal[ROOK] +
         count(board.bb[WQ] | board.bb[BQ]) * seeVal[QUEEN]) / 32 - 
-        board.halfMoves * 5;
+        board.halfMoves * EvalShuffleCoef;
 }
 
 void bringUpToDate(Board& board) {

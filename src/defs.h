@@ -27,6 +27,7 @@
 #include <array>
 #include <chrono>
 #include <map>
+#include "params.h"
 
 #if defined(__ARM_NEON)
 #include <arm_neon.h>

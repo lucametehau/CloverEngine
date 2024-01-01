@@ -33,7 +33,7 @@ void updateCapHist(int16_t& hist, int16_t score) {
 }
 
 int getHistoryBonus(int depth) {
-    return std::min(300 * (depth - 1), 2400);
+    return std::min(HistoryBonusMargin * depth - HistoryBonusBias, HistoryBonusMax);
 }
 
 void updateMoveHistory(Search* searcher, StackEntry*& stack, uint16_t move, uint64_t threats, int16_t bonus) {
