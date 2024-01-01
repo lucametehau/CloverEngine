@@ -30,7 +30,7 @@ uint64_t getPinnedPieces(Board& board, bool turn) {
     uint64_t mask, us = board.pieces[color], them = board.pieces[enemy];
     uint64_t b2;
     uint64_t pinned = 0; /// squares attacked by enemy / pinned pieces
-    uint64_t enemyOrthSliders = board.orthSliders(enemy), enemyDiagSliders = board.diagSliders(enemy);
+    uint64_t enemyOrthSliders = board.orthogonal_sliders(enemy), enemyDiagSliders = board.diagonal_sliders(enemy);
 
     mask = (genAttacksRook(them, king) & enemyOrthSliders) | (genAttacksBishop(them, king) & enemyDiagSliders);
 
@@ -43,7 +43,7 @@ uint64_t getPinnedPieces(Board& board, bool turn) {
     return pinned;
 }
 
-uint16_t* addMoves(uint16_t* moves, int& nrMoves, int pos, uint64_t att) {
+uint16_t* add_moves(uint16_t* moves, int& nrMoves, int pos, uint64_t att) {
     while (att) {
         *(moves++) = getMove(pos, sq_lsb(att), 0, NEUT);
         nrMoves++;
@@ -51,8 +51,8 @@ uint16_t* addMoves(uint16_t* moves, int& nrMoves, int pos, uint64_t att) {
     return moves;
 }
 
-void Board::makeMove(uint16_t mv) { /// assuming move is at least pseudo-legal
-    int posFrom = sqFrom(mv), posTo = sqTo(mv);
+void Board::make_move(uint16_t mv) { /// assuming move is at least pseudo-legal
+    int posFrom = sq_from(mv), posTo = sq_to(mv);
     int pieceFrom = board[posFrom], pieceTo = board[posTo];
 
     history[gamePly].enPas = enPas;
@@ -107,7 +107,7 @@ void Board::makeMove(uint16_t mv) { /// assuming move is at least pseudo-legal
 
         /// double push
         if (piece_type(pieceFrom) == PAWN && (posFrom ^ posTo) == 16) {
-            enPas = sqDir(turn, NORTH, posFrom);
+            enPas = sq_dir(turn, NORTH, posFrom);
             key ^= enPasKey[enPas];
         }
 
@@ -122,7 +122,7 @@ void Board::makeMove(uint16_t mv) { /// assuming move is at least pseudo-legal
         break;
     case ENPASSANT:
     {
-        int pos = sqDir(turn, SOUTH, posTo), pieceCap = getType(PAWN, 1 ^ turn);
+        int pos = sq_dir(turn, SOUTH, posTo), pieceCap = get_piece(PAWN, 1 ^ turn);
 
         halfMoves = 0;
 
@@ -142,7 +142,7 @@ void Board::makeMove(uint16_t mv) { /// assuming move is at least pseudo-legal
     break;
     case CASTLE:
     {
-        int rFrom, rTo, rPiece = getType(ROOK, turn);
+        int rFrom, rTo, rPiece = get_piece(ROOK, turn);
 
         if (posTo > posFrom) { // king side castle
             rFrom = posTo;
@@ -176,7 +176,7 @@ void Board::makeMove(uint16_t mv) { /// assuming move is at least pseudo-legal
     break;
     default: /// promotion
     {
-        int promPiece = getType(promoted(mv) + KNIGHT, turn);
+        int promPiece = get_piece(promoted(mv) + KNIGHT, turn);
 
         pieces[turn] ^= (1ULL << posFrom) ^ (1ULL << posTo);
         bb[pieceFrom] ^= (1ULL << posFrom);
@@ -223,7 +223,7 @@ void Board::makeMove(uint16_t mv) { /// assuming move is at least pseudo-legal
     pinnedPieces = getPinnedPieces(*this, turn);
 }
 
-void Board::undoMove(uint16_t move) {
+void Board::undo_move(uint16_t move) {
     turn ^= 1;
     ply--;
     gamePly--;
@@ -236,7 +236,7 @@ void Board::undoMove(uint16_t move) {
     pinnedPieces = history[gamePly].pinnedPieces;
     key = history[gamePly].key;
 
-    int posFrom = sqFrom(move), posTo = sqTo(move), piece = board[posTo], pieceCap = captured;
+    int posFrom = sq_from(move), posTo = sq_to(move), piece = board[posTo], pieceCap = captured;
 
     switch (type(move)) {
     case NEUT:
@@ -253,9 +253,9 @@ void Board::undoMove(uint16_t move) {
         break;
     case CASTLE:
     {
-        int rFrom, rTo, rPiece = getType(ROOK, turn);
+        int rFrom, rTo, rPiece = get_piece(ROOK, turn);
 
-        piece = getType(KING, turn);
+        piece = get_piece(KING, turn);
 
         if (posTo > posFrom) { // king side castle
             rFrom = posTo;
@@ -279,9 +279,9 @@ void Board::undoMove(uint16_t move) {
     break;
     case ENPASSANT:
     {
-        int pos = sqDir(turn, SOUTH, posTo);
+        int pos = sq_dir(turn, SOUTH, posTo);
 
-        pieceCap = getType(PAWN, 1 ^ turn);
+        pieceCap = get_piece(PAWN, 1 ^ turn);
 
         pieces[turn] ^= (1ULL << posFrom) ^ (1ULL << posTo);
         bb[piece] ^= (1ULL << posFrom) ^ (1ULL << posTo);
@@ -296,9 +296,9 @@ void Board::undoMove(uint16_t move) {
     break;
     default: /// promotion
     {
-        int promPiece = getType(promoted(move) + KNIGHT, turn);
+        int promPiece = get_piece(promoted(move) + KNIGHT, turn);
 
-        piece = getType(PAWN, turn);
+        piece = get_piece(PAWN, turn);
 
         pieces[turn] ^= (1ULL << posFrom) ^ (1ULL << posTo);
         bb[piece] ^= (1ULL << posFrom);
@@ -320,7 +320,7 @@ void Board::undoMove(uint16_t move) {
     captured = history[gamePly].captured;
 }
 
-void Board::makeNullMove() {
+void Board::make_null_move() {
     history[gamePly].enPas = enPas;
     history[gamePly].castleRights = castleRights;
     history[gamePly].captured = captured;
@@ -344,7 +344,7 @@ void Board::makeNullMove() {
     moveIndex++;
 }
 
-void Board::undoNullMove() {
+void Board::undo_null_move() {
     turn ^= 1;
     ply--;
     gamePly--;
@@ -360,19 +360,19 @@ void Board::undoNullMove() {
     //NN.revertUpdates();
 }
 
-int genLegal(Board& board, uint16_t* moves) {
+int gen_legal_moves(Board& board, uint16_t* moves) {
     int nrMoves = 0;
     int color = board.turn, enemy = color ^ 1;
     int king = board.king(color), enemyKing = board.king(enemy);
     uint64_t pieces, mask, us = board.pieces[color], them = board.pieces[enemy];
     uint64_t b, b1, b2, b3;
     uint64_t attacked = 0, pinned = board.pinnedPieces; /// squares attacked by enemy / pinned pieces
-    uint64_t enemyOrthSliders = board.orthSliders(enemy), enemyDiagSliders = board.diagSliders(enemy);
+    uint64_t enemyOrthSliders = board.orthogonal_sliders(enemy), enemyDiagSliders = board.diagonal_sliders(enemy);
     uint64_t all = board.pieces[WHITE] | board.pieces[BLACK], emptySq = ~all;
 
     attacked |= pawnAttacks(board, enemy);
 
-    pieces = board.bb[getType(KNIGHT, enemy)];
+    pieces = board.bb[get_piece(KNIGHT, enemy)];
     while (pieces) {
         attacked |= knightBBAttacks[sq_lsb(pieces)];
     }
@@ -391,7 +391,7 @@ int genLegal(Board& board, uint16_t* moves) {
 
     b1 = kingBBAttacks[king] & ~(us | attacked);
 
-    moves = addMoves(moves, nrMoves, king, b1);
+    moves = add_moves(moves, nrMoves, king, b1);
 
     uint64_t notPinned = ~pinned, capMask = 0, quietMask = 0;
 
@@ -405,8 +405,8 @@ int genLegal(Board& board, uint16_t* moves) {
         switch (board.piece_type_at(sq)) {
         case PAWN:
             /// make en passant to cancel the check
-            if (board.enPas != -1 && board.checkers == (1ULL << (sqDir(enemy, NORTH, board.enPas)))) {
-                mask = pawnAttacksMask[enemy][board.enPas] & notPinned & board.bb[getType(PAWN, color)];
+            if (board.enPas != -1 && board.checkers == (1ULL << (sq_dir(enemy, NORTH, board.enPas)))) {
+                mask = pawnAttacksMask[enemy][board.enPas] & notPinned & board.bb[get_piece(PAWN, color)];
                 while (mask) {
                     *(moves++) = (getMove(sq_lsb(mask), board.enPas, 0, ENPASSANT));
                     nrMoves++;
@@ -426,8 +426,8 @@ int genLegal(Board& board, uint16_t* moves) {
         quietMask = ~all;
 
         if (board.enPas >= 0) {
-            int ep = board.enPas, sq2 = sqDir(color, SOUTH, ep);
-            b2 = pawnAttacksMask[enemy][ep] & board.bb[getType(PAWN, color)];
+            int ep = board.enPas, sq2 = sq_dir(color, SOUTH, ep);
+            b2 = pawnAttacksMask[enemy][ep] & board.bb[get_piece(PAWN, color)];
             b1 = b2 & notPinned;
             while (b1) {
                 b = lsb(b1);
@@ -489,24 +489,24 @@ int genLegal(Board& board, uint16_t* moves) {
         }
 
         /// for pinned pieces they move on the same line with the king
-        b1 = ~notPinned & board.diagSliders(color);
+        b1 = ~notPinned & board.diagonal_sliders(color);
         while (b1) {
             int sq = sq_lsb(b1);
             b2 = genAttacksBishop(all, sq) & Line[king][sq];
-            moves = addMoves(moves, nrMoves, sq, b2 & quietMask);
-            moves = addMoves(moves, nrMoves, sq, b2 & capMask);
+            moves = add_moves(moves, nrMoves, sq, b2 & quietMask);
+            moves = add_moves(moves, nrMoves, sq, b2 & capMask);
         }
-        b1 = ~notPinned & board.orthSliders(color);
+        b1 = ~notPinned & board.orthogonal_sliders(color);
         while (b1) {
             int sq = sq_lsb(b1);
             b2 = genAttacksRook(all, sq) & Line[king][sq];
-            moves = addMoves(moves, nrMoves, sq, b2 & quietMask);
-            moves = addMoves(moves, nrMoves, sq, b2 & capMask);
+            moves = add_moves(moves, nrMoves, sq, b2 & quietMask);
+            moves = add_moves(moves, nrMoves, sq, b2 & capMask);
         }
 
         /// pinned pawns
 
-        b1 = ~notPinned & board.bb[getType(PAWN, color)];
+        b1 = ~notPinned & board.bb[get_piece(PAWN, color)];
         while (b1) {
             int sq = sq_lsb(b1), rank7 = (color == WHITE ? 6 : 1), rank3 = (color == WHITE ? 2 : 5);
             if (sq / 8 == rank7) { /// promotion captures
@@ -521,16 +521,16 @@ int genLegal(Board& board, uint16_t* moves) {
             }
             else {
                 b2 = pawnAttacksMask[color][sq] & them & Line[king][sq];
-                moves = addMoves(moves, nrMoves, sq, b2);
+                moves = add_moves(moves, nrMoves, sq, b2);
 
                 /// single pawn push
-                b2 = (1ULL << (sqDir(color, NORTH, sq))) & emptySq & Line[king][sq];
+                b2 = (1ULL << (sq_dir(color, NORTH, sq))) & emptySq & Line[king][sq];
                 if (b2) {
                     *(moves++) = (getMove(sq, Sq(b2), 0, NEUT));
                     nrMoves++;
 
                     /// double pawn push
-                    b3 = (1ULL << (sqDir(color, NORTH, Sq(b2)))) & emptySq & Line[king][sq];
+                    b3 = (1ULL << (sq_dir(color, NORTH, Sq(b2)))) & emptySq & Line[king][sq];
                     if (b3 && Sq(b2) / 8 == rank3) {
                         *(moves++) = (getMove(sq, Sq(b3), 0, NEUT));
                         nrMoves++;
@@ -543,27 +543,27 @@ int genLegal(Board& board, uint16_t* moves) {
     /// not pinned pieces (excluding pawns)
     uint64_t mobMask = capMask | quietMask;
 
-    mask = board.bb[getType(KNIGHT, color)] & notPinned;
+    mask = board.bb[get_piece(KNIGHT, color)] & notPinned;
     while (mask) {
         int sq = sq_lsb(mask);
-        moves = addMoves(moves, nrMoves, sq, knightBBAttacks[sq] & mobMask);
+        moves = add_moves(moves, nrMoves, sq, knightBBAttacks[sq] & mobMask);
     }
 
-    mask = board.diagSliders(color) & notPinned;
+    mask = board.diagonal_sliders(color) & notPinned;
     while (mask) {
         int sq = sq_lsb(mask);
-        moves = addMoves(moves, nrMoves, sq, genAttacksBishop(all, sq) & mobMask);
+        moves = add_moves(moves, nrMoves, sq, genAttacksBishop(all, sq) & mobMask);
     }
 
-    mask = board.orthSliders(color) & notPinned;
+    mask = board.orthogonal_sliders(color) & notPinned;
     while (mask) {
         int sq = sq_lsb(mask);
-        moves = addMoves(moves, nrMoves, sq, genAttacksRook(all, sq) & mobMask);
+        moves = add_moves(moves, nrMoves, sq, genAttacksRook(all, sq) & mobMask);
     }
 
     int rank7 = (color == WHITE ? 6 : 1), rank3 = (color == WHITE ? 2 : 5);
     int fileA = (color == WHITE ? 0 : 7), fileH = 7 - fileA;
-    b1 = board.bb[getType(PAWN, color)] & notPinned & ~rankMask[rank7];
+    b1 = board.bb[get_piece(PAWN, color)] & notPinned & ~rankMask[rank7];
 
     b2 = shift(color, NORTH, b1) & ~all; /// single push
     b3 = shift(color, NORTH, b2 & rankMask[rank3]) & quietMask; /// double push
@@ -571,12 +571,12 @@ int genLegal(Board& board, uint16_t* moves) {
 
     while (b2) {
         int sq = sq_lsb(b2);
-        *(moves++) = (getMove(sqDir(color, SOUTH, sq), sq, 0, NEUT));
+        *(moves++) = (getMove(sq_dir(color, SOUTH, sq), sq, 0, NEUT));
         nrMoves++;
     }
     while (b3) {
-        int sq = sq_lsb(b3), sq2 = sqDir(color, SOUTH, sq);
-        *(moves++) = (getMove(sqDir(color, SOUTH, sq2), sq, 0, NEUT));
+        int sq = sq_lsb(b3), sq2 = sq_dir(color, SOUTH, sq);
+        *(moves++) = (getMove(sq_dir(color, SOUTH, sq2), sq, 0, NEUT));
         nrMoves++;
     }
 
@@ -586,23 +586,23 @@ int genLegal(Board& board, uint16_t* moves) {
 
     while (b2) {
         int sq = sq_lsb(b2);
-        *(moves++) = (getMove(sqDir(color, SOUTHEAST, sq), sq, 0, NEUT));
+        *(moves++) = (getMove(sq_dir(color, SOUTHEAST, sq), sq, 0, NEUT));
         nrMoves++;
     }
     while (b3) {
         int sq = sq_lsb(b3);
-        *(moves++) = (getMove(sqDir(color, SOUTHWEST, sq), sq, 0, NEUT));
+        *(moves++) = (getMove(sq_dir(color, SOUTHWEST, sq), sq, 0, NEUT));
         nrMoves++;
     }
 
-    b1 = board.bb[getType(PAWN, color)] & notPinned & rankMask[rank7];
+    b1 = board.bb[get_piece(PAWN, color)] & notPinned & rankMask[rank7];
     if (b1) {
         /// quiet promotions
         b2 = shift(color, NORTH, b1) & quietMask;
         while (b2) {
             int sq = sq_lsb(b2);
             for (int i = 0; i < 4; i++) {
-                *(moves++) = (getMove(sqDir(color, SOUTH, sq), sq, i, PROMOTION));
+                *(moves++) = (getMove(sq_dir(color, SOUTH, sq), sq, i, PROMOTION));
                 nrMoves++;
             }
         }
@@ -614,14 +614,14 @@ int genLegal(Board& board, uint16_t* moves) {
         while (b2) {
             int sq = sq_lsb(b2);
             for (int i = 0; i < 4; i++) {
-                *(moves++) = (getMove(sqDir(color, SOUTHEAST, sq), sq, i, PROMOTION));
+                *(moves++) = (getMove(sq_dir(color, SOUTHEAST, sq), sq, i, PROMOTION));
                 nrMoves++;
             }
         }
         while (b3) {
             int sq = sq_lsb(b3);
             for (int i = 0; i < 4; i++) {
-                *(moves++) = (getMove(sqDir(color, SOUTHWEST, sq), sq, i, PROMOTION));
+                *(moves++) = (getMove(sq_dir(color, SOUTHWEST, sq), sq, i, PROMOTION));
                 nrMoves++;
             }
         }
@@ -632,20 +632,20 @@ int genLegal(Board& board, uint16_t* moves) {
 
 /// noisy moves generator
 
-int genLegalNoisy(Board& board, uint16_t* moves) {
+int gen_legal_noisy_moves(Board& board, uint16_t* moves) {
     int nrMoves = 0;
     int color = board.turn, enemy = color ^ 1;
     int king = board.king(color), enemyKing = board.king(enemy);
     uint64_t pieces, mask, us = board.pieces[color], them = board.pieces[enemy];
     uint64_t b, b1, b2, b3;
     uint64_t attacked = 0, pinned = board.pinnedPieces; /// squares attacked by enemy / pinned pieces
-    uint64_t enemyOrthSliders = board.orthSliders(enemy), enemyDiagSliders = board.diagSliders(enemy);
+    uint64_t enemyOrthSliders = board.orthogonal_sliders(enemy), enemyDiagSliders = board.diagonal_sliders(enemy);
     uint64_t all = board.pieces[WHITE] | board.pieces[BLACK];
 
     if (kingBBAttacks[king] & them) {
         attacked |= pawnAttacks(board, enemy);
 
-        pieces = board.bb[getType(KNIGHT, enemy)];
+        pieces = board.bb[get_piece(KNIGHT, enemy)];
         while (pieces) {
             attacked |= knightBBAttacks[sq_lsb(pieces)];
         }
@@ -662,7 +662,7 @@ int genLegalNoisy(Board& board, uint16_t* moves) {
 
         attacked |= kingBBAttacks[enemyKing];
 
-        moves = addMoves(moves, nrMoves, king, kingBBAttacks[king] & ~(us | attacked) & them);
+        moves = add_moves(moves, nrMoves, king, kingBBAttacks[king] & ~(us | attacked) & them);
     }
 
     uint64_t notPinned = ~pinned, capMask = 0, quietMask = 0;
@@ -678,8 +678,8 @@ int genLegalNoisy(Board& board, uint16_t* moves) {
         switch (board.piece_type_at(sq)) {
         case PAWN:
             /// make en passant to cancel the check
-            if (board.enPas != -1 && board.checkers == (1ULL << (sqDir(enemy, NORTH, board.enPas)))) {
-                mask = pawnAttacksMask[enemy][board.enPas] & notPinned & board.bb[getType(PAWN, color)];
+            if (board.enPas != -1 && board.checkers == (1ULL << (sq_dir(enemy, NORTH, board.enPas)))) {
+                mask = pawnAttacksMask[enemy][board.enPas] & notPinned & board.bb[get_piece(PAWN, color)];
                 while (mask) {
                     *(moves++) = (getMove(sq_lsb(mask), board.enPas, 0, ENPASSANT));
                     nrMoves++;
@@ -699,8 +699,8 @@ int genLegalNoisy(Board& board, uint16_t* moves) {
         quietMask = ~all;
 
         if (board.enPas != -1) {
-            int ep = board.enPas, sq2 = sqDir(color, SOUTH, ep);
-            b2 = pawnAttacksMask[enemy][ep] & board.bb[getType(PAWN, color)];
+            int ep = board.enPas, sq2 = sq_dir(color, SOUTH, ep);
+            b2 = pawnAttacksMask[enemy][ep] & board.bb[get_piece(PAWN, color)];
             b1 = b2 & notPinned;
             while (b1) {
                 b = lsb(b1);
@@ -721,22 +721,22 @@ int genLegalNoisy(Board& board, uint16_t* moves) {
 
 
         /// for pinned pieces they move on the same line with the king
-        b1 = pinned & board.diagSliders(color);
+        b1 = pinned & board.diagonal_sliders(color);
         while (b1) {
             int sq = sq_lsb(b1);
             b2 = genAttacksBishop(all, sq) & Line[king][sq];
-            moves = addMoves(moves, nrMoves, sq, b2 & capMask);
+            moves = add_moves(moves, nrMoves, sq, b2 & capMask);
         }
-        b1 = pinned & board.orthSliders(color);
+        b1 = pinned & board.orthogonal_sliders(color);
         while (b1) {
             int sq = sq_lsb(b1);
             b2 = genAttacksRook(all, sq) & Line[king][sq];
-            moves = addMoves(moves, nrMoves, sq, b2 & capMask);
+            moves = add_moves(moves, nrMoves, sq, b2 & capMask);
         }
 
         /// pinned pawns
 
-        b1 = pinned & board.bb[getType(PAWN, color)];
+        b1 = pinned & board.bb[get_piece(PAWN, color)];
         while (b1) {
             b = lsb(b1);
             int sq = Sq(b), rank7 = (color == WHITE ? 6 : 1);
@@ -752,7 +752,7 @@ int genLegalNoisy(Board& board, uint16_t* moves) {
             }
             else {
                 b2 = pawnAttacksMask[color][sq] & capMask & Line[king][sq];
-                moves = addMoves(moves, nrMoves, sq, b2);
+                moves = add_moves(moves, nrMoves, sq, b2);
             }
             b1 ^= b;
         }
@@ -760,27 +760,27 @@ int genLegalNoisy(Board& board, uint16_t* moves) {
 
     /// not pinned pieces (excluding pawns)
 
-    mask = board.bb[getType(KNIGHT, color)] & notPinned;
+    mask = board.bb[get_piece(KNIGHT, color)] & notPinned;
     while (mask) {
         int sq = sq_lsb(mask);
-        moves = addMoves(moves, nrMoves, sq, knightBBAttacks[sq] & capMask);
+        moves = add_moves(moves, nrMoves, sq, knightBBAttacks[sq] & capMask);
     }
 
-    mask = board.diagSliders(color) & notPinned;
+    mask = board.diagonal_sliders(color) & notPinned;
     while (mask) {
         int sq = sq_lsb(mask);
-        moves = addMoves(moves, nrMoves, sq, genAttacksBishop(all, sq) & capMask);
+        moves = add_moves(moves, nrMoves, sq, genAttacksBishop(all, sq) & capMask);
     }
 
-    mask = board.orthSliders(color) & notPinned;
+    mask = board.orthogonal_sliders(color) & notPinned;
     while (mask) {
         int sq = sq_lsb(mask);
-        moves = addMoves(moves, nrMoves, sq, genAttacksRook(all, sq) & capMask);
+        moves = add_moves(moves, nrMoves, sq, genAttacksRook(all, sq) & capMask);
     }
 
     int rank7 = (color == WHITE ? 6 : 1);
     int fileA = (color == WHITE ? 0 : 7), fileH = 7 - fileA;
-    b1 = board.bb[getType(PAWN, color)] & notPinned & ~rankMask[rank7];
+    b1 = board.bb[get_piece(PAWN, color)] & notPinned & ~rankMask[rank7];
 
     b2 = shift(color, NORTHWEST, b1 & ~fileMask[fileA]) & capMask;
     b3 = shift(color, NORTHEAST, b1 & ~fileMask[fileH]) & capMask;
@@ -788,23 +788,23 @@ int genLegalNoisy(Board& board, uint16_t* moves) {
 
     while (b2) {
         int sq = sq_lsb(b2);
-        *(moves++) = (getMove(sqDir(color, SOUTHEAST, sq), sq, 0, NEUT));
+        *(moves++) = (getMove(sq_dir(color, SOUTHEAST, sq), sq, 0, NEUT));
         nrMoves++;
     }
     while (b3) {
         int sq = sq_lsb(b3);
-        *(moves++) = (getMove(sqDir(color, SOUTHWEST, sq), sq, 0, NEUT));
+        *(moves++) = (getMove(sq_dir(color, SOUTHWEST, sq), sq, 0, NEUT));
         nrMoves++;
     }
 
-    b1 = board.bb[getType(PAWN, color)] & notPinned & rankMask[rank7];
+    b1 = board.bb[get_piece(PAWN, color)] & notPinned & rankMask[rank7];
     if (b1) {
         /// quiet promotions
         b2 = shift(color, NORTH, b1) & quietMask;
         while (b2) {
             int sq = sq_lsb(b2);
             for (int i = 0; i < 4; i++) {
-                *(moves++) = (getMove(sqDir(color, SOUTH, sq), sq, i, PROMOTION));
+                *(moves++) = (getMove(sq_dir(color, SOUTH, sq), sq, i, PROMOTION));
                 nrMoves++;
             }
         }
@@ -816,14 +816,14 @@ int genLegalNoisy(Board& board, uint16_t* moves) {
         while (b2) {
             int sq = sq_lsb(b2);
             for (int i = 0; i < 4; i++) {
-                *(moves++) = (getMove(sqDir(color, SOUTHEAST, sq), sq, i, PROMOTION));
+                *(moves++) = (getMove(sq_dir(color, SOUTHEAST, sq), sq, i, PROMOTION));
                 nrMoves++;
             }
         }
         while (b3) {
             int sq = sq_lsb(b3);
             for (int i = 0; i < 4; i++) {
-                *(moves++) = (getMove(sqDir(color, SOUTHWEST, sq), sq, i, PROMOTION));
+                *(moves++) = (getMove(sq_dir(color, SOUTHWEST, sq), sq, i, PROMOTION));
                 nrMoves++;
             }
         }
@@ -834,19 +834,19 @@ int genLegalNoisy(Board& board, uint16_t* moves) {
 
 /// generate quiet moves
 
-int genLegalQuiets(Board& board, uint16_t* moves) {
+int gen_legal_quiet_moves(Board& board, uint16_t* moves) {
     int nrMoves = 0;
     int color = board.turn, enemy = color ^ 1;
     int king = board.king(color), enemyKing = board.king(enemy);
     uint64_t pieces, mask, us = board.pieces[color], them = board.pieces[enemy];
     uint64_t b1, b2, b3;
     uint64_t attacked = 0, pinned = board.pinnedPieces; /// squares attacked by enemy / pinned pieces
-    uint64_t enemyOrthSliders = board.orthSliders(enemy), enemyDiagSliders = board.diagSliders(enemy);
+    uint64_t enemyOrthSliders = board.orthogonal_sliders(enemy), enemyDiagSliders = board.diagonal_sliders(enemy);
     uint64_t all = board.pieces[WHITE] | board.pieces[BLACK], emptySq = ~all;
 
     attacked |= pawnAttacks(board, enemy);
 
-    pieces = board.bb[getType(KNIGHT, enemy)];
+    pieces = board.bb[get_piece(KNIGHT, enemy)];
     while (pieces) {
         attacked |= knightBBAttacks[sq_lsb(pieces)];
     }
@@ -863,7 +863,7 @@ int genLegalQuiets(Board& board, uint16_t* moves) {
 
     attacked |= kingBBAttacks[enemyKing];
 
-    moves = addMoves(moves, nrMoves, king, kingBBAttacks[king] & ~(us | attacked) & ~them);
+    moves = add_moves(moves, nrMoves, king, kingBBAttacks[king] & ~(us | attacked) & ~them);
 
     uint64_t notPinned = ~pinned, quietMask = 0;
 
@@ -923,30 +923,30 @@ int genLegalQuiets(Board& board, uint16_t* moves) {
         }
 
         /// for pinned pieces they move on the same line with the king
-        b1 = pinned & board.diagSliders(color);
+        b1 = pinned & board.diagonal_sliders(color);
         while (b1) {
             int sq = sq_lsb(b1);
-            moves = addMoves(moves, nrMoves, sq, genAttacksBishop(all, sq) & Line[king][sq] & quietMask);
+            moves = add_moves(moves, nrMoves, sq, genAttacksBishop(all, sq) & Line[king][sq] & quietMask);
         }
-        b1 = pinned & board.orthSliders(color);
+        b1 = pinned & board.orthogonal_sliders(color);
         while (b1) {
             int sq = sq_lsb(b1);
-            moves = addMoves(moves, nrMoves, sq, genAttacksRook(all, sq) & Line[king][sq] & quietMask);
+            moves = add_moves(moves, nrMoves, sq, genAttacksRook(all, sq) & Line[king][sq] & quietMask);
         }
 
         /// pinned pawns
-        b1 = pinned & board.bb[getType(PAWN, color)];
+        b1 = pinned & board.bb[get_piece(PAWN, color)];
         while (b1) {
             int sq = sq_lsb(b1), rank7 = (color == WHITE ? 6 : 1), rank3 = (color == WHITE ? 2 : 5);
             if (sq / 8 != rank7) {
                 /// single pawn push
-                b2 = (1ULL << (sqDir(color, NORTH, sq))) & emptySq & Line[king][sq];
+                b2 = (1ULL << (sq_dir(color, NORTH, sq))) & emptySq & Line[king][sq];
                 if (b2) {
                     *(moves++) = (getMove(sq, Sq(b2), 0, NEUT));
                     nrMoves++;
 
                     /// double pawn push
-                    b3 = (1ULL << (sqDir(color, NORTH, Sq(b2)))) & emptySq & Line[king][sq];
+                    b3 = (1ULL << (sq_dir(color, NORTH, Sq(b2)))) & emptySq & Line[king][sq];
                     if (b3 && Sq(b2) / 8 == rank3) {
                         *(moves++) = (getMove(sq, Sq(b3), 0, NEUT));
                         nrMoves++;
@@ -958,27 +958,27 @@ int genLegalQuiets(Board& board, uint16_t* moves) {
     }
 
     /// not pinned pieces (excluding pawns)
-    mask = board.bb[getType(KNIGHT, color)] & notPinned;
+    mask = board.bb[get_piece(KNIGHT, color)] & notPinned;
     while (mask) {
         int sq = sq_lsb(mask);
-        moves = addMoves(moves, nrMoves, sq, knightBBAttacks[sq] & quietMask);
+        moves = add_moves(moves, nrMoves, sq, knightBBAttacks[sq] & quietMask);
     }
 
-    mask = board.diagSliders(color) & notPinned;
+    mask = board.diagonal_sliders(color) & notPinned;
     while (mask) {
         int sq = sq_lsb(mask);
-        moves = addMoves(moves, nrMoves, sq, genAttacksBishop(all, sq) & quietMask);
+        moves = add_moves(moves, nrMoves, sq, genAttacksBishop(all, sq) & quietMask);
     }
 
-    mask = board.orthSliders(color) & notPinned;
+    mask = board.orthogonal_sliders(color) & notPinned;
     while (mask) {
         int sq = sq_lsb(mask);
-        moves = addMoves(moves, nrMoves, sq, genAttacksRook(all, sq) & quietMask);
+        moves = add_moves(moves, nrMoves, sq, genAttacksRook(all, sq) & quietMask);
     }
 
     const int rank7 = (color == WHITE ? 6 : 1), rank3 = (color == WHITE ? 2 : 5);
 
-    b1 = board.bb[getType(PAWN, color)] & notPinned & ~rankMask[rank7];
+    b1 = board.bb[get_piece(PAWN, color)] & notPinned & ~rankMask[rank7];
 
     b2 = shift(color, NORTH, b1) & ~all; /// single push
     b3 = shift(color, NORTH, b2 & rankMask[rank3]) & quietMask; /// double push
@@ -986,12 +986,12 @@ int genLegalQuiets(Board& board, uint16_t* moves) {
 
     while (b2) {
         int sq = sq_lsb(b2);
-        *(moves++) = (getMove(sqDir(color, SOUTH, sq), sq, 0, NEUT));
+        *(moves++) = (getMove(sq_dir(color, SOUTH, sq), sq, 0, NEUT));
         nrMoves++;
     }
     while (b3) {
-        int sq = sq_lsb(b3), sq2 = sqDir(color, SOUTH, sq);
-        *(moves++) = (getMove(sqDir(color, SOUTH, sq2), sq, 0, NEUT));
+        int sq = sq_lsb(b3), sq2 = sq_dir(color, SOUTH, sq);
+        *(moves++) = (getMove(sq_dir(color, SOUTH, sq2), sq, 0, NEUT));
         nrMoves++;
     }
 
@@ -1005,11 +1005,11 @@ inline bool isNoisyMove(Board& board, uint16_t move) {
     return board.isCapture(move);
 }
 
-bool isPseudoLegalMove(Board& board, uint16_t move) {
+bool is_pseudo_legal(Board& board, uint16_t move) {
     if (!move)
         return 0;
 
-    int from = sqFrom(move), to = sqTo(move), t = type(move), pt = board.piece_type_at(from), color = board.turn;
+    int from = sq_from(move), to = sq_to(move), t = type(move), pt = board.piece_type_at(from), color = board.turn;
     uint64_t own = board.pieces[color], enemy = board.pieces[1 ^ color], occ = board.pieces[WHITE] | board.pieces[BLACK];
 
     if (color != board.board[from] / 7) /// different color
@@ -1057,11 +1057,11 @@ bool isPseudoLegalMove(Board& board, uint16_t move) {
 
 }
 
-bool isLegalMoveSlow(Board& board, int move) {
+bool is_legal_slow(Board& board, int move) {
     uint16_t moves[256];
     int nrMoves = 0;
 
-    nrMoves = genLegal(board, moves);
+    nrMoves = gen_legal_moves(board, moves);
 
     for (int i = 0; i < nrMoves; i++) {
         if (move == moves[i])
@@ -1071,12 +1071,12 @@ bool isLegalMoveSlow(Board& board, int move) {
     return 0;
 }
 
-bool isLegalMove(Board& board, int move) {
-    if (!isPseudoLegalMove(board, move)) {
+bool is_legal(Board& board, int move) {
+    if (!is_pseudo_legal(board, move)) {
         return 0;
     }
 
-    int from = sqFrom(move), to = sqTo(move);
+    int from = sq_from(move), to = sq_to(move);
     bool us = board.turn, enemy = 1 ^ us;
     uint64_t all = board.pieces[WHITE] | board.pieces[BLACK];
     int king = board.king(us);
@@ -1112,11 +1112,11 @@ bool isLegalMove(Board& board, int move) {
     }
 
     if (type(move) == ENPASSANT) {
-        int cap = sqDir(us, SOUTH, to);
+        int cap = sq_dir(us, SOUTH, to);
 
         all ^= (1ULL << from) ^ (1ULL << to) ^ (1ULL << cap);
 
-        return !(genAttacksBishop(all, king) & board.diagSliders(enemy)) && !(genAttacksRook(all, king) & board.orthSliders(enemy));
+        return !(genAttacksBishop(all, king) & board.diagonal_sliders(enemy)) && !(genAttacksRook(all, king) & board.orthogonal_sliders(enemy));
     }
 
     if (board.piece_type_at(from) == KING)
@@ -1133,31 +1133,31 @@ bool isLegalMove(Board& board, int move) {
     return ((board.checkers & (board.checkers - 1)) ? false : (1ULL << to) & (board.checkers | between[king][Sq(board.checkers)]));
 }
 
-bool isLegalMoveDummy(Board& board, uint16_t move) {
-    if (!isPseudoLegalMove(board, move))
+bool is_legal_dummy(Board& board, uint16_t move) {
+    if (!is_pseudo_legal(board, move))
         return 0;
     if (type(move) == CASTLE)
-        return isLegalMove(board, move);
+        return is_legal(board, move);
     bool legal = false;
-    board.makeMove(move);
+    board.make_move(move);
     legal = !isSqAttacked(board, board.turn, board.king(board.turn ^ 1));
-    board.undoMove(move);
-    if (legal != isLegalMove(board, move)) {
+    board.undo_move(move);
+    if (legal != is_legal(board, move)) {
         board.print();
-        std::cout << toString(move, board.chess960) << " " << legal << " " << isLegalMoveSlow(board, move) << " " << isLegalMove(board, move) << "\n";
+        std::cout << move_to_string(move, board.chess960) << " " << legal << " " << is_legal_slow(board, move) << " " << is_legal(board, move) << "\n";
         exit(0);
     }
     return legal;
 }
 
-uint16_t parseMove(Board& board, std::string moveStr, Info *info) {
+uint16_t parse_move_string(Board& board, std::string moveStr, Info *info) {
     if (moveStr[1] > '8' || moveStr[1] < '1' || 
         moveStr[3] > '8' || moveStr[3] < '1' || 
         moveStr[0] > 'h' || moveStr[0] < 'a' || 
         moveStr[2] > 'h' || moveStr[2] < 'a')
         return NULLMOVE;
 
-    int from = getSq(moveStr[1] - '1', moveStr[0] - 'a');
+    int from = get_sq(moveStr[1] - '1', moveStr[0] - 'a');
     if (!info->chess960 && board.piece_type_at(from) == KING) {
         if (moveStr == "e1c1") moveStr = "e1a1";
         else if (moveStr == "e1g1") moveStr = "e1h1";
@@ -1165,14 +1165,14 @@ uint16_t parseMove(Board& board, std::string moveStr, Info *info) {
         else if (moveStr == "e8g8") moveStr = "e8h8";
     }
 
-    int to = getSq(moveStr[3] - '1', moveStr[2] - 'a');
+    int to = get_sq(moveStr[3] - '1', moveStr[2] - 'a');
 
     uint16_t moves[256];
-    int nrMoves = genLegal(board, moves);
+    int nrMoves = gen_legal_moves(board, moves);
 
     for (int i = 0; i < nrMoves; i++) {
         int move = moves[i];
-        if (sqFrom(move) == from && sqTo(move) == to) {
+        if (sq_from(move) == from && sq_to(move) == to) {
             int prom = promoted(move) + KNIGHT;
             if (type(move) == PROMOTION) {
                 if (prom == ROOK && moveStr[4] == 'r') {

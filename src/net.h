@@ -410,18 +410,18 @@ public:
     }
 
     void processMove(uint16_t move, int pieceFrom, int captured, int king, bool side, int16_t* a, int16_t* b) {
-        int posFrom = sqFrom(move), posTo = sqTo(move);
+        int posFrom = sq_from(move), posTo = sq_to(move);
         bool turn = color_of(pieceFrom);
         switch (type(move)) {
         case NEUT: {
             if (!captured)
-                applySubAdd(a, b, netInd(pieceFrom, posFrom, king, side), netInd(pieceFrom, posTo, king, side));
+                applySubAdd(a, b, net_index(pieceFrom, posFrom, king, side), net_index(pieceFrom, posTo, king, side));
             else
-                applySubAddSub(a, b, netInd(pieceFrom, posFrom, king, side), netInd(pieceFrom, posTo, king, side), netInd(captured, posTo, king, side));
+                applySubAddSub(a, b, net_index(pieceFrom, posFrom, king, side), net_index(pieceFrom, posTo, king, side), net_index(captured, posTo, king, side));
         }
         break;
         case CASTLE: {
-            int rFrom, rTo, rPiece = getType(ROOK, turn);
+            int rFrom, rTo, rPiece = get_piece(ROOK, turn);
             if (posTo > posFrom) { // king side castle
                 rFrom = posTo;
                 posTo = mirror(turn, G1);
@@ -432,27 +432,27 @@ public:
                 posTo = mirror(turn, C1);
                 rTo = mirror(turn, D1);
             }
-            applySubAddSubAdd(a, b, netInd(pieceFrom, posFrom, king, side), netInd(pieceFrom, posTo, king, side), netInd(rPiece, rFrom, king, side), netInd(rPiece, rTo, king, side));
+            applySubAddSubAdd(a, b, net_index(pieceFrom, posFrom, king, side), net_index(pieceFrom, posTo, king, side), net_index(rPiece, rFrom, king, side), net_index(rPiece, rTo, king, side));
         }
         break;
         case ENPASSANT: {
-            int pos = sqDir(turn, SOUTH, posTo), pieceCap = getType(PAWN, 1 ^ turn);
-            applySubAddSub(a, b, netInd(pieceFrom, posFrom, king, side), netInd(pieceFrom, posTo, king, side), netInd(pieceCap, pos, king, side));
+            int pos = sq_dir(turn, SOUTH, posTo), pieceCap = get_piece(PAWN, 1 ^ turn);
+            applySubAddSub(a, b, net_index(pieceFrom, posFrom, king, side), net_index(pieceFrom, posTo, king, side), net_index(pieceCap, pos, king, side));
         }
         break;
         default: {
-            int promPiece = getType(promoted(move) + KNIGHT, turn);
+            int promPiece = get_piece(promoted(move) + KNIGHT, turn);
             if (!captured)
-                applySubAdd(a, b, netInd(pieceFrom, posFrom, king, side), netInd(promPiece, posTo, king, side));
+                applySubAdd(a, b, net_index(pieceFrom, posFrom, king, side), net_index(promPiece, posTo, king, side));
             else
-                applySubAddSub(a, b, netInd(pieceFrom, posFrom, king, side), netInd(promPiece, posTo, king, side), netInd(captured, posTo, king, side));
+                applySubAddSub(a, b, net_index(pieceFrom, posFrom, king, side), net_index(promPiece, posTo, king, side), net_index(captured, posTo, king, side));
         }
         break;
         }
     }
 
     void addHistory(uint16_t move, uint8_t piece, uint8_t captured) {
-        hist[histSz] = { move, piece, captured, (piece_type(piece) == KING && recalc(sqFrom(move), specialSqTo(move), color_of(piece))), { 0, 0 } };
+        hist[histSz] = { move, piece, captured, (piece_type(piece) == KING && recalc(sq_from(move), special_sqto(move), color_of(piece))), { 0, 0 } };
         histSz++;
     }
 

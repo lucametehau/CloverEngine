@@ -1,6 +1,6 @@
 CC  = g++
 SRC = *.cpp Fathom/src/tbprobe.c
-EXE = Clover.6.1.1
+EXE = Clover.6.1.2
 EVALFILE = alpha.nnue
 
 ifeq ($(OS), Windows_NT)
@@ -72,6 +72,8 @@ avx512:
 	./$(EXE)-avx512$(EXT) bench 15
 	$(PGO_MERGE)
 	$(CC)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(PEXT_FLAGS) $(LIBS) $(AVX512FLAGS) -o $(EXE)-avx512$(EXT) $(PGO_USE)
+tune:
+	clang++ $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(NATIVEFLAGS) -DTUNE_FLAG -o $(EXE)$(EXT)
 
 release:
 	make old
