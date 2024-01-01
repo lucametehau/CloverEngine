@@ -55,12 +55,12 @@ void bringUpToDate(Board& board) {
 
                     uint64_t b = curr & ~prev; // additions
                     while (b) {
-                        NN->addInput(netInd(i, sq_lsb(b), kingSq, c));
+                        NN->addInput(net_index(i, sq_lsb(b), kingSq, c));
                     }
 
                     b = prev & ~curr; // removals
                     while (b) {
-                        NN->remInput(netInd(i, sq_lsb(b), kingSq, c));
+                        NN->remInput(net_index(i, sq_lsb(b), kingSq, c));
                     }
 
                     state->bb[i] = board.bb[i];

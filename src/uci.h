@@ -78,7 +78,6 @@ void UCI::uciLoop() {
     init(info);
     searcher.info = info;
 
-    //searcher.setThreadCount(1); /// 2 threads for debugging data races
     UciNewGame(ttSize);
     std::string input;
 
@@ -100,7 +99,7 @@ void UCI::uciLoop() {
 
             while (iss >> type) {
                 if (type == "startpos") {
-                    searcher._setFen(START_POS_FEN);
+                    searcher.set_fen(START_POS_FEN);
                 }
                 else if (type == "fen") {
                     std::string fen;
@@ -111,15 +110,15 @@ void UCI::uciLoop() {
                         fen += component + " ";
                     }
 
-                    searcher._setFen(fen, info->chess960);
+                    searcher.set_fen(fen, info->chess960);
                 }
                 else if (type == "moves") {
                     std::string moveStr;
 
                     while (iss >> moveStr) {
-                        int move = parseMove(searcher.board, moveStr, info);
+                        int move = parse_move_string(searcher.board, moveStr, info);
 
-                        searcher._makeMove(move);
+                        searcher.make_move(move);
                     }
                 }
             }
@@ -211,8 +210,8 @@ void UCI::uciLoop() {
         }
         else if (cmd == "quit") {
             Stop();
-            searcher.stopWorkerThreads();
-            searcher.killMainThread();
+            searcher.stop_workers();
+            searcher.kill_principal_search();
             return;
         }
         else if (cmd == "stop") {
@@ -224,8 +223,8 @@ void UCI::uciLoop() {
         else if (cmd == "checkmove") {
             std::string moveStr;
             iss >> moveStr;
-            uint16_t move = parseMove(searcher.board, moveStr, info);
-            std::cout << isLegalMove(searcher.board, move) << " " << isLegalMoveSlow(searcher.board, move) << "\n";
+            uint16_t move = parse_move_string(searcher.board, moveStr, info);
+            std::cout << is_legal(searcher.board, move) << " " << is_legal_slow(searcher.board, move) << "\n";
         }
         else if (cmd == "setoption") {
             std::string name, value;
@@ -250,7 +249,7 @@ void UCI::uciLoop() {
 
                 iss >> nrThreads;
 
-                searcher.setThreadCount(nrThreads - 1);
+                searcher.set_num_threads(nrThreads - 1);
                 UciNewGame(ttSize);
             }
             else if (name == "SyzygyPath") {
@@ -329,7 +328,7 @@ void UCI::uciLoop() {
             int th;
             iss >> mv >> th;
 
-            uint16_t move = parseMove(searcher.board, mv, info);
+            uint16_t move = parse_move_string(searcher.board, mv, info);
 
             std::cout << see(searcher.board, move, th) << std::endl;
         }
@@ -354,10 +353,10 @@ void UCI::Uci() {
 }
 
 void UCI::UciNewGame(uint64_t ttSize) {
-    searcher._setFen(START_POS_FEN);
+    searcher.set_fen(START_POS_FEN);
 
-    searcher.clearHistory();
-    searcher.clearStack();
+    searcher.clear_history();
+    searcher.clear_stack();
 
 #ifndef GENERATE
     TT->resetAge();
@@ -369,13 +368,13 @@ void UCI::Go(Info* info) {
 #ifndef GENERATE
     TT->age();
 #endif
-    searcher.clearStack();
-    searcher.clearBoard();
-    searcher.startPrincipalSearch(info);
+    searcher.clear_stack();
+    searcher.clear_board();
+    searcher.start_principal_search(info);
 }
 
 void UCI::Stop() {
-    searcher.stopPrincipalSearch();
+    searcher.stop_principal_search();
 }
 
 void UCI::Eval() {
@@ -479,7 +478,7 @@ void UCI::Bench(int depth) {
     uint64_t totalNodes = 0;
 
     for (auto& fen : benchPos) {
-        searcher._setFen(fen);
+        searcher.set_fen(fen);
 
         //std::cout << fen << "\n";
 
@@ -487,7 +486,7 @@ void UCI::Bench(int depth) {
         info->depth = (depth == -1 ? 12 : depth);
         info->startTime = getTime();
         info->nodes = -1;
-        searcher.startSearch(info);
+        searcher.start_search(info);
         totalNodes += searcher.nodes;
 
         UciNewGame(ttSize);

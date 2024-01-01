@@ -37,7 +37,7 @@ int getHistoryBonus(int depth) {
 }
 
 void updateMoveHistory(Search* searcher, StackEntry*& stack, uint16_t move, uint64_t threats, int16_t bonus) {
-    const int from = sqFrom(move), to = sqTo(move), piece = searcher->board.piece_at(from);
+    const int from = sq_from(move), to = sq_to(move), piece = searcher->board.piece_at(from);
 
     updateHist(searcher->hist[searcher->board.turn][!!(threats & (1ULL << from))][!!(threats & (1ULL << to))][fromTo(move)], bonus);
 
@@ -53,7 +53,7 @@ void updateMoveHistory(Search* searcher, StackEntry*& stack, uint16_t move, uint
 
 void updateCaptureMoveHistory(Search* searcher, uint16_t move, int16_t bonus) {
     assert(type(move) != CASTLE);
-    const int to = sqTo(move), from = sqFrom(move), cap = (type(move) == ENPASSANT ? PAWN : searcher->board.piece_type_at(to)), piece = searcher->board.piece_at(from);
+    const int to = sq_to(move), from = sq_from(move), cap = (type(move) == ENPASSANT ? PAWN : searcher->board.piece_type_at(to)), piece = searcher->board.piece_at(from);
 
     updateCapHist(searcher->capHist[piece][to][cap], bonus);
 }
@@ -64,7 +64,7 @@ void updateHistory(Search* searcher, StackEntry* stack, int nrQuiets, int ply, u
 
     const uint16_t counterMove = (stack - 1)->move;
     const int counterPiece = (stack - 1)->piece;
-    const int counterTo = sqTo(counterMove);
+    const int counterTo = sq_to(counterMove);
 
     const uint16_t best = stack->quiets[nrQuiets - 1];
 
@@ -79,20 +79,20 @@ void updateHistory(Search* searcher, StackEntry* stack, int nrQuiets, int ply, u
 void updateCapHistory(Search* searcher, StackEntry* stack, int nrCaptures, uint16_t best, int ply, int16_t bonus) {
     for (int i = 0; i < nrCaptures; i++) {
         const int move = stack->captures[i], score = (move == best ? bonus : -bonus);
-        const int from = sqFrom(move), to = sqTo(move), piece = searcher->board.piece_at(from);
+        const int from = sq_from(move), to = sq_to(move), piece = searcher->board.piece_at(from);
         const int cap = (type(move) == ENPASSANT ? PAWN : searcher->board.piece_type_at(to));
         updateCapHist(searcher->capHist[piece][to][cap], score);
     }
 }
 
 int16_t getCapHist(Search* searcher, uint16_t move) {
-    const int from = sqFrom(move), to = sqTo(move), piece = searcher->board.piece_at(from);
+    const int from = sq_from(move), to = sq_to(move), piece = searcher->board.piece_at(from);
     const int cap = (type(move) == ENPASSANT ? PAWN : searcher->board.piece_type_at(to));
     return searcher->capHist[piece][to][cap];
 }
 
 void getHistory(Search* searcher, StackEntry* stack, uint16_t move, uint64_t threats, int &hist) {
-    const int from = sqFrom(move), to = sqTo(move), piece = searcher->board.piece_at(from);
+    const int from = sq_from(move), to = sq_to(move), piece = searcher->board.piece_at(from);
 
     hist = searcher->hist[searcher->board.turn][!!(threats & (1ULL << from))][!!(threats & (1ULL << to))][fromTo(move)];
 

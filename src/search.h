@@ -28,11 +28,9 @@
 
 template <bool checkTime>
 bool Search::checkForStop() {
-    if (!principalSearcher)
-        return 0;
+    if (!principalSearcher) return 0;
 
-    if (flag & TERMINATED_SEARCH)
-        return 1;
+    if (flag & TERMINATED_SEARCH) return 1;
 
     if (SMPThreadExit || (info->nodes != -1 && info->nodes <= (int64_t)nodes)) {
         flag |= TERMINATED_BY_LIMITS;
@@ -43,8 +41,7 @@ bool Search::checkForStop() {
 
     if (checkCount == (1 << 10)) {
         if constexpr (checkTime) {
-            if (info->timeset && getTime() > info->startTime + info->hardTimeLim && !info->ponder)
-                flag |= TERMINATED_BY_LIMITS;
+            if (info->timeset && getTime() > info->startTime + info->hardTimeLim && !info->ponder) flag |= TERMINATED_BY_LIMITS;
         }
         checkCount = 0;
     }
@@ -90,13 +87,13 @@ uint32_t probe_TB(Board& board, int depth, bool probeAtRoot = 0, int halfMoves =
 
 Threats getThreats(Board& board, const bool us) {
     const bool enemy = 1 ^ us;
-    uint64_t ourPieces = board.pieces[us] ^ board.bb[getType(PAWN, us)];
-    uint64_t att = getPawnAttacks(enemy, board.bb[getType(PAWN, enemy)]), attPieces = att & ourPieces;
+    uint64_t ourPieces = board.pieces[us] ^ board.bb[get_piece(PAWN, us)];
+    uint64_t att = getPawnAttacks(enemy, board.bb[get_piece(PAWN, enemy)]), attPieces = att & ourPieces;
     uint64_t pieces, b, all = board.pieces[WHITE] | board.pieces[BLACK];
 
-    ourPieces ^= board.bb[getType(KNIGHT, us)] | board.bb[getType(BISHOP, us)];
+    ourPieces ^= board.bb[get_piece(KNIGHT, us)] | board.bb[get_piece(BISHOP, us)];
 
-    pieces = board.bb[getType(KNIGHT, enemy)];
+    pieces = board.bb[get_piece(KNIGHT, enemy)];
     while (pieces) {
         b = lsb(pieces);
         att |= knightBBAttacks[Sq(b)];
@@ -104,7 +101,7 @@ Threats getThreats(Board& board, const bool us) {
         pieces ^= b;
     }
 
-    pieces = board.bb[getType(BISHOP, enemy)];
+    pieces = board.bb[get_piece(BISHOP, enemy)];
     while (pieces) {
         b = lsb(pieces);
         att |= genAttacksBishop(all, Sq(b));
@@ -112,9 +109,9 @@ Threats getThreats(Board& board, const bool us) {
         pieces ^= b;
     }
 
-    ourPieces ^= board.bb[getType(ROOK, us)];
+    ourPieces ^= board.bb[get_piece(ROOK, us)];
 
-    pieces = board.bb[getType(ROOK, enemy)];
+    pieces = board.bb[get_piece(ROOK, enemy)];
     while (pieces) {
         b = lsb(pieces);
         att |= genAttacksRook(all, Sq(b));
@@ -122,7 +119,7 @@ Threats getThreats(Board& board, const bool us) {
         pieces ^= b;
     }
 
-    pieces = board.bb[getType(QUEEN, enemy)];
+    pieces = board.bb[get_piece(QUEEN, enemy)];
     while (pieces) {
         b = lsb(pieces);
         att |= genAttacksRook(all, Sq(b));
@@ -135,53 +132,44 @@ Threats getThreats(Board& board, const bool us) {
 }
 
 std::string getSanString(Board& board, uint16_t move) {
-    if (type(move) == CASTLE)
-        return (sqTo(move) > sqFrom(move) ? "O-O" : "O-O-O");
-    int from = sqFrom(move), to = sqTo(move), prom = (type(move) == PROMOTION ? promoted(move) + KNIGHT + 6 : 0), piece = board.piece_type_at(from);
+    if (type(move) == CASTLE) return (sq_to(move) > sq_from(move) ? "O-O" : "O-O-O");
+    int from = sq_from(move), to = sq_to(move), prom = (type(move) == PROMOTION ? promoted(move) + KNIGHT + 6 : 0), piece = board.piece_type_at(from);
     std::string san;
 
-    if (piece != PAWN) {
-        san += pieceChar[piece + 6];
-    }
-    else {
-        san += char('a' + (from & 7));
-    }
-    if (board.isCapture(move))
-        san += "x";
-    if (piece != PAWN || board.isCapture(move))
-        san += char('a' + (to & 7));
+    if (piece != PAWN) san += pieceChar[piece + 6];
+    else san += char('a' + (from & 7));
+    if (board.isCapture(move)) san += "x";
+    if (piece != PAWN || board.isCapture(move)) san += char('a' + (to & 7));
+
     san += char('1' + (to >> 3));
-
-    if (prom)
-        san += "=", san += pieceChar[prom];
-
-    board.makeMove(move);
-    if (board.checkers)
-        san += '+';
-    board.undoMove(move);
+    
+    if (prom) san += "=", san += pieceChar[prom];
+    
+    board.make_move(move);
+    if (board.checkers) san += '+';
+    board.undo_move(move);
+    
     return san;
 }
 
 void Search::printPv() {
     for (int i = 0; i < pvTableLen[0]; i++) {
         if (!info->sanMode)
-            std::cout << toString(pvTable[0][i], info->chess960) << " ";
+            std::cout << move_to_string(pvTable[0][i], info->chess960) << " ";
         else {
             std::cout << getSanString(board, pvTable[0][i]) << " ";
-            board.makeMove(pvTable[0][i]);
+            board.make_move(pvTable[0][i]);
         }
     }
 
     if (info->sanMode) {
-        for (int i = pvTableLen[0] - 1; i >= 0; i--)
-            board.undoMove(pvTable[0][i]);
+        for (int i = pvTableLen[0] - 1; i >= 0; i--) board.undo_move(pvTable[0][i]);
     }
 }
 
-void Search::updatePv(int ply, int move) {
+void Search::update_pv(int ply, int move) {
     pvTable[ply][0] = move;
-    for (int i = 0; i < pvTableLen[ply + 1]; i++)
-        pvTable[ply][i + 1] = pvTable[ply + 1][i];
+    for (int i = 0; i < pvTableLen[ply + 1]; i++) pvTable[ply][i + 1] = pvTable[ply + 1][i];
     pvTableLen[ply] = 1 + pvTableLen[ply + 1];
 }
 
@@ -189,19 +177,16 @@ template <bool pvNode>
 int Search::quiesce(int alpha, int beta, StackEntry* stack) {
     const int ply = board.ply;
 
-    if (ply >= DEPTH)
-        return evaluate(board);
+    if (ply >= DEPTH) return evaluate(board);
 
     pvTableLen[ply] = 0;
 
     nodes++;
     qsNodes++;
 
-    if (board.isDraw(ply)) /// check for draw
-        return 1 - (nodes & 2);
+    if (board.is_draw(ply)) return 1 - (nodes & 2);
 
-    if (checkForStop<false>())
-        return evaluate(board);
+    if (checkForStop<false>()) return evaluate(board);
 
     const uint64_t key = board.key;
     int score = 0, best = -INF, alphaOrig = alpha;
@@ -219,19 +204,15 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack) {
         ttValue = score = entry.value(ply);
         bound = entry.bound();
         ttMove = entry.move;
-
         wasPV |= entry.wasPV();
-
         if constexpr (!pvNode) {
-            if ((bound == EXACT || (bound == LOWER && score >= beta) || (bound == UPPER && score <= alpha)))
-                return score;
+            if ((bound == EXACT || (bound == LOWER && score >= beta) || (bound == UPPER && score <= alpha))) return score;
         }
     }
 
     const bool isCheck = (board.checkers != 0);
     Threats threatsEnemy{};
-    if (isCheck)
-        threatsEnemy = getThreats(board, board.turn);
+    if (isCheck) threatsEnemy = getThreats(board, board.turn);
     int futilityValue;
 
     if (isCheck) {
@@ -244,21 +225,15 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack) {
     }
     else { /// ttValue might be a better evaluation
         stack->eval = eval;
-        if (bound == EXACT || (bound == LOWER && ttValue > eval) || (bound == UPPER && ttValue < eval))
-            best = ttValue;
-
+        if (bound == EXACT || (bound == LOWER && ttValue > eval) || (bound == UPPER && ttValue < eval)) best = ttValue;
         futilityValue = best + QuiesceFutilityBias;
     }
 
     /// stand-pat
-    if (best >= beta) {
-        return best;
-    }
+    if (best >= beta) return best;
 
     /// delta pruning
-    if (!isCheck && best + DeltaPruningMargin < alpha) {
-        return alpha;
-    }
+    if (!isCheck && best + DeltaPruningMargin < alpha) return alpha;
 
     alpha = std::max(alpha, best);
 
@@ -271,54 +246,44 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack) {
     uint16_t move;
     int played = 0;
 
-    while ((move = noisyPicker.nextMove(this, stack, board, !isCheck, true))) {
+    while ((move = noisyPicker.get_next_move(this, stack, board, !isCheck, true))) {
         // futility pruning
         played++;
-        if (played == 4)
-            break;
+        if (played == 4) break;
         if (played > 1) {
             if (futilityValue > -MATE) {
-                const int value = futilityValue + seeVal[board.piece_type_at(sqTo(move))];
+                const int value = futilityValue + seeVal[board.piece_type_at(sq_to(move))];
                 if (type(move) != PROMOTION && value <= alpha) {
                     best = std::max(best, value);
                     continue;
                 }
             }
-
-            if (isCheck) {
-                break;
-            }
+            if (isCheck) break;
         }
         // update stack info
-        TT->prefetch(board.nextKey(move));
+        TT->prefetch(board.speculative_next_key(move));
         stack->move = move;
-        stack->piece = board.piece_at(sqFrom(move));
-        stack->continuationHist = &continuationHistory[!isNoisyMove(board, move)][stack->piece][sqTo(move)];
+        stack->piece = board.piece_at(sq_from(move));
+        stack->continuationHist = &continuationHistory[!isNoisyMove(board, move)][stack->piece][sq_to(move)];
 
-        board.makeMove(move);
+        board.make_move(move);
         score = -quiesce<pvNode>(-beta, -alpha, stack + 1);
-        board.undoMove(move);
+        board.undo_move(move);
 
-        if (flag & TERMINATED_SEARCH)
-            return best;
+        if (flag & TERMINATED_SEARCH) return best;
 
         if (score > best) {
             best = score;
             bestMove = move;
-
             if (score > alpha) {
                 alpha = score;
-                updatePv(ply, move);
-
-                if (alpha >= beta)
-                    break;
+                update_pv(ply, move);
+                if (alpha >= beta) break;
             }
         }
     }
 
-    if (isCheck && best == -INF) {
-        return -INF + ply;
-    }
+    if (isCheck && best == -INF) return -INF + ply;
 
     /// store info in transposition table
     bound = (best >= beta ? LOWER : (best > alphaOrig ? EXACT : UPPER));
@@ -330,14 +295,11 @@ template <bool pvNode>
 int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* stack) {
     const int ply = board.ply;
 
-    if (checkForStop<true>())
-        return evaluate(board);
+    if (checkForStop<true>()) return evaluate(board);
 
-    if (ply >= DEPTH)
-        return evaluate(board);
+    if (ply >= DEPTH) return evaluate(board);
 
-    if (depth <= 0)
-        return quiesce<pvNode>(alpha, beta, stack);
+    if (depth <= 0) return quiesce<pvNode>(alpha, beta, stack);
 
     const bool allNode = (!pvNode && !cutNode);
     const bool nullSearch = ((stack - 1)->move == NULLMOVE);
@@ -356,13 +318,11 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
 
     pvTableLen[ply] = 0;
 
-    if (board.isDraw(ply))
-        return 1 - (nodes & 2); /// beal effect apparently, credit to Ethereal for this
+    if (board.is_draw(ply)) return 1 - (nodes & 2); /// beal effect, credit to Ethereal for this
 
     /// mate distance pruning   
     alpha = std::max(alpha, -INF + ply), beta = std::min(beta, INF - ply - 1);
-    if (alpha >= beta)
-        return alpha;
+    if (alpha >= beta) return alpha;
 
     Entry entry{};
 
@@ -378,8 +338,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         eval = entry.eval;
         wasPV |= entry.wasPV();
         if constexpr (!pvNode) {
-            if (entry.depth() >= depth && (bound == EXACT || (bound == LOWER && score >= beta) || (bound == UPPER && score <= alpha)))
-                return score;
+            if (entry.depth() >= depth && (bound == EXACT || (bound == LOWER && score >= beta) || (bound == UPPER && score <= alpha))) return score;
         }
     }
 
@@ -418,15 +377,12 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         stack->eval = eval = INF;
     }
     else if (!ttHit) { /// if we are in a singular search, we already know the evaluation
-        if (stack->excluded)
-            eval = stack->eval;
-        else
-            stack->eval = eval = evaluate(board);
+        if (stack->excluded) eval = stack->eval;
+        else stack->eval = eval = evaluate(board);
     }
     else { /// ttValue might be a better evaluation
         stack->eval = eval;
-        if (bound == EXACT || (bound == LOWER && ttValue > eval) || (bound == UPPER && ttValue < eval))
-            eval = ttValue;
+        if (bound == EXACT || (bound == LOWER && ttValue > eval) || (bound == UPPER && ttValue < eval)) eval = ttValue;
     }
 
     const int staticEval = stack->eval;
@@ -442,34 +398,27 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
             // razoring
             if (depth <= RazoringDepth && eval + RazoringMargin * depth <= alpha) {
                 int value = quiesce<false>(alpha, alpha + 1, stack);
-                if (value <= alpha)
-                    return value;
+                if (value <= alpha) return value;
             }
 
             /// static null move pruning (don't prune when having a mate line, again stability)
-            if (depth <= SNMPDepth && eval > beta && eval - (SNMPMargin - SNMPImproving * improving) * (depth - quietUs) > beta && eval < MATE) {
-                return eval;
-            }
+            if (depth <= SNMPDepth && eval > beta && eval - (SNMPMargin - SNMPImproving * improving) * (depth - quietUs) > beta && eval < MATE) return eval;
 
             /// null move pruning (when last move wasn't null, we still have non pawn material, we have a good position)
             if (!nullSearch && !stack->excluded && (quietUs || eval - 100 * depth > beta) &&
                 eval >= beta + NMPEvalMargin * (depth <= 3) && eval >= staticEval &&
-                board.hasNonPawnMaterial(board.turn)) {
+                board.has_non_pawn_material(board.turn)) {
                 int R = NMPReduction + depth / NMPDepthDiv + (eval - beta) / NMPEvalDiv + improving;
 
                 stack->move = NULLMOVE;
                 stack->piece = 0;
                 stack->continuationHist = &continuationHistory[0][0][0];
 
-                board.makeNullMove();
-
+                board.make_null_move();
                 int score = -search<false>(-beta, -beta + 1, depth - R, !cutNode, stack + 1);
+                board.undo_null_move();
 
-                board.undoNullMove();
-
-                if (score >= beta) {
-                    return (abs(score) > MATE ? beta : score); /// don't trust mate scores
-                }
+                if (score >= beta) return (abs(score) > MATE ? beta : score); /// don't trust mate scores
             }
 
             // probcut
@@ -482,21 +431,20 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                     threatsEnemy.threatsEnemy);
 
                 uint16_t move;
-                while ((move = picker.nextMove(this, stack, board, true, true)) != NULLMOVE) {
+                while ((move = picker.get_next_move(this, stack, board, true, true)) != NULLMOVE) {
                     if (move == stack->excluded)
                         continue;
 
                     stack->move = move;
-                    stack->piece = board.piece_at(sqFrom(move));
-                    stack->continuationHist = &continuationHistory[0][stack->piece][sqTo(move)];
+                    stack->piece = board.piece_at(sq_from(move));
+                    stack->continuationHist = &continuationHistory[0][stack->piece][sq_to(move)];
 
-                    board.makeMove(move);
+                    board.make_move(move);
 
                     int score = -quiesce<false>(-probBeta, -probBeta + 1, stack + 1);
 
-                    if (score >= probBeta)
-                        score = -search<false>(-probBeta, -probBeta + 1, depth - ProbcutReduction, !cutNode, stack + 1);
-                    board.undoMove(move);
+                    if (score >= probBeta) score = -search<false>(-probBeta, -probBeta + 1, depth - ProbcutReduction, !cutNode, stack + 1);
+                    board.undo_move(move);
 
                     if (score >= probBeta) {
                         TT->save(key, score, depth - 3, ply, LOWER, move, staticEval, wasPV);
@@ -508,22 +456,20 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
     }
 
     /// internal iterative deepening (search at reduced depth to find a ttMove) (Rebel like)
+    if (pvNode && depth >= IIRPvNodeDepth && !ttHit) depth -= IIRPvNodeReduction;
     /// also for cut nodes
-    if (pvNode && depth >= IIRPvNodeDepth && !ttHit)
-        depth -= IIRPvNodeReduction;
-    if (cutNode && depth >= IIRCutNodeDepth && !ttHit)
-        depth -= IIRCutNodeReduction;
+    if (cutNode && depth >= IIRCutNodeDepth && !ttHit) depth -= IIRCutNodeReduction;
 
     Movepick picker(ttMove,
         stack->killer,
-        nullSearch ? NULLMOVE : cmTable[(stack - 1)->piece][sqTo((stack - 1)->move)], // counter
+        nullSearch ? NULLMOVE : cmTable[(stack - 1)->piece][sq_to((stack - 1)->move)], // counter
         -PVSSeeDepthCoef * depth,
         threatsEnemy.threatsEnemy);
 
     uint16_t move;
     const bool ttCapture = ttMove && isNoisyMove(board, ttMove);
 
-    while ((move = picker.nextMove(this, stack, board, skip, false)) != NULLMOVE) {
+    while ((move = picker.get_next_move(this, stack, board, skip, false)) != NULLMOVE) {
 
         if (move == stack->excluded)
             continue;
@@ -534,7 +480,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         /// quiet move pruning
 
 #ifdef GENERATE
-        if (best > -MATE && board.hasNonPawnMaterial(board.turn) && !pvNode) {
+        if (best > -MATE && board.has_non_pawn_material(board.turn) && !pvNode) {
             if (isQuiet) {
                 getHistory(this, stack, move, threatsEnemy.threatsEnemy, hist);
 
@@ -542,26 +488,21 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                 int newDepth = std::max(0, depth - lmrRed[std::min(63, depth)][std::min(63, played)] + improving);
 
                 /// futility pruning
-                if (newDepth <= FPDepth && !isCheck && staticEval + FPBias + FPMargin * newDepth <= alpha)
-                    skip = 1;
+                if (newDepth <= FPDepth && !isCheck && staticEval + FPBias + FPMargin * newDepth <= alpha) skip = 1;
 
                 /// late move pruning
-                if (newDepth <= LMPDepth && played >= (LMPBias + newDepth * newDepth) / (2 - improving))
-                    skip = 1;
+                if (newDepth <= LMPDepth && played >= (LMPBias + newDepth * newDepth) / (2 - improving)) skip = 1;
 
-                if (depth <= SEEPruningQuietDepth && !isCheck && !see(board, move, -SEEPruningQuietMargin * depth))
-                    continue;
+                if (depth <= SEEPruningQuietDepth && !isCheck && !see(board, move, -SEEPruningQuietMargin * depth)) continue;
             }
             else {
-                if (depth <= SEEPruningNoisyDepth && !isCheck && picker.trueStage > STAGE_GOOD_NOISY && !see(board, move, -SEEPruningNoisyMargin * depth * depth))
-                    continue;
+                if (depth <= SEEPruningNoisyDepth && !isCheck && picker.trueStage > STAGE_GOOD_NOISY && !see(board, move, -SEEPruningNoisyMargin * depth * depth)) continue;
 
-                if (depth <= FPNoisyDepth && !isCheck && staticEval + FPBias + seeVal[board.piece_type_at(sqTo(move))] + FPMargin * depth <= alpha)
-                    continue;
+                if (depth <= FPNoisyDepth && !isCheck && staticEval + FPBias + seeVal[board.piece_type_at(sq_to(move))] + FPMargin * depth <= alpha) continue;
             }
         }
 #else
-        if (best > -MATE && board.hasNonPawnMaterial(board.turn)) {
+        if (best > -MATE && board.has_non_pawn_material(board.turn)) {
             if (isQuiet) {
                 getHistory(this, stack, move, threatsEnemy.threatsEnemy, hist);
 
@@ -569,22 +510,17 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                 int newDepth = std::max(0, depth - lmrRed[std::min(63, depth)][std::min(63, played)] + improving);
 
                 /// futility pruning
-                if (newDepth <= FPDepth && !isCheck && staticEval + FPBias + FPMargin * newDepth <= alpha)
-                    skip = 1;
+                if (newDepth <= FPDepth && !isCheck && staticEval + FPBias + FPMargin * newDepth <= alpha) skip = 1;
 
                 /// late move pruning
-                if (newDepth <= LMPDepth && played >= (LMPBias + newDepth * newDepth) / (2 - improving))
-                    skip = 1;
+                if (newDepth <= LMPDepth && played >= (LMPBias + newDepth * newDepth) / (2 - improving)) skip = 1;
 
-                if (depth <= SEEPruningQuietDepth && !isCheck && !see(board, move, -SEEPruningQuietMargin * depth))
-                    continue;
+                if (depth <= SEEPruningQuietDepth && !isCheck && !see(board, move, -SEEPruningQuietMargin * depth)) continue;
             }
             else {
-                if (depth <= SEEPruningNoisyDepth && !isCheck && picker.trueStage > STAGE_GOOD_NOISY && !see(board, move, -SEEPruningNoisyMargin * depth * depth))
-                    continue;
+                if (depth <= SEEPruningNoisyDepth && !isCheck && picker.trueStage > STAGE_GOOD_NOISY && !see(board, move, -SEEPruningNoisyMargin * depth * depth)) continue;
 
-                if (depth <= FPNoisyDepth && !isCheck && staticEval + FPBias + seeVal[board.piece_type_at(sqTo(move))] + FPMargin * depth <= alpha)
-                    continue;
+                if (depth <= FPNoisyDepth && !isCheck && staticEval + FPBias + seeVal[board.piece_type_at(sq_to(move))] + FPMargin * depth <= alpha) continue;
             }
         }
 #endif
@@ -600,27 +536,21 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                 int score = search<false>(rBeta - 1, rBeta, (depth - 1) / 2, cutNode, stack);
                 stack->excluded = NULLMOVE;
 
-                if (score < rBeta)
-                    ex = 1 + (!pvNode && rBeta - score > SEDoubleExtensionsMargin);
-                else if (rBeta >= beta) /// multicut
-                    return rBeta;
-                else if (ttValue >= beta || ttValue <= alpha)
-                    ex = -1 - !pvNode;
+                if (score < rBeta) ex = 1 + (!pvNode && rBeta - score > SEDoubleExtensionsMargin);
+                else if (rBeta >= beta) return rBeta; // multicut
+                else if (ttValue >= beta || ttValue <= alpha) ex = -1 - !pvNode;
             }
-            else if (isCheck) {
-                ex = 1;
-            }
+            else if (isCheck) ex = 1;
         }
-        else if (allNode && played >= 1 && entry.depth() >= depth - 3 && bound == UPPER)
-            ex = -1;
+        else if (allNode && played >= 1 && entry.depth() >= depth - 3 && bound == UPPER) ex = -1;
 
         /// update stack info
-        TT->prefetch(board.nextKey(move));
+        TT->prefetch(board.speculative_next_key(move));
         stack->move = move;
-        stack->piece = board.piece_at(sqFrom(move));
-        stack->continuationHist = &continuationHistory[isQuiet][stack->piece][sqTo(move)];
+        stack->piece = board.piece_at(sq_from(move));
+        stack->continuationHist = &continuationHistory[isQuiet][stack->piece][sq_to(move)];
 
-        board.makeMove(move);
+        board.make_move(move);
         played++;
 
         /// store quiets for history
@@ -637,28 +567,18 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         if (depth >= 3 && played > 1 + pvNode) { /// first few moves we don't reduce
             if (isQuiet) {
                 R = lmrRed[std::min(63, depth)][std::min(63, played)];
-
                 R += !wasPV + (improving <= 0); /// not on pv or not improving
-
                 R -= pvNode;
-
                 R += ttCapture;
-
                 R += quietUs && !isCheck && eval - seeVal[KNIGHT] > beta; /// if the position is relatively quiet and eval is bigger than beta by a margin
-
                 R += quietUs && !isCheck && staticEval - rootEval > EvalDifferenceReductionMargin && ply % 2 == 0; /// the position in quiet and static eval is way bigger than root eval
-
                 R -= 2 * refutationMove; /// reduce for refutation moves
-
                 R -= board.checkers != 0; /// move gives check
-
                 R -= hist / HistReductionDiv; /// reduce based on move history
             }
             else if (!wasPV) {
                 R = lmrRedNoisy[std::min(63, depth)][std::min(63, played)];
-
                 R += improving <= 0; /// not improving
-
                 R += quietUs && picker.trueStage == STAGE_BAD_NOISY; /// if the position is relatively quiet and the capture is "very losing"
             }
 
@@ -679,8 +599,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                 score = -search<true>(-beta, -alpha, newDepth - 1, false, stack + 1);
         }
 
-        board.undoMove(move);
-
+        board.undo_move(move);
         nodesSearched[!isQuiet][fromTo(move)] += nodes - initNodes;
 
         if (flag & TERMINATED_SEARCH) /// stop search
@@ -689,12 +608,9 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         if (score > best) {
             best = score;
             bestMove = move;
-
             if (score > alpha) {
                 alpha = score;
-
-                updatePv(ply, move);
-
+                update_pv(ply, move);
                 if (alpha >= beta) {
                     break;
                 }
@@ -725,7 +641,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
     return best;
 }
 
-int Search::rootSearch(int alpha, int beta, int depth, int multipv, StackEntry* stack) {
+int Search::root_search(int alpha, int beta, int depth, int multipv, StackEntry* stack) {
     if (checkForStop<true>())
         return evaluate(board);
 
@@ -780,16 +696,14 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv, StackEntry* 
 
     uint16_t move;
 
-    while ((move = picker.nextMove(this, stack, board, false, false)) != NULLMOVE) {
+    while ((move = picker.get_next_move(this, stack, board, false, false)) != NULLMOVE) {
         bool searched = false;
-
         for (int i = 1; i < multipv; i++) {
             if (move == bestMoves[i]) {
                 searched = true;
                 break;
             }
         }
-
         if (searched)
             continue;
 
@@ -797,15 +711,15 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv, StackEntry* 
 
         /// update stack info
         stack->move = move;
-        stack->piece = board.piece_at(sqFrom(move));
-        stack->continuationHist = &continuationHistory[isQuiet][stack->piece][sqTo(move)];
+        stack->piece = board.piece_at(sq_from(move));
+        stack->continuationHist = &continuationHistory[isQuiet][stack->piece][sq_to(move)];
 
-        board.makeMove(move);
+        board.make_move(move);
         played++;
 
         /// current root move info
         if (principalSearcher && printStats && getTime() > info->startTime + 2500 && !info->sanMode) {
-            std::cout << "info depth " << depth << " currmove " << toString(move, info->chess960) << " currmovenumber " << played << std::endl;
+            std::cout << "info depth " << depth << " currmove " << move_to_string(move, info->chess960) << " currmovenumber " << played << std::endl;
         }
 
         /// store quiets for history
@@ -820,10 +734,8 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv, StackEntry* 
         if (depth >= 3 && played > 3) { /// first few moves we don't reduce
             if (isQuiet) {
                 R = lmrRed[std::min(63, depth)][std::min(63, played)];
-
                 R -= 2 * refutationMove; /// reduce for refutation moves
             }
-
             R = std::min(depth - 1, std::max(R, 1)); /// clamp R
         }
 
@@ -844,8 +756,7 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv, StackEntry* 
             score = -search<true>(-beta, -alpha, newDepth - 1, false, stack + 1);
         }
 
-        board.undoMove(move);
-
+        board.undo_move(move);
         nodesSearched[isNoisyMove(board, move)][fromTo(move)] += nodes - initNodes;
 
         if (flag & TERMINATED_SEARCH) /// stop search
@@ -857,18 +768,14 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv, StackEntry* 
 
             if (score > alpha) {
                 alpha = score;
-
-                updatePv(0, move);
-
+                update_pv(0, move);
                 if (alpha >= beta) {
                     break;
                 }
             }
         }
     }
-
     TT->prefetch(key);
-
     if (!played) {
         return (isCheck ? -INF : 0);
     }
@@ -889,7 +796,7 @@ int Search::rootSearch(int alpha, int beta, int depth, int multipv, StackEntry* 
     return best;
 }
 
-std::pair <int, uint16_t> Search::startSearch(Info* _info) {
+std::pair <int, uint16_t> Search::start_search(Info* _info) {
     int alpha, beta;
 
     nodes = qsNodes = selDepth = tbHits = 0;
@@ -902,29 +809,23 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
     info = _info;
 
     if (principalSearcher) {
-
         /// corner cases
-
         uint16_t moves[256];
-
-        int nrMoves = genLegal(board, moves);
+        int nrMoves = gen_legal_moves(board, moves);
 
         /// only 1 move legal
-
         if (PROBE_ROOT && nrMoves == 1) {
             if (printStats)
-                std::cout << "bestmove " << toString(moves[0], info->chess960) << std::endl;
+                std::cout << "bestmove " << move_to_string(moves[0], info->chess960) << std::endl;
             return { 0, moves[0] };
         }
 
         /// position is in tablebase
-
         if (PROBE_ROOT && count(board.pieces[WHITE] | board.pieces[BLACK]) <= (int)TB_LARGEST) {
             int move = NULLMOVE;
             auto probe = probe_TB(board, 0, 1, board.halfMoves, (board.castleRights & (3 << board.turn)) > 0);
             if (probe != TB_RESULT_CHECKMATE && probe != TB_RESULT_FAILED && probe != TB_RESULT_STALEMATE) {
                 int to = int(TB_GET_TO(probe)), from = int(TB_GET_FROM(probe)), promote = TB_GET_PROMOTES(probe), ep = TB_GET_EP(probe);
-
                 if (!promote && !ep) {
                     move = getMove(from, to, 0, NEUT);
                 }
@@ -951,7 +852,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
             for (int i = 0; i < nrMoves; i++) {
                 if (moves[i] == move) {
                     if (printStats)
-                        std::cout << "bestmove " << toString(move, info->chess960) << std::endl;
+                        std::cout << "bestmove " << move_to_string(move, info->chess960) << std::endl;
                     return { 0, move };
                 }
             }
@@ -959,7 +860,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
     }
 
     if (principalSearcher)
-        startWorkerThreads(info);
+        start_workers(info);
 
     uint64_t totalNodes = 0, totalHits = 0;
     int limitDepth = (principalSearcher ? info->depth : DEPTH); /// when limited by depth, allow helper threads to pass the fixed depth
@@ -987,7 +888,6 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
     for (tDepth = 1; tDepth <= limitDepth; tDepth++) {
         for (int i = 1; i <= info->multipv; i++) {
             int window = AspirationWindosValue;
-
             if (tDepth >= AspirationWindowsDepth) {
                 alpha = std::max(-INF, scores[i] - window);
                 beta = std::min(INF, scores[i] + window);
@@ -1000,16 +900,12 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
             int depth = tDepth;
             while (true) {
                 depth = std::max({ depth, 1, tDepth - 4 });
-
                 selDepth = 0;
-
-                scores[i] = rootSearch(alpha, beta, depth, i, stack);
-
+                scores[i] = root_search(alpha, beta, depth, i, stack);
                 if (flag & TERMINATED_SEARCH)
                     break;
 
                 rootScores[i] = scores[i];
-
                 if (principalSearcher && printStats && ((alpha < scores[i] && scores[i] < beta) || (i == 1 && getTime() > t0 + 3000))) {
                     if (principalSearcher) {
                         totalNodes = nodes;
@@ -1029,14 +925,14 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
                         else if (scores[i] < -MATE)
                             std::cout << "mate -" << (INF + scores[i] + 1) / 2;
                         else
-                            std::cout << "cp " << scores[i] * NormalizeToPawnValue / 100;
+                            std::cout << "cp " << scores[i] * 100 / NormalizeToPawnValue;
                         if (scores[i] >= beta)
                             std::cout << " lowerbound";
                         else if (scores[i] <= alpha)
                             std::cout << " upperbound";
                         int ply = board.moveIndex * 2 - 1 - board.turn;
-                        int wdlWin = winRateModel(scores[i], ply);
-                        int wdlLose = winRateModel(-scores[i], ply);
+                        int wdlWin = winrate_model(scores[i], ply);
+                        int wdlLose = winrate_model(-scores[i], ply);
                         int wdlDraw = 1000 - wdlWin - wdlLose;
                         std::cout << " wdl " << wdlWin << " " << wdlDraw << " " << wdlLose;
                         std::cout << " depth " << depth << " seldepth " << selDepth << " nodes " << totalNodes << " qsNodes " << qsNodes;
@@ -1067,11 +963,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
                         std::cout << "  ";
                         printPv();
                         std::cout << std::endl;
-                        std::cout << "Branching factor is " << std::fixed << std::setprecision(5) << pow(nodes, 1.0 / tDepth) << std::endl;
-                        //average_changes.print_mean();
-                        //values[0].print_mean();
-                        //std::cout << cnt << '\n';
-                        //std::cout << cnt2 << " out of " << cnt << ", " << 100.0 * cnt2 / cnt << "% good\n";
+                        //std::cout << "Branching factor is " << std::fixed << std::setprecision(5) << pow(nodes, 1.0 / tDepth) << std::endl;
                     }
                 }
 
@@ -1109,29 +1001,21 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
 
         if (principalSearcher && !(flag & TERMINATED_SEARCH)) {
             double scoreChange = 1.0, bestMoveStreak = 1.0, nodesSearchedPercentage = 1.0;
-
             float _tmNodesSearchedMaxPercentage = TimeManagerNodesSearchedMaxPercentage / 1000.0;
             float _tmBestMoveMax = TimeManagerBestMoveMax / 1000.0;
             float _tmBestMoveStep = TimeManagerBestMoveStep / 1000.0;
-
             if (tDepth >= TimeManagerMinDepth) {
                 scoreChange = std::max(TimeManagerScoreMin / 100.0, std::min(TimeManagerScoreBias / 100.0 + 1.0 * (mainThreadScore - scores[1]) / TimeManagerScoreDiv, TimeManagerScoreMax / 100.0)); /// adjust time based on score change
-
                 bestMoveCnt = (bestMoves[1] == mainThreadBestMove ? bestMoveCnt + 1 : 1);
-
                 /// adjust time based on how many nodes from the total searched nodes were used for the best move
                 nodesSearchedPercentage = 1.0 * nodesSearched[isNoisyMove(board, bestMoves[1])][fromTo(bestMoves[1])] / nodes;
                 nodesSearchedPercentage = TimeManagerNodesSeachedMaxCoef / 100.0 * _tmNodesSearchedMaxPercentage - 
                                           TimeManagerNodesSearchedCoef / 100.0 * nodesSearchedPercentage;
-
                 bestMoveStreak = _tmBestMoveMax - _tmBestMoveStep * std::min(10, bestMoveCnt); /// adjust time based on how long the best move was the same
             }
-
             //std::cout << "Scale factor for tm is " << scoreChange * bestMoveStreak * nodesSearchedPercentage * 100 << "%\n";
             //std::cout << scoreChange * 100 << " " << bestMoveStreak * 100 << " " << _tmNodesSearchedMaxPercentage - nodesSearchedPercentage << "\n";
-
             info->stopTime = info->startTime + info->goodTimeLim * scoreChange * bestMoveStreak * nodesSearchedPercentage;
-
             mainThreadScore = scores[1];
             mainThreadBestMove = bestMoves[1];
         }
@@ -1155,8 +1039,7 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
     int bs = 0;
     uint16_t bm = NULLMOVE, pm = NULLMOVE;
     if (principalSearcher) {
-        stopWorkerThreads();
-
+        stop_workers();
         int bestDepth = completedDepth;
         bs = rootScores[1];
         bm = bestMoves[1];
@@ -1174,9 +1057,9 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
     while (!(flag & TERMINATED_SEARCH) && info->ponder && info->timeset);
 
     if (principalSearcher && printStats) {
-        std::cout << "bestmove " << toString(bm, info->chess960);
+        std::cout << "bestmove " << move_to_string(bm, info->chess960);
         if (pm)
-            std::cout << " ponder " << toString(pm, info->chess960);
+            std::cout << " ponder " << move_to_string(pm, info->chess960);
         std::cout << std::endl;
     }
 
@@ -1185,12 +1068,11 @@ std::pair <int, uint16_t> Search::startSearch(Info* _info) {
     return std::make_pair(bs, bm);
 }
 
-void Search::clearHistory() {
+void Search::clear_history() {
     memset(hist, 0, sizeof(hist));
     memset(capHist, 0, sizeof(capHist));
     memset(cmTable, 0, sizeof(cmTable));
     memset(continuationHistory, 0, sizeof(continuationHistory));
-
     for (int i = 0; i < threadCount; i++) {
         memset(params[i].hist, 0, sizeof(params[i].hist));
         memset(params[i].capHist, 0, sizeof(params[i].capHist));
@@ -1199,11 +1081,10 @@ void Search::clearHistory() {
     }
 }
 
-void Search::clearStack() {
+void Search::clear_stack() {
     memset(pvTableLen, 0, sizeof(pvTableLen));
     memset(pvTable, 0, sizeof(pvTable));
     memset(nodesSearched, 0, sizeof(nodesSearched));
-
     for (int i = 0; i < threadCount; i++) {
         memset(params[i].pvTableLen, 0, sizeof(params[i].pvTableLen));
         memset(params[i].pvTable, 0, sizeof(params[i].pvTable));
@@ -1211,93 +1092,79 @@ void Search::clearStack() {
     }
 }
 
-void Search::startWorkerThreads(Info* info) {
+void Search::start_workers(Info* info) {
     for (int i = 0; i < threadCount; i++) {
         params[i].readyMutex.lock();
-
         params[i].nodes = 0;
         params[i].selDepth = 0;
         params[i].tbHits = 0;
-
         params[i].setTime(info);
         params[i].t0 = t0;
         params[i].SMPThreadExit = false;
-
         params[i].lazyFlag = 1;
         params[i].flag = flag;
-
         params[i].readyMutex.unlock();
-
         params[i].lazyCV.notify_one();
     }
 }
 
-void Search::flagWorkersStop() {
+void Search::flag_workers_stop() {
     for (int i = 0; i < threadCount; i++) {
         params[i].SMPThreadExit = true;
         params[i].flag |= TERMINATED_BY_LIMITS;
     }
 }
 
-void Search::stopWorkerThreads() {
-    flagWorkersStop();
-
+void Search::stop_workers() {
+    flag_workers_stop();
     for (int i = 0; i < threadCount; i++) {
         while (params[i].lazyFlag);
     }
 }
 
 void Search::isReady() {
-    flagWorkersStop();
+    flag_workers_stop();
     flag |= TERMINATED_BY_USER;
     std::unique_lock <std::mutex> lk(readyMutex);
     std::cout << "readyok" << std::endl;
 }
 
-void Search::startPrincipalSearch(Info* info) {
+void Search::start_principal_search(Info* info) {
     principalSearcher = true;
-
     readyMutex.lock();
     setTime(info);
     lazyFlag = 1;
     readyMutex.unlock();
     lazyCV.notify_one();
-
     if (!principalThread)
         principalThread.reset(new std::thread(&Search::lazySMPSearcher, this));
 }
 
-void Search::stopPrincipalSearch() {
+void Search::stop_principal_search() {
     info->ponder = false;
     flag |= TERMINATED_BY_USER;
 }
 
-void Search::setThreadCount(int nrThreads) {
+void Search::set_num_threads(int nrThreads) {
     if (nrThreads == threadCount)
         return;
-
     releaseThreads();
-
     threadCount = nrThreads;
     threads.reset(new std::thread[nrThreads]);
     params.reset(new Search[nrThreads]);
-
     for (int i = 0; i < nrThreads; i++)
         threads[i] = std::thread(&Search::lazySMPSearcher, &params[i]);
 }
 
 void Search::lazySMPSearcher() {
     while (!terminateSMP) {
-
         {
             std::unique_lock <std::mutex> lk(readyMutex);
-
             lazyCV.wait(lk, std::bind(&Search::isLazySMP, this));
-
             if (terminateSMP)
                 return;
 
-            startSearch(info);
+            start_search(info);
             resetLazySMP();
         }
     }
@@ -1307,62 +1174,54 @@ void Search::releaseThreads() {
     for (int i = 0; i < threadCount; i++) {
         if (threads[i].joinable()) {
             params[i].terminateSMP = true;
-
             {
                 std::unique_lock <std::mutex> lk(params[i].readyMutex);
                 params[i].lazyFlag = 1;
             }
-
             params[i].lazyCV.notify_one();
             threads[i].join();
         }
     }
 }
 
-void Search::killMainThread() {
+void Search::kill_principal_search() {
     if (principalThread && principalThread->joinable()) {
         terminateSMP = true;
-
         {
             std::unique_lock <std::mutex> lk(readyMutex);
             lazyFlag = 1;
         }
-
         lazyCV.notify_one();
         principalThread->join();
     }
 }
 
-void Search::_setFen(std::string fen, bool chess960) {
+void Search::set_fen(std::string fen, bool chess960) {
+    board.chess960 = chess960;
+    board.set_fen(fen);
     for (int i = 0; i < threadCount; i++) {
         params[i].board.chess960 = chess960;
-        params[i].board.setFen(fen);
+        params[i].board.set_fen(fen);
     }
-
-    board.chess960 = chess960;
-    board.setFen(fen);
 }
 
-void Search::_setDFRC(int idx) {
+void Search::set_dfrc(int idx) {
+    board.chess960 = (idx > 0);
+    board.set_dfrc(idx);
     for (int i = 0; i < threadCount; i++) {
         params[i].board.chess960 = (idx > 0);
-        params[i].board.setDFRC(idx);
+        params[i].board.set_dfrc(idx);
     }
-
-    board.chess960 = (idx > 0);
-    board.setDFRC(idx);
 }
 
-void Search::_makeMove(uint16_t move) {
+void Search::make_move(uint16_t move) {
+    board.make_move(move);
     for (int i = 0; i < threadCount; i++)
-        params[i].board.makeMove(move);
-
-    board.makeMove(move);
+        params[i].board.make_move(move);
 }
 
-void Search::clearBoard() {
+void Search::clear_board() {
+    board.clear();
     for (int i = 0; i < threadCount; i++)
         params[i].board.clear();
-
-    board.clear();
 }

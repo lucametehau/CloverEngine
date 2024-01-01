@@ -96,13 +96,13 @@ inline void initKnightAndKingAttacks() {
         int rank = i / 8, file = i % 8;
         for (int j = 0; j < 8; j++) {
             int rankTo = rank + knightDir[j].first, fileTo = file + knightDir[j].second;
-            if (inTable(rankTo, fileTo))
-                knightBBAttacks[i] |= (1ULL << getSq(rankTo, fileTo));
+            if (inside_board(rankTo, fileTo))
+                knightBBAttacks[i] |= (1ULL << get_sq(rankTo, fileTo));
         }
         for (int j = 0; j < 8; j++) {
             int rankTo = rank + kingDir[j].first, fileTo = file + kingDir[j].second;
-            if (inTable(rankTo, fileTo))
-                kingBBAttacks[i] |= (1ULL << getSq(rankTo, fileTo));
+            if (inside_board(rankTo, fileTo))
+                kingBBAttacks[i] |= (1ULL << get_sq(rankTo, fileTo));
         }
     }
 
@@ -156,32 +156,32 @@ inline void initPawnAttacks() {
 inline void initRays() {
     for (int rank = 0; rank < 8; rank++) {
         for (int file = 0; file < 8; file++) {
-            int r, f, sq = getSq(rank, file);
+            int r, f, sq = get_sq(rank, file);
             r = rank, f = file;
             while (r > 0)
-                r--, raysMask[sq][SOUTH] |= (1ULL << getSq(r, f));
+                r--, raysMask[sq][SOUTH] |= (1ULL << get_sq(r, f));
             r = rank, f = file;
             while (r < 7)
-                r++, raysMask[sq][NORTH] |= (1ULL << getSq(r, f));
+                r++, raysMask[sq][NORTH] |= (1ULL << get_sq(r, f));
             r = rank, f = file;
             while (f > 0)
-                f--, raysMask[sq][WEST] |= (1ULL << getSq(r, f));
+                f--, raysMask[sq][WEST] |= (1ULL << get_sq(r, f));
             r = rank, f = file;
             while (f < 7)
-                f++, raysMask[sq][EAST] |= (1ULL << getSq(r, f));
+                f++, raysMask[sq][EAST] |= (1ULL << get_sq(r, f));
 
             r = rank, f = file;
             while (r > 0 && f > 0)
-                r--, f--, raysMask[sq][SOUTHWEST] |= (1ULL << getSq(r, f));
+                r--, f--, raysMask[sq][SOUTHWEST] |= (1ULL << get_sq(r, f));
             r = rank, f = file;
             while (r < 7 && f > 0)
-                r++, f--, raysMask[sq][NORTHWEST] |= (1ULL << getSq(r, f));
+                r++, f--, raysMask[sq][NORTHWEST] |= (1ULL << get_sq(r, f));
             r = rank, f = file;
             while (r > 0 && f < 7)
-                r--, f++, raysMask[sq][SOUTHEAST] |= (1ULL << getSq(r, f));
+                r--, f++, raysMask[sq][SOUTHEAST] |= (1ULL << get_sq(r, f));
             r = rank, f = file;
             while (r < 7 && f < 7)
-                r++, f++, raysMask[sq][NORTHEAST] |= (1ULL << getSq(r, f));
+                r++, f++, raysMask[sq][NORTHEAST] |= (1ULL << get_sq(r, f));
 
         }
     }
@@ -275,13 +275,13 @@ inline uint64_t genAttacksSq(uint64_t blockers, int sq, int pieceType) {
 }
 
 inline uint64_t getAttackers(Board& board, int color, uint64_t blockers, int sq) {
-    return (pawnAttacksMask[color ^ 1][sq] & board.bb[getType(PAWN, color)]) |
-        (knightBBAttacks[sq] & board.bb[getType(KNIGHT, color)]) | (genAttacksBishop(blockers, sq) & board.diagSliders(color)) |
-        (genAttacksRook(blockers, sq) & board.orthSliders(color)) | (kingBBAttacks[sq] & board.bb[getType(KING, color)]);
+    return (pawnAttacksMask[color ^ 1][sq] & board.bb[get_piece(PAWN, color)]) |
+        (knightBBAttacks[sq] & board.bb[get_piece(KNIGHT, color)]) | (genAttacksBishop(blockers, sq) & board.diagonal_sliders(color)) |
+        (genAttacksRook(blockers, sq) & board.orthogonal_sliders(color)) | (kingBBAttacks[sq] & board.bb[get_piece(KING, color)]);
 }
 
 inline uint64_t getOrthSliderAttackers(Board& board, int color, uint64_t blockers, int sq) {
-    return genAttacksRook(blockers, sq) & board.orthSliders(color);
+    return genAttacksRook(blockers, sq) & board.orthogonal_sliders(color);
 }
 
 /// same as the below one, only difference is that b is known
@@ -292,7 +292,7 @@ inline uint64_t getPawnAttacks(int color, uint64_t b) {
 }
 
 inline uint64_t pawnAttacks(Board& board, int color) {
-    uint64_t b = board.bb[getType(PAWN, color)];
+    uint64_t b = board.bb[get_piece(PAWN, color)];
     int fileA = (color == WHITE ? 0 : 7), fileH = 7 - fileA;
     return shift(color, NORTHWEST, b & ~fileMask[fileA]) | shift(color, NORTHEAST, b & ~fileMask[fileH]);
 }

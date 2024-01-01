@@ -56,19 +56,19 @@ struct Search {
     void initSearch();
     void clearForSearch();
     void clearKillers();
-    void clearHistory();
-    void clearStack();
-    void clearBoard();
-    void setThreadCount(int nrThreads);
-    void startPrincipalSearch(Info* info);
-    void stopPrincipalSearch();
+    void clear_history();
+    void clear_stack();
+    void clear_board();
+    void set_num_threads(int nrThreads);
+    void start_principal_search(Info* info);
+    void stop_principal_search();
     void isReady();
 
-    void _setFen(std::string fen, bool chess960 = false);
-    void _setDFRC(int idx);
-    void _makeMove(uint16_t move);
+    void set_fen(std::string fen, bool chess960 = false);
+    void set_dfrc(int idx);
+    void make_move(uint16_t move);
 
-    std::pair <int, uint16_t> startSearch(Info* info);
+    std::pair <int, uint16_t> start_search(Info* info);
 
     template <bool pvNode>
     int quiesce(int alpha, int beta, StackEntry* stack); /// for quiet position check (tuning)
@@ -76,19 +76,19 @@ struct Search {
     template <bool pvNode>
     int search(int alpha, int beta, int depth, bool cutNode, StackEntry* stack);
 
-    int rootSearch(int alpha, int beta, int depth, int multipv, StackEntry* stack);
+    int root_search(int alpha, int beta, int depth, int multipv, StackEntry* stack);
 
     void setTime(Info* tInfo) { info = tInfo; }
 
-    void startWorkerThreads(Info* info);
-    void flagWorkersStop();
-    void stopWorkerThreads();
+    void start_workers(Info* info);
+    void flag_workers_stop();
+    void stop_workers();
     void lazySMPSearcher();
     void releaseThreads();
-    void killMainThread();
+    void kill_principal_search();
 
     void printPv();
-    void updatePv(int ply, int move);
+    void update_pv(int ply, int move);
 
     template <bool checkTime>
     bool checkForStop();
