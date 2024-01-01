@@ -20,7 +20,7 @@
 // tuning param/option
 struct Parameter {
     std::string name;
-    int value;
+    int &value;
     int min, max;
 };
 
@@ -28,7 +28,12 @@ std::vector <Parameter> params;
 
 // trick to be able to create options
 struct CreateParam {
-    CreateParam(std::string name, int value, int min, int max) { params.push_back({ name, value, min, max }); }
+    int _value;
+    CreateParam(std::string name, int value, int min, int max) : _value(value) { params.push_back({ name, _value, min, max }); }
+
+    operator int() const {
+        return _value;
+    }
 };
 
 #ifndef TUNE_FLAG
@@ -124,3 +129,9 @@ TUNE_PARAM(SeeValKnight, 308, 280, 350);
 TUNE_PARAM(SeeValBishop, 346, 320, 380);
 TUNE_PARAM(SeeValRook, 521, 450, 600);
 TUNE_PARAM(SeeValQueen, 994, 900, 1100);
+
+void print_params_for_ob() {
+    for (auto& param : params) {
+        std::cout << param.name << ", int, " << param.value << ", " << param.min << ", " << param.max << ", " << std::max(0.5, (param.max - param.min) / 20.0) << ", 0.002\n";
+    }
+}

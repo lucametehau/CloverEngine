@@ -226,6 +226,11 @@ void UCI::uciLoop() {
             uint16_t move = parse_move_string(searcher.board, moveStr, info);
             std::cout << is_legal(searcher.board, move) << " " << is_legal_slow(searcher.board, move) << "\n";
         }
+        else if (cmd == "printparams") {
+#ifdef TUNE_FLAG
+            print_params_for_ob();
+#endif
+        }
         else if (cmd == "setoption") {
             std::string name, value;
 
@@ -279,10 +284,12 @@ void UCI::uciLoop() {
 
                 info->chess960 = (truth == "true");
             }
-
-            for (auto& param : params) {
-                if (name == param.name) {
-                    setParameterI(iss, param.value);
+            else {
+                for (auto& param : params) {
+                    if (name == param.name) {
+                        setParameterI(iss, param.value);
+                        break;
+                    }
                 }
             }
         }
