@@ -27,6 +27,7 @@
 #include <array>
 #include <chrono>
 #include <map>
+#include "params.h"
 
 #if defined(__ARM_NEON)
 #include <arm_neon.h>
@@ -178,10 +179,10 @@ int sq_lsb(uint64_t &b) {
 }
 
 inline int piece_type(int piece) {
-    return (piece > 6 ? piece - 6 : piece);
+    return piece > 6 ? piece - 6 : piece;
 }
 
-inline int16_t netInd(int piece, int sq, int kingSq, int side) {
+inline int16_t net_index(int piece, int sq, int kingSq, int side) {
     if (side == BLACK) {
         kingSq ^= 56;
         sq ^= 56;
@@ -196,19 +197,11 @@ inline bool recalc(int from, int to, bool side) {
     return (from & 4) != (to & 4) || kingIndTable[from ^ (56 * !side)] != kingIndTable[to ^ (56 * !side)];
 }
 
-inline int hashVal(int value, int ply) {
-    if (value >= MATE)
-        return value - ply;
-    else if (value <= -MATE)
-        return value + ply;
-    return value;
-}
-
 inline int count(uint64_t b) {
     return __builtin_popcountll(b);
 }
 
-inline int getSq(int rank, int file) {
+inline int get_sq(int rank, int file) {
     return (rank << 3) | file;
 }
 
@@ -226,7 +219,7 @@ inline int getFrontBit(int color, uint64_t bb) {
     return (color == WHITE ? Sq(bb) : __builtin_ctzll(bb));
 }
 
-inline int sqDir(int color, int dir, int sq) {
+inline int sq_dir(int color, int dir, int sq) {
     if (color == BLACK) {
         if (dir < 4)
             dir = (dir + 2) % 4;
@@ -245,32 +238,32 @@ inline uint64_t shift(int color, int dir, uint64_t mask) {
             dir = 11 - dir;
     }
     if (deltaPos[dir] > 0)
-        return (mask << deltaPos[dir]);
+        return mask << deltaPos[dir];
 
-    return (mask >> (-deltaPos[dir]));
+    return mask >> (-deltaPos[dir]);
 }
 
-inline int getType(int type, int color) {
-    return 6 * color + type;
+inline int get_piece(int piece_type, int color) {
+    return 6 * color + piece_type;
 }
 
 inline int color_of(int piece) {
     return piece > 6;
 }
 
-inline bool inTable(int rank, int file) {
-    return (rank >= 0 && file >= 0 && rank <= 7 && file <= 7);
+inline bool inside_board(int rank, int file) {
+    return rank >= 0 && file >= 0 && rank <= 7 && file <= 7;
 }
 
 inline int getMove(int from, int to, int prom, int type) {
     return from | (to << 6) | (prom << 12) | (type << 14);
 }
 
-inline int sqFrom(uint16_t move) {
+inline int sq_from(uint16_t move) {
     return move & 63;
 }
 
-inline int sqTo(uint16_t move) {
+inline int sq_to(uint16_t move) {
     return (move & 4095) >> 6;
 }
 
@@ -282,16 +275,16 @@ inline int type(uint16_t move) {
     return move >> 14;
 }
 
-inline int specialSqTo(uint16_t move) {
-    return type(move) != CASTLE ? sqTo(move) : 8 * (sqFrom(move) / 8) + (sqFrom(move) < sqTo(move) ? 6 : 2);
+inline int special_sqto(uint16_t move) {
+    return type(move) != CASTLE ? sq_to(move) : 8 * (sq_from(move) / 8) + (sq_from(move) < sq_to(move) ? 6 : 2);
 }
 
 inline int promoted(uint16_t move) {
     return (move & 16383) >> 12;
 }
 
-inline std::string toString(uint16_t move, bool chess960) {
-    int sq1 = sqFrom(move), sq2 = (!chess960 ? specialSqTo(move) : sqTo(move));
+inline std::string move_to_string(uint16_t move, bool chess960) {
+    int sq1 = sq_from(move), sq2 = (!chess960 ? special_sqto(move) : sq_to(move));
     std::string ans;
     ans += char((sq1 & 7) + 'a');
     ans += char((sq1 >> 3) + '1');
@@ -313,7 +306,7 @@ inline void printBB(uint64_t mask) {
 
 const int NormalizeToPawnValue = 130;
 
-int winRateModel(int score, int ply) {
+int winrate_model(int score, int ply) {
     constexpr double as[] = { -0.66398391,   -0.49826081,   39.11399082,   92.97752809 };
     constexpr double bs[] = { -2.53637448,   19.01555550,  -41.44937435,   63.22725557 };
     assert(NormalizeToPawnValue == static_cast<int>(as[0] + as[1] + as[2] + as[3]));
@@ -368,29 +361,29 @@ inline void init_defs() {
     /// mask squares between 2 squares
     for (int file = 0; file < 8; file++) {
         for (int rank = 0; rank < 8; rank++) {
-            fileMask[file] |= (1ULL << getSq(rank, file)), rankMask[rank] |= (1ULL << getSq(rank, file));
+            fileMask[file] |= (1ULL << get_sq(rank, file)), rankMask[rank] |= (1ULL << get_sq(rank, file));
             for (int i = 0; i < 8; i++) {
                 int r = rank, f = file;
                 uint64_t mask = 0;
                 while (true) {
                     r += kingDir[i].first, f += kingDir[i].second;
-                    if (!inTable(r, f))
+                    if (!inside_board(r, f))
                         break;
-                    between[getSq(rank, file)][getSq(r, f)] = mask;
+                    between[get_sq(rank, file)][get_sq(r, f)] = mask;
                     int x = r, y = f, d = (i < 4 ? (i + 2) % 4 : 11 - i);
                     uint64_t mask2 = 0;
-                    while (inTable(x, y)) {
-                        mask2 |= (1ULL << getSq(x, y));
+                    while (inside_board(x, y)) {
+                        mask2 |= (1ULL << get_sq(x, y));
                         x += kingDir[i].first, y += kingDir[i].second;
                     }
                     x = rank, y = file;
-                    while (inTable(x, y)) {
-                        mask2 |= (1ULL << getSq(x, y));
+                    while (inside_board(x, y)) {
+                        mask2 |= (1ULL << get_sq(x, y));
                         x += kingDir[d].first, y += kingDir[d].second;
                     }
-                    Line[getSq(rank, file)][getSq(r, f)] = mask | mask2;
+                    Line[get_sq(rank, file)][get_sq(r, f)] = mask | mask2;
 
-                    mask |= (1ULL << getSq(r, f));
+                    mask |= (1ULL << get_sq(r, f));
                 }
             }
         }

@@ -27,7 +27,7 @@ int main(int argc, char** argv) {
 
     std::unique_ptr <Search> searcher(new Search);
 
-    searcher->_setFen(START_POS_FEN);
+    searcher->set_fen(START_POS_FEN);
 
     UCI uci(*searcher.get());
     if (argc > 1) {
