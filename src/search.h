@@ -588,7 +588,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
             score = -search<false>(-alpha - 1, -alpha, newDepth - R, true, stack + 1);
 
             if (R > 1 && score > alpha) {
-                newDepth += (score > best + 80) - (score < best + newDepth);
+                newDepth += (score > best + 75) - (score < best + newDepth);
                 score = -search<false>(-alpha - 1, -alpha, newDepth - 1, !cutNode, stack + 1);
             }
         }
