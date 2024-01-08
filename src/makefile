@@ -1,6 +1,6 @@
 CC  = g++
 SRC = *.cpp Fathom/src/tbprobe.c
-EXE = Clover.6.1.3
+EXE = Clover.6.1.4
 EVALFILE = alpha.nnue
 
 ifeq ($(OS), Windows_NT)
