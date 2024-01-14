@@ -103,7 +103,7 @@ public:
                 int score = 0;
 
                 score = GoodNoisyValueCoef * seeVal[cap];
-                if (type(move) == PROMOTION)
+                if (type(move) == PROMOTION && piece_type(p) >= ROOK)
                     score += GoodNoisyPromotionBonus;
 
                 score += searcher->capHist[p][to][cap];
