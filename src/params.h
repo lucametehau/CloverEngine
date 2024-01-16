@@ -46,7 +46,6 @@ struct CreateParam {
 
 #endif
 
-
 // search constants
 TUNE_PARAM(DeltaPruningMargin, 1007, 900, 1100);
 TUNE_PARAM(QuiesceFutilityBias, 209, 150, 250);
