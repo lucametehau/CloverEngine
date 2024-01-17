@@ -386,10 +386,15 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
     }
 
     const int staticEval = stack->eval;
-    const int evalDiff = staticEval - (stack - 2)->eval;
-    const int improving = (isCheck || (stack - 2)->eval == INF ? 0 :
-        evalDiff > 0 ? 1 :
-        evalDiff < NegativeImprovingMargin ? -1 : 0);
+    int eval_diff = 0;
+    if (ply > 1 && (stack - 2)->eval != INF)
+        eval_diff = staticEval - (stack - 2)->eval;
+    else if (ply > 3 && (stack - 4)->eval != INF)
+        eval_diff = staticEval - (stack - 4)->eval;
+
+    const int improving = (isCheck || eval_diff == 0 ? 0 :
+        eval_diff > 0 ? 1 :
+        eval_diff < NegativeImprovingMargin ? -1 : 0);
 
     (stack + 1)->killer = NULLMOVE;
 
