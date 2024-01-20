@@ -607,7 +607,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         }
 
         board.undo_move(move);
-        nodesSearched[!isQuiet][fromTo(move)] += nodes - initNodes;
+        nodesSearched[fromTo(move)] += nodes - initNodes;
 
         if (flag & TERMINATED_SEARCH) /// stop search
             return best;
@@ -764,7 +764,7 @@ int Search::root_search(int alpha, int beta, int depth, int multipv, StackEntry*
         }
 
         board.undo_move(move);
-        nodesSearched[isNoisyMove(board, move)][fromTo(move)] += nodes - initNodes;
+        nodesSearched[fromTo(move)] += nodes - initNodes;
 
         if (flag & TERMINATED_SEARCH) /// stop search
             return best;
@@ -1015,7 +1015,7 @@ std::pair <int, uint16_t> Search::start_search(Info* _info) {
                 scoreChange = std::max(TimeManagerScoreMin / 100.0, std::min(TimeManagerScoreBias / 100.0 + 1.0 * (mainThreadScore - scores[1]) / TimeManagerScoreDiv, TimeManagerScoreMax / 100.0)); /// adjust time based on score change
                 bestMoveCnt = (bestMoves[1] == mainThreadBestMove ? bestMoveCnt + 1 : 1);
                 /// adjust time based on how many nodes from the total searched nodes were used for the best move
-                nodesSearchedPercentage = 1.0 * nodesSearched[isNoisyMove(board, bestMoves[1])][fromTo(bestMoves[1])] / nodes;
+                nodesSearchedPercentage = 1.0 * nodesSearched[fromTo(bestMoves[1])] / nodes;
                 nodesSearchedPercentage = TimeManagerNodesSeachedMaxCoef / 100.0 * _tmNodesSearchedMaxPercentage - 
                                           TimeManagerNodesSearchedCoef / 100.0 * nodesSearchedPercentage;
                 bestMoveStreak = _tmBestMoveMax - _tmBestMoveStep * std::min(10, bestMoveCnt); /// adjust time based on how long the best move was the same

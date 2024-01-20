@@ -93,7 +93,7 @@ struct Search {
     template <bool checkTime>
     bool checkForStop();
 
-    uint64_t nodesSearched[2][64 * 64];
+    uint64_t nodesSearched[64 * 64];
     uint16_t pvTable[DEPTH + 5][2 * DEPTH + 5];
     int pvTableLen[DEPTH + 5];
     uint16_t cmTable[13][64];
