@@ -25,7 +25,7 @@
 #include "perft.h"
 #include "generate.h"
 
-const std::string VERSION = "6.1.8";
+const std::string VERSION = "6.1.9";
 
 class UCI {
 public:
@@ -188,8 +188,8 @@ void UCI::uciLoop() {
                 time -= MOVE_OVERHEAD;
                 int incTime = time + movestogo * inc;
                 int goodTimeLim, hardTimeLim;
-                goodTimeLim = std::min<int>(incTime / std::max(movestogo / 2, 1), time * 0.25);
-                hardTimeLim = std::min<int>(goodTimeLim * 5, time * 0.75);
+                goodTimeLim = std::min<int>(incTime / std::max(movestogo / 2, 1), time * 0.35);
+                hardTimeLim = std::min<int>(goodTimeLim * 5.5, time * 0.75);
 
                 //hardTimeLim = std::min(hardTimeLim, time);
                 //goodTimeLim = std::min(goodTimeLim, time);
