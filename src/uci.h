@@ -190,9 +190,6 @@ void UCI::uciLoop() {
                 int goodTimeLim, hardTimeLim;
                 goodTimeLim = std::min<int>(incTime / std::max(movestogo / 2, 1), time * 0.35);
                 hardTimeLim = std::min<int>(goodTimeLim * 5.5, time * 0.75);
-
-                //hardTimeLim = std::min(hardTimeLim, time);
-                //goodTimeLim = std::min(goodTimeLim, time);
                 info->goodTimeLim = goodTimeLim;
                 info->hardTimeLim = hardTimeLim;
                 info->timeset = 1;
