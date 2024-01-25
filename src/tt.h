@@ -102,7 +102,6 @@ inline uint64_t pow2(uint64_t size) {
 
 inline HashTable::HashTable() {
     entries = 0;
-    //initTable(128LL * MB);
 }
 
 inline HashTable::~HashTable() {

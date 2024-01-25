@@ -25,7 +25,7 @@
 #include "perft.h"
 #include "generate.h"
 
-const std::string VERSION = "6.1.9";
+const std::string VERSION = "6.1.10";
 
 class UCI {
 public:

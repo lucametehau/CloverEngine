@@ -182,15 +182,8 @@ inline int piece_type(int piece) {
     return piece > 6 ? piece - 6 : piece;
 }
 
-inline int16_t net_index(int piece, int sq, int kingSq, int side) {
-    if (side == BLACK) {
-        kingSq ^= 56;
-        sq ^= 56;
-        piece = (piece > 6 ? piece - 6 : piece + 6);
-    }
-    if ((kingSq & 7) >= 4)
-        kingSq ^= 7, sq ^= 7;
-    return 5 * 64 * (piece - 1) + 64 * kingIndTable[kingSq] + sq;
+inline int16_t net_index(int piece, int sq, int kingSq, bool side) {
+    return 5 * 64 * (piece + !side * (piece > 6 ? -6 : 6) - 1) + 64 * kingIndTable[kingSq ^ (56 * !side)] + (sq ^ (56 * !side) ^ (7 * ((kingSq >> 2) & 1))); // kingSq should be ^7, if kingSq&7 >= 4
 }
 
 inline bool recalc(int from, int to, bool side) {
