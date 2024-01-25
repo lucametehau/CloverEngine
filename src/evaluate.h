@@ -46,7 +46,7 @@ void bringUpToDate(Board& board) {
             }
             else {
                 const int kingSq = board.king(c);
-                KingBucketState* state = &NN->state[c][5 * ((kingSq & 7) >= 4) + kingIndTable[kingSq ^ (56 * !c)]];
+                KingBucketState* state = &NN->state[c][8 * ((kingSq & 7) >= 4) + kingIndTable[kingSq ^ (56 * !c)]];
                 NN->addSz = 0;
                 NN->subSz = 0;
                 for (int i = 1; i <= 12; i++) {

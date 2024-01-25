@@ -88,7 +88,7 @@
 
 INCBIN(Net, EVALFILE);
 
-const int INPUT_NEURONS = 3840;
+const int INPUT_NEURONS = 6144;
 const int SIDE_NEURONS = 1024;
 const int HIDDEN_NEURONS = 2 * SIDE_NEURONS;
 const int REG_LENGTH = sizeof(reg_type) / sizeof(int16_t);
@@ -112,7 +112,7 @@ void loadNNUEWeights() {
     intData = (uint64_t*)gNetData;
 
     x = *intData;
-    assert(x == 3935233);
+    assert(x == 6294529);
     intData++;
 
     floatData = (float*)intData;
@@ -180,7 +180,7 @@ public:
         histSz = 0;
 
         for (auto& c : { BLACK, WHITE }) {
-            for (int i = 0; i < 10; i++) {
+            for (int i = 0; i < 16; i++) {
                 memcpy(state[c][i].output, inputBiases, sizeof(inputBiases));
                 memset(state[c][i].bb, 0, sizeof(state[c][i].bb));
             }
@@ -505,7 +505,7 @@ public:
     int addSz, subSz;
 
     int16_t histOutput[2005][2][SIDE_NEURONS] __attribute__((aligned(ALIGN)));
-    KingBucketState state[2][10];
+    KingBucketState state[2][16];
 
     int16_t add_ind[32], sub_ind[32];
     NetHist hist[2005];

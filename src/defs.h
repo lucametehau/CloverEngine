@@ -114,7 +114,7 @@ const std::pair <int, int> pawnCapDirBlack[] = { {-1, -1}, {-1, 1} };
 
 int deltaPos[8]; /// how does my position change when moving in direction D
 
-const int kingIndTable2[64] = {
+const int kingIndTable[64] = {
     3, 2, 1, 0, 0, 1, 2, 3,
     3, 2, 1, 0, 0, 1, 2, 3,
     5, 5, 4, 4, 4, 4, 5, 5,
@@ -125,7 +125,7 @@ const int kingIndTable2[64] = {
     7, 7, 7, 7, 7, 7, 7, 7,
 };
 
-const int kingIndTable[64] = {
+const int kingIndTable2[64] = {
     1, 1, 0, 0, 0, 0, 1, 1,
     1, 1, 0, 0, 0, 0, 1, 1,
     2, 2, 2, 2, 2, 2, 2, 2,
@@ -183,7 +183,7 @@ inline int piece_type(int piece) {
 }
 
 inline int16_t net_index(int piece, int sq, int kingSq, bool side) {
-    return 5 * 64 * (piece + !side * (piece > 6 ? -6 : 6) - 1) + 64 * kingIndTable[kingSq ^ (56 * !side)] + (sq ^ (56 * !side) ^ (7 * ((kingSq >> 2) & 1))); // kingSq should be ^7, if kingSq&7 >= 4
+    return 8 * 64 * (piece + !side * (piece > 6 ? -6 : 6) - 1) + 64 * kingIndTable[kingSq ^ (56 * !side)] + (sq ^ (56 * !side) ^ (7 * ((kingSq >> 2) & 1))); // kingSq should be ^7, if kingSq&7 >= 4
 }
 
 inline bool recalc(int from, int to, bool side) {
