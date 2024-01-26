@@ -1,7 +1,7 @@
 CC  = g++
 SRC = *.cpp Fathom/src/tbprobe.c
 EXE = Clover.6.1.11
-EVALFILE = weights-5buckets-epoch185.nnue
+EVALFILE = weights-5buckets-epoch375.nnue
 
 ifeq ($(OS), Windows_NT)
 	EXT = .exe
