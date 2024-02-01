@@ -122,6 +122,13 @@ TUNE_PARAM(HistoryBonusMargin, 286, 250, 500);
 TUNE_PARAM(HistoryBonusBias, 342, 200, 600);
 TUNE_PARAM(HistoryBonusMax, 2452, 1800, 3000);
 
+// time manager constants
+TUNE_PARAM(DefaultMovestogo, 40, 30, 55);
+TUNE_PARAM(GoodMovestogoCoef, 50, 40, 100);
+TUNE_PARAM(GoodTimeCoef, 35, 25, 50);
+TUNE_PARAM(HardGoodTimeCoef, 550, 450, 650);
+TUNE_PARAM(HardTimeCoef, 75, 65, 85);
+
 // universal constants
 TUNE_PARAM(SeeValPawn, 93, 80, 120);
 TUNE_PARAM(SeeValKnight, 311, 280, 350);

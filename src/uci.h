@@ -129,7 +129,7 @@ void UCI::uciLoop() {
             UciNewGame(ttSize);
         }
         else if (cmd == "go") {
-            int depth = -1, movestogo = 40, movetime = -1;
+            int depth = -1, movestogo = DefaultMovestogo, movetime = -1;
             int time = -1, inc = 0;
             int64_t nodes = -1;
             bool turn = searcher.board.turn;
@@ -188,8 +188,8 @@ void UCI::uciLoop() {
                 time -= MOVE_OVERHEAD;
                 int incTime = time + movestogo * inc;
                 int goodTimeLim, hardTimeLim;
-                goodTimeLim = std::min<int>(incTime / std::max(movestogo / 2, 1), time * 0.35);
-                hardTimeLim = std::min<int>(goodTimeLim * 5.5, time * 0.75);
+                goodTimeLim = std::min<int>(incTime / std::max(movestogo * GoodMovestogoCoef / 100, 1), time * GoodTimeCoef / 100);
+                hardTimeLim = std::min<int>(goodTimeLim * HardGoodTimeCoef / 100, time * HardTimeCoef / 100);
                 info->goodTimeLim = goodTimeLim;
                 info->hardTimeLim = hardTimeLim;
                 info->timeset = 1;
