@@ -203,7 +203,7 @@ public:
 
     uint64_t speculative_next_key(uint64_t move) {
         const int from = sq_from(move), to = sq_to(move), piece = board[from];
-        return key ^ hashKey[piece][from] ^ hashKey[piece][to] ^ (board[to] ? hashKey[board[to]][to] : 0);
+        return key ^ hashKey[piece][from] ^ hashKey[piece][to] ^ (board[to] ? hashKey[board[to]][to] : 0) ^ 1;
     }
 
     bool isMaterialDraw() {
