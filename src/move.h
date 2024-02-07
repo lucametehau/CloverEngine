@@ -107,9 +107,7 @@ void Board::make_move(uint16_t mv) { /// assuming move is at least pseudo-legal
 
         /// double push
         if (piece_type(pieceFrom) == PAWN && (posFrom ^ posTo) == 16) {
-            enPas = sq_dir(turn, NORTH, posFrom);
-            if ((enPas % 8 && board[enPas - 1] == get_piece(PAWN, turn ^ 1)) || (enPas % 8 < 7 && board[enPas + 1] == get_piece(PAWN, turn ^ 1))) key ^= enPasKey[enPas];
-            else enPas = -1;
+            if ((posTo % 8 && board[posTo - 1] == get_piece(PAWN, turn ^ 1)) || (posTo % 8 < 7 && board[posTo + 1] == get_piece(PAWN, turn ^ 1))) enPas = sq_dir(turn, NORTH, posFrom), key ^= enPasKey[enPas];
         }
 
         /// moved the king
