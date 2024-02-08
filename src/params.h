@@ -20,7 +20,7 @@
 // tuning param/option
 struct Parameter {
     std::string name;
-    int &value;
+    int& value;
     int min, max;
 };
 
@@ -88,15 +88,15 @@ TUNE_PARAM(AspirationWindosValue, 7, 5, 20);
 TUNE_PARAM(AspirationWindowExpandMargin, 30, 10, 100);
 TUNE_PARAM(AspirationWindowExpandBias, 0, 0, 10);
 TUNE_PARAM(TimeManagerMinDepth, 9, 5, 11);
-TUNE_PARAM(TimeManagerNodesSearchedMaxPercentage, 1541, 1200, 1800);
-TUNE_PARAM(TimeManagerBestMoveMax, 1245, 1100, 1500);
-TUNE_PARAM(TimeManagerBestMoveStep, 54, 10, 100);
+TUNE_PARAM(TimeManagerNodesSearchedMaxPercentage, 1575, 1200, 1800);
+TUNE_PARAM(TimeManagerBestMoveMax, 1230, 1100, 1500);
+TUNE_PARAM(TimeManagerBestMoveStep, 60, 10, 100);
 TUNE_PARAM(TimeManagerScoreMin, 48, 40, 90);
-TUNE_PARAM(TimeManagerScoreMax, 158, 110, 200);
-TUNE_PARAM(TimeManagerScoreBias, 106, 10, 150);
-TUNE_PARAM(TimeManagerScoreDiv, 110, 90, 150);
-TUNE_PARAM(TimeManagerNodesSeachedMaxCoef, 111, 90, 200);
-TUNE_PARAM(TimeManagerNodesSearchedCoef, 119, 50, 200);
+TUNE_PARAM(TimeManagerScoreMax, 164, 110, 200);
+TUNE_PARAM(TimeManagerScoreBias, 97, 10, 150);
+TUNE_PARAM(TimeManagerScoreDiv, 106, 90, 150);
+TUNE_PARAM(TimeManagerNodesSeachedMaxCoef, 115, 90, 200);
+TUNE_PARAM(TimeManagerNodesSearchedCoef, 116, 50, 200);
 TUNE_PARAM(LMRQuietBias, 121, 100, 200);
 TUNE_PARAM(LMRQuietDiv, 259, 220, 300);
 TUNE_PARAM(LMRNoisyBias, 66, 40, 100);
@@ -121,6 +121,13 @@ TUNE_PARAM(EvalShuffleCoef, 5, 1, 10);
 TUNE_PARAM(HistoryBonusMargin, 286, 250, 500);
 TUNE_PARAM(HistoryBonusBias, 342, 200, 600);
 TUNE_PARAM(HistoryBonusMax, 2452, 1800, 3000);
+
+// time manager constants
+TUNE_PARAM(DefaultMovestogo, 40, 30, 55);
+TUNE_PARAM(GoodMovestogoCoef, 50, 40, 100);
+TUNE_PARAM(GoodTimeCoef, 35, 25, 50);
+TUNE_PARAM(HardGoodTimeCoef, 559, 450, 650);
+TUNE_PARAM(HardTimeCoef, 76, 65, 85);
 
 // universal constants
 TUNE_PARAM(SeeValPawn, 93, 80, 120);
