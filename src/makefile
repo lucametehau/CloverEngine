@@ -46,6 +46,8 @@ OLDFLAGS      = -march=core2
 AVX512FLAGS   = $(AVX2FLAGS) -mavx512f -mavx512bw -mavx512dq
 EVALFILEFLAGS = -DEVALFILE=\"$(EVALFILE)\" -I . -IFathom
 
+native:
+	$(CC)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(PEXT_FLAGS) $(LIBS) $(NATIVEFLAGS) -o $(EXE)$(EXT)
 pgo:
 	$(CC)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(NATIVEFLAGS) -o $(EXE)$(EXT) $(PGO_GENERATE)
 	./$(EXE)$(EXT) bench 15
@@ -55,8 +57,6 @@ generate:
 	$(CC)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(NATIVEFLAGS) -DGENERATE -o Clover-generator$(EXT)
 debug:
 	clang++ $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(NATIVEFLAGS) -o $(EXE)$(EXT)
-native:
-	$(CC)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(PEXT_FLAGS) $(LIBS) $(NATIVEFLAGS) -o $(EXE)$(EXT)
 old:
 	$(CC)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(OLDFLAGS) -o $(EXE)-old$(EXT) $(PGO_GENERATE)
 	./$(EXE)-old$(EXT) bench 15
