@@ -179,7 +179,7 @@ inline void HashTable::save(uint64_t hash, int score, int depth, int ply, int bo
     temp.hash = hash;
 
     if (bucket->hash == hash) {
-        if (bound == EXACT || depth >= bucket->depth() - 3) {
+        if (bound == EXACT || depth >= bucket->depth() - 4) {
             if (move == NULLMOVE)
                 temp.move = bucket->move;
             *bucket = temp;
@@ -191,14 +191,14 @@ inline void HashTable::save(uint64_t hash, int score, int depth, int ply, int bo
 
     for (int i = 1; i < BUCKET; i++) {
         if ((bucket + i)->hash == hash) {
-            if (bound == EXACT || depth >= bucket->depth() - 3) {
+            if (bound == EXACT || depth >= bucket->depth() - 4) {
                 if (move == NULLMOVE)
                     temp.move = (bucket + i)->move;
                 *(bucket + i) = temp;
             }
             return;
         }
-        else if ((bucket + i)->about < replace->about) {
+        else if ((bucket + i)->depth() - (bucket + i)->generation() < replace->depth() - replace->generation()) {
             replace = (bucket + i);
         }
     }
