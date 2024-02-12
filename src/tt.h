@@ -198,7 +198,7 @@ inline void HashTable::save(uint64_t hash, int score, int depth, int ply, int bo
             }
             return;
         }
-        else if ((bucket + i)->depth() - (bucket + i)->generation() < replace->depth() - replace->generation()) {
+        else if ((bucket + i)->depth() + (bucket + i)->generation() < replace->depth() + replace->generation()) {
             replace = (bucket + i);
         }
     }
