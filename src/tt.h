@@ -178,28 +178,19 @@ inline void HashTable::save(uint64_t hash, int score, int depth, int ply, int bo
     temp.about = uint16_t(bound | (depth << 2) | (wasPV << 9) | (generation << 10));
     temp.hash = hash;
 
-    if (bucket->hash == hash) {
-        if (bound == EXACT || depth >= bucket->depth() - 4) {
-            if (move == NULLMOVE)
-                temp.move = bucket->move;
-            *bucket = temp;
-        }
-        return;
-    }
-
     Entry* replace = bucket;
 
-    for (int i = 1; i < BUCKET; i++) {
-        if ((bucket + i)->hash == hash) {
-            if (bound == EXACT || depth >= bucket->depth() - 4) {
+    for (int i = 0; i < BUCKET; i++) {
+        if (bucket[i].hash == hash || !bucket[i].depth()) {
+            if (bound == EXACT || depth >= bucket[i].depth() - 4) {
                 if (move == NULLMOVE)
-                    temp.move = (bucket + i)->move;
-                *(bucket + i) = temp;
+                    temp.move = bucket[i].move;
+                bucket[i] = temp;
             }
             return;
         }
-        else if ((bucket + i)->depth() + (bucket + i)->generation() < replace->depth() + replace->generation()) {
-            replace = (bucket + i);
+        else if (bucket[i].depth() + bucket[i].generation() < replace->depth() + replace->generation()) {
+            replace = bucket + i;
         }
     }
 
