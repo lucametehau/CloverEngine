@@ -189,17 +189,18 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack) {
     if (checkForStop<false>()) return evaluate(board);
 
     const uint64_t key = board.key;
-    int score = 0, best = -INF, alphaOrig = alpha;
+    int score = INF, best = -INF, alphaOrig = alpha;
     int bound = NONE;
     uint16_t bestMove = NULLMOVE, ttMove = NULLMOVE;
 
-    Entry entry = {};
+    bool ttHit = false;
+    Entry entry = TT->probe(key, ttHit);
 
-    int eval = INF, ttValue = 0;
+    int eval = INF, ttValue = INF;
     bool wasPV = pvNode;
 
     /// probe transposition table
-    if (TT->probe(key, entry)) {
+    if (ttHit) {
         best = eval = entry.eval;
         ttValue = score = entry.value(ply);
         bound = entry.bound();
@@ -287,7 +288,7 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack) {
 
     /// store info in transposition table
     bound = (best >= beta ? LOWER : (best > alphaOrig ? EXACT : UPPER));
-    TT->save(key, best, 0, ply, bound, bestMove, stack->eval, wasPV);
+    TT->save(entry, key, best, 0, ply, bound, bestMove, stack->eval, wasPV);
 
     return best;
 }
@@ -311,7 +312,8 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
     int played = 0, bound = NONE, skip = 0;
     int best = -INF;
     uint16_t bestMove = NULLMOVE;
-    int ttHit = 0, ttValue = 0;
+    int ttValue = 0;
+    bool ttHit = false;
 
     nodes++;
     selDepth = std::max(selDepth, ply);
@@ -324,13 +326,13 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
     alpha = std::max(alpha, -INF + ply), beta = std::min(beta, INF - ply - 1);
     if (alpha >= beta) return alpha;
 
-    Entry entry{};
+    Entry entry = TT->probe(key, ttHit);
 
     /// transposition table probing
     int eval = INF;
     bool wasPV = pvNode;
 
-    if (!stack->excluded && TT->probe(key, entry)) {
+    if (!stack->excluded && ttHit) {
         const int score = entry.value(ply);
         ttHit = 1;
         ttValue = score;
@@ -363,7 +365,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         }
 
         if (type == EXACT || (type == UPPER && score <= alpha) || (type == LOWER && score >= beta)) {
-            TT->save(key, score, DEPTH, 0, type, NULLMOVE, 0, wasPV);
+            TT->save(entry, key, score, DEPTH, 0, type, NULLMOVE, 0, wasPV);
             return score;
         }
     }
@@ -452,7 +454,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                     board.undo_move(move);
 
                     if (score >= probBeta) {
-                        TT->save(key, score, depth - 3, ply, LOWER, move, staticEval, wasPV);
+                        TT->save(entry, key, score, depth - 3, ply, LOWER, move, staticEval, wasPV);
                         return score;
                     }
                 }
@@ -642,7 +644,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
     /// update tt only if we aren't in a singular search
     if (!stack->excluded) {
         bound = (best >= beta ? LOWER : (best > alphaOrig ? EXACT : UPPER));
-        TT->save(key, best, depth, ply, bound, (bound == UPPER ? NULLMOVE : bestMove), staticEval, wasPV);
+        TT->save(entry, key, best, depth, ply, bound, (bound == UPPER ? NULLMOVE : bestMove), staticEval, wasPV);
     }
 
     return best;
@@ -664,18 +666,19 @@ int Search::root_search(int alpha, int beta, int depth, int multipv, StackEntry*
     int best = -INF;
     uint16_t bestMove = NULLMOVE;
     int ttValue = 0;
+    bool ttHit = false;
 
     nodes++;
 
     TT->prefetch(key);
     pvTableLen[0] = 0;
 
-    Entry entry = {};
+    Entry entry = TT->probe(key, ttHit);
 
     /// transposition table probing
     int eval = INF;
 
-    if (TT->probe(key, entry)) {
+    if (ttHit) {
         int score = entry.value(0);
         ttValue = score;
         bound = entry.bound(), ttMove = entry.move;
@@ -798,7 +801,7 @@ int Search::root_search(int alpha, int beta, int depth, int multipv, StackEntry*
     }
 
     bound = (best >= beta ? LOWER : (best > alphaOrig ? EXACT : UPPER));
-    TT->save(key, best, depth, 0, bound, bestMove, stack->eval, true);
+    TT->save(entry, key, best, depth, 0, bound, bestMove, stack->eval, true);
 
     return best;
 }

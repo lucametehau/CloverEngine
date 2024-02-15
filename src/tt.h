@@ -75,9 +75,9 @@ public:
 
     void prefetch(uint64_t hash);
 
-    bool probe(uint64_t hash, Entry& entry);
+    Entry probe(uint64_t hash, bool &ttHit);
 
-    void save(uint64_t hash, int score, int depth, int ply, int bound, uint16_t move, int eval, bool wasPV);
+    void save(Entry& entry, uint64_t hash, int score, int depth, int ply, int bound, uint16_t move, int eval, bool wasPV);
 
     void resetAge();
 
@@ -148,55 +148,43 @@ inline void HashTable::prefetch(uint64_t hash) {
     __builtin_prefetch(bucket);
 }
 
-inline bool HashTable::probe(uint64_t hash, Entry& entry) {
+inline Entry HashTable::probe(uint64_t hash, bool &ttHit) {
     uint64_t ind = (hash & entries) * BUCKET;
     Entry* bucket = table + ind;
 
     for (int i = 0; i < BUCKET; i++) {
-        if ((bucket + i)->hash == hash) {
-            (bucket + i)->refresh(generation);
-            entry = *(bucket + i);
-            return 1;
+        if (bucket[i].hash == hash || !bucket[i].depth()) {
+            bucket[i].refresh(generation);
+            ttHit = (bucket[i].depth() != 0);
+            return bucket[i];
         }
     }
 
-    return 0;
+    ttHit = 0;
+    Entry entry = bucket[0];
+    for (int i = 1; i < BUCKET; i++) {
+        if (bucket[i].depth() + bucket[i].generation() < entry.depth() + entry.generation()) {
+            entry = bucket[i];
+        }
+    }
+
+    return entry;
 }
 
-inline void HashTable::save(uint64_t hash, int score, int depth, int ply, int bound, uint16_t move, int eval, bool wasPV) {
-    uint64_t ind = (hash & entries) * BUCKET;
-    Entry* bucket = table + ind;
-
+inline void HashTable::save(Entry &entry, uint64_t hash, int score, int depth, int ply, int bound, uint16_t move, int eval, bool wasPV) {
     if (score >= TB_WIN_SCORE)
         score += ply;
     else if (score <= -TB_WIN_SCORE)
         score -= ply;
 
-    Entry temp;
+    if (move || hash != entry.hash) entry.move = move;
 
-    temp.move = move; temp.eval = short(eval); temp.score = short(score);
-    temp.about = uint16_t(bound | (depth << 2) | (wasPV << 9) | (generation << 10));
-    temp.hash = hash;
-
-    Entry* replace = bucket;
-
-    for (int i = 0; i < BUCKET; i++) {
-        if (bucket[i].hash == hash || !bucket[i].depth()) {
-            if (bound == EXACT || depth >= bucket[i].depth() - 4) {
-                if (move == NULLMOVE)
-                    temp.move = bucket[i].move;
-                bucket[i] = temp;
-            }
-            return;
-        }
-        else if (bucket[i].depth() + bucket[i].generation() < replace->depth() + replace->generation()) {
-            replace = bucket + i;
-        }
+    if (bound == EXACT || hash != entry.hash || depth + 3 >= entry.depth()) {
+        entry.hash = hash;
+        entry.score = score;
+        entry.eval = eval;
+        entry.about = uint16_t(bound | (depth << 2) | (wasPV << 9) | (generation << 10));
     }
-
-    if (move == NULLMOVE)
-        temp.move = replace->move;
-    *replace = temp;
 }
 
 inline void HashTable::resetAge() {
