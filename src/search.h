@@ -312,7 +312,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
     int played = 0, bound = NONE, skip = 0;
     int best = -INF;
     uint16_t bestMove = NULLMOVE;
-    int ttValue = 0;
+    int ttValue = 0, ttDepth = -100;
     bool ttHit = false;
 
     nodes++;
@@ -335,11 +335,13 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
     if (!stack->excluded && ttHit) {
         const int score = entry->value(ply);
         ttValue = score;
-        bound = entry->bound(), ttMove = entry->move;
+        bound = entry->bound();
+        ttMove = entry->move;
         eval = entry->eval;
+        ttDepth = entry->depth();
         wasPV |= entry->wasPV();
         if constexpr (!pvNode) {
-            if (entry->depth() >= depth && (bound == EXACT || (bound == LOWER && score >= beta) || (bound == UPPER && score <= alpha))) return score;
+            if (ttDepth >= depth && (bound == EXACT || (bound == LOWER && score >= beta) || (bound == UPPER && score <= alpha))) return score;
         }
     }
 
@@ -429,7 +431,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
 
             // probcut
             int probBeta = beta + ProbcutMargin;
-            if (depth >= ProbcutDepth && abs(beta) < MATE && !(ttHit && entry->depth() >= depth - 3 && ttValue < probBeta)) {
+            if (depth >= ProbcutDepth && abs(beta) < MATE && !(ttHit && ttDepth >= depth - 3 && ttValue < probBeta)) {
                 Movepick picker((ttMove && isNoisyMove(board, ttMove) && see(board, ttMove, probBeta - staticEval) ? ttMove : NULLMOVE),
                     NULLMOVE,
                     NULLMOVE,
@@ -535,7 +537,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         /// avoid extending too far (might cause stack overflow)
         if (ply < 2 * tDepth) {
             /// singular extension (look if the tt move is better than the rest)
-            if (!stack->excluded && !allNode && move == ttMove && abs(ttValue) < MATE && depth >= SEDepth && entry->depth() >= depth - 3 && (bound & LOWER)) {
+            if (!stack->excluded && !allNode && move == ttMove && abs(ttValue) < MATE && depth >= SEDepth && ttDepth >= depth - 3 && (bound & LOWER)) {
                 int rBeta = ttValue - SEMargin * depth / 64;
 
                 stack->excluded = move;
@@ -548,7 +550,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
             }
             else if (isCheck) ex = 1;
         }
-        else if (allNode && played >= 1 && entry->depth() >= depth - 3 && bound == UPPER) ex = -1;
+        else if (allNode && played >= 1 && ttDepth >= depth - 3 && bound == UPPER) ex = -1;
 
         /// update stack info
         TT->prefetch(board.speculative_next_key(move));
