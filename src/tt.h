@@ -75,9 +75,9 @@ public:
 
     void prefetch(uint64_t hash);
 
-    Entry probe(uint64_t hash, bool &ttHit);
+    Entry* probe(uint64_t hash, bool &ttHit);
 
-    void save(Entry& entry, uint64_t hash, int score, int depth, int ply, int bound, uint16_t move, int eval, bool wasPV);
+    void save(Entry* entry, uint64_t hash, int score, int depth, int ply, int bound, uint16_t move, int eval, bool wasPV);
 
     void resetAge();
 
@@ -148,42 +148,42 @@ inline void HashTable::prefetch(uint64_t hash) {
     __builtin_prefetch(bucket);
 }
 
-inline Entry HashTable::probe(uint64_t hash, bool &ttHit) {
+inline Entry* HashTable::probe(uint64_t hash, bool &ttHit) {
     uint64_t ind = (hash & entries) * BUCKET;
     Entry* bucket = table + ind;
 
     for (int i = 0; i < BUCKET; i++) {
         if (bucket[i].hash == hash || !bucket[i].depth()) {
-            bucket[i].refresh(generation);
             ttHit = (bucket[i].depth() != 0);
-            return bucket[i];
+            bucket[i].refresh(generation);
+            return bucket + i;
         }
     }
 
     ttHit = 0;
-    Entry entry = bucket[0];
+    int idx = 0;
     for (int i = 1; i < BUCKET; i++) {
-        if (bucket[i].depth() + bucket[i].generation() < entry.depth() + entry.generation()) {
-            entry = bucket[i];
+        if (bucket[i].depth() + bucket[i].generation() < bucket[idx].depth() + bucket[idx].generation()) {
+            idx = i;
         }
     }
 
-    return entry;
+    return bucket + idx;
 }
 
-inline void HashTable::save(Entry &entry, uint64_t hash, int score, int depth, int ply, int bound, uint16_t move, int eval, bool wasPV) {
+inline void HashTable::save(Entry* entry, uint64_t hash, int score, int depth, int ply, int bound, uint16_t move, int eval, bool wasPV) {
     if (score >= TB_WIN_SCORE)
         score += ply;
     else if (score <= -TB_WIN_SCORE)
         score -= ply;
 
-    if (move || hash != entry.hash) entry.move = move;
+    if (move || hash != entry->hash) entry->move = move;
 
-    if (bound == EXACT || hash != entry.hash || depth + 3 >= entry.depth()) {
-        entry.hash = hash;
-        entry.score = score;
-        entry.eval = eval;
-        entry.about = uint16_t(bound | (depth << 2) | (wasPV << 9) | (generation << 10));
+    if (bound == EXACT || hash != entry->hash || depth + 3 >= entry->depth()) {
+        entry->hash = hash;
+        entry->score = score;
+        entry->eval = eval;
+        entry->about = uint16_t(bound | (depth << 2) | (wasPV << 9) | (generation << 10));
     }
 }
 

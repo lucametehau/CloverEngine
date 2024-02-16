@@ -194,18 +194,18 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack) {
     uint16_t bestMove = NULLMOVE, ttMove = NULLMOVE;
 
     bool ttHit = false;
-    Entry entry = TT->probe(key, ttHit);
+    Entry* entry = TT->probe(key, ttHit);
 
     int eval = INF, ttValue = INF;
     bool wasPV = pvNode;
 
     /// probe transposition table
     if (ttHit) {
-        best = eval = entry.eval;
-        ttValue = score = entry.value(ply);
-        bound = entry.bound();
-        ttMove = entry.move;
-        wasPV |= entry.wasPV();
+        best = eval = entry->eval;
+        ttValue = score = entry->value(ply);
+        bound = entry->bound();
+        ttMove = entry->move;
+        wasPV |= entry->wasPV();
         if constexpr (!pvNode) {
             if ((bound == EXACT || (bound == LOWER && score >= beta) || (bound == UPPER && score <= alpha))) return score;
         }
@@ -326,21 +326,20 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
     alpha = std::max(alpha, -INF + ply), beta = std::min(beta, INF - ply - 1);
     if (alpha >= beta) return alpha;
 
-    Entry entry = TT->probe(key, ttHit);
+    Entry* entry = TT->probe(key, ttHit);
 
     /// transposition table probing
     int eval = INF;
     bool wasPV = pvNode;
 
     if (!stack->excluded && ttHit) {
-        const int score = entry.value(ply);
-        ttHit = 1;
+        const int score = entry->value(ply);
         ttValue = score;
-        bound = entry.bound(), ttMove = entry.move;
-        eval = entry.eval;
-        wasPV |= entry.wasPV();
+        bound = entry->bound(), ttMove = entry->move;
+        eval = entry->eval;
+        wasPV |= entry->wasPV();
         if constexpr (!pvNode) {
-            if (entry.depth() >= depth && (bound == EXACT || (bound == LOWER && score >= beta) || (bound == UPPER && score <= alpha))) return score;
+            if (entry->depth() >= depth && (bound == EXACT || (bound == LOWER && score >= beta) || (bound == UPPER && score <= alpha))) return score;
         }
     }
 
@@ -430,7 +429,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
 
             // probcut
             int probBeta = beta + ProbcutMargin;
-            if (depth >= ProbcutDepth && abs(beta) < MATE && !(ttHit && entry.depth() >= depth - 3 && ttValue < probBeta)) {
+            if (depth >= ProbcutDepth && abs(beta) < MATE && !(ttHit && entry->depth() >= depth - 3 && ttValue < probBeta)) {
                 Movepick picker((ttMove && isNoisyMove(board, ttMove) && see(board, ttMove, probBeta - staticEval) ? ttMove : NULLMOVE),
                     NULLMOVE,
                     NULLMOVE,
@@ -536,7 +535,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         /// avoid extending too far (might cause stack overflow)
         if (ply < 2 * tDepth) {
             /// singular extension (look if the tt move is better than the rest)
-            if (!stack->excluded && !allNode && move == ttMove && abs(ttValue) < MATE && depth >= SEDepth && entry.depth() >= depth - 3 && (bound & LOWER)) {
+            if (!stack->excluded && !allNode && move == ttMove && abs(ttValue) < MATE && depth >= SEDepth && entry->depth() >= depth - 3 && (bound & LOWER)) {
                 int rBeta = ttValue - SEMargin * depth / 64;
 
                 stack->excluded = move;
@@ -549,7 +548,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
             }
             else if (isCheck) ex = 1;
         }
-        else if (allNode && played >= 1 && entry.depth() >= depth - 3 && bound == UPPER) ex = -1;
+        else if (allNode && played >= 1 && entry->depth() >= depth - 3 && bound == UPPER) ex = -1;
 
         /// update stack info
         TT->prefetch(board.speculative_next_key(move));
@@ -665,7 +664,7 @@ int Search::root_search(int alpha, int beta, int depth, int multipv, StackEntry*
     int played = 0, bound = NONE;
     int best = -INF;
     uint16_t bestMove = NULLMOVE;
-    int ttValue = 0;
+    int ttValue = INF;
     bool ttHit = false;
 
     nodes++;
@@ -673,16 +672,16 @@ int Search::root_search(int alpha, int beta, int depth, int multipv, StackEntry*
     TT->prefetch(key);
     pvTableLen[0] = 0;
 
-    Entry entry = TT->probe(key, ttHit);
+    Entry* entry = TT->probe(key, ttHit);
 
     /// transposition table probing
     int eval = INF;
 
     if (ttHit) {
-        int score = entry.value(0);
+        int score = entry->value(0);
         ttValue = score;
-        bound = entry.bound(), ttMove = entry.move;
-        eval = entry.eval;
+        bound = entry->bound(), ttMove = entry->move;
+        eval = entry->eval;
     }
 
     const bool isCheck = (board.checkers != 0);
