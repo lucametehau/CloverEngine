@@ -153,8 +153,8 @@ inline Entry* HashTable::probe(uint64_t hash, bool &ttHit) {
     Entry* bucket = table + ind;
 
     for (int i = 0; i < BUCKET; i++) {
-        if (bucket[i].hash == hash || !bucket[i].depth()) {
-            ttHit = (bucket[i].depth() != 0);
+        if (bucket[i].hash == hash) {
+            ttHit = 1;
             bucket[i].refresh(generation);
             return bucket + i;
         }
