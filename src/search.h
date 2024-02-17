@@ -189,22 +189,23 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack) {
     if (checkForStop<false>()) return evaluate(board);
 
     const uint64_t key = board.key;
-    int score = 0, best = -INF, alphaOrig = alpha;
+    int score = INF, best = -INF, alphaOrig = alpha;
     int bound = NONE;
     uint16_t bestMove = NULLMOVE, ttMove = NULLMOVE;
 
-    Entry entry = {};
+    bool ttHit = false;
+    Entry* entry = TT->probe(key, ttHit);
 
-    int eval = INF, ttValue = 0;
+    int eval = INF, ttValue = INF;
     bool wasPV = pvNode;
 
     /// probe transposition table
-    if (TT->probe(key, entry)) {
-        best = eval = entry.eval;
-        ttValue = score = entry.value(ply);
-        bound = entry.bound();
-        ttMove = entry.move;
-        wasPV |= entry.wasPV();
+    if (ttHit) {
+        best = eval = entry->eval;
+        ttValue = score = entry->value(ply);
+        bound = entry->bound();
+        ttMove = entry->move;
+        wasPV |= entry->wasPV();
         if constexpr (!pvNode) {
             if ((bound == EXACT || (bound == LOWER && score >= beta) || (bound == UPPER && score <= alpha))) return score;
         }
@@ -287,7 +288,7 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack) {
 
     /// store info in transposition table
     bound = (best >= beta ? LOWER : (best > alphaOrig ? EXACT : UPPER));
-    TT->save(key, best, 0, ply, bound, bestMove, stack->eval, wasPV);
+    TT->save(entry, key, best, 0, ply, bound, bestMove, stack->eval, wasPV);
 
     return best;
 }
@@ -311,7 +312,8 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
     int played = 0, bound = NONE, skip = 0;
     int best = -INF;
     uint16_t bestMove = NULLMOVE;
-    int ttHit = 0, ttValue = 0;
+    int ttValue = 0, ttDepth = -100;
+    bool ttHit = false;
 
     nodes++;
     selDepth = std::max(selDepth, ply);
@@ -324,21 +326,22 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
     alpha = std::max(alpha, -INF + ply), beta = std::min(beta, INF - ply - 1);
     if (alpha >= beta) return alpha;
 
-    Entry entry{};
+    Entry* entry = TT->probe(key, ttHit);
 
     /// transposition table probing
     int eval = INF;
     bool wasPV = pvNode;
 
-    if (!stack->excluded && TT->probe(key, entry)) {
-        const int score = entry.value(ply);
-        ttHit = 1;
+    if (!stack->excluded && ttHit) {
+        const int score = entry->value(ply);
         ttValue = score;
-        bound = entry.bound(), ttMove = entry.move;
-        eval = entry.eval;
-        wasPV |= entry.wasPV();
+        bound = entry->bound();
+        ttMove = entry->move;
+        eval = entry->eval;
+        ttDepth = entry->depth();
+        wasPV |= entry->wasPV();
         if constexpr (!pvNode) {
-            if (entry.depth() >= depth && (bound == EXACT || (bound == LOWER && score >= beta) || (bound == UPPER && score <= alpha))) return score;
+            if (ttDepth >= depth && (bound == EXACT || (bound == LOWER && score >= beta) || (bound == UPPER && score <= alpha))) return score;
         }
     }
 
@@ -363,7 +366,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         }
 
         if (type == EXACT || (type == UPPER && score <= alpha) || (type == LOWER && score >= beta)) {
-            TT->save(key, score, DEPTH, 0, type, NULLMOVE, 0, wasPV);
+            TT->save(entry, key, score, DEPTH, 0, type, NULLMOVE, 0, wasPV);
             return score;
         }
     }
@@ -428,7 +431,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
 
             // probcut
             int probBeta = beta + ProbcutMargin;
-            if (depth >= ProbcutDepth && abs(beta) < MATE && !(ttHit && entry.depth() >= depth - 3 && ttValue < probBeta)) {
+            if (depth >= ProbcutDepth && abs(beta) < MATE && !(ttHit && ttDepth >= depth - 3 && ttValue < probBeta)) {
                 Movepick picker((ttMove && isNoisyMove(board, ttMove) && see(board, ttMove, probBeta - staticEval) ? ttMove : NULLMOVE),
                     NULLMOVE,
                     NULLMOVE,
@@ -452,7 +455,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                     board.undo_move(move);
 
                     if (score >= probBeta) {
-                        TT->save(key, score, depth - 3, ply, LOWER, move, staticEval, wasPV);
+                        TT->save(entry, key, score, depth - 3, ply, LOWER, move, staticEval, wasPV);
                         return score;
                     }
                 }
@@ -534,7 +537,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         /// avoid extending too far (might cause stack overflow)
         if (ply < 2 * tDepth) {
             /// singular extension (look if the tt move is better than the rest)
-            if (!stack->excluded && !allNode && move == ttMove && abs(ttValue) < MATE && depth >= SEDepth && entry.depth() >= depth - 3 && (bound & LOWER)) {
+            if (!stack->excluded && !allNode && move == ttMove && abs(ttValue) < MATE && depth >= SEDepth && ttDepth >= depth - 3 && (bound & LOWER)) {
                 int rBeta = ttValue - SEMargin * depth / 64;
 
                 stack->excluded = move;
@@ -547,7 +550,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
             }
             else if (isCheck) ex = 1;
         }
-        else if (allNode && played >= 1 && entry.depth() >= depth - 3 && bound == UPPER) ex = -1;
+        else if (allNode && played >= 1 && ttDepth >= depth - 3 && bound == UPPER) ex = -1;
 
         /// update stack info
         TT->prefetch(board.speculative_next_key(move));
@@ -642,7 +645,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
     /// update tt only if we aren't in a singular search
     if (!stack->excluded) {
         bound = (best >= beta ? LOWER : (best > alphaOrig ? EXACT : UPPER));
-        TT->save(key, best, depth, ply, bound, (bound == UPPER ? NULLMOVE : bestMove), staticEval, wasPV);
+        TT->save(entry, key, best, depth, ply, bound, (bound == UPPER ? NULLMOVE : bestMove), staticEval, wasPV);
     }
 
     return best;
@@ -663,23 +666,24 @@ int Search::root_search(int alpha, int beta, int depth, int multipv, StackEntry*
     int played = 0, bound = NONE;
     int best = -INF;
     uint16_t bestMove = NULLMOVE;
-    int ttValue = 0;
+    int ttValue = INF;
+    bool ttHit = false;
 
     nodes++;
 
     TT->prefetch(key);
     pvTableLen[0] = 0;
 
-    Entry entry = {};
+    Entry* entry = TT->probe(key, ttHit);
 
     /// transposition table probing
     int eval = INF;
 
-    if (TT->probe(key, entry)) {
-        int score = entry.value(0);
+    if (ttHit) {
+        int score = entry->value(0);
         ttValue = score;
-        bound = entry.bound(), ttMove = entry.move;
-        eval = entry.eval;
+        bound = entry->bound(), ttMove = entry->move;
+        eval = entry->eval;
     }
 
     const bool isCheck = (board.checkers != 0);
@@ -798,7 +802,7 @@ int Search::root_search(int alpha, int beta, int depth, int multipv, StackEntry*
     }
 
     bound = (best >= beta ? LOWER : (best > alphaOrig ? EXACT : UPPER));
-    TT->save(key, best, depth, 0, bound, bestMove, stack->eval, true);
+    TT->save(entry, key, best, depth, 0, bound, bestMove, stack->eval, true);
 
     return best;
 }
