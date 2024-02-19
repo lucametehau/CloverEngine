@@ -779,6 +779,7 @@ int Search::root_search(int alpha, int beta, int depth, int multipv, StackEntry*
 
             if (score > alpha) {
                 bestMoves[multipv] = move;
+                rootScores[multipv] = score;
                 alpha = score;
                 update_pv(0, move);
                 if (alpha >= beta) {
@@ -917,7 +918,6 @@ std::pair <int, uint16_t> Search::start_search(Info* _info) {
                 if (flag & TERMINATED_SEARCH)
                     break;
 
-                rootScores[i] = scores[i];
                 if (principalSearcher && printStats && ((alpha < scores[i] && scores[i] < beta) || (i == 1 && getTime() > t0 + 3000))) {
                     if (principalSearcher) {
                         totalNodes = nodes;
