@@ -142,13 +142,13 @@ std::string getSanString(Board& board, uint16_t move) {
     if (piece != PAWN || board.isCapture(move)) san += char('a' + (to & 7));
 
     san += char('1' + (to >> 3));
-    
+
     if (prom) san += "=", san += pieceChar[prom];
-    
+
     board.make_move(move);
     if (board.checkers) san += '+';
     board.undo_move(move);
-    
+
     return san;
 }
 
@@ -778,6 +778,7 @@ int Search::root_search(int alpha, int beta, int depth, int multipv, StackEntry*
             bestMove = move;
 
             if (score > alpha) {
+                bestMoves[multipv] = move;
                 alpha = score;
                 update_pv(0, move);
                 if (alpha >= beta) {
@@ -988,8 +989,6 @@ std::pair <int, uint16_t> Search::start_search(Info* _info) {
                     beta = std::min(INF, beta + window);
                     depth--;
                     completedDepth = tDepth;
-                    if (pvTableLen[0] > 0 && pvTable[0][0])
-                        bestMoves[i] = pvTable[0][0];
                     if (pvTableLen[0] > 1)
                         ponderMoves[i] = pvTable[0][1];
                     else
@@ -997,8 +996,6 @@ std::pair <int, uint16_t> Search::start_search(Info* _info) {
                 }
                 else {
                     completedDepth = tDepth;
-                    if (pvTableLen[0] > 0 && pvTable[0][0])
-                        bestMoves[i] = pvTable[0][0];
                     if (pvTableLen[0] > 1)
                         ponderMoves[i] = pvTable[0][1];
                     else
@@ -1020,8 +1017,8 @@ std::pair <int, uint16_t> Search::start_search(Info* _info) {
                 bestMoveCnt = (bestMoves[1] == mainThreadBestMove ? bestMoveCnt + 1 : 1);
                 /// adjust time based on how many nodes from the total searched nodes were used for the best move
                 nodesSearchedPercentage = 1.0 * nodesSearched[fromTo(bestMoves[1])] / nodes;
-                nodesSearchedPercentage = TimeManagerNodesSeachedMaxCoef / 100.0 * _tmNodesSearchedMaxPercentage - 
-                                          TimeManagerNodesSearchedCoef / 100.0 * nodesSearchedPercentage;
+                nodesSearchedPercentage = TimeManagerNodesSeachedMaxCoef / 100.0 * _tmNodesSearchedMaxPercentage -
+                    TimeManagerNodesSearchedCoef / 100.0 * nodesSearchedPercentage;
                 bestMoveStreak = _tmBestMoveMax - _tmBestMoveStep * std::min(10, bestMoveCnt); /// adjust time based on how long the best move was the same
             }
             //std::cout << "Scale factor for tm is " << scoreChange * bestMoveStreak * nodesSearchedPercentage * 100 << "%\n";
