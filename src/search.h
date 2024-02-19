@@ -1013,7 +1013,7 @@ std::pair <int, uint16_t> Search::start_search(Info* _info) {
             float _tmBestMoveMax = TimeManagerBestMoveMax / 1000.0;
             float _tmBestMoveStep = TimeManagerBestMoveStep / 1000.0;
             if (tDepth >= TimeManagerMinDepth) {
-                scoreChange = std::max(TimeManagerScoreMin / 100.0, std::min(TimeManagerScoreBias / 100.0 + 1.0 * (mainThreadScore - scores[1]) / TimeManagerScoreDiv, TimeManagerScoreMax / 100.0)); /// adjust time based on score change
+                scoreChange = std::max(TimeManagerScoreMin / 100.0, std::min(TimeManagerScoreBias / 100.0 + 1.0 * (mainThreadScore - rootScores[1]) / TimeManagerScoreDiv, TimeManagerScoreMax / 100.0)); /// adjust time based on score change
                 bestMoveCnt = (bestMoves[1] == mainThreadBestMove ? bestMoveCnt + 1 : 1);
                 /// adjust time based on how many nodes from the total searched nodes were used for the best move
                 nodesSearchedPercentage = 1.0 * nodesSearched[fromTo(bestMoves[1])] / nodes;
@@ -1024,7 +1024,7 @@ std::pair <int, uint16_t> Search::start_search(Info* _info) {
             //std::cout << "Scale factor for tm is " << scoreChange * bestMoveStreak * nodesSearchedPercentage * 100 << "%\n";
             //std::cout << scoreChange * 100 << " " << bestMoveStreak * 100 << " " << _tmNodesSearchedMaxPercentage - nodesSearchedPercentage << "\n";
             info->stopTime = info->startTime + info->goodTimeLim * scoreChange * bestMoveStreak * nodesSearchedPercentage;
-            mainThreadScore = scores[1];
+            mainThreadScore = rootScores[1];
             mainThreadBestMove = bestMoves[1];
         }
 
