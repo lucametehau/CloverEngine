@@ -166,7 +166,7 @@ public:
                     score += QuietContHist1 * (*(stack - 1)->continuationHist)[piece][to];
                     score += QuietContHist2 * (*(stack - 2)->continuationHist)[piece][to];
                     score += QuietContHist4 * (*(stack - 4)->continuationHist)[piece][to];
-                    score += LowPlyHistCoef * (searcher->board.ply <= 5 ? searcher->low_ply_hist[board.turn][!!(threatsEnemy & (1ULL << from))][!!(threatsEnemy & (1ULL << to))][fromTo(move)] : 0);
+                    score += LowPlyHistCoef * (searcher->board.ply <= 3 ? searcher->low_ply_hist[board.turn][!!(threatsEnemy & (1ULL << from))][!!(threatsEnemy & (1ULL << to))][fromTo(move)] : 0);
 
                     if (pt != PAWN && (pawnAttacks & (1ULL << to)))
                         score -= QuietPawnAttackedCoef * seeVal[pt];
