@@ -58,7 +58,7 @@ void updateCaptureMoveHistory(Search* searcher, uint16_t move, int16_t bonus) {
     updateCapHist(searcher->capHist[piece][to][cap], bonus);
 }
 
-void updateHistory(Search* searcher, StackEntry* stack, int nrQuiets, int ply, uint64_t threats, int16_t bonus) {
+void updateHistory(Search* searcher, StackEntry* stack, int nrQuiets, int ply, uint64_t threats, int16_t bonus, int depth) {
     if (!nrQuiets) /// we can't update if we don't have a follow move or no quiets
         return;
 
@@ -74,6 +74,8 @@ void updateHistory(Search* searcher, StackEntry* stack, int nrQuiets, int ply, u
     for (int i = 0; i < nrQuiets - 1; i++)
         updateMoveHistory(searcher, stack, stack->quiets[i], threats, -bonus);
     updateMoveHistory(searcher, stack, best, threats, bonus);
+    if (depth >= 10 && searcher->board.ply <= 5)
+        updateHist(searcher->low_ply_hist[searcher->board.turn][!!(threats & (1ULL << sq_from(best)))][!!(threats & (1ULL << sq_to(best)))][fromTo(best)], getHistoryBonus(depth - 7));
 }
 
 void updateCapHistory(Search* searcher, StackEntry* stack, int nrCaptures, uint16_t best, int ply, int16_t bonus) {

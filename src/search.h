@@ -637,7 +637,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         if (!isNoisyMove(board, bestMove)) {
             if (stack->killer != bestMove)
                 stack->killer = bestMove;
-            updateHistory(this, stack, nrQuiets, ply, threatsEnemy.threatsEnemy, getHistoryBonus(depth + pvNode));
+            updateHistory(this, stack, nrQuiets, ply, threatsEnemy.threatsEnemy, getHistoryBonus(depth + pvNode), depth);
         }
         updateCapHistory(this, stack, nrCaptures, bestMove, ply, getHistoryBonus(depth));
     }
@@ -798,7 +798,7 @@ int Search::root_search(int alpha, int beta, int depth, int multipv, StackEntry*
         if (!isNoisyMove(board, bestMove)) {
             if (stack->killer != bestMove)
                 stack->killer = bestMove;
-            updateHistory(this, stack, nrQuiets, 0, threatsEnemy.threatsEnemy, getHistoryBonus(depth));
+            updateHistory(this, stack, nrQuiets, 0, threatsEnemy.threatsEnemy, getHistoryBonus(depth), depth);
         }
         updateCapHistory(this, stack, nrCaptures, bestMove, 0, getHistoryBonus(depth));
     }
