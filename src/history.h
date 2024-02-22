@@ -74,7 +74,7 @@ void updateHistory(Search* searcher, StackEntry* stack, int nrQuiets, int ply, u
     for (int i = 0; i < nrQuiets - 1; i++)
         updateMoveHistory(searcher, stack, stack->quiets[i], threats, -bonus);
     updateMoveHistory(searcher, stack, best, threats, bonus);
-    if (depth >= 10 && searcher->board.ply <= 3)
+    if (depth >= 12 && searcher->board.ply <= 3)
         updateHist(searcher->low_ply_hist[searcher->board.turn][!!(threats & (1ULL << sq_from(best)))][!!(threats & (1ULL << sq_to(best)))][fromTo(best)], getHistoryBonus(depth - 7));
 }
 
