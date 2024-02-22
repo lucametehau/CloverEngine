@@ -179,7 +179,7 @@ inline void HashTable::save(Entry* entry, uint64_t hash, int score, int depth, i
 
     if (move || hash != entry->hash) entry->move = move;
 
-    if (bound == EXACT || hash != entry->hash || depth + 3 >= entry->depth()) {
+    if (bound == EXACT || hash != entry->hash || depth + 4 + 2 * wasPV >= entry->depth()) {
         entry->hash = hash;
         entry->score = score;
         entry->eval = eval;
