@@ -1,6 +1,6 @@
 CC  = g++
 SRC = *.cpp Fathom/src/tbprobe.c
-EXE = Clover.6.1.15
+EXE = Clover.6.1.16
 EVALFILE = weights-5buckets-epoch390.nnue
 
 ifeq ($(OS), Windows_NT)
@@ -46,6 +46,8 @@ OLDFLAGS      = -march=core2
 AVX512FLAGS   = $(AVX2FLAGS) -mavx512f -mavx512bw -mavx512dq
 EVALFILEFLAGS = -DEVALFILE=\"$(EVALFILE)\" -I . -IFathom
 
+tune:
+	$(CC)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(PEXT_FLAGS) $(LIBS) $(NATIVEFLAGS) -DTUNE_FLAG -o $(EXE)$(EXT)
 pgo:
 	$(CC)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(NATIVEFLAGS) -o $(EXE)$(EXT) $(PGO_GENERATE)
 	./$(EXE)$(EXT) bench 15
@@ -72,8 +74,6 @@ avx512:
 	./$(EXE)-avx512$(EXT) bench 15
 	$(PGO_MERGE)
 	$(CC)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(PEXT_FLAGS) $(LIBS) $(AVX512FLAGS) -o $(EXE)-avx512$(EXT) $(PGO_USE)
-tune:
-	$(CC)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(PEXT_FLAGS) $(LIBS) $(NATIVEFLAGS) -DTUNE_FLAG -o $(EXE)$(EXT)
 
 release:
 	make old

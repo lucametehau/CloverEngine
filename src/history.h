@@ -36,6 +36,10 @@ int getHistoryBonus(int depth) {
     return std::min<int>(HistoryBonusMargin * depth - HistoryBonusBias, HistoryBonusMax);
 }
 
+int getHistoryMalus(int depth) {
+    return std::min<int>(HistoryMalusMargin * depth - HistoryMalusBias, HistoryMalusMax);
+}
+
 void updateMoveHistory(Search* searcher, StackEntry*& stack, uint16_t move, uint64_t threats, int16_t bonus) {
     const int from = sq_from(move), to = sq_to(move), piece = searcher->board.piece_at(from);
 
@@ -58,7 +62,7 @@ void updateCaptureMoveHistory(Search* searcher, uint16_t move, int16_t bonus) {
     updateCapHist(searcher->capHist[piece][to][cap], bonus);
 }
 
-void updateHistory(Search* searcher, StackEntry* stack, int nrQuiets, int ply, uint64_t threats, int16_t bonus) {
+void updateHistory(Search* searcher, StackEntry* stack, int nrQuiets, int ply, uint64_t threats, int16_t bonus, int16_t malus) {
     if (!nrQuiets) /// we can't update if we don't have a follow move or no quiets
         return;
 
@@ -72,13 +76,13 @@ void updateHistory(Search* searcher, StackEntry* stack, int nrQuiets, int ply, u
         searcher->cmTable[counterPiece][counterTo] = best; /// update counter move table
 
     for (int i = 0; i < nrQuiets - 1; i++)
-        updateMoveHistory(searcher, stack, stack->quiets[i], threats, -bonus);
+        updateMoveHistory(searcher, stack, stack->quiets[i], threats, malus);
     updateMoveHistory(searcher, stack, best, threats, bonus);
 }
 
-void updateCapHistory(Search* searcher, StackEntry* stack, int nrCaptures, uint16_t best, int ply, int16_t bonus) {
+void updateCapHistory(Search* searcher, StackEntry* stack, int nrCaptures, uint16_t best, int ply, int16_t bonus, int16_t malus) {
     for (int i = 0; i < nrCaptures; i++) {
-        const int move = stack->captures[i], score = (move == best ? bonus : -bonus);
+        const int move = stack->captures[i], score = (move == best ? bonus : malus);
         const int from = sq_from(move), to = sq_to(move), piece = searcher->board.piece_at(from);
         const int cap = (type(move) == ENPASSANT ? PAWN : searcher->board.piece_type_at(to));
         updateCapHist(searcher->capHist[piece][to][cap], score);

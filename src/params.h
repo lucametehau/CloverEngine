@@ -80,8 +80,10 @@ TUNE_PARAM(FPNoisyDepth, 8, 5, 10);
 TUNE_PARAM(SEDepth, 6, 4, 8);
 TUNE_PARAM(SEMargin, 56, 32, 96);
 TUNE_PARAM(SEDoubleExtensionsMargin, 24, 15, 35);
+TUNE_PARAM(MinLMRDepth, 3, 2, 4);
 TUNE_PARAM(EvalDifferenceReductionMargin, 206, 100, 300);
 TUNE_PARAM(HistReductionDiv, 8264, 7000, 10000);
+TUNE_PARAM(DeeperMargin, 75, 50, 100);
 TUNE_PARAM(RootSeeDepthCoef, 9, 5, 20);
 TUNE_PARAM(AspirationWindowsDepth, 6, 4, 10);
 TUNE_PARAM(AspirationWindosValue, 7, 5, 20);
@@ -121,6 +123,9 @@ TUNE_PARAM(EvalShuffleCoef, 5, 1, 10);
 TUNE_PARAM(HistoryBonusMargin, 286, 250, 500);
 TUNE_PARAM(HistoryBonusBias, 342, 200, 600);
 TUNE_PARAM(HistoryBonusMax, 2452, 1800, 3000);
+TUNE_PARAM(HistoryMalusMargin, 286, 200, 500);
+TUNE_PARAM(HistoryMalusBias, 342, 200, 600);
+TUNE_PARAM(HistoryMalusMax, 2452, 1800, 3000);
 
 // universal constants
 TUNE_PARAM(SeeValPawn, 93, 80, 120);

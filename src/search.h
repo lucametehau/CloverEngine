@@ -572,7 +572,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         uint64_t initNodes = nodes;
         int score = -INF;
 
-        if (depth >= 3 && played > 1 + pvNode) { /// first few moves we don't reduce
+        if (depth >= MinLMRDepth && played > 1 + pvNode) { /// first few moves we don't reduce
             if (isQuiet) {
                 R = lmrRed[std::min(63, depth)][std::min(63, played)];
                 R += !wasPV + (improving <= 0); /// not on pv or not improving
@@ -596,7 +596,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
             score = -search<false>(-alpha - 1, -alpha, newDepth - R, true, stack + 1);
 
             if (R > 1 && score > alpha) {
-                newDepth += (score > best + 75) - (score < best + newDepth);
+                newDepth += (score > best + DeeperMargin) - (score < best + newDepth);
                 score = -search<false>(-alpha - 1, -alpha, newDepth - 1, !cutNode, stack + 1);
             }
         }
@@ -637,9 +637,9 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         if (!isNoisyMove(board, bestMove)) {
             if (stack->killer != bestMove)
                 stack->killer = bestMove;
-            updateHistory(this, stack, nrQuiets, ply, threatsEnemy.threatsEnemy, getHistoryBonus(depth + pvNode));
+            updateHistory(this, stack, nrQuiets, ply, threatsEnemy.threatsEnemy, getHistoryBonus(depth + pvNode), -getHistoryMalus(depth));
         }
-        updateCapHistory(this, stack, nrCaptures, bestMove, ply, getHistoryBonus(depth));
+        updateCapHistory(this, stack, nrCaptures, bestMove, ply, getHistoryBonus(depth), -getHistoryMalus(depth));
     }
 
     /// update tt only if we aren't in a singular search
@@ -798,9 +798,9 @@ int Search::root_search(int alpha, int beta, int depth, int multipv, StackEntry*
         if (!isNoisyMove(board, bestMove)) {
             if (stack->killer != bestMove)
                 stack->killer = bestMove;
-            updateHistory(this, stack, nrQuiets, 0, threatsEnemy.threatsEnemy, getHistoryBonus(depth));
+            updateHistory(this, stack, nrQuiets, 0, threatsEnemy.threatsEnemy, getHistoryBonus(depth), -getHistoryMalus(depth));
         }
-        updateCapHistory(this, stack, nrCaptures, bestMove, 0, getHistoryBonus(depth));
+        updateCapHistory(this, stack, nrCaptures, bestMove, 0, getHistoryBonus(depth), -getHistoryMalus(depth));
     }
 
     bound = (best >= beta ? LOWER : (best > alphaOrig ? EXACT : UPPER));
