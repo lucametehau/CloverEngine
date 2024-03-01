@@ -591,6 +591,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
             }
 
             R += 2 * cutNode;
+            R -= wasPV && ttDepth >= depth;
 
             R = std::min(newDepth, std::max(R, 1)); /// clamp R
             score = -search<false>(-alpha - 1, -alpha, newDepth - R, true, stack + 1);
