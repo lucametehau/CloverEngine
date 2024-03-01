@@ -413,7 +413,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
             if (depth <= SNMPDepth && eval > beta && eval - (SNMPMargin - SNMPImproving * improving) * (depth - quietUs) > beta && eval < MATE) return eval;
 
             /// null move pruning (when last move wasn't null, we still have non pawn material, we have a good position)
-            if (!nullSearch && !stack->excluded && (quietUs || eval - 100 * depth > beta) &&
+            if (!nullSearch && !stack->excluded && quietUs &&
                 eval >= beta + NMPEvalMargin * (depth <= 3) && eval >= staticEval &&
                 board.has_non_pawn_material(board.turn)) {
                 int R = NMPReduction + depth / NMPDepthDiv + (eval - beta) / NMPEvalDiv + improving;
