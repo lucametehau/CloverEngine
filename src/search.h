@@ -638,9 +638,9 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         if (!isNoisyMove(board, bestMove)) {
             if (stack->killer != bestMove)
                 stack->killer = bestMove;
-            updateHistory(this, stack, nrQuiets, ply, threatsEnemy.threatsEnemy, getHistoryBonus(depth + pvNode));
+            updateHistory(this, stack, nrQuiets, ply, threatsEnemy.threatsEnemy, getHistoryBonus(depth + (staticEval <= alpha)));
         }
-        updateCapHistory(this, stack, nrCaptures, bestMove, ply, getHistoryBonus(depth));
+        updateCapHistory(this, stack, nrCaptures, bestMove, ply, getHistoryBonus(depth + (staticEval <= alpha)));
     }
 
     /// update tt only if we aren't in a singular search
