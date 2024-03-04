@@ -534,23 +534,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
 #endif
 
         int ex = 0;
-        /// avoid extending too far (might cause stack overflow)
-        if (ply < 2 * tDepth) {
-            /// singular extension (look if the tt move is better than the rest)
-            if (!stack->excluded && !allNode && move == ttMove && abs(ttValue) < MATE && depth >= SEDepth && ttDepth >= depth - 3 && (bound & LOWER)) {
-                int rBeta = ttValue - SEMargin * depth / 64;
-
-                stack->excluded = move;
-                int score = search<false>(rBeta - 1, rBeta, (depth - 1) / 2, cutNode, stack);
-                stack->excluded = NULLMOVE;
-
-                if (score < rBeta) ex = 1 + (!pvNode && rBeta - score > SEDoubleExtensionsMargin);
-                else if (rBeta >= beta) return rBeta; // multicut
-                else if (ttValue >= beta || ttValue <= alpha) ex = -1 - !pvNode;
-            }
-            else if (isCheck) ex = 1;
-        }
-        else if (allNode && played >= 1 && ttDepth >= depth - 3 && bound == UPPER) ex = -1;
 
         /// update stack info
         TT->prefetch(board.speculative_next_key(move));
@@ -572,36 +555,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         uint64_t initNodes = nodes;
         int score = -INF;
 
-        if (depth >= 3 && played > 1 + pvNode) { /// first few moves we don't reduce
-            if (isQuiet) {
-                R = lmrRed[std::min(63, depth)][std::min(63, played)];
-                R += !wasPV + (improving <= 0); /// not on pv or not improving
-                R -= pvNode;
-                R += ttCapture;
-                R += quietUs && !isCheck && eval - seeVal[KNIGHT] > beta; /// if the position is relatively quiet and eval is bigger than beta by a margin
-                R += quietUs && !isCheck && staticEval - rootEval > EvalDifferenceReductionMargin && ply % 2 == 0; /// the position in quiet and static eval is way bigger than root eval
-                R -= 2 * refutationMove; /// reduce for refutation moves
-                R -= board.checkers != 0; /// move gives check
-                R -= hist / HistReductionDiv; /// reduce based on move history
-            }
-            else if (!wasPV) {
-                R = lmrRedNoisy[std::min(63, depth)][std::min(63, played)];
-                R += improving <= 0; /// not improving
-                R += quietUs && picker.trueStage == STAGE_BAD_NOISY; /// if the position is relatively quiet and the capture is "very losing"
-            }
-
-            R += 2 * cutNode;
-            R -= wasPV && ttDepth >= depth;
-
-            R = std::min(newDepth, std::max(R, 1)); /// clamp R
-            score = -search<false>(-alpha - 1, -alpha, newDepth - R, true, stack + 1);
-
-            if (R > 1 && score > alpha) {
-                newDepth += (score > best + 75) - (score < best + newDepth);
-                score = -search<false>(-alpha - 1, -alpha, newDepth - 1, !cutNode, stack + 1);
-            }
-        }
-        else if (!pvNode || played > 1) {
+        if (!pvNode || played > 1) {
             score = -search<false>(-alpha - 1, -alpha, newDepth - 1, !cutNode, stack + 1);
         }
 
