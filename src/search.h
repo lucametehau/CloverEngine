@@ -546,7 +546,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
 
                 if (score < rBeta) ex = 1 + (!pvNode && rBeta - score > SEDoubleExtensionsMargin);
                 else if (rBeta >= beta) return rBeta; // multicut
-                else if (ttValue >= beta || ttValue <= alpha) ex = -1 - !pvNode;
+                //else if (ttValue >= beta || ttValue <= alpha) ex = -1 - !pvNode;
             }
             else if (isCheck) ex = 1;
         }
@@ -584,7 +584,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                 R -= board.checkers != 0; /// move gives check
                 R -= hist / HistReductionDiv; /// reduce based on move history
             }
-            else {
+            else if (!wasPV) {
                 R = lmrRedNoisy[std::min(63, depth)][std::min(63, played)];
                 R += improving <= 0; /// not improving
                 R += quietUs && picker.trueStage == STAGE_BAD_NOISY; /// if the position is relatively quiet and the capture is "very losing"
