@@ -546,9 +546,9 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
 
                 if (score < rBeta) ex = 1 + (!pvNode && rBeta - score > SEDoubleExtensionsMargin);
                 else if (rBeta >= beta) return rBeta; // multicut
-                else if (ttValue >= beta || ttValue <= alpha) ex = -1;
+                else if (ttValue >= beta || ttValue <= alpha) ex = -1 - !pvNode;
             }
-            else if (isCheck) ex = 1;
+            //else if (isCheck) ex = 1;
         }
         else if (allNode && played >= 1 && ttDepth >= depth - 3 && bound == UPPER) ex = -1;
 
