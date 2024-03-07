@@ -534,22 +534,19 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
 #endif
 
         int ex = 0;
-        /// avoid extending too far (might cause stack overflow)
-        if (ply < 2 * tDepth) {
-            /// singular extension (look if the tt move is better than the rest)
-            if (!stack->excluded && !allNode && move == ttMove && abs(ttValue) < MATE && depth >= SEDepth && ttDepth >= depth - 3 && (bound & LOWER)) {
-                int rBeta = ttValue - SEMargin * depth / 64;
+        /// singular extension (look if the tt move is better than the rest)
+        if (!stack->excluded && !allNode && move == ttMove && abs(ttValue) < MATE && depth >= SEDepth && ttDepth >= depth - 3 && (bound & LOWER)) {
+            int rBeta = ttValue - SEMargin * depth / 64;
 
-                stack->excluded = move;
-                int score = search<false>(rBeta - 1, rBeta, (depth - 1) / 2, cutNode, stack);
-                stack->excluded = NULLMOVE;
+            stack->excluded = move;
+            int score = search<false>(rBeta - 1, rBeta, (depth - 1) / 2, cutNode, stack);
+            stack->excluded = NULLMOVE;
 
-                if (score < rBeta) ex = 1 + (!pvNode && rBeta - score > SEDoubleExtensionsMargin);
-                else if (rBeta >= beta) return rBeta; // multicut
-                else if (ttValue >= beta || ttValue <= alpha) ex = -1 - !pvNode;
-            }
-            //else if (isCheck) ex = 1;
+            if (score < rBeta) ex = 1 + (!pvNode && rBeta - score > SEDoubleExtensionsMargin);
+            else if (rBeta >= beta) return rBeta; // multicut
+            else if (ttValue >= beta || ttValue <= alpha) ex = -1 - !pvNode;
         }
+        else if (isCheck) ex = 1;
         else if (allNode && played >= 1 && ttDepth >= depth - 3 && bound == UPPER) ex = -1;
 
         /// update stack info
