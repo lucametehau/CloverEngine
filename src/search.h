@@ -319,6 +319,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
     selDepth = std::max(selDepth, ply);
 
     pvTableLen[ply] = 0;
+    stack->double_extensions = (stack - 1)->double_extensions;
 
     if (board.is_draw(ply)) return 1 - (nodes & 2); /// beal effect, credit to Ethereal for this
 
@@ -544,7 +545,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                 int score = search<false>(rBeta - 1, rBeta, (depth - 1) / 2, cutNode, stack);
                 stack->excluded = NULLMOVE;
 
-                if (score < rBeta) ex = 1 + (!pvNode && rBeta - score > SEDoubleExtensionsMargin);
+                if (score < rBeta && stack->double_extensions <= 12) ex = 1 + (!pvNode && rBeta - score > SEDoubleExtensionsMargin);
                 else if (rBeta >= beta) return rBeta; // multicut
                 else if (ttValue >= beta || ttValue <= alpha) ex = -1 - !pvNode;
             }
@@ -557,6 +558,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         stack->move = move;
         stack->piece = board.piece_at(sq_from(move));
         stack->continuationHist = &continuationHistory[isQuiet][stack->piece][sq_to(move)];
+        stack->double_extensions = (stack - 1)->double_extensions + (ex >= 2);
 
         board.make_move(move);
         played++;
@@ -575,7 +577,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         if (depth >= 3 && played > 1 + pvNode) { /// first few moves we don't reduce
             if (isQuiet) {
                 R = lmrRed[std::min(63, depth)][std::min(63, played)];
-                //R += !wasPV;
+                R += !wasPV;
                 R += (improving <= 0); /// not on pv or not improving
                 R -= pvNode;
                 R += ttCapture;
@@ -677,6 +679,7 @@ int Search::root_search(int alpha, int beta, int depth, int multipv, StackEntry*
     pvTableLen[0] = 0;
 
     Entry* entry = TT->probe(key, ttHit);
+    stack->double_extensions = (stack - 1)->double_extensions;
 
     /// transposition table probing
     int eval = INF;
@@ -894,7 +897,7 @@ std::pair <int, uint16_t> Search::start_search(Info* _info) {
     rootEval = (!board.checkers ? evaluate(board) : INF);
 
     for (int i = 1; i <= 10; i++)
-        (stack - i)->continuationHist = &continuationHistory[0][0][0], (stack - i)->eval = INF, (stack - i)->move = NULLMOVE;
+        (stack - i)->continuationHist = &continuationHistory[0][0][0], (stack - i)->eval = INF, (stack - i)->move = NULLMOVE, (stack - i)->double_extensions = 0;
 
     //values[0].init("nmp_pv_rate");
 
