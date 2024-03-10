@@ -577,7 +577,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                 R = lmrRed[std::min(63, depth)][std::min(63, played)];
                 R += !wasPV + (improving <= 0); /// not on pv or not improving
                 R -= pvNode;
-                R += ttCapture;
                 R += quietUs && !isCheck && eval - seeVal[KNIGHT] > beta; /// if the position is relatively quiet and eval is bigger than beta by a margin
                 R += quietUs && !isCheck && staticEval - rootEval > EvalDifferenceReductionMargin && ply % 2 == 0; /// the position in quiet and static eval is way bigger than root eval
                 R -= 2 * refutationMove; /// reduce for refutation moves
@@ -592,6 +591,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
 
             R += 2 * cutNode;
             R -= wasPV && ttDepth >= depth;
+            R += ttCapture;
 
             R = std::min(newDepth, std::max(R, 1)); /// clamp R
             score = -search<false>(-alpha - 1, -alpha, newDepth - R, true, stack + 1);
