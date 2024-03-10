@@ -317,6 +317,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
 
     nodes++;
     selDepth = std::max(selDepth, ply);
+    stack->double_extensions = (stack - 1)->double_extensions;
 
     pvTableLen[ply] = 0;
 
@@ -544,7 +545,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                 int score = search<false>(rBeta - 1, rBeta, (depth - 1) / 2, cutNode, stack);
                 stack->excluded = NULLMOVE;
 
-                if (score < rBeta) ex = 1 + (!pvNode && rBeta - score > SEDoubleExtensionsMargin);
+                if (score < rBeta) ex = 1 + (!pvNode && stack->double_extensions <= 12 && rBeta - score > SEDoubleExtensionsMargin);
                 else if (rBeta >= beta) return rBeta; // multicut
                 else if (ttValue >= beta || ttValue <= alpha) ex = -1 - !pvNode;
             }
@@ -557,6 +558,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         stack->move = move;
         stack->piece = board.piece_at(sq_from(move));
         stack->continuationHist = &continuationHistory[isQuiet][stack->piece][sq_to(move)];
+        stack->double_extensions = (stack - 1)->double_extensions + (ex >= 2);
 
         board.make_move(move);
         played++;
@@ -674,6 +676,7 @@ int Search::root_search(int alpha, int beta, int depth, int multipv, StackEntry*
 
     TT->prefetch(key);
     pvTableLen[0] = 0;
+    stack->double_extensions = (stack - 1)->double_extensions;
 
     Entry* entry = TT->probe(key, ttHit);
 
@@ -893,7 +896,7 @@ std::pair <int, uint16_t> Search::start_search(Info* _info) {
     rootEval = (!board.checkers ? evaluate(board) : INF);
 
     for (int i = 1; i <= 10; i++)
-        (stack - i)->continuationHist = &continuationHistory[0][0][0], (stack - i)->eval = INF, (stack - i)->move = NULLMOVE;
+        (stack - i)->continuationHist = &continuationHistory[0][0][0], (stack - i)->eval = INF, (stack - i)->move = NULLMOVE, (stack - i)->double_extensions = 0;
 
     //values[0].init("nmp_pv_rate");
 
