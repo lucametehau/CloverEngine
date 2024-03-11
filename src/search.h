@@ -581,7 +581,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                 R += quietUs && !isCheck && staticEval - rootEval > EvalDifferenceReductionMargin && ply % 2 == 0; /// the position in quiet and static eval is way bigger than root eval
                 R -= 2 * refutationMove; /// reduce for refutation moves
                 R -= board.checkers != 0; /// move gives check
-                R -= hist / HistReductionDiv; /// reduce based on move history
             }
             else if (!wasPV) {
                 R = lmrRedNoisy[std::min(63, depth)][std::min(63, played)];
@@ -592,6 +591,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
             R += 2 * cutNode;
             R -= wasPV && ttDepth >= depth;
             R += ttCapture;
+            R -= (isQuiet ? hist : getCapHist(this, move)) / HistReductionDiv;
 
             R = std::min(newDepth, std::max(R, 1)); /// clamp R
             score = -search<false>(-alpha - 1, -alpha, newDepth - R, true, stack + 1);
