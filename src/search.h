@@ -400,6 +400,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         eval_diff < NegativeImprovingMargin ? -1 : 0);
 
     (stack + 1)->killer = NULLMOVE;
+    (stack + 2)->cutoffs = 0;
 
     if constexpr (!pvNode) {
         if (!isCheck) {
@@ -592,6 +593,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
             R += 2 * cutNode;
             R -= wasPV && ttDepth >= depth;
             R += ttCapture;
+            R += (stack + 1)->cutoffs >= 5;
 
             R = std::min(newDepth, std::max(R, 1)); /// clamp R
             score = -search<false>(-alpha - 1, -alpha, newDepth - R, true, stack + 1);
@@ -640,6 +642,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                 stack->killer = bestMove;
             updateHistory(this, stack, nrQuiets, ply, threatsEnemy.threatsEnemy, getHistoryBonus(depth + (staticEval <= alpha)));
         }
+        stack->cutoffs++;
         updateCapHistory(this, stack, nrCaptures, bestMove, ply, getHistoryBonus(depth + (staticEval <= alpha)));
     }
 
@@ -800,6 +803,7 @@ int Search::root_search(int alpha, int beta, int depth, int multipv, StackEntry*
             if (stack->killer != bestMove)
                 stack->killer = bestMove;
             updateHistory(this, stack, nrQuiets, 0, threatsEnemy.threatsEnemy, getHistoryBonus(depth));
+            stack->cutoffs++;
         }
         updateCapHistory(this, stack, nrCaptures, bestMove, 0, getHistoryBonus(depth));
     }
@@ -893,7 +897,7 @@ std::pair <int, uint16_t> Search::start_search(Info* _info) {
     rootEval = (!board.checkers ? evaluate(board) : INF);
 
     for (int i = 1; i <= 10; i++)
-        (stack - i)->continuationHist = &continuationHistory[0][0][0], (stack - i)->eval = INF, (stack - i)->move = NULLMOVE;
+        (stack - i)->continuationHist = &continuationHistory[0][0][0], (stack - i)->eval = INF, (stack - i)->move = NULLMOVE, (stack - i)->cutoffs = 0;
 
     //values[0].init("nmp_pv_rate");
 
