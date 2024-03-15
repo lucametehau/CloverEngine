@@ -1,7 +1,10 @@
-CC  = g++
 SRC = *.cpp Fathom/src/tbprobe.c
 EXE = Clover.6.1.19
 EVALFILE = weights-5buckets-epoch390.nnue
+
+ifeq ($(CXX),)
+    CXX = g++
+endif
 
 ifeq ($(OS), Windows_NT)
 	EXT = .exe
@@ -14,7 +17,7 @@ WFLAGS = -Wall -g
 RFLAGS = $(WFLAGS) -std=c++17 -O3 -funroll-loops
 LIBS =
 
-FLAGS = $(shell echo | $(CC) -march=native -E -dM -)
+FLAGS = $(shell echo | $(CXX) -march=native -E -dM -)
 
 ifneq ($(findstring __BMI2__, $(FLAGS)),)
 	ifeq ($(findstring __znver1, $(FLAGS)),)
@@ -31,10 +34,10 @@ else
 	LIBS += -lpthread
 endif
 
-ifneq ($(findstring g++, $(CC)),)
+ifneq ($(findstring g++, $(CXX)),)
 	PGO_GENERATE = -fprofile-generate
 	PGO_USE      = -fprofile-use
-else ifneq ($(findstring clang++, $(CC)),)
+else ifneq ($(findstring clang++, $(CXX)),)
 	PGO_MERGE    = llvm-profdata merge -output=clover.profdata *.profraw
 	PGO_GENERATE = -fprofile-instr-generate
 	PGO_USE      = -fprofile-instr-use=clover.profdata
@@ -47,33 +50,33 @@ AVX512FLAGS   = $(AVX2FLAGS) -mavx512f -mavx512bw -mavx512dq
 EVALFILEFLAGS = -DEVALFILE=\"$(EVALFILE)\" -I . -IFathom
 
 pgo:
-	$(CC)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(NATIVEFLAGS) -o $(EXE)$(EXT) $(PGO_GENERATE)
+	$(CXX)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(NATIVEFLAGS) -o $(EXE)$(EXT) $(PGO_GENERATE)
 	./$(EXE)$(EXT) bench 15
 	$(PGO_MERGE)
-	$(CC)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(NATIVEFLAGS) -o $(EXE)$(EXT) $(PGO_USE)
+	$(CXX)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(NATIVEFLAGS) -o $(EXE)$(EXT) $(PGO_USE)
 generate:
-	$(CC)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(NATIVEFLAGS) -DGENERATE -o Clover-generator$(EXT)
+	$(CXX)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(NATIVEFLAGS) -DGENERATE -o Clover-generator$(EXT)
 debug:
 	clang++ $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(NATIVEFLAGS) -o $(EXE)$(EXT)
 native:
-	$(CC)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(PEXT_FLAGS) $(LIBS) $(NATIVEFLAGS) -o $(EXE)$(EXT)
+	$(CXX)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(PEXT_FLAGS) $(LIBS) $(NATIVEFLAGS) -o $(EXE)$(EXT)
 old:
-	$(CC)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(OLDFLAGS) -o $(EXE)-old$(EXT) $(PGO_GENERATE)
+	$(CXX)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(OLDFLAGS) -o $(EXE)-old$(EXT) $(PGO_GENERATE)
 	./$(EXE)-old$(EXT) bench 15
 	$(PGO_MERGE)
-	$(CC)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(OLDFLAGS) -o $(EXE)-old$(EXT) $(PGO_USE)
+	$(CXX)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(OLDFLAGS) -o $(EXE)-old$(EXT) $(PGO_USE)
 avx2:
-	$(CC)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(PEXT_FLAGS) $(LIBS) $(AVX2FLAGS) -o $(EXE)-avx2$(EXT) $(PGO_GENERATE)
+	$(CXX)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(PEXT_FLAGS) $(LIBS) $(AVX2FLAGS) -o $(EXE)-avx2$(EXT) $(PGO_GENERATE)
 	./$(EXE)-avx2$(EXT) bench 15
 	$(PGO_MERGE)
-	$(CC)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(PEXT_FLAGS) $(LIBS) $(AVX2FLAGS) -o $(EXE)-avx2$(EXT) $(PGO_USE)
+	$(CXX)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(PEXT_FLAGS) $(LIBS) $(AVX2FLAGS) -o $(EXE)-avx2$(EXT) $(PGO_USE)
 avx512:
-	$(CC)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(PEXT_FLAGS) $(LIBS) $(AVX512FLAGS) -o $(EXE)-avx512$(EXT) $(PGO_GENERATE)
+	$(CXX)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(PEXT_FLAGS) $(LIBS) $(AVX512FLAGS) -o $(EXE)-avx512$(EXT) $(PGO_GENERATE)
 	./$(EXE)-avx512$(EXT) bench 15
 	$(PGO_MERGE)
-	$(CC)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(PEXT_FLAGS) $(LIBS) $(AVX512FLAGS) -o $(EXE)-avx512$(EXT) $(PGO_USE)
+	$(CXX)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(PEXT_FLAGS) $(LIBS) $(AVX512FLAGS) -o $(EXE)-avx512$(EXT) $(PGO_USE)
 tune:
-	$(CC)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(PEXT_FLAGS) $(LIBS) $(NATIVEFLAGS) -DTUNE_FLAG -o $(EXE)$(EXT)
+	$(CXX)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(PEXT_FLAGS) $(LIBS) $(NATIVEFLAGS) -DTUNE_FLAG -o $(EXE)$(EXT)
 
 release:
 	make old
