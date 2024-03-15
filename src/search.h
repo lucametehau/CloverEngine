@@ -523,7 +523,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                 /// late move pruning
                 if (newDepth <= LMPDepth && played >= (LMPBias + newDepth * newDepth) / (2 - improving)) skip = 1;
 
-                if (depth <= SEEPruningQuietDepth && !isCheck && !see(board, move, -SEEPruningQuietMargin * depth)) continue;
+                if (depth <= SEEPruningQuietDepth && !isCheck && !see(board, move, -SEEPruningQuietMargin / (1 + ttCapture) * depth)) continue;
             }
             else {
                 if (depth <= SEEPruningNoisyDepth && !isCheck && picker.trueStage > STAGE_GOOD_NOISY && !see(board, move, -SEEPruningNoisyMargin * depth * depth)) continue;
