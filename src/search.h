@@ -561,12 +561,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         board.make_move(move);
         played++;
 
-        /// store quiets for history
-        if (isQuiet)
-            stack->quiets[nrQuiets++] = move;
-        else
-            stack->captures[nrCaptures++] = move;
-
         int newDepth = depth + ex, R = 1;
 
         uint64_t initNodes = nodes;
@@ -623,8 +617,20 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                 alpha = score;
                 update_pv(ply, move);
                 if (alpha >= beta) {
+                    /// store quiets for history
+                    if (isQuiet)
+                        stack->quiets[nrQuiets++] = move;
+                    else
+                        stack->captures[nrCaptures++] = move;
                     break;
                 }
+            }
+            else {
+                /// store quiets for history
+                if (isQuiet)
+                    stack->quiets[nrQuiets++] = move;
+                else
+                    stack->captures[nrCaptures++] = move;
             }
         }
     }
