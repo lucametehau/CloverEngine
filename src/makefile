@@ -37,7 +37,8 @@ endif
 ifneq ($(findstring g++, $(CXX)),)
 	PGO_GENERATE = -fprofile-generate
 	PGO_USE      = -fprofile-use
-else ifneq ($(findstring clang++, $(CXX)),)
+endif
+ifneq ($(findstring clang++, $(CXX)),)
 	PGO_MERGE    = llvm-profdata merge -output=clover.profdata *.profraw
 	PGO_GENERATE = -fprofile-instr-generate
 	PGO_USE      = -fprofile-instr-use=clover.profdata
