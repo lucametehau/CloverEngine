@@ -518,7 +518,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                 int newDepth = std::max(0, depth - lmrRed[std::min(63, depth)][std::min(63, played)] + improving);
 
                 /// futility pruning
-                if (newDepth <= FPDepth && !isCheck && staticEval + FPBias + FPMargin * newDepth <= alpha) skip = 1;
+                if (newDepth <= FPDepth && !isCheck && staticEval + FPBias + stack->eval_hist + FPMargin * newDepth <= alpha) skip = 1;
 
                 /// late move pruning
                 if (newDepth <= LMPDepth && played >= (LMPBias + newDepth * newDepth) / (2 - improving)) skip = 1;
@@ -641,6 +641,9 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
             updateHistory(this, stack, nrQuiets, ply, threatsEnemy.threatsEnemy, getHistoryBonus(depth + (staticEval <= alpha)));
         }
         updateCapHistory(this, stack, nrCaptures, bestMove, ply, getHistoryBonus(depth + (staticEval <= alpha)));
+
+        int eval_change = stack->eval + (stack + 1)->eval;
+        stack->eval_hist += eval_change - stack->eval_hist * abs(eval_change) / 256;
     }
 
     /// update tt only if we aren't in a singular search
