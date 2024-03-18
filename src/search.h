@@ -320,11 +320,13 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
 
     pvTableLen[ply] = 0;
 
-    if (board.is_draw(ply)) return 1 - (nodes & 2); /// beal effect, credit to Ethereal for this
+    if constexpr (!rootNode) {
+        if (board.is_draw(ply)) return 1 - (nodes & 2); /// beal effect, credit to Ethereal for this
 
-    /// mate distance pruning   
-    alpha = std::max(alpha, -INF + ply), beta = std::min(beta, INF - ply - 1);
-    if (alpha >= beta) return alpha;
+        /// mate distance pruning   
+        alpha = std::max(alpha, -INF + ply), beta = std::min(beta, INF - ply - 1);
+        if (alpha >= beta) return alpha;
+    }
 
     Entry* entry = TT->probe(key, ttHit);
 
@@ -484,7 +486,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
     while ((move = picker.get_next_move(this, stack, board, skip, false)) != NULLMOVE) {
         if constexpr (rootNode) {
             bool searched = false;
-            for (int i = 1; i <= multipv_index; i++) {
+            for (int i = 1; i < multipv_index; i++) {
                 if (move == bestMoves[i]) {
                     searched = true;
                     break;
@@ -768,7 +770,7 @@ std::pair <int, uint16_t> Search::start_search(Info* _info) {
     completedDepth = 0;
 
     for (tDepth = 1; tDepth <= limitDepth; tDepth++) {
-        multipv_index = -1;
+        multipv_index = 0;
         for (int i = 1; i <= info->multipv; i++) {
             multipv_index++;
             int window = AspirationWindosValue;
