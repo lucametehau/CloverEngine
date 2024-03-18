@@ -768,7 +768,7 @@ std::pair <int, uint16_t> Search::start_search(Info* _info) {
     completedDepth = 0;
 
     for (tDepth = 1; tDepth <= limitDepth; tDepth++) {
-        multipv_index = 0;
+        multipv_index = -1;
         for (int i = 1; i <= info->multipv; i++) {
             multipv_index++;
             int window = AspirationWindosValue;
