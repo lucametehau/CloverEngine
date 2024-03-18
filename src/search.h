@@ -484,7 +484,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
     while ((move = picker.get_next_move(this, stack, board, skip, false)) != NULLMOVE) {
         if constexpr (rootNode) {
             bool searched = false;
-            for (int i = 1; i < 255; i++) {
+            for (int i = 1; i <= multipv_index; i++) {
                 if (move == bestMoves[i]) {
                     searched = true;
                     break;
@@ -576,6 +576,13 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         board.make_move(move);
         played++;
 
+        if constexpr (rootNode) {
+            /// current root move info
+            if (principalSearcher && printStats && getTime() > info->startTime + 2500 && !info->sanMode) {
+                std::cout << "info depth " << depth << " currmove " << move_to_string(move, info->chess960) << " currmovenumber " << played << std::endl;
+            }
+        }
+
         /// store quiets for history
         if (isQuiet)
             stack->quiets[nrQuiets++] = move;
@@ -635,6 +642,10 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
             best = score;
             bestMove = move;
             if (score > alpha) {
+                if constexpr (rootNode) {
+                    bestMoves[multipv_index] = move;
+                    rootScores[multipv_index] = score;
+                }
                 alpha = score;
                 update_pv(ply, move);
                 if (alpha >= beta) {
@@ -757,7 +768,9 @@ std::pair <int, uint16_t> Search::start_search(Info* _info) {
     completedDepth = 0;
 
     for (tDepth = 1; tDepth <= limitDepth; tDepth++) {
+        multipv_index = 0;
         for (int i = 1; i <= info->multipv; i++) {
+            multipv_index++;
             int window = AspirationWindosValue;
             if (tDepth >= AspirationWindowsDepth) {
                 alpha = std::max(-INF, scores[i] - window);
@@ -772,7 +785,7 @@ std::pair <int, uint16_t> Search::start_search(Info* _info) {
             while (true) {
                 depth = std::max({ depth, 1, tDepth - 4 });
                 selDepth = 0;
-                scores[i] = search<true, true>(alpha, beta, depth, i, stack);
+                scores[i] = search<true, true>(alpha, beta, depth, false, stack);
                 if (flag & TERMINATED_SEARCH)
                     break;
 

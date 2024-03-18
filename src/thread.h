@@ -111,6 +111,7 @@ struct Search {
 
     int64_t cnt, cnt2;
     int bestMoveCnt;
+    int multipv_index;
 
     bool lastNullMove;
 
