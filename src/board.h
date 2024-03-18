@@ -21,35 +21,25 @@
 #include "defs.h"
 #include "net.h"
 
-class Undo {
+class BoardState {
 public:
+    bool turn, chess960;
     int8_t enPas;
     uint8_t castleRights;
     uint8_t captured;
+    uint8_t board[64], rookSq[2][2];
     uint16_t halfMoves, moveIndex;
     uint64_t checkers, pinnedPieces;
     uint64_t key;
+    uint64_t bb[13], pieces[2];
 };
 
 class Board {
 public:
-    bool turn, chess960;
-
-    uint8_t captured; /// keeping track of last captured piece so i reduce the size of move
-    uint8_t castleRights; /// 1 - bq, 2 - bk, 4 - wq, 8 - wk
-    int8_t enPas;
-    uint8_t board[64], rookSq[2][2];
-
-    uint16_t ply, gamePly;
-    uint16_t halfMoves, moveIndex;
-    
-    uint8_t castleRightsDelta[2][64];
-
-    uint64_t checkers, pinnedPieces;
-    uint64_t bb[13];
-    uint64_t pieces[2];
-    uint64_t key;
-    Undo history[2000]; /// fuck it
+    bool turn;
+    uint8_t castle_rights_delta[2][64];
+    int16_t ply, game_ply;
+    BoardState history[2000];
 
     Network NN;
 
@@ -57,28 +47,56 @@ public:
         set_fen(START_POS_FEN);
     }
 
+    BoardState& state() {
+        return history[game_ply];
+    }
+
+    uint64_t key() {
+        return state().key;
+    }
+
     uint64_t diagonal_sliders(int color) {
-        return bb[get_piece(BISHOP, color)] | bb[get_piece(QUEEN, color)];
+        return state().bb[get_piece(BISHOP, color)] | state().bb[get_piece(QUEEN, color)];
     }
 
     uint64_t orthogonal_sliders(int color) {
-        return bb[get_piece(ROOK, color)] | bb[get_piece(QUEEN, color)];
+        return state().bb[get_piece(ROOK, color)] | state().bb[get_piece(QUEEN, color)];
+    }
+
+    uint64_t& get_bb(int piece) {
+        return state().bb[piece];
+    }
+
+    uint64_t get_pieces(bool color) {
+        return state().pieces[color];
+    }
+
+    uint64_t get_pinned_pieces() {
+        return state().pinnedPieces;
+    }
+
+    uint64_t get_checkers() {
+        return state().checkers;
+    }
+
+    uint64_t castle_rights() {
+        return state().castleRights;
     }
 
     int piece_type_at(int sq) {
-        return piece_type(board[sq]);
+        return piece_type(piece_at(sq));
     }
 
     int piece_at(int sq) {
-        return board[sq];
+        return state().board[sq];
     }
 
     int king(bool color) {
-        return Sq(bb[get_piece(KING, color)]);
+        return Sq(state().bb[get_piece(KING, color)]);
     }
 
     bool isCapture(uint16_t move) {
-        return type(move) != CASTLE && (board[sq_to(move)] > 0);
+        return type(move) != CASTLE && (piece_at(sq_to(move)) > 0);
     }
 
     void make_move(uint16_t move);
@@ -90,7 +108,7 @@ public:
     void undo_null_move();
 
     bool has_non_pawn_material(bool color) {
-        return (pieces[color] ^ bb[get_piece(KING, color)] ^ bb[get_piece(PAWN, color)]) != 0;
+        return (get_pieces(color) ^ get_bb(get_piece(KING, color)) ^ get_bb(get_piece(PAWN, color))) != 0;
     }
 
     void clear() {
@@ -104,7 +122,7 @@ public:
     void print() {
         for (int i = 7; i >= 0; i--) {
             for (int j = 0; j <= 7; j++)
-                std::cerr << pieceChar[board[8 * i + j]] << " ";
+                std::cerr << pieceChar[piece_at(8 * i + j)] << " ";
             std::cerr << "\n";
         }
     }
@@ -117,7 +135,7 @@ public:
         };
 
         for (int i = 1; i <= 12; i++) {
-            uint64_t b = bb[i];
+            uint64_t b = get_bb(i);
             while (b) {
                 uint64_t b2 = lsb(b);
                 ans.ind[WHITE].push_back(net_index(i, Sq(b2), kingsSide[WHITE], WHITE));
@@ -130,11 +148,11 @@ public:
     }
 
     void place_piece_at_sq(int piece, int sq) {
-        board[sq] = piece;
-        key ^= hashKey[board[sq]][sq];
+        state().board[sq] = piece;
+        state().key ^= hashKey[piece][sq];
 
-        pieces[(board[sq] > 6)] |= (1ULL << sq);
-        bb[board[sq]] |= (1ULL << sq);
+        state().pieces[(piece > 6)] |= (1ULL << sq);
+        state().bb[piece] |= (1ULL << sq);
     }
 
     void set_fen(const std::string fen); // check init.h
@@ -145,16 +163,18 @@ public:
 
     std::string fen() {
         std::string fen;
+        BoardState& curr = state();
+
         for (int i = 7; i >= 0; i--) {
             int cnt = 0;
             for (int j = 0, sq = i * 8; j < 8; j++, sq++) {
-                if (board[sq] == 0)
+                if (piece_at(sq) == 0)
                     cnt++;
                 else {
                     if (cnt)
                         fen += char(cnt + '0');
                     cnt = 0;
-                    fen += pieceChar[board[sq]];
+                    fen += pieceChar[piece_at(sq)];
                 }
             }
             if (cnt)
@@ -165,35 +185,35 @@ public:
         fen += " ";
         fen += (turn == WHITE ? "w" : "b");
         fen += " ";
-        if (castleRights & 8)
+        if (curr.castleRights & 8)
             fen += "K";
-        if (castleRights & 4)
+        if (curr.castleRights & 4)
             fen += "Q";
-        if (castleRights & 2)
+        if (curr.castleRights & 2)
             fen += "k";
-        if (castleRights & 1)
+        if (curr.castleRights & 1)
             fen += "q";
-        if (!castleRights)
+        if (!curr.castleRights)
             fen += "-";
         fen += " ";
-        if (enPas >= 0) {
-            fen += char('a' + enPas % 8);
-            fen += char('1' + enPas / 8);
+        if (curr.enPas >= 0) {
+            fen += char('a' + curr.enPas % 8);
+            fen += char('1' + curr.enPas / 8);
         }
         else
             fen += "-";
         fen += " ";
         std::string s;
-        int nr = halfMoves;
+        int nr = curr.halfMoves;
         while (nr)
             s += char('0' + nr % 10), nr /= 10;
         std::reverse(s.begin(), s.end());
-        if (halfMoves)
+        if (curr.halfMoves)
             fen += s;
         else
             fen += "0";
         fen += " ";
-        s = "", nr = moveIndex;
+        s = "", nr = curr.moveIndex;
         while (nr)
             s += char('0' + nr % 10), nr /= 10;
         std::reverse(s.begin(), s.end());
@@ -202,23 +222,24 @@ public:
     }
 
     uint64_t speculative_next_key(uint64_t move) {
-        const int from = sq_from(move), to = sq_to(move), piece = board[from];
-        return key ^ hashKey[piece][from] ^ hashKey[piece][to] ^ (board[to] ? hashKey[board[to]][to] : 0) ^ 1;
+        const int from = sq_from(move), to = sq_to(move), piece = piece_at(from);
+        return state().key ^ hashKey[piece][from] ^ hashKey[piece][to] ^ (piece_at(to) ? hashKey[piece_at(to)][to] : 0) ^ 1;
     }
 
     bool isMaterialDraw() {
         /// KvK, KBvK, KNvK, KNNvK
-        int num = count(pieces[WHITE]) + count(pieces[BLACK]);
-        return (num == 2 || (num == 3 && (bb[WN] || bb[BN] || bb[WB] || bb[BB])) ||
-            (num == 4 && (count(bb[WN]) == 2 || count(bb[BN]) == 2)));
+        int num = count(get_pieces(WHITE)) + count(get_pieces(BLACK));
+        return (num == 2 || (num == 3 && (get_bb(WN) || get_bb(BN) || get_bb(WB) || get_bb(BB))) ||
+            (num == 4 && (count(get_bb(WN)) == 2 || count(get_bb(BN)) == 2)));
     }
     
     bool is_repetition(int ply) {
         int cnt = 1;
-        for (int i = gamePly - 2; i >= gamePly - halfMoves; i -= 2) {
+        const uint64_t key = state().key;
+        for (int i = game_ply - 2; i >= game_ply - state().halfMoves; i -= 2) {
             if (history[i].key == key) {
                 cnt++;
-                if (i > gamePly - ply)
+                if (i > game_ply - ply)
                     return 1;
                 if (cnt == 3)
                     return 1;

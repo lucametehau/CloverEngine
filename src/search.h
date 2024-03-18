@@ -53,32 +53,33 @@ bool printStats = true; /// default true
 const bool PROBE_ROOT = true; /// default true
 
 uint32_t probe_TB(Board& board, int depth, bool probeAtRoot = 0, int halfMoves = 0, bool castlingRights = 0) {
+    BoardState& curr = board.state();
     if (probeAtRoot) {
-        unsigned pieces = count(board.pieces[WHITE] | board.pieces[BLACK]);
+        unsigned pieces = count(curr.pieces[WHITE] | curr.pieces[BLACK]);
 
         if (pieces <= TB_LARGEST) {
-            int ep = board.enPas;
+            int ep = curr.enPas;
             if (ep == -1)
                 ep = 0;
 
-            return tb_probe_root(board.pieces[WHITE], board.pieces[BLACK],
-                board.bb[WK] | board.bb[BK], board.bb[WQ] | board.bb[BQ], board.bb[WR] | board.bb[BR],
-                board.bb[WB] | board.bb[BB], board.bb[WN] | board.bb[BN], board.bb[WP] | board.bb[BP],
+            return tb_probe_root(curr.pieces[WHITE], curr.pieces[BLACK],
+                curr.bb[WK] | curr.bb[BK], curr.bb[WQ] | curr.bb[BQ], curr.bb[WR] | curr.bb[BR],
+                curr.bb[WB] | curr.bb[BB], curr.bb[WN] | curr.bb[BN], curr.bb[WP] | curr.bb[BP],
                 halfMoves, castlingRights, ep, board.turn, nullptr);
         }
         return TB_RESULT_FAILED;
     }
-    if (TB_LARGEST && depth >= 2 && !board.halfMoves && !board.castleRights) {
-        unsigned pieces = count(board.pieces[WHITE] | board.pieces[BLACK]);
+    if (TB_LARGEST && depth >= 2 && !curr.halfMoves && !curr.castleRights) {
+        unsigned pieces = count(curr.pieces[WHITE] | curr.pieces[BLACK]);
 
         if (pieces <= TB_LARGEST) {
-            int ep = board.enPas;
+            int ep = curr.enPas;
             if (ep == -1)
                 ep = 0;
 
-            return tb_probe_wdl(board.pieces[WHITE], board.pieces[BLACK],
-                board.bb[WK] | board.bb[BK], board.bb[WQ] | board.bb[BQ], board.bb[WR] | board.bb[BR],
-                board.bb[WB] | board.bb[BB], board.bb[WN] | board.bb[BN], board.bb[WP] | board.bb[BP],
+            return tb_probe_wdl(curr.pieces[WHITE], curr.pieces[BLACK],
+                curr.bb[WK] | curr.bb[BK], curr.bb[WQ] | curr.bb[BQ], curr.bb[WR] | curr.bb[BR],
+                curr.bb[WB] | curr.bb[BB], curr.bb[WN] | curr.bb[BN], curr.bb[WP] | curr.bb[BP],
                 0, 0, ep, board.turn);
         }
     }
@@ -86,14 +87,15 @@ uint32_t probe_TB(Board& board, int depth, bool probeAtRoot = 0, int halfMoves =
 }
 
 Threats getThreats(Board& board, const bool us) {
+    BoardState& curr = board.state();
     const bool enemy = 1 ^ us;
-    uint64_t ourPieces = board.pieces[us] ^ board.bb[get_piece(PAWN, us)];
-    uint64_t att = getPawnAttacks(enemy, board.bb[get_piece(PAWN, enemy)]), attPieces = att & ourPieces;
-    uint64_t pieces, b, all = board.pieces[WHITE] | board.pieces[BLACK];
+    uint64_t ourPieces = curr.pieces[us] ^ curr.bb[get_piece(PAWN, us)];
+    uint64_t att = getPawnAttacks(enemy, curr.bb[get_piece(PAWN, enemy)]), attPieces = att & ourPieces;
+    uint64_t pieces, b, all = curr.pieces[WHITE] | curr.pieces[BLACK];
 
-    ourPieces ^= board.bb[get_piece(KNIGHT, us)] | board.bb[get_piece(BISHOP, us)];
+    ourPieces ^= curr.bb[get_piece(KNIGHT, us)] | curr.bb[get_piece(BISHOP, us)];
 
-    pieces = board.bb[get_piece(KNIGHT, enemy)];
+    pieces = curr.bb[get_piece(KNIGHT, enemy)];
     while (pieces) {
         b = lsb(pieces);
         att |= knightBBAttacks[Sq(b)];
@@ -101,7 +103,7 @@ Threats getThreats(Board& board, const bool us) {
         pieces ^= b;
     }
 
-    pieces = board.bb[get_piece(BISHOP, enemy)];
+    pieces = curr.bb[get_piece(BISHOP, enemy)];
     while (pieces) {
         b = lsb(pieces);
         att |= genAttacksBishop(all, Sq(b));
@@ -109,9 +111,9 @@ Threats getThreats(Board& board, const bool us) {
         pieces ^= b;
     }
 
-    ourPieces ^= board.bb[get_piece(ROOK, us)];
+    ourPieces ^= curr.bb[get_piece(ROOK, us)];
 
-    pieces = board.bb[get_piece(ROOK, enemy)];
+    pieces = curr.bb[get_piece(ROOK, enemy)];
     while (pieces) {
         b = lsb(pieces);
         att |= genAttacksRook(all, Sq(b));
@@ -119,7 +121,7 @@ Threats getThreats(Board& board, const bool us) {
         pieces ^= b;
     }
 
-    pieces = board.bb[get_piece(QUEEN, enemy)];
+    pieces = curr.bb[get_piece(QUEEN, enemy)];
     while (pieces) {
         b = lsb(pieces);
         att |= genAttacksRook(all, Sq(b));
@@ -146,7 +148,7 @@ std::string getSanString(Board& board, uint16_t move) {
     if (prom) san += "=", san += pieceChar[prom];
 
     board.make_move(move);
-    if (board.checkers) san += '+';
+    if (board.get_checkers()) san += '+';
     board.undo_move(move);
 
     return san;
@@ -188,7 +190,7 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack) {
 
     if (checkForStop<false>()) return evaluate(board);
 
-    const uint64_t key = board.key;
+    const uint64_t key = board.key();
     int score = INF, best = -INF, alphaOrig = alpha;
     int bound = NONE;
     uint16_t bestMove = NULLMOVE, ttMove = NULLMOVE;
@@ -211,7 +213,7 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack) {
         }
     }
 
-    const bool isCheck = (board.checkers != 0);
+    const bool isCheck = (board.get_checkers() != 0);
     Threats threatsEnemy{};
     if (isCheck) threatsEnemy = getThreats(board, board.turn);
     int futilityValue;
@@ -305,7 +307,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
     const bool allNode = (!pvNode && !cutNode);
     const bool nullSearch = ((stack - 1)->move == NULLMOVE);
     const int alphaOrig = alpha;
-    const uint64_t key = board.key;
+    const uint64_t key = board.key();
     uint16_t ttMove = NULLMOVE;
     uint16_t nrQuiets = 0;
     uint16_t nrCaptures = 0;
@@ -371,7 +373,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         }
     }
 
-    const bool isCheck = (board.checkers != 0);
+    const bool isCheck = (board.get_checkers ()!= 0);
     const Threats threatsEnemy = getThreats(board, board.turn);
     const bool quietUs = !threatsEnemy.threatsPieces;
     //int quietEnemy = quietness(board, 1 ^ board.turn);
@@ -580,7 +582,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                 R += quietUs && !isCheck && eval - seeVal[KNIGHT] > beta; /// if the position is relatively quiet and eval is bigger than beta by a margin
                 R += quietUs && !isCheck && staticEval - rootEval > EvalDifferenceReductionMargin && ply % 2 == 0; /// the position in quiet and static eval is way bigger than root eval
                 R -= 2 * refutationMove; /// reduce for refutation moves
-                R -= board.checkers != 0; /// move gives check
+                R -= board.get_checkers() != 0; /// move gives check
                 R -= hist / HistReductionDiv; /// reduce based on move history
             }
             else if (!wasPV) {
@@ -661,7 +663,7 @@ int Search::root_search(int alpha, int beta, int depth, int multipv, StackEntry*
 
     uint16_t ttMove = NULLMOVE;
     int alphaOrig = alpha;
-    uint64_t key = board.key;
+    uint64_t key = board.key();
     uint16_t nrQuiets = 0;
     uint16_t nrCaptures = 0;
     int played = 0, bound = NONE;
@@ -687,7 +689,7 @@ int Search::root_search(int alpha, int beta, int depth, int multipv, StackEntry*
         eval = entry->eval;
     }
 
-    const bool isCheck = (board.checkers != 0);
+    const bool isCheck = (board.get_checkers() != 0);
     const Threats threatsEnemy = getThreats(board, board.turn);
 
     if (isCheck) { /// when in check, don't evaluate (king safety evaluation might break)
@@ -835,9 +837,10 @@ std::pair <int, uint16_t> Search::start_search(Info* _info) {
         }
 
         /// position is in tablebase
-        if (PROBE_ROOT && count(board.pieces[WHITE] | board.pieces[BLACK]) <= (int)TB_LARGEST) {
+        BoardState& curr = board.state();
+        if (PROBE_ROOT && count(curr.pieces[WHITE] | curr.pieces[BLACK]) <= (int)TB_LARGEST) {
             int move = NULLMOVE;
-            auto probe = probe_TB(board, 0, 1, board.halfMoves, (board.castleRights & (3 << board.turn)) > 0);
+            auto probe = probe_TB(board, 0, 1, curr.halfMoves, (curr.castleRights & (3 << board.turn)) > 0);
             if (probe != TB_RESULT_CHECKMATE && probe != TB_RESULT_FAILED && probe != TB_RESULT_STALEMATE) {
                 int to = int(TB_GET_TO(probe)), from = int(TB_GET_FROM(probe)), promote = TB_GET_PROMOTES(probe), ep = TB_GET_EP(probe);
                 if (!promote && !ep) {
@@ -890,7 +893,7 @@ std::pair <int, uint16_t> Search::start_search(Info* _info) {
     memset(ponderMoves, 0, sizeof(ponderMoves));
     memset(rootScores, 0, sizeof(rootScores));
 
-    rootEval = (!board.checkers ? evaluate(board) : INF);
+    rootEval = (!board.get_checkers() ? evaluate(board) : INF);
 
     for (int i = 1; i <= 10; i++)
         (stack - i)->continuationHist = &continuationHistory[0][0][0], (stack - i)->eval = INF, (stack - i)->move = NULLMOVE;
@@ -943,7 +946,7 @@ std::pair <int, uint16_t> Search::start_search(Info* _info) {
                             std::cout << " lowerbound";
                         else if (scores[i] <= alpha)
                             std::cout << " upperbound";
-                        int ply = board.moveIndex * 2 - 1 - board.turn;
+                        int ply = board.state().moveIndex * 2 - 1 - board.turn;
                         int wdlWin = winrate_model(scores[i], ply);
                         int wdlLose = winrate_model(-scores[i], ply);
                         int wdlDraw = 1000 - wdlWin - wdlLose;
@@ -1206,19 +1209,19 @@ void Search::kill_principal_search() {
 }
 
 void Search::set_fen(std::string fen, bool chess960) {
-    board.chess960 = chess960;
+    board.state().chess960 = chess960;
     board.set_fen(fen);
     for (int i = 0; i < threadCount; i++) {
-        params[i].board.chess960 = chess960;
+        params[i].board.state().chess960 = chess960;
         params[i].board.set_fen(fen);
     }
 }
 
 void Search::set_dfrc(int idx) {
-    board.chess960 = (idx > 0);
+    board.state().chess960 = (idx > 0);
     board.set_dfrc(idx);
     for (int i = 0; i < threadCount; i++) {
-        params[i].board.chess960 = (idx > 0);
+        params[i].board.state().chess960 = (idx > 0);
         params[i].board.set_dfrc(idx);
     }
 }

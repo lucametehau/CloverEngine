@@ -145,9 +145,10 @@ public:
         case STAGE_GEN_QUIETS:
         {
             if (!skip) {
+                BoardState& curr = board.state();
                 nrQuiets = gen_legal_quiet_moves(board, moves);
                 const bool turn = board.turn, enemy = 1 ^ turn;
-                const uint64_t enemyPawns = board.bb[get_piece(PAWN, turn ^ 1)], allPieces = board.pieces[WHITE] | board.pieces[BLACK];
+                const uint64_t enemyPawns = curr.bb[get_piece(PAWN, turn ^ 1)], allPieces = curr.pieces[WHITE] | curr.pieces[BLACK];
                 const uint64_t pawnAttacks = getPawnAttacks(enemy, enemyPawns);
                 const uint64_t enemyKingRing = kingRingMask[board.king(enemy)] & ~(shift(enemy, NORTHEAST, enemyPawns & ~fileMask[(enemy == WHITE ? 7 : 0)]) & shift(enemy, NORTHWEST, enemyPawns & ~fileMask[(enemy == WHITE ? 0 : 7)]));
                 int m = 0;
@@ -237,15 +238,16 @@ bool see(Board& board, uint16_t move, int threshold) {
 
     if (score >= 0)
         return 1;
+    BoardState& curr = board.state();
 
     diag = board.diagonal_sliders(WHITE) | board.diagonal_sliders(BLACK);
     orth = board.orthogonal_sliders(WHITE) | board.orthogonal_sliders(BLACK);
 
-    occ = board.pieces[WHITE] | board.pieces[BLACK];
+    occ = curr.pieces[WHITE] | curr.pieces[BLACK];
     occ = (occ ^ (1ULL << from)) | (1ULL << to);
 
     if (t == ENPASSANT)
-        occ ^= (1ULL << board.enPas);
+        occ ^= (1ULL << curr.enPas);
 
     att = (getAttackers(board, WHITE, occ, to) | getAttackers(board, BLACK, occ, to));
 
@@ -253,44 +255,44 @@ bool see(Board& board, uint16_t move, int threshold) {
 
     while (true) {
         att &= occ;
-        myAtt = att & board.pieces[col];
+        myAtt = att & curr.pieces[col];
 
         if (!myAtt)
             break;
 
-        if (myAtt & board.bb[get_piece(PAWN, col)]) {
-            occ ^= lsb(myAtt & board.bb[get_piece(PAWN, col)]);
+        if (myAtt & curr.bb[get_piece(PAWN, col)]) {
+            occ ^= lsb(myAtt & curr.bb[get_piece(PAWN, col)]);
             att |= genAttacksBishop(occ, to) & diag;
             score = -score - 1 - seeVal[PAWN];
             col ^= 1;
             if (score >= 0)
                 break;
         }
-        else if (myAtt & board.bb[get_piece(KNIGHT, col)]) {
-            occ ^= lsb(myAtt & board.bb[get_piece(KNIGHT, col)]);
+        else if (myAtt & curr.bb[get_piece(KNIGHT, col)]) {
+            occ ^= lsb(myAtt & curr.bb[get_piece(KNIGHT, col)]);
             score = -score - 1 - seeVal[KNIGHT];
             col ^= 1;
             if (score >= 0)
                 break;
         }
-        else if (myAtt & board.bb[get_piece(BISHOP, col)]) {
-            occ ^= lsb(myAtt & board.bb[get_piece(BISHOP, col)]);
+        else if (myAtt & curr.bb[get_piece(BISHOP, col)]) {
+            occ ^= lsb(myAtt & curr.bb[get_piece(BISHOP, col)]);
             att |= genAttacksBishop(occ, to) & diag;
             score = -score - 1 - seeVal[BISHOP];
             col ^= 1;
             if (score >= 0)
                 break;
         }
-        else if (myAtt & board.bb[get_piece(ROOK, col)]) {
-            occ ^= lsb(myAtt & board.bb[get_piece(ROOK, col)]);
+        else if (myAtt & curr.bb[get_piece(ROOK, col)]) {
+            occ ^= lsb(myAtt & curr.bb[get_piece(ROOK, col)]);
             att |= genAttacksRook(occ, to) & orth;
             score = -score - 1 - seeVal[ROOK];
             col ^= 1;
             if (score >= 0)
                 break;
         }
-        else if (myAtt & board.bb[get_piece(QUEEN, col)]) {
-            occ ^= lsb(myAtt & board.bb[get_piece(QUEEN, col)]);
+        else if (myAtt & curr.bb[get_piece(QUEEN, col)]) {
+            occ ^= lsb(myAtt & curr.bb[get_piece(QUEEN, col)]);
             att |= genAttacksBishop(occ, to) & diag;
             att |= genAttacksRook(occ, to) & orth;
             score = -score - 1 - seeVal[QUEEN];
@@ -299,12 +301,12 @@ bool see(Board& board, uint16_t move, int threshold) {
                 break;
         }
         else {
-            assert(myAtt & board.bb[get_piece(KING, col)]);
-            occ ^= board.bb[get_piece(KING, col)];
+            assert(myAtt & curr.bb[get_piece(KING, col)]);
+            occ ^= curr.bb[get_piece(KING, col)];
             col ^= 1;
             score = -score - 1 - seeVal[KING];
             if (score >= 0) {
-                if ((att & occ & board.pieces[col]))
+                if ((att & occ & curr.pieces[col]))
                     col ^= 1;
                 break;
             }

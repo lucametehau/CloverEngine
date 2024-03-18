@@ -275,9 +275,9 @@ inline uint64_t genAttacksSq(uint64_t blockers, int sq, int pieceType) {
 }
 
 inline uint64_t getAttackers(Board& board, int color, uint64_t blockers, int sq) {
-    return (pawnAttacksMask[color ^ 1][sq] & board.bb[get_piece(PAWN, color)]) |
-        (knightBBAttacks[sq] & board.bb[get_piece(KNIGHT, color)]) | (genAttacksBishop(blockers, sq) & board.diagonal_sliders(color)) |
-        (genAttacksRook(blockers, sq) & board.orthogonal_sliders(color)) | (kingBBAttacks[sq] & board.bb[get_piece(KING, color)]);
+    return (pawnAttacksMask[color ^ 1][sq] & board.get_bb(get_piece(PAWN, color))) |
+        (knightBBAttacks[sq] & board.get_bb(get_piece(KNIGHT, color))) | (genAttacksBishop(blockers, sq) & board.diagonal_sliders(color)) |
+        (genAttacksRook(blockers, sq) & board.orthogonal_sliders(color)) | (kingBBAttacks[sq] & board.get_bb(get_piece(KING, color)));
 }
 
 inline uint64_t getOrthSliderAttackers(Board& board, int color, uint64_t blockers, int sq) {
@@ -292,7 +292,7 @@ inline uint64_t getPawnAttacks(int color, uint64_t b) {
 }
 
 inline uint64_t pawnAttacks(Board& board, int color) {
-    uint64_t b = board.bb[get_piece(PAWN, color)];
+    uint64_t b = board.get_bb(get_piece(PAWN, color));
     int fileA = (color == WHITE ? 0 : 7), fileH = 7 - fileA;
     return shift(color, NORTHWEST, b & ~fileMask[fileA]) | shift(color, NORTHEAST, b & ~fileMask[fileH]);
 }

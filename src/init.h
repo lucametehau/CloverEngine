@@ -31,17 +31,18 @@ void init(Info* info) {
 
 void Board::set_fen(const std::string fen) {
     int ind = 0;
-    key = 0;
 
-    ply = gamePly = 0;
-    captured = 0;
+    ply = game_ply = 0;
+    BoardState& curr = state();
+    curr.key = 0;
+    curr.captured = 0;
 
     //checkers = 0;
 
     for (int i = 0; i <= 12; i++)
-        bb[i] = 0;
+        curr.bb[i] = 0;
 
-    pieces[BLACK] = pieces[WHITE] = 0;
+    curr.pieces[BLACK] = curr.pieces[WHITE] = 0;
 
     for (int i = 7; i >= 0; i--) {
         int j = 0;
@@ -54,7 +55,7 @@ void Board::set_fen(const std::string fen) {
             else {
                 int nr = fen[ind] - '0';
                 while (nr)
-                    board[sq] = 0, j++, sq++, nr--;
+                    curr.board[sq] = 0, j++, sq++, nr--;
             }
             ind++;
         }
@@ -66,36 +67,36 @@ void Board::set_fen(const std::string fen) {
     else
         turn = BLACK;
 
-    key ^= turn;
+    curr.key ^= turn;
 
     //cout << "key " << key << "\n";
 
-    castleRights = 0;
+    curr.castleRights = 0;
     ind += 2;
-    rookSq[WHITE][0] = rookSq[WHITE][1] = rookSq[BLACK][0] = rookSq[BLACK][1] = 64;
+    curr.rookSq[WHITE][0] = curr.rookSq[WHITE][1] = curr.rookSq[BLACK][0] = curr.rookSq[BLACK][1] = 64;
     if (fen[ind] != 'K' && fen[ind] != 'Q' && fen[ind] != 'k' && fen[ind] != 'q' && fen[ind] != '-') { // most likely chess 960
         int kingSq = king(WHITE);
         if ('A' <= fen[ind] && fen[ind] <= 'H' && fen[ind] - 'A' > kingSq)
-            castleRights |= (1 << 3), key ^= castleKey[WHITE][1], ind++;
+            curr.castleRights |= (1 << 3), curr.key ^= castleKey[WHITE][1], ind++;
         if ('A' <= fen[ind] && fen[ind] <= 'H' && kingSq > fen[ind] - 'A')
-            castleRights |= (1 << 2), key ^= castleKey[WHITE][0], ind++;
+            curr.castleRights |= (1 << 2), curr.key ^= castleKey[WHITE][0], ind++;
         kingSq = king(BLACK);
         if ('a' <= fen[ind] && fen[ind] <= 'h' && 56 + fen[ind] - 'a' > kingSq)
-            castleRights |= (1 << 1), key ^= castleKey[BLACK][1], ind++;
+            curr.castleRights |= (1 << 1), curr.key ^= castleKey[BLACK][1], ind++;
         if ('a' <= fen[ind] && fen[ind] <= 'h' && kingSq > 56 + fen[ind] - 'a')
-            castleRights |= (1 << 0), key ^= castleKey[BLACK][0], ind++;
-        chess960 = true;
+            curr.castleRights |= (1 << 0), curr.key ^= castleKey[BLACK][0], ind++;
+        curr.chess960 = true;
 
     }
     else {
         if (fen[ind] == 'K')
-            castleRights |= (1 << 3), ind++, key ^= castleKey[1][1];
+            curr.castleRights |= (1 << 3), ind++, curr.key ^= castleKey[1][1];
         if (fen[ind] == 'Q')
-            castleRights |= (1 << 2), ind++, key ^= castleKey[1][0];
+            curr.castleRights |= (1 << 2), ind++, curr.key ^= castleKey[1][0];
         if (fen[ind] == 'k')
-            castleRights |= (1 << 1), ind++, key ^= castleKey[0][1];
+            curr.castleRights |= (1 << 1), ind++, curr.key ^= castleKey[0][1];
         if (fen[ind] == 'q')
-            castleRights |= (1 << 0), ind++, key ^= castleKey[0][0];
+            curr.castleRights |= (1 << 0), ind++, curr.key ^= castleKey[0][0];
         if (fen[ind] == '-')
             ind++;
     }
@@ -109,9 +110,9 @@ void Board::set_fen(const std::string fen) {
 
     for (auto& rook : { a, b }) {
         if (rook != 64) {
-            if (rook % 8 && rook % 8 != 7) chess960 = true;
-            if (rook < king(WHITE) && (castleRights & 4)) rookSq[WHITE][0] = rook;
-            if (king(WHITE) < rook && (castleRights & 8)) rookSq[WHITE][1] = rook;
+            if (rook % 8 && rook % 8 != 7) curr.chess960 = true;
+            if (rook < king(WHITE) && (curr.castleRights & 4)) curr.rookSq[WHITE][0] = rook;
+            if (king(WHITE) < rook && (curr.castleRights & 8)) curr.rookSq[WHITE][1] = rook;
         }
     }
     a = 64, b = 64;
@@ -123,21 +124,22 @@ void Board::set_fen(const std::string fen) {
     }
     for (auto& rook : { a, b }) {
         if (rook != 64) {
-            if (rook % 8 && rook % 8 != 7) chess960 = true;
-            if (rook < king(BLACK) && (castleRights & 1)) rookSq[BLACK][0] = rook;
-            if (king(BLACK) < rook && (castleRights & 2)) rookSq[BLACK][1] = rook;
+            if (rook % 8 && rook % 8 != 7) curr.chess960 = true;
+            if (rook < king(BLACK) && (curr.castleRights & 1)) curr.rookSq[BLACK][0] = rook;
+            if (king(BLACK) < rook && (curr.castleRights & 2)) curr.rookSq[BLACK][1] = rook;
         }
     }
 
-    for (int i = 0; i < 64; i++) castleRightsDelta[BLACK][i] = castleRightsDelta[WHITE][i] = 15;
-    if (rookSq[BLACK][0] != 64)
-        castleRightsDelta[BLACK][rookSq[BLACK][0]] = 14, castleRightsDelta[BLACK][king(BLACK)] = 12;
-    if (rookSq[BLACK][1] != 64)
-        castleRightsDelta[BLACK][rookSq[BLACK][1]] = 13, castleRightsDelta[BLACK][king(BLACK)] = 12;
-    if (rookSq[WHITE][0] != 64)
-        castleRightsDelta[WHITE][rookSq[WHITE][0]] = 11, castleRightsDelta[WHITE][king(WHITE)] = 3;
-    if (rookSq[WHITE][1] != 64)
-        castleRightsDelta[WHITE][rookSq[WHITE][1]] = 7, castleRightsDelta[WHITE][king(WHITE)] = 3;
+    for (int i = 0; i < 64; i++) 
+        castle_rights_delta[BLACK][i] = castle_rights_delta[WHITE][i] = 15;
+    if (curr.rookSq[BLACK][0] != 64)
+        castle_rights_delta[BLACK][curr.rookSq[BLACK][0]] = 14, castle_rights_delta[BLACK][king(BLACK)] = 12;
+    if (curr.rookSq[BLACK][1] != 64)
+        castle_rights_delta[BLACK][curr.rookSq[BLACK][1]] = 13, castle_rights_delta[BLACK][king(BLACK)] = 12;
+    if (curr.rookSq[WHITE][0] != 64)
+        castle_rights_delta[WHITE][curr.rookSq[WHITE][0]] = 11, castle_rights_delta[WHITE][king(WHITE)] = 3;
+    if (curr.rookSq[WHITE][1] != 64)
+        castle_rights_delta[WHITE][curr.rookSq[WHITE][1]] = 7, castle_rights_delta[WHITE][king(WHITE)] = 3;
     //std::cout << int(rookSq[WHITE][0]) << " " << int(rookSq[WHITE][1]) << " " << int(rookSq[BLACK][0]) << " " << int(rookSq[BLACK][1]) << "\n";
     //cout << "key " << key << "\n";
     ind++;
@@ -146,12 +148,12 @@ void Board::set_fen(const std::string fen) {
         ind++;
         int rank = fen[ind] - '1';
         ind += 2;
-        enPas = get_sq(rank, file);
+        curr.enPas = get_sq(rank, file);
 
-        key ^= enPasKey[enPas];
+        curr.key ^= enPasKey[curr.enPas];
     }
     else {
-        enPas = -1;
+        curr.enPas = -1;
         ind += 2;
     }
     //cout << "key " << key << "\n";
@@ -159,18 +161,19 @@ void Board::set_fen(const std::string fen) {
     int nr = 0;
     while ('0' <= fen[ind] && fen[ind] <= '9')
         nr = nr * 10 + fen[ind] - '0', ind++;
-    halfMoves = nr;
+    curr.halfMoves = nr;
 
     ind++;
     nr = 0;
     while ('0' <= fen[ind] && fen[ind] <= '9')
         nr = nr * 10 + fen[ind] - '0', ind++;
-    moveIndex = nr;
+    curr.moveIndex = nr;
 
     NetInput input = to_netinput();
 
-    checkers = getAttackers(*this, 1 ^ turn, pieces[WHITE] | pieces[BLACK], king(turn));
-    pinnedPieces = getPinnedPieces(*this, turn);
+    curr.checkers = getAttackers(*this, 1 ^ turn, curr.pieces[WHITE] | curr.pieces[BLACK], king(turn));
+    curr.pinnedPieces = getPinnedPieces(*this, turn);
+    curr.turn = turn;
 
     NN.calc(input, turn);
 }
@@ -184,7 +187,7 @@ void Board::setFRCside(bool color, int idx) {
     idx /= 4;
     int cnt = 0;
     for (int i = ind; i < ind + 8; i++) {
-        if (!board[i]) {
+        if (!piece_at(i)) {
             if (idx % 6 == cnt) {
                 place_piece_at_sq(get_piece(QUEEN, color), i);
                 break;
@@ -208,7 +211,7 @@ void Board::setFRCside(bool color, int idx) {
     };
     cnt = 0;
     for (int i = ind; i < ind + 8; i++) {
-        if (!board[i]) {
+        if (!piece_at(i)) {
             if (cnt == vals[idx][0] || cnt == vals[idx][1]) {
                 place_piece_at_sq(get_piece(KNIGHT, color), i);
             }
@@ -217,7 +220,7 @@ void Board::setFRCside(bool color, int idx) {
     }
     cnt = 0;
     for (int i = ind; i < ind + 8; i++) {
-        if (!board[i]) {
+        if (!piece_at(i)) {
             if (cnt == 0 || cnt == 2) {
                 place_piece_at_sq(get_piece(ROOK, color), i);
             }
@@ -230,18 +233,19 @@ void Board::setFRCside(bool color, int idx) {
 }
 
 void Board::set_dfrc(int idx) {
-    ply = gamePly = 0;
-    captured = 0;
+    ply = game_ply = 0;
+    BoardState& curr = state();
+    curr.captured = 0;
 
     //checkers = 0;
 
     for (int i = 0; i <= 12; i++)
-        bb[i] = 0;
+        curr.bb[i] = 0;
 
     for (int i = 0; i < 64; i++)
-        board[i] = 0;
+        curr.board[i] = 0;
 
-    pieces[BLACK] = pieces[WHITE] = 0;
+    curr.pieces[BLACK] = curr.pieces[WHITE] = 0;
 
     int idxw = idx / 960, idxb = idx % 960;
     setFRCside(WHITE, idxw);
@@ -253,9 +257,9 @@ void Board::set_dfrc(int idx) {
         place_piece_at_sq(BP, i);
 
     turn = WHITE;
-    key ^= turn;
+    curr.key ^= turn;
 
-    castleRights = 15;
+    curr.castleRights = 15;
 
     int a = 64, b = 64;
     for (int i = 0; i < 8; i++) {
@@ -267,9 +271,9 @@ void Board::set_dfrc(int idx) {
 
     for (auto& rook : { a, b }) {
         if (rook != 64) {
-            if (rook % 8 && rook % 8 != 7) chess960 = true;
-            if (rook < king(WHITE) && (castleRights & 4)) rookSq[WHITE][0] = rook;
-            if (king(WHITE) < rook && (castleRights & 8)) rookSq[WHITE][1] = rook;
+            if (rook % 8 && rook % 8 != 7) curr.chess960 = true;
+            if (rook < king(WHITE) && (curr.castleRights & 4)) curr.rookSq[WHITE][0] = rook;
+            if (king(WHITE) < rook && (curr.castleRights & 8)) curr.rookSq[WHITE][1] = rook;
         }
     }
     a = 64, b = 64;
@@ -281,37 +285,38 @@ void Board::set_dfrc(int idx) {
     }
     for (auto& rook : { a, b }) {
         if (rook != 64) {
-            if (rook % 8 && rook % 8 != 7) chess960 = true;
-            if (rook < king(BLACK) && (castleRights & 1)) rookSq[BLACK][0] = rook;
-            if (king(BLACK) < rook && (castleRights & 2)) rookSq[BLACK][1] = rook;
+            if (rook % 8 && rook % 8 != 7) curr.chess960 = true;
+            if (rook < king(BLACK) && (curr.castleRights & 1)) curr.rookSq[BLACK][0] = rook;
+            if (king(BLACK) < rook && (curr.castleRights & 2)) curr.rookSq[BLACK][1] = rook;
         }
     }
 
-    for (int i = 0; i < 64; i++) castleRightsDelta[BLACK][i] = castleRightsDelta[WHITE][i] = 15;
-    if (rookSq[BLACK][0] != 64)
-        castleRightsDelta[BLACK][rookSq[BLACK][0]] = 14, castleRightsDelta[BLACK][king(BLACK)] = 12;
-    if (rookSq[BLACK][1] != 64)
-        castleRightsDelta[BLACK][rookSq[BLACK][1]] = 13, castleRightsDelta[BLACK][king(BLACK)] = 12;
-    if (rookSq[WHITE][0] != 64)
-        castleRightsDelta[WHITE][rookSq[WHITE][0]] = 11, castleRightsDelta[WHITE][king(WHITE)] = 3;
-    if (rookSq[WHITE][1] != 64)
-        castleRightsDelta[WHITE][rookSq[WHITE][1]] = 7, castleRightsDelta[WHITE][king(WHITE)] = 3;
+    for (int i = 0; i < 64; i++) castle_rights_delta[BLACK][i] = castle_rights_delta[WHITE][i] = 15;
+    if (curr.rookSq[BLACK][0] != 64)
+        castle_rights_delta[BLACK][curr.rookSq[BLACK][0]] = 14, castle_rights_delta[BLACK][king(BLACK)] = 12;
+    if (curr.rookSq[BLACK][1] != 64)
+        castle_rights_delta[BLACK][curr.rookSq[BLACK][1]] = 13, castle_rights_delta[BLACK][king(BLACK)] = 12;
+    if (curr.rookSq[WHITE][0] != 64)
+        castle_rights_delta[WHITE][curr.rookSq[WHITE][0]] = 11, castle_rights_delta[WHITE][king(WHITE)] = 3;
+    if (curr.rookSq[WHITE][1] != 64)
+        castle_rights_delta[WHITE][curr.rookSq[WHITE][1]] = 7, castle_rights_delta[WHITE][king(WHITE)] = 3;
 
-    enPas = -1;
-    halfMoves = 0;
-    moveIndex = 1;
+    curr.enPas = -1;
+    curr.halfMoves = 0;
+    curr.moveIndex = 1;
 
     NetInput input = to_netinput();
 
-    checkers = getAttackers(*this, 1 ^ turn, pieces[WHITE] | pieces[BLACK], king(turn));
-    pinnedPieces = getPinnedPieces(*this, turn);
+    curr.checkers = getAttackers(*this, 1 ^ turn, curr.pieces[WHITE] | curr.pieces[BLACK], king(turn));
+    curr.pinnedPieces = getPinnedPieces(*this, turn);
+    curr.turn = turn;
 
     NN.calc(input, turn);
 }
 
 bool Board::is_draw(int ply) {
-    if (halfMoves < 100 || !checkers)
-        return isMaterialDraw() || is_repetition(ply) || halfMoves >= 100;
+    if (state().halfMoves < 100 || !state().checkers)
+        return isMaterialDraw() || is_repetition(ply) || state().halfMoves >= 100;
     int nrmoves = 0;
     uint16_t moves[256];
     nrmoves = gen_legal_moves(*this, moves);

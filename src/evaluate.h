@@ -23,12 +23,12 @@
 
 inline int scale(Board& board) {
     return EvalScaleBias +
-        (count(board.bb[WP] | board.bb[BP]) * seeVal[PAWN] + 
-        count(board.bb[WN] | board.bb[BN]) * seeVal[KNIGHT] +
-        count(board.bb[WB] | board.bb[BB]) * seeVal[BISHOP] +
-        count(board.bb[WR] | board.bb[BR]) * seeVal[ROOK] +
-        count(board.bb[WQ] | board.bb[BQ]) * seeVal[QUEEN]) / 32 - 
-        board.halfMoves * EvalShuffleCoef;
+        (count(board.get_bb(WP) | board.get_bb(BP)) * seeVal[PAWN] + 
+        count(board.get_bb(WN) | board.get_bb(BN)) * seeVal[KNIGHT] +
+        count(board.get_bb(WB) | board.get_bb(BB)) * seeVal[BISHOP] +
+        count(board.get_bb(WR) | board.get_bb(BR)) * seeVal[ROOK] +
+        count(board.get_bb(WQ) | board.get_bb(BQ)) * seeVal[QUEEN]) / 32 -
+        board.state().halfMoves * EvalShuffleCoef;
 }
 
 void bringUpToDate(Board& board) {
@@ -51,7 +51,7 @@ void bringUpToDate(Board& board) {
                 NN->subSz = 0;
                 for (int i = 1; i <= 12; i++) {
                     uint64_t prev = state->bb[i];
-                    uint64_t curr = board.bb[i];
+                    uint64_t curr = board.get_bb(i);
 
                     uint64_t b = curr & ~prev; // additions
                     while (b) {
@@ -63,7 +63,7 @@ void bringUpToDate(Board& board) {
                         NN->remInput(net_index(i, sq_lsb(b), kingSq, c));
                     }
 
-                    state->bb[i] = board.bb[i];
+                    state->bb[i] = board.get_bb(i);
                 }
                 NN->applyUpdates(state->output, state->output);
                 memcpy(NN->histOutput[histSz - 1][c], state->output, sizeof(NN->histOutput[histSz - 1][c]));
