@@ -73,10 +73,8 @@ struct Search {
     template <bool pvNode>
     int quiesce(int alpha, int beta, StackEntry* stack); /// for quiet position check (tuning)
 
-    template <bool pvNode>
+    template <bool rootNode, bool pvNode>
     int search(int alpha, int beta, int depth, bool cutNode, StackEntry* stack);
-
-    int root_search(int alpha, int beta, int depth, int multipv, StackEntry* stack);
 
     void setTime(Info* tInfo) { info = tInfo; }
 

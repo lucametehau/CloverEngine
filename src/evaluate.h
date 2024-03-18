@@ -31,17 +31,17 @@ inline int scale(Board& board) {
         board.halfMoves * EvalShuffleCoef;
 }
 
-void bringUpToDate(Board& board) {
+void bring_up_to_date(Board& board) {
     Network* NN = &board.NN;
     int histSz = NN->histSz;
     for (auto c : { BLACK, WHITE }) {
         if (!NN->hist[histSz - 1].calc[c]) {
-            int i = NN->getGoodParent(c) + 1;
+            int i = NN->get_computed_parent(c) + 1;
             if (i != 0) { // no full refresh required
                 for (int j = i; j < histSz; j++) {
                     NetHist *hist = &NN->hist[j];
                     hist->calc[c] = 1;
-                    NN->processMove(hist->move, hist->piece, hist->cap, board.king(c), c, NN->histOutput[j][c], NN->histOutput[j - 1][c]);
+                    NN->process_move(hist->move, hist->piece, hist->cap, board.king(c), c, NN->output_history[j][c], NN->output_history[j - 1][c]);
                 }
             }
             else {
@@ -65,8 +65,8 @@ void bringUpToDate(Board& board) {
 
                     state->bb[i] = board.bb[i];
                 }
-                NN->applyUpdates(state->output, state->output);
-                memcpy(NN->histOutput[histSz - 1][c], state->output, sizeof(NN->histOutput[histSz - 1][c]));
+                NN->apply_updates(state->output, state->output);
+                memcpy(NN->output_history[histSz - 1][c], state->output, sizeof(NN->output_history[histSz - 1][c]));
                 NN->hist[histSz - 1].calc[c] = 1;
             }
         }
@@ -74,9 +74,9 @@ void bringUpToDate(Board& board) {
 }
 
 int evaluate(Board& board) {
-    bringUpToDate(board);
+    bring_up_to_date(board);
 
-    int eval = board.NN.getOutput(board.turn);
+    int eval = board.NN.get_output(board.turn);
 
     eval = eval * scale(board) / 1024;
 

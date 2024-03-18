@@ -227,7 +227,7 @@ public:
 
             assert(-32768 <= sum && sum <= 32767);
 
-            histOutput[0][WHITE][n] = sum;
+            output_history[0][WHITE][n] = sum;
 
             sum = inputBiases[n];
 
@@ -235,7 +235,7 @@ public:
                 sum += inputWeights[prevN * SIDE_NEURONS + n];
             }
 
-            histOutput[0][BLACK][n] = sum;
+            output_history[0][BLACK][n] = sum;
 
             assert(-32768 <= sum && sum <= 32767);
         }
@@ -243,7 +243,7 @@ public:
         histSz = 1;
         hist[0].calc[0] = hist[0].calc[1] = 1;
 
-        return getOutput(stm);
+        return get_output(stm);
     }
 
     int32_t getOutput(NetInput& input, bool stm) { /// feed forward
@@ -299,7 +299,7 @@ public:
         return sum / Q_IN / Q_HIDDEN;
     }
 
-    void applyUpdates(int16_t* output, int16_t* input) {
+    void apply_updates(int16_t* output, int16_t* input) {
         reg_type regs[UNROLL_LENGTH];
 
         for (int b = 0; b < SIDE_NEURONS / BUCKET_UNROLL; b++) {
@@ -325,7 +325,7 @@ public:
         }
     }
 
-    void applySubAdd(int16_t* output, int16_t* input, int ind1, int ind2) {
+    void apply_sub_add(int16_t* output, int16_t* input, int ind1, int ind2) {
         reg_type regs[UNROLL_LENGTH];
         const int16_t* inputWeights1 = reinterpret_cast<const int16_t*>(&inputWeights[ind1 * SIDE_NEURONS]);
         const int16_t* inputWeights2 = reinterpret_cast<const int16_t*>(&inputWeights[ind2 * SIDE_NEURONS]);
@@ -349,7 +349,7 @@ public:
         }
     }
 
-    void applySubAddSub(int16_t* output, int16_t* input, int ind1, int ind2, int ind3) {
+    void apply_sub_add_sub(int16_t* output, int16_t* input, int ind1, int ind2, int ind3) {
         reg_type regs[UNROLL_LENGTH];
         const int16_t* inputWeights1 = reinterpret_cast<const int16_t*>(&inputWeights[ind1 * SIDE_NEURONS]);
         const int16_t* inputWeights2 = reinterpret_cast<const int16_t*>(&inputWeights[ind2 * SIDE_NEURONS]);
@@ -377,7 +377,7 @@ public:
         }
     }
 
-    void applySubAddSubAdd(int16_t* output, int16_t* input, int ind1, int ind2, int ind3, int ind4) {
+    void apply_sub_add_sub_add(int16_t* output, int16_t* input, int ind1, int ind2, int ind3, int ind4) {
         reg_type regs[UNROLL_LENGTH];
         const int16_t* inputWeights1 = reinterpret_cast<const int16_t*>(&inputWeights[ind1 * SIDE_NEURONS]);
         const int16_t* inputWeights2 = reinterpret_cast<const int16_t*>(&inputWeights[ind2 * SIDE_NEURONS]);
@@ -409,15 +409,15 @@ public:
         }
     }
 
-    void processMove(uint16_t move, int pieceFrom, int captured, int king, bool side, int16_t* a, int16_t* b) {
+    void process_move(uint16_t move, int pieceFrom, int captured, int king, bool side, int16_t* a, int16_t* b) {
         int posFrom = sq_from(move), posTo = sq_to(move);
         bool turn = color_of(pieceFrom);
         switch (type(move)) {
         case NEUT: {
             if (!captured)
-                applySubAdd(a, b, net_index(pieceFrom, posFrom, king, side), net_index(pieceFrom, posTo, king, side));
+                apply_sub_add(a, b, net_index(pieceFrom, posFrom, king, side), net_index(pieceFrom, posTo, king, side));
             else
-                applySubAddSub(a, b, net_index(pieceFrom, posFrom, king, side), net_index(pieceFrom, posTo, king, side), net_index(captured, posTo, king, side));
+                apply_sub_add_sub(a, b, net_index(pieceFrom, posFrom, king, side), net_index(pieceFrom, posTo, king, side), net_index(captured, posTo, king, side));
         }
         break;
         case CASTLE: {
@@ -432,35 +432,35 @@ public:
                 posTo = mirror(turn, C1);
                 rTo = mirror(turn, D1);
             }
-            applySubAddSubAdd(a, b, net_index(pieceFrom, posFrom, king, side), net_index(pieceFrom, posTo, king, side), net_index(rPiece, rFrom, king, side), net_index(rPiece, rTo, king, side));
+            apply_sub_add_sub_add(a, b, net_index(pieceFrom, posFrom, king, side), net_index(pieceFrom, posTo, king, side), net_index(rPiece, rFrom, king, side), net_index(rPiece, rTo, king, side));
         }
         break;
         case ENPASSANT: {
             int pos = sq_dir(turn, SOUTH, posTo), pieceCap = get_piece(PAWN, 1 ^ turn);
-            applySubAddSub(a, b, net_index(pieceFrom, posFrom, king, side), net_index(pieceFrom, posTo, king, side), net_index(pieceCap, pos, king, side));
+            apply_sub_add_sub(a, b, net_index(pieceFrom, posFrom, king, side), net_index(pieceFrom, posTo, king, side), net_index(pieceCap, pos, king, side));
         }
         break;
         default: {
             int promPiece = get_piece(promoted(move) + KNIGHT, turn);
             if (!captured)
-                applySubAdd(a, b, net_index(pieceFrom, posFrom, king, side), net_index(promPiece, posTo, king, side));
+                apply_sub_add(a, b, net_index(pieceFrom, posFrom, king, side), net_index(promPiece, posTo, king, side));
             else
-                applySubAddSub(a, b, net_index(pieceFrom, posFrom, king, side), net_index(promPiece, posTo, king, side), net_index(captured, posTo, king, side));
+                apply_sub_add_sub(a, b, net_index(pieceFrom, posFrom, king, side), net_index(promPiece, posTo, king, side), net_index(captured, posTo, king, side));
         }
         break;
         }
     }
 
-    void addHistory(uint16_t move, uint8_t piece, uint8_t captured) {
+    void add_move_to_history(uint16_t move, uint8_t piece, uint8_t captured) {
         hist[histSz] = { move, piece, captured, (piece_type(piece) == KING && recalc(sq_from(move), special_sqto(move), color_of(piece))), { 0, 0 } };
         histSz++;
     }
 
-    void revertUpdates() {
+    void revert_move() {
         histSz--;
     }
 
-    int getGoodParent(int c) {
+    int get_computed_parent(int c) {
         int i = histSz - 1;
         while (!hist[i].calc[c]) {
             if (color_of(hist[i].piece) == c && hist[i].recalc)
@@ -470,12 +470,12 @@ public:
         return i;
     }
 
-    int32_t getOutput(bool stm) {
+    int32_t get_output(bool stm) {
         const reg_type zero{};
         reg_type_s acc0{}, acc1{}, acc2{}, acc3{};
 
-        const reg_type* w = reinterpret_cast<const reg_type*>(histOutput[histSz - 1][stm]);
-        const reg_type* w2 = reinterpret_cast<const reg_type*>(histOutput[histSz - 1][stm ^ 1]);
+        const reg_type* w = reinterpret_cast<const reg_type*>(output_history[histSz - 1][stm]);
+        const reg_type* w2 = reinterpret_cast<const reg_type*>(output_history[histSz - 1][stm ^ 1]);
         const reg_type* v = reinterpret_cast<const reg_type*>(outputWeights);
         const reg_type* v2 = reinterpret_cast<const reg_type*>(&outputWeights[SIDE_NEURONS]);
 
@@ -504,7 +504,7 @@ public:
 
     int addSz, subSz;
 
-    int16_t histOutput[2005][2][SIDE_NEURONS] __attribute__((aligned(ALIGN)));
+    int16_t output_history[2005][2][SIDE_NEURONS] __attribute__((aligned(ALIGN)));
     KingBucketState state[2][10];
 
     int16_t add_ind[32], sub_ind[32];
