@@ -599,7 +599,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         if (depth >= 3 && played > 1 + pvNode + rootNode) { /// first few moves we don't reduce
             if (isQuiet) {
                 R = lmrRed[std::min(63, depth)][std::min(63, played)];
-                R += !wasPV + (improving <= 0); /// not on pv or not improving
+                R += !wasPV + (!rootNode && improving <= 0); /// not on pv or not improving
                 R -= pvNode;
                 R += quietUs && !isCheck && eval - seeVal[KNIGHT] > beta; /// if the position is relatively quiet and eval is bigger than beta by a margin
                 R += quietUs && !isCheck && staticEval - rootEval > EvalDifferenceReductionMargin && ply % 2 == 0; /// the position in quiet and static eval is way bigger than root eval
