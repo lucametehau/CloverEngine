@@ -203,7 +203,7 @@ void Board::make_move(uint16_t mv) { /// assuming move is at least pseudo-legal
     break;
     }
 
-    NN.addHistory(mv, pieceFrom, captured);
+    NN.add_move_to_history(mv, pieceFrom, captured);
 
     /// dirty trick
 
@@ -314,7 +314,7 @@ void Board::undo_move(uint16_t move) {
     break;
     }
 
-    NN.revertUpdates();
+    NN.revert_move();
 
     captured = history[gamePly].captured;
 }
@@ -356,7 +356,7 @@ void Board::undo_null_move() {
     checkers = history[gamePly].checkers;
     pinnedPieces = history[gamePly].pinnedPieces;
     key = history[gamePly].key;
-    //NN.revertUpdates();
+    //NN.revert_move();
 }
 
 int gen_legal_moves(Board& board, uint16_t* moves) {

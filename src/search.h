@@ -292,7 +292,7 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack) {
 
     return best;
 }
-template <bool pvNode>
+template <bool rootNode, bool pvNode>
 int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* stack) {
     const int ply = board.ply;
 
@@ -320,11 +320,13 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
 
     pvTableLen[ply] = 0;
 
-    if (board.is_draw(ply)) return 1 - (nodes & 2); /// beal effect, credit to Ethereal for this
+    if constexpr (!rootNode) {
+        if (board.is_draw(ply)) return 1 - (nodes & 2); /// beal effect, credit to Ethereal for this
 
-    /// mate distance pruning   
-    alpha = std::max(alpha, -INF + ply), beta = std::min(beta, INF - ply - 1);
-    if (alpha >= beta) return alpha;
+        /// mate distance pruning   
+        alpha = std::max(alpha, -INF + ply), beta = std::min(beta, INF - ply - 1);
+        if (alpha >= beta) return alpha;
+    }
 
     Entry* entry = TT->probe(key, ttHit);
 
@@ -346,28 +348,30 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
     }
 
     /// tablebase probing
-    const auto probe = probe_TB(board, depth);
-    if (probe != TB_RESULT_FAILED) {
-        int type = NONE, score;
-        tbHits++;
-        switch (probe) {
-        case TB_WIN:
-            score = TB_WIN_SCORE - DEPTH - ply;
-            type = LOWER;
-            break;
-        case TB_LOSS:
-            score = -(TB_WIN_SCORE - DEPTH - ply);
-            type = UPPER;
-            break;
-        default:
-            score = 0;
-            type = EXACT;
-            break;
-        }
+    if constexpr (!rootNode) {
+        const auto probe = probe_TB(board, depth);
+        if (probe != TB_RESULT_FAILED) {
+            int type = NONE, score;
+            tbHits++;
+            switch (probe) {
+            case TB_WIN:
+                score = TB_WIN_SCORE - DEPTH - ply;
+                type = LOWER;
+                break;
+            case TB_LOSS:
+                score = -(TB_WIN_SCORE - DEPTH - ply);
+                type = UPPER;
+                break;
+            default:
+                score = 0;
+                type = EXACT;
+                break;
+            }
 
-        if (type == EXACT || (type == UPPER && score <= alpha) || (type == LOWER && score >= beta)) {
-            TT->save(entry, key, score, DEPTH, 0, type, NULLMOVE, 0, wasPV);
-            return score;
+            if (type == EXACT || (type == UPPER && score <= alpha) || (type == LOWER && score >= beta)) {
+                TT->save(entry, key, score, DEPTH, 0, type, NULLMOVE, 0, wasPV);
+                return score;
+            }
         }
     }
 
@@ -423,7 +427,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                 stack->continuationHist = &continuationHistory[0][0][0];
 
                 board.make_null_move();
-                int score = -search<false>(-beta, -beta + 1, depth - R, !cutNode, stack + 1);
+                int score = -search<false, false>(-beta, -beta + 1, depth - R, !cutNode, stack + 1);
                 board.undo_null_move();
 
                 if (score >= beta) return (abs(score) > MATE ? beta : score); /// don't trust mate scores
@@ -451,7 +455,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
 
                     int score = -quiesce<false>(-probBeta, -probBeta + 1, stack + 1);
 
-                    if (score >= probBeta) score = -search<false>(-probBeta, -probBeta + 1, depth - ProbcutReduction, !cutNode, stack + 1);
+                    if (score >= probBeta) score = -search<false, false>(-probBeta, -probBeta + 1, depth - ProbcutReduction, !cutNode, stack + 1);
                     board.undo_move(move);
 
                     if (score >= probBeta) {
@@ -468,21 +472,32 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
     /// also for cut nodes
     if (cutNode && depth >= IIRCutNodeDepth && !ttHit) depth -= IIRCutNodeReduction;
 
+    constexpr int see_depth_coef = (rootNode ? RootSeeDepthCoef : PVSSeeDepthCoef);
+
     Movepick picker(ttMove,
         stack->killer,
         nullSearch ? NULLMOVE : cmTable[(stack - 1)->piece][sq_to((stack - 1)->move)], // counter
-        -PVSSeeDepthCoef * depth,
+        -see_depth_coef * depth,
         threatsEnemy.threatsEnemy);
 
     uint16_t move;
     const bool ttCapture = ttMove && isNoisyMove(board, ttMove);
 
     while ((move = picker.get_next_move(this, stack, board, skip, false)) != NULLMOVE) {
-
+        if constexpr (rootNode) {
+            bool searched = false;
+            for (int i = 1; i < multipv_index; i++) {
+                if (move == bestMoves[i]) {
+                    searched = true;
+                    break;
+                }
+            }
+            if (searched) continue;
+        }
         if (move == stack->excluded)
             continue;
 
-        const bool isQuiet = !isNoisyMove(board, move), refutationMove = (picker.trueStage < STAGE_QUIETS);
+        const bool isQuiet = !isNoisyMove(board, move), refutationMove = (picker.trueStage == STAGE_KILLER || picker.trueStage == STAGE_COUNTER);
         int hist = 0;
 
         /// quiet move pruning
@@ -510,38 +525,40 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
             }
         }
 #else
-        if (best > -MATE && board.has_non_pawn_material(board.turn)) {
-            if (isQuiet) {
-                getHistory(this, stack, move, threatsEnemy.threatsEnemy, hist);
+        if constexpr (!rootNode) {
+            if (best > -MATE && board.has_non_pawn_material(board.turn)) {
+                if (isQuiet) {
+                    getHistory(this, stack, move, threatsEnemy.threatsEnemy, hist);
 
-                /// approximately the new depth for the next search
-                int newDepth = std::max(0, depth - lmrRed[std::min(63, depth)][std::min(63, played)] + improving);
+                    /// approximately the new depth for the next search
+                    int newDepth = std::max(0, depth - lmrRed[std::min(63, depth)][std::min(63, played)] + improving);
 
-                /// futility pruning
-                if (newDepth <= FPDepth && !isCheck && staticEval + FPBias + FPMargin * newDepth <= alpha) skip = 1;
+                    /// futility pruning
+                    if (newDepth <= FPDepth && !isCheck && staticEval + FPBias + FPMargin * newDepth <= alpha) skip = 1;
 
-                /// late move pruning
-                if (newDepth <= LMPDepth && played >= (LMPBias + newDepth * newDepth) / (2 - improving)) skip = 1;
+                    /// late move pruning
+                    if (newDepth <= LMPDepth && played >= (LMPBias + newDepth * newDepth) / (2 - improving)) skip = 1;
 
-                if (depth <= SEEPruningQuietDepth && !isCheck && !see(board, move, -SEEPruningQuietMargin * depth)) continue;
-            }
-            else {
-                if (depth <= SEEPruningNoisyDepth && !isCheck && picker.trueStage > STAGE_GOOD_NOISY && !see(board, move, -SEEPruningNoisyMargin * depth * depth)) continue;
+                    if (depth <= SEEPruningQuietDepth && !isCheck && !see(board, move, -SEEPruningQuietMargin * depth)) continue;
+                }
+                else {
+                    if (depth <= SEEPruningNoisyDepth && !isCheck && picker.trueStage > STAGE_GOOD_NOISY && !see(board, move, -SEEPruningNoisyMargin * depth * depth)) continue;
 
-                if (depth <= FPNoisyDepth && !isCheck && staticEval + FPBias + seeVal[board.piece_type_at(sq_to(move))] + FPMargin * depth <= alpha) continue;
+                    if (depth <= FPNoisyDepth && !isCheck && staticEval + FPBias + seeVal[board.piece_type_at(sq_to(move))] + FPMargin * depth <= alpha) continue;
+                }
             }
         }
 #endif
 
         int ex = 0;
         /// avoid extending too far (might cause stack overflow)
-        if (ply < 2 * tDepth) {
+        if (ply < 2 * tDepth && !rootNode) {
             /// singular extension (look if the tt move is better than the rest)
             if (!stack->excluded && !allNode && move == ttMove && abs(ttValue) < MATE && depth >= SEDepth && ttDepth >= depth - 3 && (bound & LOWER)) {
                 int rBeta = ttValue - SEMargin * depth / 64;
 
                 stack->excluded = move;
-                int score = search<false>(rBeta - 1, rBeta, (depth - 1) / 2, cutNode, stack);
+                int score = search<false, false>(rBeta - 1, rBeta, (depth - 1) / 2, cutNode, stack);
                 stack->excluded = NULLMOVE;
 
                 if (score < rBeta) ex = 1 + (!pvNode && rBeta - score > SEDoubleExtensionsMargin);
@@ -561,6 +578,13 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         board.make_move(move);
         played++;
 
+        if constexpr (rootNode) {
+            /// current root move info
+            if (principalSearcher && printStats && getTime() > info->startTime + 2500 && !info->sanMode) {
+                std::cout << "info depth " << depth << " currmove " << move_to_string(move, info->chess960) << " currmovenumber " << played << std::endl;
+            }
+        }
+
         /// store quiets for history
         if (isQuiet)
             stack->quiets[nrQuiets++] = move;
@@ -572,11 +596,11 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         uint64_t initNodes = nodes;
         int score = -INF;
 
-        if (depth >= 3 && played > 1 + pvNode) { /// first few moves we don't reduce
+        if (depth >= 3 && played > 1 + pvNode + rootNode) { /// first few moves we don't reduce
             if (isQuiet) {
                 R = lmrRed[std::min(63, depth)][std::min(63, played)];
                 R += !wasPV + (improving <= 0); /// not on pv or not improving
-                R -= pvNode;
+                R -= !rootNode && pvNode;
                 R += quietUs && !isCheck && eval - seeVal[KNIGHT] > beta; /// if the position is relatively quiet and eval is bigger than beta by a margin
                 R += quietUs && !isCheck && staticEval - rootEval > EvalDifferenceReductionMargin && ply % 2 == 0; /// the position in quiet and static eval is way bigger than root eval
                 R -= 2 * refutationMove; /// reduce for refutation moves
@@ -594,20 +618,20 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
             R += ttCapture;
 
             R = std::min(newDepth, std::max(R, 1)); /// clamp R
-            score = -search<false>(-alpha - 1, -alpha, newDepth - R, true, stack + 1);
+            score = -search<false, false>(-alpha - 1, -alpha, newDepth - R, true, stack + 1);
 
             if (R > 1 && score > alpha) {
                 newDepth += (score > best + 75) - (score < best + newDepth);
-                score = -search<false>(-alpha - 1, -alpha, newDepth - 1, !cutNode, stack + 1);
+                score = -search<false, false>(-alpha - 1, -alpha, newDepth - 1, !cutNode, stack + 1);
             }
         }
         else if (!pvNode || played > 1) {
-            score = -search<false>(-alpha - 1, -alpha, newDepth - 1, !cutNode, stack + 1);
+            score = -search<false, false>(-alpha - 1, -alpha, newDepth - 1, !cutNode, stack + 1);
         }
 
         if constexpr (pvNode) {
             if (played == 1 || score > alpha)
-                score = -search<true>(-beta, -alpha, newDepth - 1, false, stack + 1);
+                score = -search<false, true>(-beta, -alpha, newDepth - 1, false, stack + 1);
         }
 
         board.undo_move(move);
@@ -620,6 +644,10 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
             best = score;
             bestMove = move;
             if (score > alpha) {
+                if constexpr (rootNode) {
+                    bestMoves[multipv_index] = move;
+                    rootScores[multipv_index] = score;
+                }
                 alpha = score;
                 update_pv(ply, move);
                 if (alpha >= beta) {
@@ -648,164 +676,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         bound = (best >= beta ? LOWER : (best > alphaOrig ? EXACT : UPPER));
         TT->save(entry, key, best, depth, ply, bound, (bound == UPPER ? NULLMOVE : bestMove), staticEval, wasPV);
     }
-
-    return best;
-}
-
-int Search::root_search(int alpha, int beta, int depth, int multipv, StackEntry* stack) {
-    if (checkForStop<true>())
-        return evaluate(board);
-
-    if (depth <= 0)
-        return quiesce<true>(alpha, beta, stack);
-
-    uint16_t ttMove = NULLMOVE;
-    int alphaOrig = alpha;
-    uint64_t key = board.key;
-    uint16_t nrQuiets = 0;
-    uint16_t nrCaptures = 0;
-    int played = 0, bound = NONE;
-    int best = -INF;
-    uint16_t bestMove = NULLMOVE;
-    int ttValue = INF;
-    bool ttHit = false;
-
-    nodes++;
-
-    TT->prefetch(key);
-    pvTableLen[0] = 0;
-
-    Entry* entry = TT->probe(key, ttHit);
-
-    /// transposition table probing
-    int eval = INF;
-
-    if (ttHit) {
-        int score = entry->value(0);
-        ttValue = score;
-        bound = entry->bound(), ttMove = entry->move;
-        eval = entry->eval;
-    }
-
-    const bool isCheck = (board.checkers != 0);
-    const Threats threatsEnemy = getThreats(board, board.turn);
-
-    if (isCheck) { /// when in check, don't evaluate (king safety evaluation might break)
-        stack->eval = eval = INF;
-    }
-    else if (eval == INF) {
-        stack->eval = eval = evaluate(board);
-    }
-    else { /// ttValue might be a better evaluation
-        stack->eval = eval;
-        if (bound == EXACT || (bound == LOWER && ttValue > eval) || (bound == UPPER && ttValue < eval))
-            eval = ttValue;
-    }
-
-    (stack + 1)->killer = NULLMOVE;
-
-    Movepick picker(ttMove, stack->killer, NULLMOVE, -RootSeeDepthCoef * depth, threatsEnemy.threatsEnemy);
-
-    uint16_t move;
-
-    while ((move = picker.get_next_move(this, stack, board, false, false)) != NULLMOVE) {
-        bool searched = false;
-        for (int i = 1; i < multipv; i++) {
-            if (move == bestMoves[i]) {
-                searched = true;
-                break;
-            }
-        }
-        if (searched)
-            continue;
-
-        bool isQuiet = !isNoisyMove(board, move), refutationMove = (picker.stage < STAGE_QUIETS);
-
-        /// update stack info
-        stack->move = move;
-        stack->piece = board.piece_at(sq_from(move));
-        stack->continuationHist = &continuationHistory[isQuiet][stack->piece][sq_to(move)];
-
-        board.make_move(move);
-        played++;
-
-        /// current root move info
-        if (principalSearcher && printStats && getTime() > info->startTime + 2500 && !info->sanMode) {
-            std::cout << "info depth " << depth << " currmove " << move_to_string(move, info->chess960) << " currmovenumber " << played << std::endl;
-        }
-
-        /// store quiets for history
-        if (isQuiet)
-            stack->quiets[nrQuiets++] = move;
-        else
-            stack->captures[nrCaptures++] = move;
-
-        int newDepth = depth, R = 1;
-
-        /// quiet late move reduction
-        if (depth >= 3 && played > 3) { /// first few moves we don't reduce
-            if (isQuiet) {
-                R = lmrRed[std::min(63, depth)][std::min(63, played)];
-                R -= 2 * refutationMove; /// reduce for refutation moves
-            }
-            R = std::min(depth - 1, std::max(R, 1)); /// clamp R
-        }
-
-        int score = -INF;
-
-        /// principal variation search
-        uint64_t initNodes = nodes;
-
-        if (R != 1) {
-            score = -search<false>(-alpha - 1, -alpha, newDepth - R, true, stack + 1);
-        }
-
-        if ((R != 1 && score > alpha) || (R == 1 && played > 1)) {
-            score = -search<false>(-alpha - 1, -alpha, newDepth - 1, true, stack + 1);
-        }
-
-        if (played == 1 || score > alpha) {
-            score = -search<true>(-beta, -alpha, newDepth - 1, false, stack + 1);
-        }
-
-        board.undo_move(move);
-        nodesSearched[fromTo(move)] += nodes - initNodes;
-
-        if (flag & TERMINATED_SEARCH) /// stop search
-            return best;
-
-        if (score > best) {
-            best = score;
-            bestMove = move;
-
-            if (score > alpha) {
-                bestMoves[multipv] = move;
-                rootScores[multipv] = score;
-                alpha = score;
-                update_pv(0, move);
-                if (alpha >= beta) {
-                    break;
-                }
-            }
-        }
-    }
-    TT->prefetch(key);
-    if (!played) {
-        return (isCheck ? -INF : 0);
-    }
-
-    /// update killer and history heuristics in case of cutoff
-    if (best >= beta) {
-        if (!isNoisyMove(board, bestMove)) {
-            if (stack->killer != bestMove)
-                stack->killer = bestMove;
-            updateHistory(this, stack, nrQuiets, 0, threatsEnemy.threatsEnemy, getHistoryBonus(depth));
-        }
-        updateCapHistory(this, stack, nrCaptures, bestMove, 0, getHistoryBonus(depth));
-    }
-
-    bound = (best >= beta ? LOWER : (best > alphaOrig ? EXACT : UPPER));
-    TT->save(entry, key, best, depth, 0, bound, bestMove, stack->eval, true);
 
     return best;
 }
@@ -900,7 +770,9 @@ std::pair <int, uint16_t> Search::start_search(Info* _info) {
     completedDepth = 0;
 
     for (tDepth = 1; tDepth <= limitDepth; tDepth++) {
+        multipv_index = 0;
         for (int i = 1; i <= info->multipv; i++) {
+            multipv_index++;
             int window = AspirationWindosValue;
             if (tDepth >= AspirationWindowsDepth) {
                 alpha = std::max(-INF, scores[i] - window);
@@ -915,7 +787,7 @@ std::pair <int, uint16_t> Search::start_search(Info* _info) {
             while (true) {
                 depth = std::max({ depth, 1, tDepth - 4 });
                 selDepth = 0;
-                scores[i] = root_search(alpha, beta, depth, i, stack);
+                scores[i] = search<true, true>(alpha, beta, depth, false, stack);
                 if (flag & TERMINATED_SEARCH)
                     break;
 
