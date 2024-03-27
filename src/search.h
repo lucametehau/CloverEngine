@@ -596,7 +596,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         uint64_t initNodes = nodes;
         int score = -INF;
 
-        if (depth >= 3 && played > 1 + pvNode + rootNode) { /// first few moves we don't reduce
+        if (depth >= 2 && played > 1 + pvNode + rootNode) { /// first few moves we don't reduce
             if (isQuiet) {
                 R = lmrRed[std::min(63, depth)][std::min(63, played)];
                 R += !wasPV + (improving <= 0); /// not on pv or not improving
