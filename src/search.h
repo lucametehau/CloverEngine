@@ -468,9 +468,9 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
     }
 
     /// internal iterative deepening (search at reduced depth to find a ttMove) (Rebel like)
-    if (pvNode && depth >= IIRPvNodeDepth && !ttHit) depth -= IIRPvNodeReduction;
+    if (pvNode && depth >= IIRPvNodeDepth && !ttMove) depth -= IIRPvNodeReduction;
     /// also for cut nodes
-    if (cutNode && depth >= IIRCutNodeDepth && !ttHit) depth -= IIRCutNodeReduction;
+    if (cutNode && depth >= IIRCutNodeDepth && !ttMove) depth -= IIRCutNodeReduction;
 
     constexpr int see_depth_coef = (rootNode ? RootSeeDepthCoef : PVSSeeDepthCoef);
 
