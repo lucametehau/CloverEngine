@@ -207,7 +207,7 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack) {
         ttMove = entry->move;
         wasPV |= entry->wasPV();
         if constexpr (!pvNode) {
-            if ((bound == EXACT || (bound == LOWER && score >= beta) || (bound == UPPER && score <= alpha))) return score;
+            if (score != VALUE_NONE && (bound == EXACT || (bound == LOWER && score >= beta) || (bound == UPPER && score <= alpha))) return score;
         }
     }
 
