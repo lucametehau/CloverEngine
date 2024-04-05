@@ -343,7 +343,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         ttDepth = entry->depth();
         wasPV |= entry->wasPV();
         if constexpr (!pvNode) {
-            if (ttDepth >= depth && (bound == EXACT || (bound == LOWER && score >= beta) || (bound == UPPER && score <= alpha))) return score;
+            if (score != VALUE_NONE && ttDepth >= depth && (bound == EXACT || (bound == LOWER && score >= beta) || (bound == UPPER && score <= alpha))) return score;
         }
     }
 
@@ -385,7 +385,10 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
     }
     else if (!ttHit) { /// if we are in a singular search, we already know the evaluation
         if (stack->excluded) eval = stack->eval;
-        else stack->eval = eval = evaluate(board);
+        else {
+            stack->eval = eval = evaluate(board);
+            TT->save(entry, key, VALUE_NONE, 0, ply, 0, NULLMOVE, eval, wasPV);
+        }
     }
     else { /// ttValue might be a better evaluation
         stack->eval = eval;

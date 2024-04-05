@@ -92,6 +92,7 @@ enum {
 const int NULLMOVE = 0;
 const int HALFMOVES = 100;
 const int INF = 32000;
+const int VALUE_NONE = INF + 10;
 const int MATE = 31000;
 const int TB_WIN_SCORE = 22000;
 const int DEPTH = 100;

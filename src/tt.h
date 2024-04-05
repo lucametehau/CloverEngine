@@ -32,10 +32,12 @@ struct Entry {
     }
 
     int value(int ply) const {
-        if (score >= TB_WIN_SCORE)
-            return score - ply;
-        else if (score <= -TB_WIN_SCORE)
-            return score + ply;
+        if (score != VALUE_NONE) {
+            if (score >= TB_WIN_SCORE)
+                return score - ply;
+            else if (score <= -TB_WIN_SCORE)
+                return score + ply;
+        }
         return score;
     }
 
@@ -172,10 +174,12 @@ inline Entry* HashTable::probe(uint64_t hash, bool &ttHit) {
 }
 
 inline void HashTable::save(Entry* entry, uint64_t hash, int score, int depth, int ply, int bound, uint16_t move, int eval, bool wasPV) {
-    if (score >= TB_WIN_SCORE)
-        score += ply;
-    else if (score <= -TB_WIN_SCORE)
-        score -= ply;
+    if (score != VALUE_NONE) {
+        if (score >= TB_WIN_SCORE)
+            score += ply;
+        else if (score <= -TB_WIN_SCORE)
+            score -= ply;
+    }
 
     if (move || hash != entry->hash) entry->move = move;
 
