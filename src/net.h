@@ -42,11 +42,13 @@
 #if defined(__AVX512F__)
 #define reg_type    __m512i
 #define reg_type_s  __m512i
+#define reg_set1    _mm512_set1_epi16
 #define reg_add16   _mm512_add_epi16
 #define reg_sub16   _mm512_sub_epi16
 #define reg_max16   _mm512_max_epi16
+#define reg_min16   _mm512_min_epi16
 #define reg_add32   _mm512_add_epi32
-#define reg_madd16  _mm512_madd_epi16
+#define reg_mullo   _mm512_mullo_epi16
 #define reg_madd16  _mm512_madd_epi16
 #define reg_load    _mm512_load_si512
 #define reg_save    _mm512_store_si512
@@ -54,10 +56,13 @@
 #elif defined(__AVX2__) 
 #define reg_type    __m256i
 #define reg_type_s  __m256i
+#define reg_set1    _mm256_set1_epi16
 #define reg_add16   _mm256_add_epi16
 #define reg_sub16   _mm256_sub_epi16
+#define reg_min16   _mm256_min_epi16
 #define reg_max16   _mm256_max_epi16
 #define reg_add32   _mm256_add_epi32
+#define reg_mullo   _mm256_mullo_epi16
 #define reg_madd16  _mm256_madd_epi16
 #define reg_load    _mm256_load_si256
 #define reg_save    _mm256_store_si256
@@ -65,10 +70,13 @@
 #elif defined(__SSE2__) || defined(__AVX__)
 #define reg_type    __m128i
 #define reg_type_s  __m128i
+#define reg_set1    _mm_set1_epi16
 #define reg_add16   _mm_add_epi16
 #define reg_sub16   _mm_sub_epi16
 #define reg_max16   _mm_max_epi16
+#define reg_min16   _mm_min_epi16
 #define reg_add32   _mm_add_epi32
+#define reg_mullo   _mm_mullo_epi16
 #define reg_madd16  _mm_madd_epi16
 #define reg_load    _mm_load_si128
 #define reg_save    _mm_store_si128
@@ -76,10 +84,13 @@
 #elif defined(__ARM_NEON)
 #define reg_type    int16_t
 #define reg_type_s  int32_t
+#define reg_set1          int16_t
 #define reg_add16(a, b)   ((a) + (b))
 #define reg_sub16(a, b)   ((a) - (b))
-#define reg_max16(a, b)   ((a) > (b) ? (a) : (b))   
+#define reg_max16(a, b)   ((a) > (b) ? (a) : (b))  
+#define reg_min16(a, b)   ((a) < (b) ? (a) : (b))   
 #define reg_add32(a, b)   ((a) + (b))
+#define reg_mullo(a, b)   ((a) * (b))
 #define reg_madd16(a, b)  ((a) * (b))
 #define reg_load(a)       (*(a))
 #define reg_save(a, b)    (*(a)) = (b)
@@ -97,7 +108,7 @@ const int BUCKET_UNROLL = 128;
 const int UNROLL_LENGTH = BUCKET_UNROLL / REG_LENGTH;
 
 const int Q_IN = 4;
-const int Q_HIDDEN = 512;
+const int Q_HIDDEN = 1;
 
 int16_t inputBiases[SIDE_NEURONS] __attribute__((aligned(ALIGN)));
 int32_t outputBias;
@@ -126,7 +137,7 @@ void loadNNUEWeights() {
         floatData++;
     }
 
-    //std::cout << mn << " " << mx << "\n";
+    std::cout << mn << " " << mx << "\n";
 
     mn = 1e9, mx = -1e9;
     for (int j = 0; j < SIDE_NEURONS; j++) {
@@ -136,7 +147,7 @@ void loadNNUEWeights() {
         inputBiases[j] = round(val * Q_IN);
         floatData++;
     }
-    //std::cout << mn << " " << mx << "\n";
+    std::cout << mn << " " << mx << "\n";
 
     mn = 1e9, mx = -1e9;
     for (int j = 0; j < HIDDEN_NEURONS; j++) {
@@ -146,7 +157,7 @@ void loadNNUEWeights() {
         outputWeights[j] = round(val * Q_HIDDEN);
         floatData++;
     }
-    //std::cout << mn << " " << mx << "\n";
+    std::cout << mn << " " << mx << "\n";
 
     float val = *floatData;
     outputBias = round(val * Q_HIDDEN) * Q_IN;
@@ -246,6 +257,13 @@ public:
         return get_output(stm);
     }
 
+    reg_type reg_screlu(reg_type reg) {
+        reg_type zero{};
+        reg_type one = reg_set1(Q_IN);
+        const reg_type reg_clamped = reg_min16(reg_max16(reg, zero), one);
+        return reg_mullo(reg_clamped, reg_clamped);
+    }
+
     int32_t getOutput(NetInput& input, bool stm) { /// feed forward
         int32_t sum;
         int16_t va[2][SIDE_NEURONS];
@@ -274,29 +292,28 @@ public:
 
         sum = outputBias;
 
-        reg_type zero{};
         reg_type_s acc{}, acc2{};
 
         reg_type* v = (reg_type*)outputWeights;
         reg_type* w = (reg_type*)va[stm];
 
         for (int j = 0; j < NUM_REGS / 2; j++) {
-            acc = reg_add32(acc, reg_madd16(reg_max16(w[2 * j], zero), v[2 * j]));
-            acc2 = reg_add32(acc2, reg_madd16(reg_max16(w[2 * j + 1], zero), v[2 * j + 1]));
+            acc = reg_add32(acc, reg_madd16(reg_screlu(w[2 * j]), v[2 * j]));
+            acc2 = reg_add32(acc2, reg_madd16(reg_screlu(w[2 * j + 1]), v[2 * j + 1]));
         }
 
         reg_type* w2 = (reg_type*)va[1 ^ stm];
 
         for (int j = 0; j < NUM_REGS / 2; j++) {
-            acc = reg_add32(acc, reg_madd16(reg_max16(w2[2 * j], zero), v[2 * j + NUM_REGS]));
-            acc2 = reg_add32(acc2, reg_madd16(reg_max16(w2[2 * j + 1], zero), v[2 * j + 1 + NUM_REGS]));
+            acc = reg_add32(acc, reg_madd16(reg_screlu(w2[2 * j]), v[2 * j + NUM_REGS]));
+            acc2 = reg_add32(acc2, reg_madd16(reg_screlu(w2[2 * j + 1]), v[2 * j + 1 + NUM_REGS]));
         }
 
         acc = reg_add32(acc, acc2);
 
         sum += get_sum(acc);
 
-        return sum / Q_IN / Q_HIDDEN;
+        return sum * 400 / Q_IN / Q_HIDDEN;
     }
 
     void apply_updates(int16_t* output, int16_t* input) {
@@ -471,7 +488,6 @@ public:
     }
 
     int32_t get_output(bool stm) {
-        const reg_type zero{};
         reg_type_s acc0{}, acc1{}, acc2{}, acc3{};
 
         const reg_type* w = reinterpret_cast<const reg_type*>(output_history[histSz - 1][stm]);
@@ -480,17 +496,17 @@ public:
         const reg_type* v2 = reinterpret_cast<const reg_type*>(&outputWeights[SIDE_NEURONS]);
 
         for (int j = 0; j < NUM_REGS; j += 4) {
-            acc0 = reg_add32(acc0, reg_madd16(reg_max16(w[j], zero), v[j]));
-            acc0 = reg_add32(acc0, reg_madd16(reg_max16(w2[j], zero), v2[j]));
+            acc0 = reg_add32(acc0, reg_madd16(reg_screlu(w[j]), v[j]));
+            acc0 = reg_add32(acc0, reg_madd16(reg_screlu(w2[j]), v2[j]));
 
-            acc1 = reg_add32(acc1, reg_madd16(reg_max16(w[j + 1], zero), v[j + 1]));
-            acc1 = reg_add32(acc1, reg_madd16(reg_max16(w2[j + 1], zero), v2[j + 1]));
+            acc1 = reg_add32(acc1, reg_madd16(reg_screlu(w[j + 1]), v[j + 1]));
+            acc1 = reg_add32(acc1, reg_madd16(reg_screlu(w2[j + 1]), v2[j + 1]));
 
-            acc2 = reg_add32(acc2, reg_madd16(reg_max16(w[j + 2], zero), v[j + 2]));
-            acc2 = reg_add32(acc2, reg_madd16(reg_max16(w2[j + 2], zero), v2[j + 2]));
+            acc2 = reg_add32(acc2, reg_madd16(reg_screlu(w[j + 2]), v[j + 2]));
+            acc2 = reg_add32(acc2, reg_madd16(reg_screlu(w2[j + 2]), v2[j + 2]));
 
-            acc3 = reg_add32(acc3, reg_madd16(reg_max16(w[j + 3], zero), v[j + 3]));
-            acc3 = reg_add32(acc3, reg_madd16(reg_max16(w2[j + 3], zero), v2[j + 3]));
+            acc3 = reg_add32(acc3, reg_madd16(reg_screlu(w[j + 3]), v[j + 3]));
+            acc3 = reg_add32(acc3, reg_madd16(reg_screlu(w2[j + 3]), v2[j + 3]));
         }
 
         acc0 = reg_add32(acc0, acc1);
