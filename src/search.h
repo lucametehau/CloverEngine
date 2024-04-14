@@ -652,7 +652,8 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                     rootScores[multipv_index] = score;
                 }
                 alpha = score;
-                update_pv(ply, move);
+                if constexpr(pvNode)
+                    update_pv(ply, move);
                 if (alpha >= beta) {
                     break;
                 }
