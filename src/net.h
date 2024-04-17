@@ -107,60 +107,52 @@ const int NUM_REGS = SIDE_NEURONS / REG_LENGTH;
 const int BUCKET_UNROLL = 128;
 const int UNROLL_LENGTH = BUCKET_UNROLL / REG_LENGTH;
 
-const int Q_IN = 4;
-const int Q_HIDDEN = 1;
+const int Q_IN = 255;
+const int Q_HIDDEN = 64;
 
 int16_t inputBiases[SIDE_NEURONS] __attribute__((aligned(ALIGN)));
-int32_t outputBias;
+int16_t outputBias;
 int16_t inputWeights[INPUT_NEURONS * SIDE_NEURONS] __attribute__((aligned(ALIGN)));
 int16_t outputWeights[HIDDEN_NEURONS] __attribute__((aligned(ALIGN)));
 
 void loadNNUEWeights() {
-    uint64_t* intData;
-    float* floatData;
+    int16_t* intData;
 
-    uint64_t x;
-    intData = (uint64_t*)gNetData;
-
-    x = *intData;
-    assert(x == 3935233);
-    intData++;
-
-    floatData = (float*)intData;
+    intData = (int16_t*)gNetData;
 
     int mn = 1e9, mx = -1e9;
     for (int i = 0; i < SIDE_NEURONS * INPUT_NEURONS; i++) {
-        float val = *floatData;
-        mn = std::min<int>(mn, round(val * Q_IN));
-        mx = std::max<int>(mx, round(val * Q_IN));
-        inputWeights[(i / SIDE_NEURONS) * SIDE_NEURONS + (i % SIDE_NEURONS)] = round(val * Q_IN);
-        floatData++;
+        int16_t val = *intData;
+        mn = std::min<int>(mn, val);
+        mx = std::max<int>(mx, val);
+        inputWeights[(i / SIDE_NEURONS) * SIDE_NEURONS + (i % SIDE_NEURONS)] = val;
+        intData++;
     }
 
-    std::cout << mn << " " << mx << "\n";
+    //std::cout << "feature weights range: " << mn << " " << mx << "\n";
 
     mn = 1e9, mx = -1e9;
     for (int j = 0; j < SIDE_NEURONS; j++) {
-        float val = *floatData;
-        mn = std::min<int>(mn, round(val * Q_IN));
-        mx = std::max<int>(mx, round(val * Q_IN));
-        inputBiases[j] = round(val * Q_IN);
-        floatData++;
+        int16_t val = *intData;
+        mn = std::min<int>(mn, val);
+        mx = std::max<int>(mx, val);
+        inputBiases[j] = val;
+        intData++;
     }
-    std::cout << mn << " " << mx << "\n";
+    //std::cout << "feature inputs range: " << mn << " " << mx << "\n";
 
     mn = 1e9, mx = -1e9;
     for (int j = 0; j < HIDDEN_NEURONS; j++) {
-        float val = *floatData;
-        mn = std::min<int>(mn, round(val * Q_HIDDEN));
-        mx = std::max<int>(mx, round(val * Q_HIDDEN));
-        outputWeights[j] = round(val * Q_HIDDEN);
-        floatData++;
+        int16_t val = *intData;
+        mn = std::min<int>(mn, val);
+        mx = std::max<int>(mx, val);
+        outputWeights[j] = val;
+        intData++;
     }
-    std::cout << mn << " " << mx << "\n";
+    //std::cout << "HL weights range: " << mn << " " << mx << "\n";
 
-    float val = *floatData;
-    outputBias = round(val * Q_HIDDEN) * Q_IN;
+    int16_t val = *intData;
+    outputBias = val;
 }
 
 enum {
@@ -229,6 +221,11 @@ public:
     int32_t calc(NetInput& input, bool stm) {
         int32_t sum;
 
+        /*for (auto& i : input.ind[WHITE]) std::cout << i << " ";
+        std::cout << "\n";
+        for (auto& i : input.ind[BLACK]) std::cout << i << " ";
+        std::cout << "\n";*/
+
         for (int n = 0; n < SIDE_NEURONS; n++) {
             sum = inputBiases[n];
 
@@ -257,11 +254,10 @@ public:
         return get_output(stm);
     }
 
-    reg_type reg_screlu(reg_type reg) {
+    reg_type reg_clamp(reg_type reg) {
         reg_type zero{};
         reg_type one = reg_set1(Q_IN);
-        const reg_type reg_clamped = reg_min16(reg_max16(reg, zero), one);
-        return reg_mullo(reg_clamped, reg_clamped);
+        return reg_min16(reg_max16(reg, zero), one);
     }
 
     int32_t getOutput(NetInput& input, bool stm) { /// feed forward
@@ -290,30 +286,30 @@ public:
             assert(-32768 <= sum && sum <= 32767);
         }
 
-        sum = outputBias;
+        sum = 0;
 
         reg_type_s acc{}, acc2{};
 
         reg_type* v = (reg_type*)outputWeights;
         reg_type* w = (reg_type*)va[stm];
 
-        for (int j = 0; j < NUM_REGS / 2; j++) {
-            acc = reg_add32(acc, reg_madd16(reg_screlu(w[2 * j]), v[2 * j]));
-            acc2 = reg_add32(acc2, reg_madd16(reg_screlu(w[2 * j + 1]), v[2 * j + 1]));
+        for (int j = 0; j < NUM_REGS; j++) {
+            const reg_type clamped = reg_clamp(w[j]);
+            acc = reg_add32(acc, reg_madd16(reg_mullo(clamped, v[j]), clamped));
         }
 
         reg_type* w2 = (reg_type*)va[1 ^ stm];
 
-        for (int j = 0; j < NUM_REGS / 2; j++) {
-            acc = reg_add32(acc, reg_madd16(reg_screlu(w2[2 * j]), v[2 * j + NUM_REGS]));
-            acc2 = reg_add32(acc2, reg_madd16(reg_screlu(w2[2 * j + 1]), v[2 * j + 1 + NUM_REGS]));
+        for (int j = 0; j < NUM_REGS; j++) {
+            const reg_type clamped = reg_clamp(w2[j]);
+            acc = reg_add32(acc, reg_madd16(reg_mullo(clamped, v[j + NUM_REGS]), clamped));
         }
 
         acc = reg_add32(acc, acc2);
 
         sum += get_sum(acc);
 
-        return sum * 400 / Q_IN / Q_HIDDEN;
+        return (sum / Q_IN + outputBias) * 400 / (Q_IN * Q_HIDDEN);
     }
 
     void apply_updates(int16_t* output, int16_t* input) {
@@ -490,30 +486,50 @@ public:
     int32_t get_output(bool stm) {
         reg_type_s acc0{}, acc1{}, acc2{}, acc3{};
 
+        
         const reg_type* w = reinterpret_cast<const reg_type*>(output_history[histSz - 1][stm]);
         const reg_type* w2 = reinterpret_cast<const reg_type*>(output_history[histSz - 1][stm ^ 1]);
         const reg_type* v = reinterpret_cast<const reg_type*>(outputWeights);
         const reg_type* v2 = reinterpret_cast<const reg_type*>(&outputWeights[SIDE_NEURONS]);
+        reg_type clamped;
 
         for (int j = 0; j < NUM_REGS; j += 4) {
-            acc0 = reg_add32(acc0, reg_madd16(reg_screlu(w[j]), v[j]));
-            acc0 = reg_add32(acc0, reg_madd16(reg_screlu(w2[j]), v2[j]));
+            clamped = reg_clamp(w[j]);
+            acc0 = reg_add32(acc0, reg_madd16(reg_mullo(clamped, v[j]), clamped));
+            clamped = reg_clamp(w2[j]);
+            acc0 = reg_add32(acc0, reg_madd16(reg_mullo(clamped, v2[j]), clamped));
 
-            acc1 = reg_add32(acc1, reg_madd16(reg_screlu(w[j + 1]), v[j + 1]));
-            acc1 = reg_add32(acc1, reg_madd16(reg_screlu(w2[j + 1]), v2[j + 1]));
+            clamped = reg_clamp(w[j + 1]);
+            acc1 = reg_add32(acc1, reg_madd16(reg_mullo(clamped, v[j + 1]), clamped));
+            clamped = reg_clamp(w2[j + 1]);
+            acc1 = reg_add32(acc1, reg_madd16(reg_mullo(clamped, v2[j + 1]), clamped));
 
-            acc2 = reg_add32(acc2, reg_madd16(reg_screlu(w[j + 2]), v[j + 2]));
-            acc2 = reg_add32(acc2, reg_madd16(reg_screlu(w2[j + 2]), v2[j + 2]));
+            clamped = reg_clamp(w[j + 2]);
+            acc2 = reg_add32(acc2, reg_madd16(reg_mullo(clamped, v[j + 2]), clamped));
+            clamped = reg_clamp(w2[j + 2]);
+            acc2 = reg_add32(acc2, reg_madd16(reg_mullo(clamped, v2[j + 2]), clamped));
 
-            acc3 = reg_add32(acc3, reg_madd16(reg_screlu(w[j + 3]), v[j + 3]));
-            acc3 = reg_add32(acc3, reg_madd16(reg_screlu(w2[j + 3]), v2[j + 3]));
+            clamped = reg_clamp(w[j + 3]);
+            acc3 = reg_add32(acc3, reg_madd16(reg_mullo(clamped, v[j + 3]), clamped));
+            clamped = reg_clamp(w2[j + 3]);
+            acc3 = reg_add32(acc3, reg_madd16(reg_mullo(clamped, v2[j + 3]), clamped));
         }
 
         acc0 = reg_add32(acc0, acc1);
         acc2 = reg_add32(acc2, acc3);
         acc0 = reg_add32(acc0, acc2);
 
-        return (outputBias + get_sum(acc0)) / (Q_IN * Q_HIDDEN);
+        return (outputBias + get_sum(acc0) / Q_IN) * 400 / (Q_IN * Q_HIDDEN);
+
+        /*int sum = 0;
+        for (int j = 0; j < SIDE_NEURONS; j++) {
+            int clamped = std::clamp(static_cast<int>(output_history[histSz - 1][stm][j]), 0, Q_IN);
+            sum += clamped * clamped * outputWeights[j];
+            clamped = std::clamp(static_cast<int>(output_history[histSz - 1][stm ^ 1][j]), 0, Q_IN);
+            sum += clamped * clamped * outputWeights[j + SIDE_NEURONS];
+        }
+        //std::cout << sum << " " << outputBias << "\n";
+        return (outputBias + sum / Q_IN) * 400 / (Q_IN * Q_HIDDEN);*/
     }
 
     int histSz;
