@@ -220,11 +220,9 @@ public:
 
     int32_t calc(NetInput& input, bool stm) {
         int32_t sum;
-
-        /*for (auto& i : input.ind[WHITE]) std::cout << i << " ";
-        std::cout << "\n";
-        for (auto& i : input.ind[BLACK]) std::cout << i << " ";
-        std::cout << "\n";*/
+        
+        /*for (int i = 0; i < input.ind[stm].size(); i++)
+            std::cout << input.ind[stm][i] << " " << input.ind[1 ^ stm][i] << "\n";*/
 
         for (int n = 0; n < SIDE_NEURONS; n++) {
             sum = inputBiases[n];
@@ -309,7 +307,7 @@ public:
 
         sum += get_sum(acc);
 
-        return (sum / Q_IN + outputBias) * 400 / (Q_IN * Q_HIDDEN);
+        return (sum / Q_IN + outputBias) * 225 / (Q_IN * Q_HIDDEN);
     }
 
     void apply_updates(int16_t* output, int16_t* input) {
@@ -518,18 +516,18 @@ public:
         acc0 = reg_add32(acc0, acc1);
         acc2 = reg_add32(acc2, acc3);
         acc0 = reg_add32(acc0, acc2);
-
-        return (outputBias + get_sum(acc0) / Q_IN) * 400 / (Q_IN * Q_HIDDEN);
-
-        /*int sum = 0;
+        /*
+        int sum_brut = 0;
         for (int j = 0; j < SIDE_NEURONS; j++) {
             int clamped = std::clamp(static_cast<int>(output_history[histSz - 1][stm][j]), 0, Q_IN);
-            sum += clamped * clamped * outputWeights[j];
+            sum_brut += clamped * clamped * outputWeights[j];
             clamped = std::clamp(static_cast<int>(output_history[histSz - 1][stm ^ 1][j]), 0, Q_IN);
-            sum += clamped * clamped * outputWeights[j + SIDE_NEURONS];
+            sum_brut += clamped * clamped * outputWeights[j + SIDE_NEURONS];
         }
         //std::cout << sum << " " << outputBias << "\n";
-        return (outputBias + sum / Q_IN) * 400 / (Q_IN * Q_HIDDEN);*/
+        std::cout << (outputBias + sum_brut / Q_IN) * 400 / (Q_IN * Q_HIDDEN) << "\n";
+        */
+        return (outputBias + get_sum(acc0) / Q_IN) * 225 / (Q_IN * Q_HIDDEN);
     }
 
     int histSz;
