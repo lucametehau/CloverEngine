@@ -1,5 +1,5 @@
 SRC = *.cpp Fathom/src/tbprobe.c
-EXE = Clover.6.1.26
+EXE = Clover.6.1.27
 EVALFILE = weights-5buckets-epoch390.nnue
 
 ifeq ($(CXX),)
