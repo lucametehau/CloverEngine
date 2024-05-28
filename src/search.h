@@ -534,7 +534,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                     getHistory(this, stack, move, threatsEnemy.threatsEnemy, hist);
 
                     /// approximately the new depth for the next search
-                    int newDepth = std::max(0, depth - lmrRed[std::min(63, depth)][std::min(63, played)] + improving);
+                    int newDepth = std::max(0, depth - lmrRed[std::min(63, depth)][std::min(63, played)] + improving + hist / 16384);
 
                     /// futility pruning
                     if (newDepth <= FPDepth && !isCheck && staticEval + FPBias + FPMargin * newDepth <= alpha) skip = 1;
