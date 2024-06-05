@@ -395,12 +395,12 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         if (bound == EXACT || (bound == LOWER && ttValue > eval) || (bound == UPPER && ttValue < eval)) eval = ttValue;
     }
 
-    const int staticEval = stack->eval;
+    const int static_eval = stack->eval;
     int eval_diff = 0;
     if (ply > 1 && (stack - 2)->eval != INF)
-        eval_diff = staticEval - (stack - 2)->eval;
+        eval_diff = static_eval - (stack - 2)->eval;
     else if (ply > 3 && (stack - 4)->eval != INF)
-        eval_diff = staticEval - (stack - 4)->eval;
+        eval_diff = static_eval - (stack - 4)->eval;
 
     const int improving = (isCheck || eval_diff == 0 ? 0 :
         eval_diff > 0 ? 1 :
@@ -426,7 +426,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
 
             /// null move pruning (when last move wasn't null, we still have non pawn material, we have a good position)
             if (!nullSearch && !stack->excluded && quietUs &&
-                eval >= beta + NMPEvalMargin * (depth <= 3) && eval >= staticEval &&
+                eval >= beta + NMPEvalMargin * (depth <= 3) && eval >= static_eval &&
                 board.has_non_pawn_material(board.turn)) {
                 int R = NMPReduction + depth / NMPDepthDiv + (eval - beta) / NMPEvalDiv + improving;
 
@@ -444,10 +444,10 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
             // probcut
             int probBeta = beta + ProbcutMargin;
             if (depth >= ProbcutDepth && abs(beta) < MATE && !(ttHit && ttDepth >= depth - 3 && ttValue < probBeta)) {
-                Movepick picker((ttMove && isNoisyMove(board, ttMove) && see(board, ttMove, probBeta - staticEval) ? ttMove : NULLMOVE),
+                Movepick picker((ttMove && isNoisyMove(board, ttMove) && see(board, ttMove, probBeta - static_eval) ? ttMove : NULLMOVE),
                     NULLMOVE,
                     NULLMOVE,
-                    probBeta - staticEval,
+                    probBeta - static_eval,
                     threatsEnemy.threatsEnemy);
 
                 uint16_t move;
@@ -467,7 +467,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                     board.undo_move(move);
 
                     if (score >= probBeta) {
-                        TT->save(entry, key, score, depth - 3, ply, LOWER, move, staticEval, wasPV);
+                        TT->save(entry, key, score, depth - 3, ply, LOWER, move, static_eval, wasPV);
                         return score;
                     }
                 }
@@ -476,6 +476,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
     }
 
     constexpr int see_depth_coef = (rootNode ? RootSeeDepthCoef : PVSSeeDepthCoef);
+    const bool bad_static_eval = (static_eval <= alpha);
 
     Movepick picker(ttMove,
         stack->killer,
@@ -514,7 +515,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                 int newDepth = std::max(0, depth - lmrRed[std::min(63, depth)][std::min(63, played)] + improving);
 
                 /// futility pruning
-                if (newDepth <= FPDepth && !isCheck && staticEval + FPBias + FPMargin * newDepth <= alpha) skip = 1;
+                if (newDepth <= FPDepth && !isCheck && static_eval + FPBias + FPMargin * newDepth <= alpha) skip = 1;
 
                 /// late move pruning
                 if (newDepth <= LMPDepth && played >= (LMPBias + newDepth * newDepth) / (2 - improving)) skip = 1;
@@ -524,7 +525,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
             else {
                 if (depth <= SEEPruningNoisyDepth && !isCheck && picker.trueStage > STAGE_GOOD_NOISY && !see(board, move, -SEEPruningNoisyMargin * depth * depth)) continue;
 
-                if (depth <= FPNoisyDepth && !isCheck && staticEval + FPBias + seeVal[board.piece_type_at(sq_to(move))] + FPMargin * depth <= alpha) continue;
+                if (depth <= FPNoisyDepth && !isCheck && static_eval + FPBias + seeVal[board.piece_type_at(sq_to(move))] + FPMargin * depth <= alpha) continue;
             }
         }
 #else
@@ -537,17 +538,21 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                     int newDepth = std::max(0, depth - lmrRed[std::min(63, depth)][std::min(63, played)] + improving + hist / 16384);
 
                     /// futility pruning
-                    if (newDepth <= FPDepth && !isCheck && staticEval + FPBias + FPMargin * newDepth <= alpha) skip = 1;
+                    if (newDepth <= FPDepth && !isCheck && 
+                        static_eval + FPBias + FPMargin * newDepth <= alpha) skip = 1;
 
                     /// late move pruning
                     if (newDepth <= LMPDepth && played >= (LMPBias + newDepth * newDepth) / (2 - improving)) skip = 1;
 
-                    if (newDepth <= SEEPruningQuietDepth && !isCheck && !see(board, move, -SEEPruningQuietMargin * newDepth)) continue;
+                    if (newDepth <= SEEPruningQuietDepth && !isCheck && 
+                        !see(board, move, -SEEPruningQuietMargin * newDepth)) continue;
                 }
                 else {
-                    if (depth <= SEEPruningNoisyDepth && !isCheck && picker.trueStage > STAGE_GOOD_NOISY && !see(board, move, -SEEPruningNoisyMargin * depth * depth)) continue;
+                    if (depth <= SEEPruningNoisyDepth && !isCheck && picker.trueStage > STAGE_GOOD_NOISY && 
+                        !see(board, move, -SEEPruningNoisyMargin * (depth + bad_static_eval) * (depth + bad_static_eval))) continue;
 
-                    if (depth <= FPNoisyDepth && !isCheck && staticEval + FPBias + seeVal[board.piece_type_at(sq_to(move))] + FPMargin * depth <= alpha) continue;
+                    if (depth <= FPNoisyDepth && !isCheck && 
+                        static_eval + FPBias + seeVal[board.piece_type_at(sq_to(move))] + FPMargin * depth <= alpha) continue;
                 }
             }
         }
@@ -605,7 +610,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                 R += !wasPV + (improving <= 0); /// not on pv or not improving
                 R -= !rootNode && pvNode;
                 R += quietUs && !isCheck && eval - seeVal[KNIGHT] > beta; /// if the position is relatively quiet and eval is bigger than beta by a margin
-                R += quietUs && !isCheck && staticEval - rootEval > EvalDifferenceReductionMargin && ply % 2 == 0; /// the position in quiet and static eval is way bigger than root eval
+                R += quietUs && !isCheck && static_eval - rootEval > EvalDifferenceReductionMargin && ply % 2 == 0; /// the position in quiet and static eval is way bigger than root eval
                 R -= 2 * refutationMove; /// reduce for refutation moves
                 R -= board.checkers != 0; /// move gives check
                 R -= hist / HistReductionDiv; /// reduce based on move history
@@ -619,7 +624,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
             R += 2 * cutNode;
             R -= wasPV && ttDepth >= depth;
             R += ttCapture;
-            R += quietUs && !isCheck && staticEval + 250 <= alpha;
+            R += quietUs && !isCheck && static_eval + 250 <= alpha;
 
             R = std::min(newDepth, std::max(R, 1)); /// clamp R
             score = -search<false, false>(-alpha - 1, -alpha, newDepth - R, true, stack + 1);
@@ -671,15 +676,15 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         if (!isNoisyMove(board, bestMove)) {
             if (stack->killer != bestMove)
                 stack->killer = bestMove;
-            updateHistory(this, stack, nrQuiets, ply, threatsEnemy.threatsEnemy, getHistoryBonus(depth + (staticEval <= alpha)));
+            updateHistory(this, stack, nrQuiets, ply, threatsEnemy.threatsEnemy, getHistoryBonus(depth + bad_static_eval));
         }
-        updateCapHistory(this, stack, nrCaptures, bestMove, ply, getHistoryBonus(depth + (staticEval <= alpha)));
+        updateCapHistory(this, stack, nrCaptures, bestMove, ply, getHistoryBonus(depth + bad_static_eval));
     }
 
     /// update tt only if we aren't in a singular search
     if (!stack->excluded) {
         bound = (best >= beta ? LOWER : (best > alphaOrig ? EXACT : UPPER));
-        TT->save(entry, key, best, depth, ply, bound, (bound == UPPER ? NULLMOVE : bestMove), staticEval, wasPV);
+        TT->save(entry, key, best, depth, ply, bound, (bound == UPPER ? NULLMOVE : bestMove), static_eval, wasPV);
     }
 
     return best;
