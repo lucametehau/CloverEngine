@@ -422,7 +422,8 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
             }
 
             /// static null move pruning (don't prune when having a mate line, again stability)
-            if (depth <= SNMPDepth && eval > beta && eval - (SNMPMargin - SNMPImproving * improving) * (depth - quietUs) > beta && eval < MATE) return eval;
+            if (depth <= SNMPDepth && eval > beta && 
+                eval - (SNMPMargin - SNMPImproving * improving) * (depth - quietUs) > beta && eval < MATE) return (beta > -MATE ? (eval + beta) / 2 : eval);
 
             /// null move pruning (when last move wasn't null, we still have non pawn material, we have a good position)
             if (!nullSearch && !stack->excluded && quietUs &&
