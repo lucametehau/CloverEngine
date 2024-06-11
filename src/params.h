@@ -49,44 +49,64 @@ struct CreateParam {
 // search constants
 TUNE_PARAM(DeltaPruningMargin, 1007, 900, 1100);
 TUNE_PARAM(QuiesceFutilityBias, 209, 150, 250);
+
 TUNE_PARAM(NegativeImprovingMargin, -186, -300, -100);
+
 TUNE_PARAM(RazoringDepth, 2, 1, 5);
 TUNE_PARAM(RazoringMargin, 148, 100, 200);
+
 TUNE_PARAM(SNMPDepth, 13, 8, 15);
 TUNE_PARAM(SNMPMargin, 86, 75, 100);
 TUNE_PARAM(SNMPImproving, 19, 10, 25);
+
 TUNE_PARAM(NMPEvalMargin, 31, 20, 40);
 TUNE_PARAM(NMPReduction, 3, 3, 5);
 TUNE_PARAM(NMPDepthDiv, 3, 3, 5);
 TUNE_PARAM(NMPEvalDiv, 133, 120, 150);
+
 TUNE_PARAM(ProbcutMargin, 185, 100, 300);
 TUNE_PARAM(ProbcutDepth, 5, 3, 7);
 TUNE_PARAM(ProbcutReduction, 5, 3, 5);
+
 TUNE_PARAM(IIRPvNodeDepth, 4, 0, 5);
 TUNE_PARAM(IIRPvNodeReduction, 1, 1, 2);
 TUNE_PARAM(IIRCutNodeDepth, 4, 0, 5);
 TUNE_PARAM(IIRCutNodeReduction, 1, 1, 2);
+
 TUNE_PARAM(PVSSeeDepthCoef, 16, 10, 20);
+
+TUNE_PARAM(MoveloopHistDiv, 16384, 8192, 20000);
+
 TUNE_PARAM(FPDepth, 9, 5, 10);
 TUNE_PARAM(FPBias, 99, 90, 120);
 TUNE_PARAM(FPMargin, 98, 90, 120);
+
 TUNE_PARAM(LMPDepth, 7, 5, 10);
 TUNE_PARAM(LMPBias, 2, 1, 5);
+
 TUNE_PARAM(SEEPruningQuietDepth, 7, 5, 10);
 TUNE_PARAM(SEEPruningQuietMargin, 70, 60, 90);
 TUNE_PARAM(SEEPruningNoisyDepth, 8, 5, 10);
 TUNE_PARAM(SEEPruningNoisyMargin, 11, 5, 25);
 TUNE_PARAM(FPNoisyDepth, 8, 5, 10);
+
 TUNE_PARAM(SEDepth, 6, 4, 8);
-TUNE_PARAM(SEMargin, 56, 32, 96);
-TUNE_PARAM(SEDoubleExtensionsMargin, 24, 15, 35);
+TUNE_PARAM(SEMargin, 56, 32, 64);
+TUNE_PARAM(SEDoubleExtensionsMargin, 24, 5, 25);
+TUNE_PARAM(SETripleExtensionsMargin, 100, 50, 100);
+
 TUNE_PARAM(EvalDifferenceReductionMargin, 206, 100, 300);
 TUNE_PARAM(HistReductionDiv, 8264, 7000, 10000);
+TUNE_PARAM(LMRBadStaticEvalMargin, 250, 150, 300);
+TUNE_PARAM(DeeperMargin, 75, 40, 80);
+
 TUNE_PARAM(RootSeeDepthCoef, 9, 5, 20);
+
 TUNE_PARAM(AspirationWindowsDepth, 6, 4, 10);
 TUNE_PARAM(AspirationWindosValue, 7, 5, 20);
 TUNE_PARAM(AspirationWindowExpandMargin, 30, 10, 100);
 TUNE_PARAM(AspirationWindowExpandBias, 0, 0, 10);
+
 TUNE_PARAM(TimeManagerMinDepth, 9, 5, 11);
 TUNE_PARAM(TimeManagerNodesSearchedMaxPercentage, 1541, 1200, 1800);
 TUNE_PARAM(TimeManagerBestMoveMax, 1245, 1100, 1500);
@@ -97,6 +117,7 @@ TUNE_PARAM(TimeManagerScoreBias, 106, 10, 150);
 TUNE_PARAM(TimeManagerScoreDiv, 110, 90, 150);
 TUNE_PARAM(TimeManagerNodesSeachedMaxCoef, 111, 90, 200);
 TUNE_PARAM(TimeManagerNodesSearchedCoef, 119, 50, 200);
+
 TUNE_PARAM(LMRQuietBias, 121, 100, 200);
 TUNE_PARAM(LMRQuietDiv, 259, 220, 300);
 TUNE_PARAM(LMRNoisyBias, 66, 40, 100);

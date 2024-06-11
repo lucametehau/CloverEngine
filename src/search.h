@@ -41,7 +41,7 @@ bool Search::checkForStop() {
 
     if (checkCount == (1 << 10)) {
         if constexpr (checkTime) {
-            if (info->timeset && getTime() > info->startTime + info->hardTimeLim && !info->ponder) flag |= TERMINATED_BY_LIMITS;
+            if (info->timeset && getTime() > info->startTime + info->hardTimeLim) flag |= TERMINATED_BY_LIMITS;
         }
         checkCount = 0;
     }
@@ -536,7 +536,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                     getHistory(this, stack, move, threatsEnemy.threatsEnemy, hist);
 
                     /// approximately the new depth for the next search
-                    int newDepth = std::max(0, depth - lmrRed[std::min(63, depth)][std::min(63, played)] + improving + hist / 16384);
+                    int newDepth = std::max(0, depth - lmrRed[std::min(63, depth)][std::min(63, played)] + improving + hist / MoveloopHistDiv);
 
                     /// futility pruning
                     if (newDepth <= FPDepth && !isCheck && 
@@ -570,7 +570,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                 int score = search<false, false>(rBeta - 1, rBeta, (depth - 1) / 2, cutNode, stack);
                 stack->excluded = NULLMOVE;
 
-                if (score < rBeta) ex = 1 + (!pvNode && rBeta - score > SEDoubleExtensionsMargin) + (!pvNode && !ttCapture && rBeta - score > 100);
+                if (score < rBeta) ex = 1 + (!pvNode && rBeta - score > SEDoubleExtensionsMargin) + (!pvNode && !ttCapture && rBeta - score > SETripleExtensionsMargin);
                 else if (rBeta >= beta) return rBeta; // multicut
                 else if (ttValue >= beta || ttValue <= alpha) ex = -1 - !pvNode;
             }
@@ -625,13 +625,13 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
             R += 2 * cutNode;
             R -= wasPV && ttDepth >= depth;
             R += ttCapture;
-            R += quietUs && !isCheck && static_eval + 250 <= alpha;
+            R += quietUs && !isCheck && static_eval + LMRBadStaticEvalMargin <= alpha;
 
             R = std::min(newDepth, std::max(R, 1)); /// clamp R
             score = -search<false, false>(-alpha - 1, -alpha, newDepth - R, true, stack + 1);
 
             if (R > 1 && score > alpha) {
-                newDepth += (score > best + 75) - (score < best + newDepth);
+                newDepth += (score > best + DeeperMargin) - (score < best + newDepth);
                 score = -search<false, false>(-alpha - 1, -alpha, newDepth - 1, !cutNode, stack + 1);
             }
         }
@@ -768,7 +768,6 @@ std::pair <int, uint16_t> Search::start_search(Info* _info) {
 
     memset(search_stack, 0, sizeof(search_stack));
     memset(bestMoves, 0, sizeof(bestMoves));
-    memset(ponderMoves, 0, sizeof(ponderMoves));
     memset(rootScores, 0, sizeof(rootScores));
 
     rootEval = (!board.checkers ? evaluate(board) : INF);
@@ -873,17 +872,9 @@ std::pair <int, uint16_t> Search::start_search(Info* _info) {
                     beta = std::min(INF, beta + window);
                     depth--;
                     completedDepth = tDepth;
-                    if (pvTableLen[0] > 1)
-                        ponderMoves[i] = pvTable[0][1];
-                    else
-                        ponderMoves[i] = NULLMOVE;
                 }
                 else {
                     completedDepth = tDepth;
-                    if (pvTableLen[0] > 1)
-                        ponderMoves[i] = pvTable[0][1];
-                    else
-                        ponderMoves[i] = NULLMOVE;
                     break;
                 }
 
@@ -915,8 +906,6 @@ std::pair <int, uint16_t> Search::start_search(Info* _info) {
         if (flag & TERMINATED_SEARCH)
             break;
 
-        if (info->ponder) continue;
-
         if (info->timeset && getTime() > info->stopTime) {
             flag |= TERMINATED_BY_LIMITS;
             break;
@@ -929,29 +918,25 @@ std::pair <int, uint16_t> Search::start_search(Info* _info) {
     }
 
     int bs = 0;
-    uint16_t bm = NULLMOVE, pm = NULLMOVE;
+    uint16_t bm = NULLMOVE;
     if (principalSearcher) {
         stop_workers();
         int bestDepth = completedDepth;
         bs = rootScores[1];
         bm = bestMoves[1];
-        pm = ponderMoves[1];
         for (int i = 0; i < threadCount; i++) {
             if (params[i].rootScores[1] > bs && params[i].completedDepth >= bestDepth) {
                 bs = params[i].rootScores[1];
                 bm = params[i].bestMoves[1];
-                pm = params[i].ponderMoves[1];
                 bestDepth = params[i].completedDepth;
             }
         }
     }
 
-    while (!(flag & TERMINATED_SEARCH) && info->ponder && info->timeset);
+    while (!(flag & TERMINATED_SEARCH) && info->timeset);
 
     if (principalSearcher && printStats) {
         std::cout << "bestmove " << move_to_string(bm, info->chess960);
-        if (pm)
-            std::cout << " ponder " << move_to_string(pm, info->chess960);
         std::cout << std::endl;
     }
 
@@ -1033,7 +1018,6 @@ void Search::start_principal_search(Info* info) {
 }
 
 void Search::stop_principal_search() {
-    info->ponder = false;
     flag |= TERMINATED_BY_USER;
 }
 

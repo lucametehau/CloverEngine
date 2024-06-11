@@ -23,8 +23,6 @@
 #include <condition_variable>
 #include <functional>
 
-/// search params
-
 int seeVal[] = { 0, SeeValPawn, SeeValKnight, SeeValBishop, SeeValRook, SeeValQueen, 20000 };
 
 const int TERMINATED_BY_USER = 1;
@@ -46,7 +44,6 @@ struct Search {
     }
 
     ~Search() {
-        //std::cout << "its not even called\n";
         releaseThreads();
     }
 
@@ -99,7 +96,7 @@ struct Search {
     TablePieceTo continuationHistory[2][13][64];
     int16_t capHist[13][64][7];
     int lmrRed[64][64], lmrRedNoisy[64][64];
-    int bestMoves[256], ponderMoves[256], scores[256], rootScores[256];
+    int bestMoves[256], scores[256], rootScores[256];
     MeanValue values[10];
 
     volatile int flag;
