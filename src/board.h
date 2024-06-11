@@ -243,6 +243,4 @@ public:
 
     bool quit, stopped;
     bool chess960;
-
-    bool ponder;
 };

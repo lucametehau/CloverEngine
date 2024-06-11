@@ -25,7 +25,7 @@
 #include "perft.h"
 #include "generate.h"
 
-const std::string VERSION = "6.2";
+const std::string VERSION = "6.2.1";
 
 class UCI {
 public:
@@ -80,8 +80,6 @@ void UCI::uciLoop() {
 
     UciNewGame(ttSize);
     std::string input;
-
-    info->ponder = false;
 
     while (getline(std::cin, input)) {
 
@@ -169,9 +167,6 @@ void UCI::uciLoop() {
                 else if (param == "san") {
                     info->sanMode = true;
                 }
-                else if (param == "ponder") {
-                    info->ponder = true;
-                }
             }
 
             info->startTime = getTime();
@@ -201,9 +196,6 @@ void UCI::uciLoop() {
                 info->depth = DEPTH;
 
             Go(info);
-        }
-        else if (cmd == "ponderhit") {
-            searcher.info->ponder = false;
         }
         else if (cmd == "quit") {
             Stop();

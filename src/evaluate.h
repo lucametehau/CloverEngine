@@ -54,14 +54,10 @@ void bring_up_to_date(Board& board) {
                     uint64_t curr = board.bb[i];
 
                     uint64_t b = curr & ~prev; // additions
-                    while (b) {
-                        NN->addInput(net_index(i, sq_lsb(b), kingSq, c));
-                    }
+                    while (b) NN->addInput(net_index(i, sq_lsb(b), kingSq, c));
 
                     b = prev & ~curr; // removals
-                    while (b) {
-                        NN->remInput(net_index(i, sq_lsb(b), kingSq, c));
-                    }
+                    while (b) NN->remInput(net_index(i, sq_lsb(b), kingSq, c));
 
                     state->bb[i] = board.bb[i];
                 }
