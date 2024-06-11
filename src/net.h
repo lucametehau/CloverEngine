@@ -280,14 +280,16 @@ public:
         reg_type* v = (reg_type*)outputWeights;
         reg_type* w = (reg_type*)va[stm];
 
-        for (int j = 0; j < NUM_REGS; j++) {
-            acc = reg_add32(acc, reg_madd16(reg_max16(w[j], zero), v[j]));
+        for (int j = 0; j < NUM_REGS / 2; j++) {
+            acc = reg_add32(acc, reg_madd16(reg_max16(w[2 * j], zero), v[2 * j]));
+            acc2 = reg_add32(acc2, reg_madd16(reg_max16(w[2 * j + 1], zero), v[2 * j + 1]));
         }
 
         reg_type* w2 = (reg_type*)va[1 ^ stm];
 
-        for (int j = 0; j < NUM_REGS; j++) {
-            acc = reg_add32(acc, reg_madd16(reg_max16(w2[j], zero), v[j + NUM_REGS]));
+        for (int j = 0; j < NUM_REGS / 2; j++) {
+            acc = reg_add32(acc, reg_madd16(reg_max16(w2[2 * j], zero), v[2 * j + NUM_REGS]));
+            acc2 = reg_add32(acc2, reg_madd16(reg_max16(w2[2 * j + 1], zero), v[2 * j + 1 + NUM_REGS]));
         }
 
         acc = reg_add32(acc, acc2);
@@ -470,21 +472,32 @@ public:
 
     int32_t get_output(bool stm) {
         const reg_type zero{};
-        reg_type_s acc{};
+        reg_type_s acc0{}, acc1{}, acc2{}, acc3{};
 
         const reg_type* w = reinterpret_cast<const reg_type*>(output_history[histSz - 1][stm]);
         const reg_type* w2 = reinterpret_cast<const reg_type*>(output_history[histSz - 1][stm ^ 1]);
         const reg_type* v = reinterpret_cast<const reg_type*>(outputWeights);
         const reg_type* v2 = reinterpret_cast<const reg_type*>(&outputWeights[SIDE_NEURONS]);
 
-        for (int j = 0; j < NUM_REGS; j++) {
-            acc = reg_add32(acc, reg_madd16(reg_max16(w[j], zero), v[j]));
-        }
-        for(int j = 0; j < NUM_REGS; j++) {
-            acc = reg_add32(acc, reg_madd16(reg_max16(w2[j], zero), v2[j]));
+        for (int j = 0; j < NUM_REGS; j += 4) {
+            acc0 = reg_add32(acc0, reg_madd16(reg_max16(w[j], zero), v[j]));
+            acc0 = reg_add32(acc0, reg_madd16(reg_max16(w2[j], zero), v2[j]));
+
+            acc1 = reg_add32(acc1, reg_madd16(reg_max16(w[j + 1], zero), v[j + 1]));
+            acc1 = reg_add32(acc1, reg_madd16(reg_max16(w2[j + 1], zero), v2[j + 1]));
+
+            acc2 = reg_add32(acc2, reg_madd16(reg_max16(w[j + 2], zero), v[j + 2]));
+            acc2 = reg_add32(acc2, reg_madd16(reg_max16(w2[j + 2], zero), v2[j + 2]));
+
+            acc3 = reg_add32(acc3, reg_madd16(reg_max16(w[j + 3], zero), v[j + 3]));
+            acc3 = reg_add32(acc3, reg_madd16(reg_max16(w2[j + 3], zero), v2[j + 3]));
         }
 
-        return (outputBias + get_sum(acc)) / (Q_IN * Q_HIDDEN);
+        acc0 = reg_add32(acc0, acc1);
+        acc2 = reg_add32(acc2, acc3);
+        acc0 = reg_add32(acc0, acc2);
+
+        return (outputBias + get_sum(acc0)) / (Q_IN * Q_HIDDEN);
     }
 
     int histSz;
