@@ -547,7 +547,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                     /// late move pruning
                     if (newDepth <= LMPDepth && played >= (LMPBias + newDepth * newDepth) / (2 - improving)) skip = 1;
 
-                    if (newDepth <= 3 && bad_static_eval && history < -4096 * (newDepth - 1)) continue;
+                    if (depth <= 3 && bad_static_eval && history < -4096 * depth) continue;
 
                     if (newDepth <= SEEPruningQuietDepth && !isCheck && 
                         !see(board, move, -SEEPruningQuietMargin * newDepth)) continue;
