@@ -391,6 +391,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         }
     }
     else { /// ttValue might be a better evaluation
+        if (stack->excluded) eval = evaluate(board);
         stack->eval = eval;
         if (bound == EXACT || (bound == LOWER && ttValue > eval) || (bound == UPPER && ttValue < eval)) eval = ttValue;
     }
