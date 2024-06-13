@@ -503,14 +503,14 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
             continue;
 
         const bool isQuiet = !isNoisyMove(board, move), refutationMove = (picker.trueStage == STAGE_KILLER || picker.trueStage == STAGE_COUNTER);
-        int hist = 0;
+        int history = 0;
 
         /// quiet move pruning
 
 #ifdef GENERATE
         if (best > -MATE && board.has_non_pawn_material(board.turn) && !pvNode) {
             if (isQuiet) {
-                getHistory(this, stack, move, threatsEnemy.threatsEnemy, hist);
+                getHistory(this, stack, move, threatsEnemy.threatsEnemy, history);
 
                 /// approximately the new depth for the next search
                 int newDepth = std::max(0, depth - lmrRed[std::min(63, depth)][std::min(63, played)] + improving);
@@ -520,6 +520,8 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
 
                 /// late move pruning
                 if (newDepth <= LMPDepth && played >= (LMPBias + newDepth * newDepth) / (2 - improving)) skip = 1;
+
+                if (newDepth <= 3 && bad_static_eval && history < -4096 * (newDepth - 1)) continue;
 
                 if (depth <= SEEPruningQuietDepth && !isCheck && !see(board, move, -SEEPruningQuietMargin * depth)) continue;
             }
@@ -533,10 +535,10 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         if constexpr (!rootNode) {
             if (best > -MATE && board.has_non_pawn_material(board.turn)) {
                 if (isQuiet) {
-                    getHistory(this, stack, move, threatsEnemy.threatsEnemy, hist);
+                    getHistory(this, stack, move, threatsEnemy.threatsEnemy, history);
 
                     /// approximately the new depth for the next search
-                    int newDepth = std::max(0, depth - lmrRed[std::min(63, depth)][std::min(63, played)] + improving + hist / MoveloopHistDiv);
+                    int newDepth = std::max(0, depth - lmrRed[std::min(63, depth)][std::min(63, played)] + improving + history / MoveloopHistDiv);
 
                     /// futility pruning
                     if (newDepth <= FPDepth && !isCheck && 
@@ -544,6 +546,8 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
 
                     /// late move pruning
                     if (newDepth <= LMPDepth && played >= (LMPBias + newDepth * newDepth) / (2 - improving)) skip = 1;
+
+                    if (depth <= 3 && bad_static_eval && history < -4096 * depth) continue;
 
                     if (newDepth <= SEEPruningQuietDepth && !isCheck && 
                         !see(board, move, -SEEPruningQuietMargin * newDepth)) continue;
@@ -614,7 +618,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                 R += quietUs && !isCheck && static_eval - rootEval > EvalDifferenceReductionMargin && ply % 2 == 0; /// the position in quiet and static eval is way bigger than root eval
                 R -= 2 * refutationMove; /// reduce for refutation moves
                 R -= board.checkers != 0; /// move gives check
-                R -= hist / HistReductionDiv; /// reduce based on move history
+                R -= history / HistReductionDiv; /// reduce based on move history
             }
             else if (!wasPV) {
                 R = lmrRedNoisy[std::min(63, depth)][std::min(63, played)];
