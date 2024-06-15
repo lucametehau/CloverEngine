@@ -25,7 +25,7 @@
 #include "perft.h"
 #include "generate.h"
 
-const std::string VERSION = "6.2.3";
+const std::string VERSION = "6.2.4";
 
 class UCI {
 public:
@@ -212,7 +212,7 @@ void UCI::uciLoop() {
         else if (cmd == "checkmove") {
             std::string moveStr;
             iss >> moveStr;
-            uint16_t move = parse_move_string(searcher.board, moveStr, info);
+            Move move = parse_move_string(searcher.board, moveStr, info);
             std::cout << is_legal(searcher.board, move) << " " << is_legal_slow(searcher.board, move) << "\n";
         }
         else if (cmd == "printparams") {
@@ -324,7 +324,7 @@ void UCI::uciLoop() {
             int th;
             iss >> mv >> th;
 
-            uint16_t move = parse_move_string(searcher.board, mv, info);
+            Move move = parse_move_string(searcher.board, mv, info);
 
             std::cout << see(searcher.board, move, th) << std::endl;
         }

@@ -63,9 +63,9 @@ struct Search {
 
     void set_fen(std::string fen, bool chess960 = false);
     void set_dfrc(int idx);
-    void make_move(uint16_t move);
+    void make_move(Move move);
 
-    std::pair <int, uint16_t> start_search(Info* info);
+    std::pair <int, Move> start_search(Info* info);
 
     template <bool pvNode>
     int quiesce(int alpha, int beta, StackEntry* stack); /// for quiet position check (tuning)
@@ -86,15 +86,14 @@ struct Search {
     void update_pv(int ply, int move);
 
     template <bool checkTime>
-    bool checkForStop();
+    bool check_for_stop();
 
     uint64_t nodesSearched[64 * 64];
-    uint16_t pvTable[DEPTH + 5][2 * DEPTH + 5];
     int pvTableLen[DEPTH + 5];
-    uint16_t cmTable[13][64];
+    Move counter_move[13][64], pvTable[DEPTH + 5][2 * DEPTH + 5];
     int16_t hist[2][2][2][64 * 64];
-    TablePieceTo continuationHistory[2][13][64];
-    int16_t capHist[13][64][7];
+    TablePieceTo cont_history[2][13][64];
+    int16_t cap_hist[13][64][7];
     int lmrRed[64][64], lmrRedNoisy[64][64];
     int bestMoves[256], scores[256], rootScores[256];
     MeanValue values[10];

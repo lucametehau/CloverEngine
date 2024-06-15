@@ -40,7 +40,7 @@ public:
     int8_t enPas;
     uint8_t board[64], rookSq[2][2];
 
-    uint16_t ply, gamePly;
+    uint16_t ply, game_ply;
     uint16_t halfMoves, moveIndex;
     
     uint8_t castleRightsDelta[2][64];
@@ -77,13 +77,13 @@ public:
         return Sq(bb[get_piece(KING, color)]);
     }
 
-    bool isCapture(uint16_t move) {
+    bool isCapture(Move move) {
         return type(move) != CASTLE && (board[sq_to(move)] > 0);
     }
 
-    void make_move(uint16_t move);
+    void make_move(Move move);
 
-    void undo_move(uint16_t move);
+    void undo_move(Move move);
 
     void make_null_move();
 
@@ -131,10 +131,10 @@ public:
 
     void place_piece_at_sq(int piece, int sq) {
         board[sq] = piece;
-        key ^= hashKey[board[sq]][sq];
+        key ^= hashKey[piece][sq];
 
-        pieces[(board[sq] > 6)] |= (1ULL << sq);
-        bb[board[sq]] |= (1ULL << sq);
+        pieces[(piece > 6)] |= (1ULL << sq);
+        bb[piece] |= (1ULL << sq);
     }
 
     void set_fen(const std::string fen); // check init.h
@@ -215,10 +215,10 @@ public:
     
     bool is_repetition(int ply) {
         int cnt = 1;
-        for (int i = gamePly - 2; i >= gamePly - halfMoves; i -= 2) {
+        for (int i = game_ply - 2; i >= game_ply - halfMoves; i -= 2) {
             if (history[i].key == key) {
                 cnt++;
-                if (i > gamePly - ply)
+                if (i > game_ply - ply)
                     return 1;
                 if (cnt == 3)
                     return 1;
