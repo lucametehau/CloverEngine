@@ -38,19 +38,20 @@
 std::mt19937_64 gen(0xBEEF);
 std::uniform_int_distribution <uint64_t> rng;
 
-#define TablePieceTo std::array <std::array <int16_t, 64>, 13>
+typedef std::array <std::array <int16_t, 64>, 13> TablePieceTo;
+typedef uint16_t Move;
 
 struct StackEntry { /// info to keep in the stack
-    uint16_t move, piece;
-    uint16_t killer, excluded;
-    uint16_t quiets[256], captures[256];
+    uint16_t piece;
+    Move move, killer, excluded;
+    Move quiets[256], captures[256];
     int eval;
-    TablePieceTo* continuationHist;
+    TablePieceTo* cont_hist;
 };
 
 struct Threats {
-    uint64_t threatsEnemy;
-    uint64_t threatsPieces;
+    uint64_t threats_enemy;
+    uint64_t threats_pieces;
 };
 
 enum {
@@ -253,31 +254,31 @@ inline int getMove(int from, int to, int prom, int type) {
     return from | (to << 6) | (prom << 12) | (type << 14);
 }
 
-inline int sq_from(uint16_t move) {
+inline int sq_from(Move move) {
     return move & 63;
 }
 
-inline int sq_to(uint16_t move) {
+inline int sq_to(Move move) {
     return (move & 4095) >> 6;
 }
 
-inline int fromTo(uint16_t move) {
+inline int fromTo(Move move) {
     return move & 4095;
 }
 
-inline int type(uint16_t move) {
+inline int type(Move move) {
     return move >> 14;
 }
 
-inline int special_sqto(uint16_t move) {
+inline int special_sqto(Move move) {
     return type(move) != CASTLE ? sq_to(move) : 8 * (sq_from(move) / 8) + (sq_from(move) < sq_to(move) ? 6 : 2);
 }
 
-inline int promoted(uint16_t move) {
+inline int promoted(Move move) {
     return (move & 16383) >> 12;
 }
 
-inline std::string move_to_string(uint16_t move, bool chess960) {
+inline std::string move_to_string(Move move, bool chess960) {
     int sq1 = sq_from(move), sq2 = (!chess960 ? special_sqto(move) : sq_to(move));
     std::string ans;
     ans += char((sq1 & 7) + 'a');

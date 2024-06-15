@@ -33,7 +33,7 @@ void Board::set_fen(const std::string fen) {
     int ind = 0;
     key = 0;
 
-    ply = gamePly = 0;
+    ply = game_ply = 0;
     captured = 0;
 
     //checkers = 0;
@@ -230,7 +230,7 @@ void Board::setFRCside(bool color, int idx) {
 }
 
 void Board::set_dfrc(int idx) {
-    ply = gamePly = 0;
+    ply = game_ply = 0;
     captured = 0;
 
     //checkers = 0;
@@ -313,7 +313,7 @@ bool Board::is_draw(int ply) {
     if (halfMoves < 100 || !checkers)
         return isMaterialDraw() || is_repetition(ply) || halfMoves >= 100;
     int nrmoves = 0;
-    uint16_t moves[256];
+    Move moves[256];
     nrmoves = gen_legal_moves(*this, moves);
     return nrmoves > 0;
 }

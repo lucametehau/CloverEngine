@@ -31,25 +31,25 @@ enum {
     STAGE_PRE_BAD_NOISY, STAGE_BAD_NOISY,
 }; /// move picker stages
 
-bool see(Board& board, uint16_t move, int threshold);
+bool see(Board& board, Move move, int threshold);
 
 class Movepick {
 public:
     int stage, trueStage;
     //int mp_type;
 
-    uint16_t hashMove, killer, counter, possibleCounter;
+    Move hashMove, killer, counter, possibleCounter;
     int nrNoisy, nrQuiets, nrBadNoisy;
     int index;
 
-    uint64_t threatsEnemy;
+    uint64_t threats_enemy;
 
     int threshold;
 
-    uint16_t moves[256], badNoisy[256];
+    Move moves[256], badNoisy[256];
     int scores[256];
 
-    Movepick(const uint16_t HashMove, const uint16_t Killer, const uint16_t Counter, const int Threshold, const uint64_t ThreatsEnemy) {
+    Movepick(const Move HashMove, const Move Killer, const Move Counter, const int Threshold, const uint64_t Threats_enemy) {
         stage = STAGE_HASHMOVE;
 
         hashMove = HashMove;
@@ -58,10 +58,10 @@ public:
 
         nrNoisy = nrQuiets = nrBadNoisy = 0;
         threshold = Threshold;
-        threatsEnemy = ThreatsEnemy;
+        threats_enemy = Threats_enemy;
     }
 
-    void get_best_move(int offset, int nrMoves, uint16_t moves[], int scores[]) {
+    void get_best_move(int offset, int nrMoves, Move moves[], int scores[]) {
         int ind = offset;
         for (int i = offset + 1; i < nrMoves; i++) {
             if (scores[ind] < scores[i])
@@ -71,7 +71,7 @@ public:
         std::swap(moves[ind], moves[offset]);
     }
 
-    uint16_t get_next_move(Search* searcher, StackEntry* stack, Board& board, bool skip, bool noisyPicker) {
+    Move get_next_move(Search* searcher, StackEntry* stack, Board& board, bool skip, bool noisyPicker) {
         switch (stage) {
         case STAGE_HASHMOVE:
             trueStage = STAGE_HASHMOVE;
@@ -87,7 +87,7 @@ public:
             int m = 0;
 
             for (int i = 0; i < nrNoisy; i++) {
-                const uint16_t move = moves[i];
+                const Move move = moves[i];
 
                 if (move == hashMove || move == killer || move == counter)
                     continue;
@@ -106,7 +106,7 @@ public:
                 if (type(move) == PROMOTION && piece_type(p) >= ROOK)
                     score += GoodNoisyPromotionBonus;
 
-                score += searcher->capHist[p][to][cap];
+                score += searcher->cap_hist[p][to][cap];
 
                 scores[m++] = score;
             }
@@ -162,10 +162,10 @@ public:
                     int score = 0;
                     const int from = sq_from(move), to = sq_to(move), piece = board.piece_at(from), pt = piece_type(piece);
 
-                    score =  QuietHistCoef * searcher->hist[board.turn][!!(threatsEnemy & (1ULL << from))][!!(threatsEnemy & (1ULL << to))][fromTo(move)];
-                    score += QuietContHist1 * (*(stack - 1)->continuationHist)[piece][to];
-                    score += QuietContHist2 * (*(stack - 2)->continuationHist)[piece][to];
-                    score += QuietContHist4 * (*(stack - 4)->continuationHist)[piece][to];
+                    score =  QuietHistCoef * searcher->hist[board.turn][!!(threats_enemy & (1ULL << from))][!!(threats_enemy & (1ULL << to))][fromTo(move)];
+                    score += QuietContHist1 * (*(stack - 1)->cont_hist)[piece][to];
+                    score += QuietContHist2 * (*(stack - 2)->cont_hist)[piece][to];
+                    score += QuietContHist4 * (*(stack - 4)->cont_hist)[piece][to];
 
                     if (pt != PAWN && (pawnAttacks & (1ULL << to)))
                         score -= QuietPawnAttackedCoef * seeVal[pt];
@@ -217,7 +217,7 @@ public:
     }
 };
 
-bool see(Board& board, uint16_t move, int threshold) {
+bool see(Board& board, Move move, int threshold) {
     int from = sq_from(move), to = sq_to(move), t = type(move), col, nextVictim, score = -threshold;
     uint64_t diag, orth, occ, att, myAtt;
 

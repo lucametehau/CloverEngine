@@ -43,7 +43,7 @@ uint64_t getPinnedPieces(Board& board, bool turn) {
     return pinned;
 }
 
-uint16_t* add_moves(uint16_t* moves, int& nrMoves, int pos, uint64_t att) {
+Move* add_moves(Move* moves, int& nrMoves, int pos, uint64_t att) {
     while (att) {
         *(moves++) = getMove(pos, sq_lsb(att), 0, NEUT);
         nrMoves++;
@@ -51,18 +51,18 @@ uint16_t* add_moves(uint16_t* moves, int& nrMoves, int pos, uint64_t att) {
     return moves;
 }
 
-void Board::make_move(uint16_t mv) { /// assuming move is at least pseudo-legal
-    int posFrom = sq_from(mv), posTo = sq_to(mv);
+void Board::make_move(Move move) { /// assuming move is at least pseudo-legal
+    int posFrom = sq_from(move), posTo = sq_to(move);
     int pieceFrom = board[posFrom], pieceTo = board[posTo];
 
-    history[gamePly].enPas = enPas;
-    history[gamePly].castleRights = castleRights;
-    history[gamePly].captured = captured;
-    history[gamePly].halfMoves = halfMoves;
-    history[gamePly].moveIndex = moveIndex;
-    history[gamePly].checkers = checkers;
-    history[gamePly].pinnedPieces = pinnedPieces;
-    history[gamePly].key = key;
+    history[game_ply].enPas = enPas;
+    history[game_ply].castleRights = castleRights;
+    history[game_ply].captured = captured;
+    history[game_ply].halfMoves = halfMoves;
+    history[game_ply].moveIndex = moveIndex;
+    history[game_ply].checkers = checkers;
+    history[game_ply].pinnedPieces = pinnedPieces;
+    history[game_ply].key = key;
 
     key ^= (enPas >= 0 ? enPasKey[enPas] : 0);
 
@@ -74,7 +74,7 @@ void Board::make_move(uint16_t mv) { /// assuming move is at least pseudo-legal
     captured = 0;
     enPas = -1;
 
-    switch (type(mv)) {
+    switch (type(move)) {
     case NEUT:
         pieces[turn] ^= (1ULL << posFrom) ^ (1ULL << posTo);
         bb[pieceFrom] ^= (1ULL << posFrom) ^ (1ULL << posTo);
@@ -175,7 +175,7 @@ void Board::make_move(uint16_t mv) { /// assuming move is at least pseudo-legal
     break;
     default: /// promotion
     {
-        int promPiece = get_piece(promoted(mv) + KNIGHT, turn);
+        int promPiece = get_piece(promoted(move) + KNIGHT, turn);
 
         pieces[turn] ^= (1ULL << posFrom) ^ (1ULL << posTo);
         bb[pieceFrom] ^= (1ULL << posFrom);
@@ -203,18 +203,18 @@ void Board::make_move(uint16_t mv) { /// assuming move is at least pseudo-legal
     break;
     }
 
-    NN.add_move_to_history(mv, pieceFrom, captured);
+    NN.add_move_to_history(move, pieceFrom, captured);
 
     /// dirty trick
 
-    int temp = castleRights ^ history[gamePly].castleRights;
+    int temp = castleRights ^ history[game_ply].castleRights;
 
     key ^= castleKeyModifier[temp];
     checkers = getAttackers(*this, turn, pieces[WHITE] | pieces[BLACK], king(1 ^ turn));
 
     turn ^= 1;
     ply++;
-    gamePly++;
+    game_ply++;
     key ^= 1;
     if (turn == WHITE)
         moveIndex++;
@@ -222,18 +222,18 @@ void Board::make_move(uint16_t mv) { /// assuming move is at least pseudo-legal
     pinnedPieces = getPinnedPieces(*this, turn);
 }
 
-void Board::undo_move(uint16_t move) {
+void Board::undo_move(Move move) {
     turn ^= 1;
     ply--;
-    gamePly--;
+    game_ply--;
 
-    enPas = history[gamePly].enPas;
-    castleRights = history[gamePly].castleRights;
-    halfMoves = history[gamePly].halfMoves;
-    moveIndex = history[gamePly].moveIndex;
-    checkers = history[gamePly].checkers;
-    pinnedPieces = history[gamePly].pinnedPieces;
-    key = history[gamePly].key;
+    enPas = history[game_ply].enPas;
+    castleRights = history[game_ply].castleRights;
+    halfMoves = history[game_ply].halfMoves;
+    moveIndex = history[game_ply].moveIndex;
+    checkers = history[game_ply].checkers;
+    pinnedPieces = history[game_ply].pinnedPieces;
+    key = history[game_ply].key;
 
     int posFrom = sq_from(move), posTo = sq_to(move), piece = board[posTo], pieceCap = captured;
 
@@ -316,18 +316,18 @@ void Board::undo_move(uint16_t move) {
 
     NN.revert_move();
 
-    captured = history[gamePly].captured;
+    captured = history[game_ply].captured;
 }
 
 void Board::make_null_move() {
-    history[gamePly].enPas = enPas;
-    history[gamePly].castleRights = castleRights;
-    history[gamePly].captured = captured;
-    history[gamePly].halfMoves = halfMoves;
-    history[gamePly].moveIndex = moveIndex;
-    history[gamePly].checkers = checkers;
-    history[gamePly].pinnedPieces = pinnedPieces;
-    history[gamePly].key = key;
+    history[game_ply].enPas = enPas;
+    history[game_ply].castleRights = castleRights;
+    history[game_ply].captured = captured;
+    history[game_ply].halfMoves = halfMoves;
+    history[game_ply].moveIndex = moveIndex;
+    history[game_ply].checkers = checkers;
+    history[game_ply].pinnedPieces = pinnedPieces;
+    history[game_ply].key = key;
 
     key ^= (enPas >= 0 ? enPasKey[enPas] : 0);
 
@@ -338,7 +338,7 @@ void Board::make_null_move() {
     key ^= 1;
     pinnedPieces = getPinnedPieces(*this, turn);
     ply++;
-    gamePly++;
+    game_ply++;
     halfMoves++;
     moveIndex++;
 }
@@ -346,20 +346,20 @@ void Board::make_null_move() {
 void Board::undo_null_move() {
     turn ^= 1;
     ply--;
-    gamePly--;
+    game_ply--;
 
-    enPas = history[gamePly].enPas;
-    castleRights = history[gamePly].castleRights;
-    captured = history[gamePly].captured;
-    halfMoves = history[gamePly].halfMoves;
-    moveIndex = history[gamePly].moveIndex;
-    checkers = history[gamePly].checkers;
-    pinnedPieces = history[gamePly].pinnedPieces;
-    key = history[gamePly].key;
+    enPas = history[game_ply].enPas;
+    castleRights = history[game_ply].castleRights;
+    captured = history[game_ply].captured;
+    halfMoves = history[game_ply].halfMoves;
+    moveIndex = history[game_ply].moveIndex;
+    checkers = history[game_ply].checkers;
+    pinnedPieces = history[game_ply].pinnedPieces;
+    key = history[game_ply].key;
     //NN.revert_move();
 }
 
-int gen_legal_moves(Board& board, uint16_t* moves) {
+int gen_legal_moves(Board& board, Move* moves) {
     int nrMoves = 0;
     int color = board.turn, enemy = color ^ 1;
     int king = board.king(color), enemyKing = board.king(enemy);
@@ -631,7 +631,7 @@ int gen_legal_moves(Board& board, uint16_t* moves) {
 
 /// noisy moves generator
 
-int gen_legal_noisy_moves(Board& board, uint16_t* moves) {
+int gen_legal_noisy_moves(Board& board, Move* moves) {
     int nrMoves = 0;
     int color = board.turn, enemy = color ^ 1;
     int king = board.king(color), enemyKing = board.king(enemy);
@@ -833,7 +833,7 @@ int gen_legal_noisy_moves(Board& board, uint16_t* moves) {
 
 /// generate quiet moves
 
-int gen_legal_quiet_moves(Board& board, uint16_t* moves) {
+int gen_legal_quiet_moves(Board& board, Move* moves) {
     int nrMoves = 0;
     int color = board.turn, enemy = color ^ 1;
     int king = board.king(color), enemyKing = board.king(enemy);
@@ -997,14 +997,14 @@ int gen_legal_quiet_moves(Board& board, uint16_t* moves) {
     return nrMoves;
 }
 
-inline bool isNoisyMove(Board& board, uint16_t move) {
+inline bool isNoisyMove(Board& board, Move move) {
     if (type(move) && type(move) != CASTLE)
         return 1;
 
     return board.isCapture(move);
 }
 
-bool is_pseudo_legal(Board& board, uint16_t move) {
+bool is_pseudo_legal(Board& board, Move move) {
     if (!move)
         return 0;
 
@@ -1056,8 +1056,8 @@ bool is_pseudo_legal(Board& board, uint16_t move) {
 
 }
 
-bool is_legal_slow(Board& board, int move) {
-    uint16_t moves[256];
+bool is_legal_slow(Board& board, Move move) {
+    Move moves[256];
     int nrMoves = 0;
 
     nrMoves = gen_legal_moves(board, moves);
@@ -1070,7 +1070,7 @@ bool is_legal_slow(Board& board, int move) {
     return 0;
 }
 
-bool is_legal(Board& board, int move) {
+bool is_legal(Board& board, Move move) {
     if (!is_pseudo_legal(board, move)) {
         return 0;
     }
@@ -1132,7 +1132,7 @@ bool is_legal(Board& board, int move) {
     return ((board.checkers & (board.checkers - 1)) ? false : (1ULL << to) & (board.checkers | between[king][Sq(board.checkers)]));
 }
 
-bool is_legal_dummy(Board& board, uint16_t move) {
+bool is_legal_dummy(Board& board, Move move) {
     if (!is_pseudo_legal(board, move))
         return 0;
     if (type(move) == CASTLE)
@@ -1149,7 +1149,7 @@ bool is_legal_dummy(Board& board, uint16_t move) {
     return legal;
 }
 
-uint16_t parse_move_string(Board& board, std::string moveStr, Info *info) {
+Move parse_move_string(Board& board, std::string moveStr, Info *info) {
     if (moveStr[1] > '8' || moveStr[1] < '1' || 
         moveStr[3] > '8' || moveStr[3] < '1' || 
         moveStr[0] > 'h' || moveStr[0] < 'a' || 
@@ -1166,7 +1166,7 @@ uint16_t parse_move_string(Board& board, std::string moveStr, Info *info) {
 
     int to = get_sq(moveStr[3] - '1', moveStr[2] - 'a');
 
-    uint16_t moves[256];
+    Move moves[256];
     int nrMoves = gen_legal_moves(board, moves);
 
     for (int i = 0; i < nrMoves; i++) {
