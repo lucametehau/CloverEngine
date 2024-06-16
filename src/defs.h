@@ -128,8 +128,8 @@ const int kingIndTable2[64] = {
 };
 
 const int kingIndTable[64] = {
-    1, 1, 0, 0, 0, 0, 1, 1,
-    1, 1, 0, 0, 0, 0, 1, 1,
+    0, 0, 1, 1, 1, 1, 0, 0,
+    0, 0, 1, 1, 1, 1, 0, 0,
     2, 2, 2, 2, 2, 2, 2, 2,
     2, 2, 2, 2, 2, 2, 2, 2,
     3, 3, 3, 3, 3, 3, 3, 3,
@@ -185,7 +185,8 @@ inline int piece_type(int piece) {
 }
 
 inline int16_t net_index(int piece, int sq, int kingSq, bool side) {
-    return 5 * 64 * (piece + !side * (piece > 6 ? -6 : 6) - 1) + 64 * kingIndTable[kingSq ^ (56 * !side)] + (sq ^ (56 * !side) ^ (7 * ((kingSq >> 2) & 1))); // kingSq should be ^7, if kingSq&7 >= 4
+    //std::cout << piece << " " << sq << " " << kingSq << " " << side << "\n";
+    return 64 * 12 * kingIndTable[kingSq ^ (56 * !side)] + 64 * (piece + side * (piece > 6 ? -6 : +6) - 1) + (sq ^ (56 * !side) ^ (7 * ((kingSq >> 2) & 1))); // kingSq should be ^7, if kingSq&7 >= 4
 }
 
 inline bool recalc(int from, int to, bool side) {

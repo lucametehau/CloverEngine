@@ -25,7 +25,7 @@
 #include "perft.h"
 #include "generate.h"
 
-const std::string VERSION = "6.2.4";
+const std::string VERSION = "6.2.5";
 
 class UCI {
 public:
@@ -486,6 +486,7 @@ void UCI::Bench(int depth) {
         totalNodes += searcher.nodes;
 
         UciNewGame(ttSize);
+        //std::cout << "[" << fen << "] : " << searcher.nodes << "\n";
     }
 
     //std::cout << "};\n";
