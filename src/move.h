@@ -95,7 +95,7 @@ void Board::make_move(Move move) { /// assuming move is at least pseudo-legal
             pieces[1 ^ turn] ^= (1ULL << posTo);
             bb[pieceTo] ^= (1ULL << posTo);
             key ^= hashKey[pieceTo][posTo];
-            if (piece_type(pieceTo)) pawn_key ^= hashKey[pieceTo][posTo];
+            if (piece_type(pieceTo) == PAWN) pawn_key ^= hashKey[pieceTo][posTo];
 
             /// special case: captured rook might have been a castle rook
             if (pieceTo == WR)
