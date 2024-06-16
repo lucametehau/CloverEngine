@@ -93,9 +93,9 @@ int16_t getCapHist(Search* searcher, Move move) {
 void getHistory(Search* searcher, StackEntry* stack, Move move, uint64_t threats, int &hist) {
     const int from = sq_from(move), to = sq_to(move), piece = searcher->board.piece_at(from);
 
-    hist = searcher->hist[searcher->board.turn][!!(threats & (1ULL << from))][!!(threats & (1ULL << to))][fromTo(move)];
+    hist = 2 * searcher->hist[searcher->board.turn][!!(threats & (1ULL << from))][!!(threats & (1ULL << to))][fromTo(move)];
 
-    hist += (*(stack - 1)->cont_hist)[piece][to];
+    hist += 2 * (*(stack - 1)->cont_hist)[piece][to];
 
     hist += (*(stack - 2)->cont_hist)[piece][to];
 
