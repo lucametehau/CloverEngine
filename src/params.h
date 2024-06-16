@@ -143,6 +143,10 @@ TUNE_PARAM(HistoryBonusMargin, 286, 250, 500);
 TUNE_PARAM(HistoryBonusBias, 342, 200, 600);
 TUNE_PARAM(HistoryBonusMax, 2452, 1800, 3000);
 
+// correction history constants
+TUNE_PARAM(CorrHistScale, 256, 128, 512);
+TUNE_PARAM(CorrHistDiv, 256, 128, 512);
+
 // universal constants
 TUNE_PARAM(SeeValPawn, 93, 80, 120);
 TUNE_PARAM(SeeValKnight, 311, 280, 350);
