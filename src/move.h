@@ -63,6 +63,7 @@ void Board::make_move(Move move) { /// assuming move is at least pseudo-legal
     history[game_ply].checkers = checkers;
     history[game_ply].pinnedPieces = pinnedPieces;
     history[game_ply].key = key;
+    history[game_ply].pawn_key = pawn_key;
 
     key ^= (enPas >= 0 ? enPasKey[enPas] : 0);
 
@@ -80,6 +81,7 @@ void Board::make_move(Move move) { /// assuming move is at least pseudo-legal
         bb[pieceFrom] ^= (1ULL << posFrom) ^ (1ULL << posTo);
 
         key ^= hashKey[pieceFrom][posFrom] ^ hashKey[pieceFrom][posTo];
+        if (piece_type(pieceFrom) == PAWN) pawn_key ^= hashKey[pieceFrom][posFrom] ^ hashKey[pieceFrom][posTo];
 
         /// moved a castle rook
         if (pieceFrom == WR)
@@ -93,6 +95,7 @@ void Board::make_move(Move move) { /// assuming move is at least pseudo-legal
             pieces[1 ^ turn] ^= (1ULL << posTo);
             bb[pieceTo] ^= (1ULL << posTo);
             key ^= hashKey[pieceTo][posTo];
+            if (piece_type(pieceTo)) pawn_key ^= hashKey[pieceTo][posTo];
 
             /// special case: captured rook might have been a castle rook
             if (pieceTo == WR)
@@ -129,6 +132,7 @@ void Board::make_move(Move move) { /// assuming move is at least pseudo-legal
         bb[pieceFrom] ^= (1ULL << posFrom) ^ (1ULL << posTo);
 
         key ^= hashKey[pieceFrom][posFrom] ^ hashKey[pieceFrom][posTo] ^ hashKey[pieceCap][pos];
+        pawn_key ^= hashKey[pieceFrom][posFrom] ^ hashKey[pieceFrom][posTo] ^ hashKey[pieceCap][pos];
 
         pieces[1 ^ turn] ^= (1ULL << pos);
         bb[pieceCap] ^= (1ULL << pos);
@@ -198,6 +202,7 @@ void Board::make_move(Move move) { /// assuming move is at least pseudo-legal
         captured = pieceTo;
 
         key ^= hashKey[pieceFrom][posFrom] ^ hashKey[promPiece][posTo];
+        pawn_key ^= hashKey[pieceFrom][posFrom];
     }
 
     break;
@@ -234,6 +239,7 @@ void Board::undo_move(Move move) {
     checkers = history[game_ply].checkers;
     pinnedPieces = history[game_ply].pinnedPieces;
     key = history[game_ply].key;
+    pawn_key = history[game_ply].pawn_key;
 
     int posFrom = sq_from(move), posTo = sq_to(move), piece = board[posTo], pieceCap = captured;
 
@@ -328,6 +334,7 @@ void Board::make_null_move() {
     history[game_ply].checkers = checkers;
     history[game_ply].pinnedPieces = pinnedPieces;
     history[game_ply].key = key;
+    history[game_ply].pawn_key = pawn_key;
 
     key ^= (enPas >= 0 ? enPasKey[enPas] : 0);
 
@@ -356,6 +363,7 @@ void Board::undo_null_move() {
     checkers = history[game_ply].checkers;
     pinnedPieces = history[game_ply].pinnedPieces;
     key = history[game_ply].key;
+    pawn_key = history[game_ply].pawn_key;
     //NN.revert_move();
 }
 

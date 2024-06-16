@@ -195,7 +195,7 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack) {
     bool ttHit = false;
     Entry* entry = TT->probe(key, ttHit);
 
-    int eval = INF, ttValue = INF;
+    int eval = INF, ttValue = INF, raw_eval{};
     bool wasPV = pvNode;
 
     /// probe transposition table
@@ -216,15 +216,17 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack) {
     int futilityValue;
 
     if (isCheck) {
-        stack->eval = INF;
+        raw_eval = stack->eval = INF;
         best = futilityValue = -INF;
     }
     else if (!ttHit) {
-        stack->eval = best = eval = evaluate(board);
+        raw_eval = evaluate(board);
+        stack->eval = best = eval = getCorrectedEval(this, raw_eval);
         futilityValue = best + QuiesceFutilityBias;
     }
     else { /// ttValue might be a better evaluation
-        stack->eval = eval;
+        raw_eval = eval;
+        stack->eval = eval = getCorrectedEval(this, raw_eval);
         if (bound == EXACT || (bound == LOWER && ttValue > eval) || (bound == UPPER && ttValue < eval)) best = ttValue;
         futilityValue = best + QuiesceFutilityBias;
     }
@@ -287,7 +289,7 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack) {
 
     /// store info in transposition table
     bound = (best >= beta ? LOWER : (best > alphaOrig ? EXACT : UPPER));
-    TT->save(entry, key, best, 0, ply, bound, bestMove, stack->eval, wasPV);
+    TT->save(entry, key, best, 0, ply, bound, bestMove, raw_eval, wasPV);
 
     return best;
 }
@@ -377,21 +379,24 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
     const bool isCheck = (board.checkers != 0);
     const Threats threats = getThreats(board, board.turn);
     const bool enemy_has_no_threats = !threats.threats_pieces;
+    int raw_eval{};
     //int quietEnemy = quietness(board, 1 ^ board.turn);
 
     if (isCheck) { /// when in check, don't evaluate
-        stack->eval = eval = INF;
+        stack->eval = raw_eval = eval = INF;
     }
     else if (!ttHit) { /// if we are in a singular search, we already know the evaluation
-        if (stack->excluded) eval = stack->eval;
+        if (stack->excluded) raw_eval = eval = stack->eval;
         else {
-            stack->eval = eval = evaluate(board);
-            TT->save(entry, key, VALUE_NONE, 0, ply, 0, NULLMOVE, eval, wasPV);
+            raw_eval = evaluate(board);
+            stack->eval = eval = getCorrectedEval(this, raw_eval);
+            TT->save(entry, key, VALUE_NONE, 0, ply, 0, NULLMOVE, raw_eval, wasPV);
         }
     }
     else { /// ttValue might be a better evaluation
-        if (stack->excluded) eval = evaluate(board);
-        stack->eval = eval;
+        if (stack->excluded) raw_eval = evaluate(board);
+        else raw_eval = eval;
+        stack->eval = eval = getCorrectedEval(this, raw_eval);
         if (bound == EXACT || (bound == LOWER && ttValue > eval) || (bound == UPPER && ttValue < eval)) eval = ttValue;
     }
 
@@ -468,7 +473,8 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                     board.undo_move(move);
 
                     if (score >= probBeta) {
-                        TT->save(entry, key, score, depth - 3, ply, LOWER, move, static_eval, wasPV);
+                        if(!stack->excluded)
+                            TT->save(entry, key, score, depth - 3, ply, LOWER, move, raw_eval, wasPV);
                         return score;
                     }
                 }
@@ -693,7 +699,9 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
     /// update tt only if we aren't in a singular search
     if (!stack->excluded) {
         bound = (best >= beta ? LOWER : (best > alphaOrig ? EXACT : UPPER));
-        TT->save(entry, key, best, depth, ply, bound, (bound == UPPER ? NULLMOVE : bestMove), static_eval, wasPV);
+        if ((bound == UPPER || !isNoisyMove(board, bestMove)) && !isCheck && !(bound == LOWER && best <= static_eval) && !(bound == UPPER && best >= static_eval))
+            updateCorrHist(this, depth, best - static_eval);
+        TT->save(entry, key, best, depth, ply, bound, (bound == UPPER ? NULLMOVE : bestMove), raw_eval, wasPV);
     }
 
     return best;
@@ -963,11 +971,13 @@ void Search::clear_history() {
     memset(cap_hist, 0, sizeof(cap_hist));
     memset(counter_move, 0, sizeof(counter_move));
     memset(cont_history, 0, sizeof(cont_history));
+    memset(corr_hist, 0, sizeof(corr_hist));
     for (int i = 0; i < threadCount; i++) {
         memset(params[i].hist, 0, sizeof(params[i].hist));
         memset(params[i].cap_hist, 0, sizeof(params[i].cap_hist));
         memset(params[i].counter_move, 0, sizeof(params[i].counter_move));
         memset(params[i].cont_history, 0, sizeof(params[i].cont_history));
+        memset(params[i].corr_hist, 0, sizeof(params[i].corr_hist));
     }
 }
 
