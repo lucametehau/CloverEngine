@@ -237,7 +237,7 @@ public:
     int depth, sel_depth, multipv;
     int timeset;
     int movestogo;
-    int64_t nodes;
+    int64_t min_nodes, max_nodes, nodes;
 
     bool sanMode;
 

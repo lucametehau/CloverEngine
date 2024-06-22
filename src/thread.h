@@ -119,7 +119,7 @@ struct Search {
     std::unique_ptr <std::thread> principalThread;
     std::mutex readyMutex;
 
-    uint64_t nodes, qsNodes;
+    int64_t nodes;
     bool principalSearcher;
     Board board;
 

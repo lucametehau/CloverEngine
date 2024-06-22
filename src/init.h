@@ -25,7 +25,7 @@ void init(Info* info) {
     info->quit = info->stopped = 0;
     info->depth = DEPTH;
     info->multipv = 1;
-    info->nodes = -1;
+    info->nodes = info->min_nodes = info->max_nodes = -1;
     info->chess960 = false;
 }
 

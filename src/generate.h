@@ -46,7 +46,9 @@ void generateFens(std::atomic <uint64_t>& sumFens, uint64_t nrFens, std::string 
     info->timeset = false;
     info->depth = DEPTH;
     info->startTime = getTime();
-    info->nodes = 5000;
+    info->min_nodes = 5000;
+    info->max_nodes = (1 << 20);
+    info->nodes = -1;
 
     info->multipv = 1;
     searcher->setTime(info);
@@ -131,8 +133,9 @@ void generateFens(std::atomic <uint64_t>& sumFens, uint64_t nrFens, std::string 
 
                 if (!searcher->board.checkers && !isNoisyMove(searcher->board, move) && abs(score) < 1000) { /// relatively quiet position
                     data.fen = searcher->board.fen();
-                    data.score = score;
+                    data.score = score * (searcher->board.turn == WHITE ? 1 : -1);
                     fens[nr_fens++] = data;
+                    //std::cout << searcher->nodes << std::endl;
                 }
 
                 winCnt = (abs(score) >= 1000 ? winCnt + 1 : 0);
@@ -158,7 +161,7 @@ void generateFens(std::atomic <uint64_t>& sumFens, uint64_t nrFens, std::string 
         }
 
         for (int i = 0; i < nr_fens; i++) {
-            out << fens[i].fen << " [" << result << "] " << fens[i].score << "\n";
+            out << fens[i].fen << " | " << fens[i].score << " | " << (result > 0.6 ? "1.0" : (result < 0.4 ? "0.0" : "0.5")) << "\n";
         }
 
         sumFens.fetch_add(nr_fens);

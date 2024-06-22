@@ -32,7 +32,7 @@ bool Search::check_for_stop() {
 
     if (flag & TERMINATED_SEARCH) return 1;
 
-    if (SMPThreadExit || (info->nodes != -1 && info->nodes <= (int64_t)nodes)) {
+    if (SMPThreadExit || (info->nodes != -1 && info->nodes <= nodes) || (info->max_nodes != -1 && nodes >= info->max_nodes)) {
         flag |= TERMINATED_BY_LIMITS;
         return 1;
     }
@@ -182,7 +182,6 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack) {
     pvTableLen[ply] = 0;
 
     nodes++;
-    qsNodes++;
 
     if (board.is_draw(ply)) return 1 - (nodes & 2);
 
@@ -517,19 +516,23 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
                 int newDepth = std::max(0, depth - lmrRed[std::min(63, depth)][std::min(63, played)] + improving);
 
                 /// futility pruning
-                if (newDepth <= FPDepth && !isCheck && static_eval + FPBias + FPMargin * newDepth <= alpha) skip = 1;
+                if (newDepth <= FPDepth && !isCheck && 
+                    static_eval + FPBias + FPMargin * newDepth <= alpha) skip = 1;
 
                 /// late move pruning
                 if (newDepth <= LMPDepth && played >= (LMPBias + newDepth * newDepth) / (2 - improving)) skip = 1;
 
-                if (newDepth <= 3 && bad_static_eval && history < -4096 * (newDepth - 1)) continue;
+                if (depth <= 3 && bad_static_eval && history < -4096 * depth) continue;
 
-                if (depth <= SEEPruningQuietDepth && !isCheck && !see(board, move, -SEEPruningQuietMargin * depth)) continue;
+                if (depth <= SEEPruningQuietDepth && !isCheck && 
+                    !see(board, move, -SEEPruningQuietMargin * depth)) continue;
             }
             else {
-                if (depth <= SEEPruningNoisyDepth && !isCheck && picker.trueStage > STAGE_GOOD_NOISY && !see(board, move, -SEEPruningNoisyMargin * depth * depth)) continue;
+                if (depth <= SEEPruningNoisyDepth && !isCheck && picker.trueStage > STAGE_GOOD_NOISY && 
+                    !see(board, move, -SEEPruningNoisyMargin * (depth + bad_static_eval) * (depth + bad_static_eval))) continue;
 
-                if (depth <= FPNoisyDepth && !isCheck && static_eval + FPBias + seeVal[board.piece_type_at(sq_to(move))] + FPMargin * depth <= alpha) continue;
+                if (depth <= FPNoisyDepth && !isCheck && 
+                    static_eval + FPBias + seeVal[board.piece_type_at(sq_to(move))] + FPMargin * depth <= alpha) continue;
             }
         }
 #else
@@ -699,7 +702,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
 std::pair <int, Move> Search::start_search(Info* _info) {
     int alpha, beta;
 
-    nodes = qsNodes = selDepth = tbHits = 0;
+    nodes = selDepth = tbHits = 0;
     t0 = getTime();
     flag = 0;
     checkCount = 0;
@@ -835,7 +838,7 @@ std::pair <int, Move> Search::start_search(Info* _info) {
                         int wdlLose = winrate_model(-scores[i], ply);
                         int wdlDraw = 1000 - wdlWin - wdlLose;
                         std::cout << " wdl " << wdlWin << " " << wdlDraw << " " << wdlLose;
-                        std::cout << " depth " << depth << " seldepth " << selDepth << " nodes " << totalNodes << " qsNodes " << qsNodes;
+                        std::cout << " depth " << depth << " seldepth " << selDepth << " nodes " << totalNodes;
                         if (t)
                             std::cout << " nps " << totalNodes * 1000 / t;
                         std::cout << " time " << t << " ";
@@ -917,6 +920,11 @@ std::pair <int, Move> Search::start_search(Info* _info) {
         }
 
         if (tDepth == limitDepth) {
+            flag |= TERMINATED_BY_LIMITS;
+            break;
+        }
+
+        if (info->min_nodes != -1 && nodes >= info->min_nodes) {
             flag |= TERMINATED_BY_LIMITS;
             break;
         }
