@@ -1,6 +1,6 @@
 SRC = *.cpp Fathom/src/tbprobe.c
 EXE = Clover.6.2.5
-EVALFILE = clover-nets3-110.bin
+EVALFILE = clover-nets3-160.bin
 
 ifeq ($(CXX),)
     CXX = g++
