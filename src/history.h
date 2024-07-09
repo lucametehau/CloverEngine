@@ -106,7 +106,7 @@ void updateCorrHist(Search* searcher, int depth, int bonus) {
     int w = std::min(depth + 1, 16);
     int& corr = searcher->corr_hist[searcher->board.turn][searcher->board.pawn_key & 16383];
     corr = (corr * (CorrHistScale - w) + bonus * w) / CorrHistScale;
-    corr = std::clamp(corr, -32 * CorrHistDiv, 32 * CorrHistDiv);
+    corr = std::clamp(corr, -16 * CorrHistDiv, 16 * CorrHistDiv);
 }
 
 int getCorrectedEval(Search* searcher, int eval) {
