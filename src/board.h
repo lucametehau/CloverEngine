@@ -28,7 +28,7 @@ public:
     uint8_t captured;
     uint16_t halfMoves, moveIndex;
     uint64_t checkers, pinnedPieces;
-    uint64_t key;
+    uint64_t key, pawn_key;
 };
 
 class Board {
@@ -48,7 +48,7 @@ public:
     uint64_t checkers, pinnedPieces;
     uint64_t bb[13];
     uint64_t pieces[2];
-    uint64_t key;
+    uint64_t key, pawn_key;
     Undo history[2000]; /// fuck it
 
     Network NN;
@@ -132,6 +132,7 @@ public:
     void place_piece_at_sq(int piece, int sq) {
         board[sq] = piece;
         key ^= hashKey[piece][sq];
+        if (piece_type(piece) == PAWN) pawn_key ^= hashKey[piece][sq];
 
         pieces[(piece > 6)] |= (1ULL << sq);
         bb[piece] |= (1ULL << sq);
