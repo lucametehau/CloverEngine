@@ -101,6 +101,7 @@ INCBIN(Net, EVALFILE);
 
 const int INPUT_NEURONS = 3840;
 const int SIDE_NEURONS = 1024;
+const int OUTPUT_NEURONS = 8;
 const int HIDDEN_NEURONS = 2 * SIDE_NEURONS;
 const int REG_LENGTH = sizeof(reg_type) / sizeof(int16_t);
 const int NUM_REGS = SIDE_NEURONS / REG_LENGTH;
@@ -111,9 +112,14 @@ const int Q_IN = 255;
 const int Q_HIDDEN = 64;
 
 int16_t inputBiases[SIDE_NEURONS] __attribute__((aligned(ALIGN)));
-int16_t outputBias;
+int16_t outputBiases[OUTPUT_NEURONS];
 int16_t inputWeights[INPUT_NEURONS * SIDE_NEURONS] __attribute__((aligned(ALIGN)));
-int16_t outputWeights[HIDDEN_NEURONS] __attribute__((aligned(ALIGN)));
+int16_t outputWeights[HIDDEN_NEURONS * OUTPUT_NEURONS] __attribute__((aligned(ALIGN)));
+
+int get_output_bucket(int piece_count) {
+    constexpr int divisor = (31 + OUTPUT_NEURONS) / OUTPUT_NEURONS;
+    return (piece_count - 2) / divisor;
+}
 
 void loadNNUEWeights() {
     int16_t* intData;
@@ -140,15 +146,19 @@ void loadNNUEWeights() {
 
     mn = 1e9, mx = -1e9;
     for (int j = 0; j < HIDDEN_NEURONS; j++) {
-        int16_t val = *intData;
-        mn = std::min<int>(mn, val);
-        mx = std::max<int>(mx, val);
-        outputWeights[j] = val;
-        intData++;
+        for (int k = 0; k < OUTPUT_NEURONS; k++) {
+            int16_t val = *intData;
+            mn = std::min<int>(mn, val);
+            mx = std::max<int>(mx, val);
+            outputWeights[k * HIDDEN_NEURONS + j] = val;
+            intData++;
+        }
     }
 
-    int16_t val = *intData;
-    outputBias = val;
+    for (int j = 0; j < OUTPUT_NEURONS; j++) {
+        outputBiases[j] = *intData;
+        intData++;
+    }
 }
 
 enum {
@@ -214,7 +224,7 @@ public:
 #endif
     }
 
-    int32_t calc(NetInput& input, bool stm) {
+    int32_t calc(NetInput& input, bool stm, int output_bucket) {
         int32_t sum;
 
         for (int n = 0; n < SIDE_NEURONS; n++) {
@@ -242,7 +252,7 @@ public:
         histSz = 1;
         hist[0].calc[0] = hist[0].calc[1] = 1;
 
-        return get_output(stm);
+        return get_output(stm, output_bucket);
     }
 
     reg_type reg_clamp(reg_type reg) {
@@ -251,7 +261,7 @@ public:
         return reg_min16(reg_max16(reg, zero), one);
     }
 
-    int32_t getOutput(NetInput& input, bool stm) { /// feed forward
+    int32_t getOutput(NetInput& input, bool stm, int output_bucket) { /// feed forward
         int32_t sum;
         int16_t va[2][SIDE_NEURONS];
 
@@ -281,7 +291,7 @@ public:
 
         reg_type_s acc{}, acc2{};
 
-        reg_type* v = (reg_type*)outputWeights;
+        reg_type* v = (reg_type*)&outputWeights[output_bucket * HIDDEN_NEURONS];
         reg_type* w = (reg_type*)va[stm];
 
         for (int j = 0; j < NUM_REGS; j++) {
@@ -300,7 +310,7 @@ public:
 
         sum += get_sum(acc);
 
-        return (sum / Q_IN + outputBias) * 225 / (Q_IN * Q_HIDDEN);
+        return (sum / Q_IN + outputBiases[output_bucket]) * 225 / (Q_IN * Q_HIDDEN);
     }
 
     void apply_updates(int16_t* output, int16_t* input) {
@@ -474,14 +484,14 @@ public:
         return i;
     }
 
-    int32_t get_output(bool stm) {
+    int32_t get_output(bool stm, int output_bucket) {
         reg_type_s acc0{}, acc1{}, acc2{}, acc3{};
 
 
         const reg_type* w = reinterpret_cast<const reg_type*>(output_history[histSz - 1][stm]);
         const reg_type* w2 = reinterpret_cast<const reg_type*>(output_history[histSz - 1][stm ^ 1]);
-        const reg_type* v = reinterpret_cast<const reg_type*>(outputWeights);
-        const reg_type* v2 = reinterpret_cast<const reg_type*>(&outputWeights[SIDE_NEURONS]);
+        const reg_type* v = reinterpret_cast<const reg_type*>(&outputWeights[output_bucket * HIDDEN_NEURONS]);
+        const reg_type* v2 = reinterpret_cast<const reg_type*>(&outputWeights[output_bucket * HIDDEN_NEURONS + SIDE_NEURONS]);
         reg_type clamped;
 
         for (int j = 0; j < NUM_REGS; j += 4) {
@@ -510,7 +520,7 @@ public:
         acc2 = reg_add32(acc2, acc3);
         acc0 = reg_add32(acc0, acc2);
 
-        return (outputBias + get_sum(acc0) / Q_IN) * 225 / (Q_IN * Q_HIDDEN);
+        return (outputBiases[output_bucket] + get_sum(acc0) / Q_IN) * 225 / (Q_IN * Q_HIDDEN);
     }
 
     int histSz;

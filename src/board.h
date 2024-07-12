@@ -98,7 +98,7 @@ public:
 
         NetInput input = to_netinput();
 
-        NN.calc(input, turn);
+        NN.calc(input, turn, get_output_bucket(count(pieces[WHITE] | pieces[BLACK])));
     }
 
     void print() {

@@ -72,7 +72,7 @@ void bring_up_to_date(Board& board) {
 int evaluate(Board& board) {
     bring_up_to_date(board);
 
-    int eval = board.NN.get_output(board.turn);
+    int eval = board.NN.get_output(board.turn, get_output_bucket(count(board.pieces[WHITE] | board.pieces[BLACK])));
 
     eval = eval * scale(board) / 1024;
 
