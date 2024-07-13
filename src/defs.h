@@ -185,7 +185,6 @@ inline int piece_type(int piece) {
 }
 
 inline int16_t net_index(int piece, int sq, int kingSq, bool side) {
-    //std::cout << piece << " " << sq << " " << kingSq << " " << side << "\n";
     return 64 * 12 * kingIndTable[kingSq ^ (56 * !side)] + 64 * (piece + side * (piece > 6 ? -6 : +6) - 1) + (sq ^ (56 * !side) ^ (7 * ((kingSq >> 2) & 1))); // kingSq should be ^7, if kingSq&7 >= 4
 }
 

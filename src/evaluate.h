@@ -38,10 +38,11 @@ void bring_up_to_date(Board& board) {
         if (!NN->hist[histSz - 1].calc[c]) {
             int i = NN->get_computed_parent(c) + 1;
             if (i != 0) { // no full refresh required
+                const int king = board.king(c);
                 for (int j = i; j < histSz; j++) {
                     NetHist *hist = &NN->hist[j];
                     hist->calc[c] = 1;
-                    NN->process_move(hist->move, hist->piece, hist->cap, board.king(c), c, NN->output_history[j][c], NN->output_history[j - 1][c]);
+                    NN->process_move(hist->move, hist->piece, hist->cap, king, c, NN->output_history[j][c], NN->output_history[j - 1][c]);
                 }
             }
             else {
