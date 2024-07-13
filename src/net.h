@@ -99,7 +99,8 @@
 
 INCBIN(Net, EVALFILE);
 
-const int INPUT_NEURONS = 3840;
+const int KING_BUCKETS = 5;
+const int INPUT_NEURONS = 768 * KING_BUCKETS;
 const int SIDE_NEURONS = 1024;
 const int HIDDEN_NEURONS = 2 * SIDE_NEURONS;
 const int REG_LENGTH = sizeof(reg_type) / sizeof(int16_t);
@@ -109,6 +110,10 @@ const int UNROLL_LENGTH = BUCKET_UNROLL / REG_LENGTH;
 
 const int Q_IN = 255;
 const int Q_HIDDEN = 64;
+const int Q_IN_HIDDEN = Q_IN * Q_HIDDEN;
+
+const reg_type zero{};
+const reg_type one = reg_set1(Q_IN);
 
 int16_t inputBiases[SIDE_NEURONS] __attribute__((aligned(ALIGN)));
 int16_t outputBias;
@@ -116,39 +121,24 @@ int16_t inputWeights[INPUT_NEURONS * SIDE_NEURONS] __attribute__((aligned(ALIGN)
 int16_t outputWeights[HIDDEN_NEURONS] __attribute__((aligned(ALIGN)));
 
 void loadNNUEWeights() {
-    int16_t* intData;
+    int16_t* intData = (int16_t*)gNetData;
 
-    intData = (int16_t*)gNetData;
-
-    int mn = 1e9, mx = -1e9;
     for (int i = 0; i < SIDE_NEURONS * INPUT_NEURONS; i++) {
-        int16_t val = *intData;
-        mn = std::min<int>(mn, val);
-        mx = std::max<int>(mx, val);
-        inputWeights[(i / SIDE_NEURONS) * SIDE_NEURONS + (i % SIDE_NEURONS)] = val;
+        inputWeights[(i / SIDE_NEURONS) * SIDE_NEURONS + (i % SIDE_NEURONS)] = *intData;
         intData++;
     }
 
-    mn = 1e9, mx = -1e9;
     for (int j = 0; j < SIDE_NEURONS; j++) {
-        int16_t val = *intData;
-        mn = std::min<int>(mn, val);
-        mx = std::max<int>(mx, val);
-        inputBiases[j] = val;
+        inputBiases[j] = *intData;
         intData++;
     }
 
-    mn = 1e9, mx = -1e9;
     for (int j = 0; j < HIDDEN_NEURONS; j++) {
-        int16_t val = *intData;
-        mn = std::min<int>(mn, val);
-        mx = std::max<int>(mx, val);
-        outputWeights[j] = val;
+        outputWeights[j] = *intData;
         intData++;
     }
 
-    int16_t val = *intData;
-    outputBias = val;
+    outputBias = *intData;
 }
 
 enum {
@@ -179,7 +169,7 @@ public:
         histSz = 0;
 
         for (auto& c : { BLACK, WHITE }) {
-            for (int i = 0; i < 10; i++) {
+            for (int i = 0; i < 2 * KING_BUCKETS; i++) {
                 memcpy(state[c][i].output, inputBiases, sizeof(inputBiases));
                 memset(state[c][i].bb, 0, sizeof(state[c][i].bb));
             }
@@ -246,8 +236,6 @@ public:
     }
 
     reg_type reg_clamp(reg_type reg) {
-        reg_type zero{};
-        reg_type one = reg_set1(Q_IN);
         return reg_min16(reg_max16(reg, zero), one);
     }
 
@@ -423,35 +411,33 @@ public:
             else
                 apply_sub_add_sub(a, b, net_index(pieceFrom, posFrom, king, side), net_index(pieceFrom, posTo, king, side), net_index(captured, posTo, king, side));
         }
-                 break;
+        break;
         case CASTLE: {
-            int rFrom, rTo, rPiece = get_piece(ROOK, turn);
+            int rFrom = posTo, rTo, rPiece = get_piece(ROOK, turn);
             if (posTo > posFrom) { // king side castle
-                rFrom = posTo;
                 posTo = mirror(turn, G1);
                 rTo = mirror(turn, F1);
             }
             else { // queen side castle
-                rFrom = posTo;
                 posTo = mirror(turn, C1);
                 rTo = mirror(turn, D1);
             }
             apply_sub_add_sub_add(a, b, net_index(pieceFrom, posFrom, king, side), net_index(pieceFrom, posTo, king, side), net_index(rPiece, rFrom, king, side), net_index(rPiece, rTo, king, side));
         }
-                   break;
+        break;
         case ENPASSANT: {
-            int pos = sq_dir(turn, SOUTH, posTo), pieceCap = get_piece(PAWN, 1 ^ turn);
+            const int pos = sq_dir(turn, SOUTH, posTo), pieceCap = get_piece(PAWN, 1 ^ turn);
             apply_sub_add_sub(a, b, net_index(pieceFrom, posFrom, king, side), net_index(pieceFrom, posTo, king, side), net_index(pieceCap, pos, king, side));
         }
-                      break;
+        break;
         default: {
-            int promPiece = get_piece(promoted(move) + KNIGHT, turn);
+            const int promPiece = get_piece(promoted(move) + KNIGHT, turn);
             if (!captured)
                 apply_sub_add(a, b, net_index(pieceFrom, posFrom, king, side), net_index(promPiece, posTo, king, side));
             else
                 apply_sub_add_sub(a, b, net_index(pieceFrom, posFrom, king, side), net_index(promPiece, posTo, king, side), net_index(captured, posTo, king, side));
         }
-               break;
+        break;
         }
     }
 
@@ -475,8 +461,7 @@ public:
     }
 
     int32_t get_output(bool stm) {
-        reg_type_s acc0{}, acc1{}, acc2{}, acc3{};
-
+        reg_type_s acc{};
 
         const reg_type* w = reinterpret_cast<const reg_type*>(output_history[histSz - 1][stm]);
         const reg_type* w2 = reinterpret_cast<const reg_type*>(output_history[histSz - 1][stm ^ 1]);
@@ -484,33 +469,14 @@ public:
         const reg_type* v2 = reinterpret_cast<const reg_type*>(&outputWeights[SIDE_NEURONS]);
         reg_type clamped;
 
-        for (int j = 0; j < NUM_REGS; j += 4) {
+        for (int j = 0; j < NUM_REGS; j++) {
             clamped = reg_clamp(w[j]);
-            acc0 = reg_add32(acc0, reg_madd16(reg_mullo(clamped, v[j]), clamped));
+            acc = reg_add32(acc, reg_madd16(reg_mullo(clamped, v[j]), clamped));
             clamped = reg_clamp(w2[j]);
-            acc0 = reg_add32(acc0, reg_madd16(reg_mullo(clamped, v2[j]), clamped));
-
-            clamped = reg_clamp(w[j + 1]);
-            acc1 = reg_add32(acc1, reg_madd16(reg_mullo(clamped, v[j + 1]), clamped));
-            clamped = reg_clamp(w2[j + 1]);
-            acc1 = reg_add32(acc1, reg_madd16(reg_mullo(clamped, v2[j + 1]), clamped));
-
-            clamped = reg_clamp(w[j + 2]);
-            acc2 = reg_add32(acc2, reg_madd16(reg_mullo(clamped, v[j + 2]), clamped));
-            clamped = reg_clamp(w2[j + 2]);
-            acc2 = reg_add32(acc2, reg_madd16(reg_mullo(clamped, v2[j + 2]), clamped));
-
-            clamped = reg_clamp(w[j + 3]);
-            acc3 = reg_add32(acc3, reg_madd16(reg_mullo(clamped, v[j + 3]), clamped));
-            clamped = reg_clamp(w2[j + 3]);
-            acc3 = reg_add32(acc3, reg_madd16(reg_mullo(clamped, v2[j + 3]), clamped));
+            acc = reg_add32(acc, reg_madd16(reg_mullo(clamped, v2[j]), clamped));
         }
 
-        acc0 = reg_add32(acc0, acc1);
-        acc2 = reg_add32(acc2, acc3);
-        acc0 = reg_add32(acc0, acc2);
-
-        return (outputBias + get_sum(acc0) / Q_IN) * 225 / (Q_IN * Q_HIDDEN);
+        return (outputBias + get_sum(acc) / Q_IN) * 225 / Q_IN_HIDDEN;
     }
 
     int histSz;
@@ -518,7 +484,7 @@ public:
     int addSz, subSz;
 
     int16_t output_history[2005][2][SIDE_NEURONS] __attribute__((aligned(ALIGN)));
-    KingBucketState state[2][10];
+    KingBucketState state[2][2 * KING_BUCKETS];
 
     int16_t add_ind[32], sub_ind[32];
     NetHist hist[2005];
