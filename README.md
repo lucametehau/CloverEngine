@@ -4,7 +4,7 @@ Clover is a chess engine, written in C++, inspired by my favorite plant. Since t
 
 # Features
 
-Clover now has a page with all the features: https://www.chessprogramming.org/Clover .
+Clover now has a page with all the features: [https://www.chessprogramming.org/Clover](https://www.chessprogramming.org/Clover).
 
 # Rating
 
@@ -30,7 +30,7 @@ Clover is UCI compatible, but doesn't have a GUI, so, in order to play with it, 
 
 ``` 
 git clone https://github.com/lucametehau/CloverEngine.git
-cd src
+cd CloverEngine/src
 make release 
 ```
 
@@ -38,7 +38,7 @@ This will create 3 compiles: old, avx2 and avx512. Choose the latest that doesn'
 
 To run it's pretty easy:
 ```
-./Clover.3.1-avx2.exe
+./Clover.6.2-avx2.exe
 ```
 
 # UCI
@@ -71,7 +71,7 @@ If one spots a bug or finds an improvement, I'm open to any suggestion.
 # Credits
 
 - [Weather-Factory](https://github.com/dsekercioglu/weather-factory) For being a great tuning tool!
-- [Open Bench](https://github.com/AndyGrant/OpenBench) For making testing easier!
+- [OpenBench](https://github.com/AndyGrant/OpenBench) For making testing easier!
 
 I inspired myself from:
 
