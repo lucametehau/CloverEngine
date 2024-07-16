@@ -193,27 +193,27 @@ int evaluate(Board& board) {
     pieces = board.bb[WR];
     while (pieces) {
         int sq = sq_lsb(pieces);
-        mg += mg_rook_table[sq ^ 56] + mg_value[2];
-        eg += eg_rook_table[sq ^ 56] + eg_value[2];
+        mg += mg_rook_table[sq ^ 56] + mg_value[3];
+        eg += eg_rook_table[sq ^ 56] + eg_value[3];
     }
     pieces = board.bb[BR];
     while (pieces) {
         int sq = sq_lsb(pieces);
-        mg -= mg_rook_table[sq] + mg_value[2];
-        eg -= eg_rook_table[sq] + eg_value[2];
+        mg -= mg_rook_table[sq] + mg_value[3];
+        eg -= eg_rook_table[sq] + eg_value[3];
     }
 
     pieces = board.bb[WB];
     while (pieces) {
         int sq = sq_lsb(pieces);
-        mg += mg_bishop_table[sq ^ 56] + mg_value[3];
-        eg += eg_bishop_table[sq ^ 56] + eg_value[3];
+        mg += mg_bishop_table[sq ^ 56] + mg_value[2];
+        eg += eg_bishop_table[sq ^ 56] + eg_value[2];
     }
     pieces = board.bb[BB];
     while (pieces) {
         int sq = sq_lsb(pieces);
-        mg -= mg_bishop_table[sq] + mg_value[3];
-        eg -= eg_bishop_table[sq] + eg_value[3];
+        mg -= mg_bishop_table[sq] + mg_value[2];
+        eg -= eg_bishop_table[sq] + eg_value[2];
     }
 
     pieces = board.bb[WQ];
