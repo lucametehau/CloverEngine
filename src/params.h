@@ -91,8 +91,8 @@ TUNE_PARAM(SEEPruningNoisyMargin, 11, 5, 25);
 TUNE_PARAM(FPNoisyDepth, 8, 5, 10);
 
 TUNE_PARAM(SEDepth, 6, 4, 8);
-TUNE_PARAM(SEMargin, 56, 32, 64);
-TUNE_PARAM(SEDoubleExtensionsMargin, 24, 5, 25);
+TUNE_PARAM(SEMargin, 48, 32, 64);
+TUNE_PARAM(SEDoubleExtensionsMargin, 12, 5, 25);
 TUNE_PARAM(SETripleExtensionsMargin, 100, 50, 100);
 
 TUNE_PARAM(EvalDifferenceReductionMargin, 206, 100, 300);
