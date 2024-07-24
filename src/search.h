@@ -241,7 +241,6 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack) {
 
     Movepick noisyPicker(!isCheck && see(board, ttMove, 0) ? ttMove : NULLMOVE,
         NULLMOVE,
-        NULLMOVE,
         0,
         threats.threats_enemy);
 
@@ -452,7 +451,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
             if (depth >= ProbcutDepth && abs(beta) < MATE && !(ttHit && ttDepth >= depth - 3 && ttValue < probBeta)) {
                 Movepick picker((ttMove && isNoisyMove(board, ttMove) && see(board, ttMove, probBeta - static_eval) ? ttMove : NULLMOVE),
                     NULLMOVE,
-                    NULLMOVE,
                     probBeta - static_eval,
                     threats.threats_enemy);
 
@@ -487,7 +485,6 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
 
     Movepick picker(ttMove,
         stack->killer,
-        nullSearch ? NULLMOVE : counter_move[(stack - 1)->piece][sq_to((stack - 1)->move)], // counter
         -see_depth_coef * depth,
         threats.threats_enemy);
 
@@ -508,7 +505,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         if (move == stack->excluded)
             continue;
 
-        const bool isQuiet = !isNoisyMove(board, move), refutationMove = (picker.trueStage == STAGE_KILLER || picker.trueStage == STAGE_COUNTER);
+        const bool isQuiet = !isNoisyMove(board, move), refutationMove = picker.trueStage == STAGE_KILLER;
         int history = 0;
 
         /// quiet move pruning

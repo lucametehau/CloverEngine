@@ -26,7 +26,7 @@ enum {
     STAGE_NONE = 0,
     STAGE_HASHMOVE,
     STAGE_GEN_NOISY, STAGE_GOOD_NOISY,
-    STAGE_COUNTER, STAGE_KILLER,
+    STAGE_KILLER,
     STAGE_GEN_QUIETS, STAGE_QUIETS,
     STAGE_PRE_BAD_NOISY, STAGE_BAD_NOISY,
 }; /// move picker stages
@@ -38,7 +38,7 @@ public:
     int stage, trueStage;
     //int mp_type;
 
-    Move hashMove, killer, counter, possibleCounter;
+    Move hashMove, killer;
     int nrNoisy, nrQuiets, nrBadNoisy;
     int index;
 
@@ -49,12 +49,11 @@ public:
     Move moves[256], badNoisy[256];
     int scores[256];
 
-    Movepick(const Move HashMove, const Move Killer, const Move Counter, const int Threshold, const uint64_t Threats_enemy) {
+    Movepick(const Move HashMove, const Move Killer, const int Threshold, const uint64_t Threats_enemy) {
         stage = STAGE_HASHMOVE;
 
         hashMove = HashMove;
         killer = (Killer != hashMove ? Killer : NULLMOVE);
-        counter = (Counter != hashMove && Counter != killer ? Counter : NULLMOVE);
 
         nrNoisy = nrQuiets = nrBadNoisy = 0;
         threshold = Threshold;
@@ -89,7 +88,7 @@ public:
             for (int i = 0; i < nrNoisy; i++) {
                 const Move move = moves[i];
 
-                if (move == hashMove || move == killer || move == counter)
+                if (move == hashMove || move == killer)
                     continue;
 
                 if (type(move) == PROMOTION && promoted(move) + KNIGHT != QUEEN) {
@@ -130,12 +129,6 @@ public:
                 return get_next_move(searcher, stack, board, skip, noisyPicker);
             }
             stage++;
-        case STAGE_COUNTER:
-            trueStage = STAGE_COUNTER;
-            stage++;
-
-            if (!skip && counter && is_legal(board, counter))
-                return counter;
         case STAGE_KILLER:
             trueStage = STAGE_KILLER;
             stage++;
@@ -155,7 +148,7 @@ public:
                 for (int i = 0; i < nrQuiets; i++) {
                     const uint16_t move = moves[i];
 
-                    if (move == hashMove || move == killer || move == counter)
+                    if (move == hashMove || move == killer)
                         continue;
 
                     moves[m] = move;
