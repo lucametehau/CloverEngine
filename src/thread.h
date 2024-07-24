@@ -94,7 +94,7 @@ struct Search {
     int16_t hist[2][2][2][64 * 64];
     TablePieceTo cont_history[2][13][64];
     int16_t cap_hist[13][64][7];
-    int corr_hist[2][16384];
+    int corr_hist[2][65536];
     int lmrRed[64][64], lmrRedNoisy[64][64];
     int bestMoves[256], scores[256], rootScores[256];
     MeanValue values[10];
