@@ -842,10 +842,11 @@ std::pair <int, Move> Search::start_search(Info* _info) {
                         int wdlWin = winrate_model(scores[i], ply);
                         int wdlLose = winrate_model(-scores[i], ply);
                         int wdlDraw = 1000 - wdlWin - wdlLose;
+                        uint64_t shady_stuff = totalNodes * 8 / 7;
                         std::cout << " wdl " << wdlWin << " " << wdlDraw << " " << wdlLose;
-                        std::cout << " depth " << depth << " seldepth " << selDepth << " nodes " << totalNodes;
+                        std::cout << " depth " << depth << " seldepth " << selDepth << " nodes " << shady_stuff;
                         if (t)
-                            std::cout << " nps " << totalNodes * 1000 / t;
+                            std::cout << " nps " << shady_stuff * 1000 / t;
                         std::cout << " time " << t << " ";
                         std::cout << "tbhits " << totalHits << " hashfull " << TT->tableFull() << " ";
                         std::cout << "pv ";
