@@ -90,7 +90,7 @@ struct Search {
 
     uint64_t nodesSearched[64 * 64];
     int pvTableLen[DEPTH + 5];
-    Move counter_move[13][64], pvTable[DEPTH + 5][2 * DEPTH + 5];
+    Move pvTable[DEPTH + 5][2 * DEPTH + 5];
     int16_t hist[2][2][2][64 * 64];
     TablePieceTo cont_history[2][13][64];
     int16_t cap_hist[13][64][7];

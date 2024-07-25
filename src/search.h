@@ -967,13 +967,11 @@ std::pair <int, Move> Search::start_search(Info* _info) {
 void Search::clear_history() {
     memset(hist, 0, sizeof(hist));
     memset(cap_hist, 0, sizeof(cap_hist));
-    memset(counter_move, 0, sizeof(counter_move));
     memset(cont_history, 0, sizeof(cont_history));
     memset(corr_hist, 0, sizeof(corr_hist));
     for (int i = 0; i < threadCount; i++) {
         memset(params[i].hist, 0, sizeof(params[i].hist));
         memset(params[i].cap_hist, 0, sizeof(params[i].cap_hist));
-        memset(params[i].counter_move, 0, sizeof(params[i].counter_move));
         memset(params[i].cont_history, 0, sizeof(params[i].cont_history));
         memset(params[i].corr_hist, 0, sizeof(params[i].corr_hist));
     }

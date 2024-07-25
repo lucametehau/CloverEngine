@@ -61,14 +61,8 @@ void updateCaptureMoveHistory(Search* searcher, Move move, int16_t bonus) {
 void updateHistory(Search* searcher, StackEntry* stack, int nrQuiets, int ply, uint64_t threats, int16_t bonus) {
     if (!nrQuiets) /// we can't update if we don't have a follow move or no quiets
         return;
-
-    const Move counterMove = (stack - 1)->move;
-    const int counterPiece = (stack - 1)->piece;
-    const int counterTo = sq_to(counterMove);
+    
     const Move best = stack->quiets[nrQuiets - 1];
-
-    if (counterMove)
-        searcher->counter_move[counterPiece][counterTo] = best; /// update counter move table
 
     for (int i = 0; i < nrQuiets - 1; i++)
         updateMoveHistory(searcher, stack, stack->quiets[i], threats, -bonus);
