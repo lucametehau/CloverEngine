@@ -413,9 +413,9 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
     (stack + 1)->killer = NULLMOVE;
 
     /// internal iterative deepening (search at reduced depth to find a ttMove) (Rebel like)
-    if (pvNode && depth >= IIRPvNodeDepth && !ttHit) depth -= IIRPvNodeReduction;
+    if (pvNode && depth >= IIRPvNodeDepth && (!ttHit || ttDepth + 4 <= depth)) depth -= IIRPvNodeReduction;
     /// also for cut nodes
-    if (cutNode && depth >= IIRCutNodeDepth && !ttHit) depth -= IIRCutNodeReduction;
+    if (cutNode && depth >= IIRCutNodeDepth && (!ttHit || ttDepth + 4 <= depth)) depth -= IIRCutNodeReduction;
 
     if constexpr (!pvNode) {
         if (!isCheck) {
