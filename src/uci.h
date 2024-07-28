@@ -233,7 +233,7 @@ void UCI::uciLoop() {
 
                 iss >> ttSize;
 #ifndef GENERATE
-                TT->initTable(ttSize * MB, threads.size());
+                TT->initTable(ttSize * MB, threads_data.size());
 #endif
             }
             else if (name == "Threads") {
@@ -356,7 +356,7 @@ void UCI::UciNewGame(uint64_t ttSize) {
 
 #ifndef GENERATE
     TT->resetAge();
-    TT->initTable(ttSize * MB, threads.size());
+    TT->initTable(ttSize * MB, threads_data.size());
 #endif
 }
 
@@ -461,10 +461,9 @@ void UCI::Bench(int depth) {
     init(info);
 
     uint64_t ttSize = 16;
-
-    UciNewGame(ttSize);
     
     create_pool(1);
+    UciNewGame(ttSize);
 
     printStats = false;
 
@@ -475,7 +474,6 @@ void UCI::Bench(int depth) {
 
     for (auto& fen : benchPos) {
         set_fen_pool(fen);
-
         info->timeset = 0;
         info->depth = (depth == -1 ? 12 : depth);
         info->startTime = getTime();
