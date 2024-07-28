@@ -70,7 +70,7 @@ public:
         std::swap(moves[ind], moves[offset]);
     }
 
-    Move get_next_move(Search* searcher, StackEntry* stack, Board& board, bool skip, bool noisyPicker) {
+    Move get_next_move(SearchData* searcher, StackEntry* stack, Board& board, bool skip, bool noisyPicker) {
         switch (stage) {
         case STAGE_HASHMOVE:
             trueStage = STAGE_HASHMOVE;
