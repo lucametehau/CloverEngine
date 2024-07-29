@@ -838,10 +838,11 @@ void pool_stop() {
 }
 
 void main_thread_handler(Info *info) {
-    for(size_t i = 0; i < threads_data.size(); i++)
+    for(size_t i = 1; i < threads_data.size(); i++)
         threads.push_back(std::thread(&SearchData::start_search, &threads_data[i], info));
-    
+    threads_data[0].start_search(info);
     pool_stop();
+
     for(auto &thread : threads) {
         if(thread.joinable())
            thread.join();
