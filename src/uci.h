@@ -49,7 +49,8 @@ private:
     void Perft(int depth);
     void addOption(std::string name, int value);
     void setParameterI(std::istringstream& iss, int& value);
-
+public:
+    std::thread main_thread;
 };
 
 void UCI::setParameterI(std::istringstream& iss, int& value) {
@@ -361,12 +362,14 @@ void UCI::UciNewGame(uint64_t ttSize) {
 }
 
 void UCI::Go(Info* info) {
+    if(main_thread.joinable())
+        main_thread.join();
 #ifndef GENERATE
     TT->age();
 #endif
     clear_stack_pool();
     clear_board_pool();
-    pool_search(info);
+    main_thread = std::thread(main_thread_handler, info);
 }
 
 void UCI::Stop() {

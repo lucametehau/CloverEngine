@@ -25,10 +25,6 @@
 
 int seeVal[] = { 0, SeeValPawn, SeeValKnight, SeeValBishop, SeeValRook, SeeValQueen, 20000 };
 
-const int TERMINATED_BY_USER = 1;
-const int TERMINATED_BY_LIMITS = 2;
-const int TERMINATED_SEARCH = TERMINATED_BY_USER | TERMINATED_BY_LIMITS;
-
 struct SearchData {
     SearchData() {
         for (int i = 0; i < 64; i++) { /// depth
@@ -92,6 +88,8 @@ struct SearchData {
     int thread_id;
     Board board;
 
+    volatile bool flag_stopped;
+
 #ifdef GENERATE
     HashTable* TT;
 #endif
@@ -100,6 +98,4 @@ struct SearchData {
 
 std::vector<std::thread> threads;
 std::vector<SearchData> threads_data;
-std::thread main_thread;
 std::mutex threads_mutex;
-volatile int global_flag;

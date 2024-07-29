@@ -140,8 +140,10 @@ inline void HashTable::initTable(uint64_t size, int nr_threads) {
         t = std::thread{ &HashTable::initTableSlice, this, start, good_size };
         start += slice_size;
     }
-    for (auto& t : threads)
-        t.join();
+    for (auto& t : threads) {
+        if(t.joinable())
+           t.join();
+    }
 }
 
 inline void HashTable::prefetch(uint64_t hash) {

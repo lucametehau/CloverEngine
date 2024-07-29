@@ -40,6 +40,7 @@ void create_pool(int thread_count) {
     for(int i = 0; i < thread_count; i++) {
         threads_data.emplace_back();
         threads_data[i].thread_id = i;
+        threads_data[i].flag_stopped = false;
     }
 }
 
@@ -104,10 +105,10 @@ template <bool checkTime>
 bool SearchData::check_for_stop() {
     if (thread_id) return 0;
 
-    if (global_flag & TERMINATED_SEARCH) return 1;
+    if (flag_stopped) return 1;
 
     if ((info->nodes != -1 && info->nodes <= nodes) || (info->max_nodes != -1 && nodes >= info->max_nodes)) {
-        global_flag |= TERMINATED_BY_LIMITS;
+        flag_stopped = true;
         return 1;
     }
 
@@ -115,12 +116,12 @@ bool SearchData::check_for_stop() {
 
     if (checkCount == (1 << 10)) {
         if constexpr (checkTime) {
-            if (info->timeset && getTime() > info->startTime + info->hardTimeLim) global_flag |= TERMINATED_BY_LIMITS;
+            if (info->timeset && getTime() > info->startTime + info->hardTimeLim) flag_stopped = true;
         }
         checkCount = 0;
     }
 
-    return (global_flag & TERMINATED_SEARCH);
+    return flag_stopped;
 }
 
 bool printStats = true; /// default true
@@ -345,7 +346,7 @@ int SearchData::quiesce(int alpha, int beta, StackEntry* stack) {
         score = -quiesce<pvNode>(-beta, -alpha, stack + 1);
         board.undo_move(move);
 
-        if (global_flag & TERMINATED_SEARCH) return best;
+        if (flag_stopped) return best;
 
         if (score > best) {
             best = score;
@@ -732,7 +733,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
         board.undo_move(move);
         nodes_seached[fromTo(move)] += nodes - initNodes;
 
-        if (global_flag & TERMINATED_SEARCH) /// stop search
+        if (flag_stopped) /// stop search
             return best;
 
         if (score > best) {
@@ -831,7 +832,9 @@ Move SearchData::easy_move() {
 }
 
 void pool_stop() {
-    global_flag = TERMINATED_SEARCH;
+    for(auto &thread_data : threads_data) {
+        thread_data.flag_stopped = true;
+    }
 }
 
 void main_thread_handler(Info *info) {
@@ -847,18 +850,12 @@ void main_thread_handler(Info *info) {
     threads.clear();
 }
 
-void pool_search(Info* _info) {
-    if(main_thread.joinable())
-        main_thread.join();
-    main_thread = std::thread(main_thread_handler, _info);
-}
-
 void SearchData::start_search(Info* _info) {
     int alpha, beta;
 
     nodes = selDepth = tbHits = 0;
     t0 = getTime();
-    global_flag = 0;
+    flag_stopped = false;
     checkCount = 0;
     best_move_cnt = 0;
 
@@ -910,7 +907,7 @@ void SearchData::start_search(Info* _info) {
                 depth = std::max({ depth, 1, tDepth - 4 });
                 selDepth = 0;
                 scores[i] = search<true, true>(alpha, beta, depth, false, stack);
-                if (global_flag & TERMINATED_SEARCH)
+                if (flag_stopped)
                     break;
 
                 if (thread_id == 0 && printStats && ((alpha < scores[i] && scores[i] < beta) || (i == 1 && getTime() > t0 + 3000))) {
@@ -990,7 +987,7 @@ void SearchData::start_search(Info* _info) {
             }
         }
 
-        if (thread_id == 0 && !(global_flag & TERMINATED_SEARCH)) {
+        if (thread_id == 0 && !flag_stopped) {
             double scoreChange = 1.0, bestMoveStreak = 1.0, nodesSearchedPercentage = 1.0;
             float _tmNodesSearchedMaxPercentage = TimeManagerNodesSearchedMaxPercentage / 1000.0;
             float _tmBestMoveMax = TimeManagerBestMoveMax / 1000.0;
@@ -1011,21 +1008,21 @@ void SearchData::start_search(Info* _info) {
             mainThreadBestMove = bestMoves[1];
         }
 
-        if (global_flag & TERMINATED_SEARCH)
+        if (flag_stopped)
             break;
 
         if (info->timeset && getTime() > info->stopTime) {
-            global_flag |= TERMINATED_BY_LIMITS;
+            flag_stopped = true;
             break;
         }
 
         if (tDepth == limitDepth) {
-            global_flag |= TERMINATED_BY_LIMITS;
+            flag_stopped = true;
             break;
         }
 
         if (info->min_nodes != -1 && nodes >= info->min_nodes) {
-            global_flag |= TERMINATED_BY_LIMITS;
+            flag_stopped = true;
             break;
         }
     }
@@ -1045,8 +1042,6 @@ void SearchData::start_search(Info* _info) {
             }
         }
     }
-
-    while (!(global_flag & TERMINATED_SEARCH) && info->timeset);
 
     if (thread_id == 0 && printStats) {
         std::cout << "bestmove " << move_to_string(bm, info->chess960);
