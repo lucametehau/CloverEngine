@@ -127,6 +127,8 @@ void UCI::uciLoop() {
             UciNewGame(ttSize);
         }
         else if (cmd == "go") {
+            if(main_thread.joinable())
+                main_thread.join();
             int depth = -1, movestogo = 40, movetime = -1;
             int time = -1, inc = 0;
             int64_t nodes = -1;
@@ -362,8 +364,6 @@ void UCI::UciNewGame(uint64_t ttSize) {
 }
 
 void UCI::Go(Info* info) {
-    if(main_thread.joinable())
-        main_thread.join();
 #ifndef GENERATE
     TT->age();
 #endif

@@ -862,11 +862,6 @@ void SearchData::start_search(Info* _info) {
     memset(pvTable, 0, sizeof(pvTable));
     info = _info;
 
-    if (thread_id == 0) {
-        Move move = easy_move();
-        if(move != NULLMOVE) return;
-    }
-
     int limitDepth = (thread_id == 0 ? info->depth : DEPTH); /// when limited by depth, allow helper threads to pass the fixed depth
     int mainThreadScore = 0;
     Move mainThreadBestMove = NULLMOVE;
