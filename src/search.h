@@ -779,58 +779,6 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
     return best;
 }
 
-Move SearchData::easy_move() {
-    Move moves[256];
-    int nrMoves = gen_legal_moves(board, moves);
-
-    /// only 1 move legal
-    if (PROBE_ROOT && nrMoves == 1) {
-        if (printStats)
-            std::cout << "bestmove " << move_to_string(moves[0], info->chess960) << std::endl;
-        return moves[0];
-    }
-
-    /// position is in tablebase
-    if (PROBE_ROOT && count(board.pieces[WHITE] | board.pieces[BLACK]) <= (int)TB_LARGEST) {
-        Move move = NULLMOVE;
-        auto probe = probe_TB(board, 0, 1, board.halfMoves, (board.castleRights & (3 << board.turn)) > 0);
-        if (probe != TB_RESULT_CHECKMATE && probe != TB_RESULT_FAILED && probe != TB_RESULT_STALEMATE) {
-            int to = int(TB_GET_TO(probe)), from = int(TB_GET_FROM(probe)), promote = TB_GET_PROMOTES(probe), ep = TB_GET_EP(probe);
-            if (!promote && !ep) {
-                move = getMove(from, to, 0, NEUT);
-            }
-            else {
-                int prom = 0;
-                switch (promote) {
-                case TB_PROMOTES_KNIGHT:
-                    prom = KNIGHT;
-                    break;
-                case TB_PROMOTES_BISHOP:
-                    prom = BISHOP;
-                    break;
-                case TB_PROMOTES_ROOK:
-                    prom = ROOK;
-                    break;
-                case TB_PROMOTES_QUEEN:
-                    prom = QUEEN;
-                    break;
-                }
-                move = getMove(from, to, prom - KNIGHT, PROMOTION);
-            }
-        }
-
-        for (int i = 0; i < nrMoves; i++) {
-            if (moves[i] == move) {
-                if (printStats)
-                    std::cout << "bestmove " << move_to_string(move, info->chess960) << std::endl;
-                return move;
-            }
-        }
-    }
-
-    return NULLMOVE;
-}
-
 void pool_stop() {
     for(auto &thread_data : threads_data) {
         thread_data.flag_stopped = true;
@@ -849,6 +797,25 @@ void main_thread_handler(Info *info) {
     }
 
     threads.clear();
+
+    int bs = 0;
+    Move bm = NULLMOVE;
+    
+    int bestDepth = threads_data[0].completedDepth;
+    bs = threads_data[0].rootScores[1];
+    bm = threads_data[0].bestMoves[1];
+    for (auto &thread_data : threads_data) {
+        if (thread_data.rootScores[1] > bs && thread_data.completedDepth >= bestDepth) {
+            bs = thread_data.rootScores[1];
+            bm = thread_data.bestMoves[1];
+            bestDepth = thread_data.completedDepth;
+        }
+    }
+
+    if (printStats) {
+        std::cout << "bestmove " << move_to_string(bm, info->chess960);
+        std::cout << std::endl;
+    }
 }
 
 void SearchData::start_search(Info* _info) {
@@ -1021,26 +988,5 @@ void SearchData::start_search(Info* _info) {
             flag_stopped = true;
             break;
         }
-    }
-
-    int bs = 0;
-    Move bm = NULLMOVE;
-    if (thread_id == 0) {
-        pool_stop();
-        int bestDepth = completedDepth;
-        bs = rootScores[1];
-        bm = bestMoves[1];
-        for (auto &thread_data : threads_data) {
-            if (thread_data.rootScores[1] > bs && thread_data.completedDepth >= bestDepth) {
-                bs = thread_data.rootScores[1];
-                bm = thread_data.bestMoves[1];
-                bestDepth = thread_data.completedDepth;
-            }
-        }
-    }
-
-    if (thread_id == 0 && printStats) {
-        std::cout << "bestmove " << move_to_string(bm, info->chess960);
-        std::cout << std::endl;
     }
 }

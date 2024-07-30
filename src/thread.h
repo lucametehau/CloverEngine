@@ -35,12 +35,6 @@ struct SearchData {
         }
     }
 
-    //~SearchData() {}
-
-    //SearchData(const SearchData&) = delete;
-    //SearchData& operator = (const SearchData&) = delete;
-
-    Move easy_move();
     void start_search(Info* info);
 
     template <bool pvNode>
