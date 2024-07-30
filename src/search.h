@@ -804,11 +804,11 @@ void main_thread_handler(Info *info) {
     int bestDepth = threads_data[0].completedDepth;
     bs = threads_data[0].rootScores[1];
     bm = threads_data[0].bestMoves[1];
-    for (auto &thread_data : threads_data) {
-        if (thread_data.rootScores[1] > bs && thread_data.completedDepth >= bestDepth) {
-            bs = thread_data.rootScores[1];
-            bm = thread_data.bestMoves[1];
-            bestDepth = thread_data.completedDepth;
+    for (int i = 1; i < threads_data.size(); i++) {
+        if (threads_data[i].rootScores[1] > bs && threads_data[i].completedDepth >= bestDepth) {
+            bs = threads_data[i].rootScores[1];
+            bm = threads_data[i].bestMoves[1];
+            bestDepth = threads_data[i].completedDepth;
         }
     }
 
