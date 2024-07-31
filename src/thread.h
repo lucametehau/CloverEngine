@@ -25,16 +25,8 @@
 
 int seeVal[] = { 0, SeeValPawn, SeeValKnight, SeeValBishop, SeeValRook, SeeValQueen, 20000 };
 
-const int TERMINATED_BY_USER = 1;
-const int TERMINATED_BY_LIMITS = 2;
-const int TERMINATED_SEARCH = TERMINATED_BY_USER | TERMINATED_BY_LIMITS;
-
-struct Search {
-    Search() : threads(nullptr), params(nullptr) {
-        threadCount = flag = checkCount = 0;
-        principalSearcher = terminateSMP = SMPThreadExit = false;
-        lazyFlag = false;
-
+struct SearchData {
+    SearchData() {
         for (int i = 0; i < 64; i++) { /// depth
             for (int j = 0; j < 64; j++) { /// moves played 
                 lmrRed[i][j] = LMRQuietBias / 100.0 + log(i) * log(j) / (LMRQuietDiv / 100.0);
@@ -43,29 +35,20 @@ struct Search {
         }
     }
 
-    ~Search() {
-        releaseThreads();
+    void clear_stack() {
+        memset(pvTableLen, 0, sizeof(pvTableLen));
+        memset(pvTable, 0, sizeof(pvTable));
+        memset(nodes_seached, 0, sizeof(nodes_seached));
     }
 
-    Search(const Search&) = delete;
-    Search& operator = (const Search&) = delete;
+    void clear_history() {
+        memset(hist, 0, sizeof(hist));
+        memset(cap_hist, 0, sizeof(cap_hist));
+        memset(cont_history, 0, sizeof(cont_history));
+        memset(corr_hist, 0, sizeof(corr_hist));
+    }
 
-    void initSearch();
-    void clearForSearch();
-    void clearKillers();
-    void clear_history();
-    void clear_stack();
-    void clear_board();
-    void set_num_threads(int nrThreads);
-    void start_principal_search(Info* info);
-    void stop_principal_search();
-    void isReady();
-
-    void set_fen(std::string fen, bool chess960 = false);
-    void set_dfrc(int idx);
-    void make_move(Move move);
-
-    std::pair <int, Move> start_search(Info* info);
+    void start_search(Info* info);
 
     template <bool pvNode>
     int quiesce(int alpha, int beta, StackEntry* stack); /// for quiet position check (tuning)
@@ -75,73 +58,51 @@ struct Search {
 
     void setTime(Info* tInfo) { info = tInfo; }
 
-    void start_workers(Info* info);
-    void flag_workers_stop();
-    void stop_workers();
-    void lazySMPSearcher();
-    void releaseThreads();
-    void kill_principal_search();
-
     void printPv();
     void update_pv(int ply, int move);
 
     template <bool checkTime>
     bool check_for_stop();
 
-    uint64_t nodesSearched[64 * 64];
+    uint64_t nodes_seached[64 * 64];
+
+    int16_t hist[2][2][2][64 * 64];
+    int16_t cap_hist[13][64][7];
+    TablePieceTo cont_history[2][13][64];
+    int corr_hist[2][65536];
+
+    int lmrRed[64][64], lmrRedNoisy[64][64];
+
     int pvTableLen[DEPTH + 5];
     Move pvTable[DEPTH + 5][2 * DEPTH + 5];
-    int16_t hist[2][2][2][64 * 64];
-    TablePieceTo cont_history[2][13][64];
-    int16_t cap_hist[13][64][7];
-    int corr_hist[2][65536];
-    int lmrRed[64][64], lmrRedNoisy[64][64];
-    int bestMoves[256], scores[256], rootScores[256];
+    Move bestMoves[256];
+    int scores[256], rootScores[256];
     MeanValue values[10];
-
-    volatile int flag;
 
     uint64_t tbHits;
     int64_t t0;
     Info* info;
     int checkCount;
 
-    int64_t cnt, cnt2;
-    int bestMoveCnt;
+    int best_move_cnt;
     int multipv_index;
 
-    bool lastNullMove;
-
-    int threadCount;
     int tDepth, completedDepth, selDepth;
 
     int rootEval, rootDepth;
 
-    std::unique_ptr <std::thread> principalThread;
-    std::mutex readyMutex;
-
     int64_t nodes;
-    bool principalSearcher;
+    int thread_id;
     Board board;
+
+    volatile bool flag_stopped;
 
 #ifdef GENERATE
     HashTable* TT;
 #endif
-
-    std::unique_ptr <std::thread[]> threads;
-    std::unique_ptr <Search[]> params;
-    std::condition_variable lazyCV;
-    volatile bool lazyFlag;
-    volatile bool SMPThreadExit;
-
-    bool isLazySMP() {
-        return lazyFlag;
-    }
-
-    void resetLazySMP() {
-        lazyFlag = 0;
-    }
-
-    bool terminateSMP;
-
+    
 };
+
+std::vector<std::thread> threads;
+std::vector<SearchData> threads_data;
+std::mutex threads_mutex;

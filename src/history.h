@@ -36,7 +36,7 @@ int getHistoryBonus(int depth) {
     return std::min<int>(HistoryBonusMargin * depth - HistoryBonusBias, HistoryBonusMax);
 }
 
-void updateMoveHistory(Search* searcher, StackEntry*& stack, Move move, uint64_t threats, int16_t bonus) {
+void updateMoveHistory(SearchData* searcher, StackEntry*& stack, Move move, uint64_t threats, int16_t bonus) {
     const int from = sq_from(move), to = sq_to(move), piece = searcher->board.piece_at(from);
 
     updateHist(searcher->hist[searcher->board.turn][!!(threats & (1ULL << from))][!!(threats & (1ULL << to))][fromTo(move)], bonus);
@@ -51,14 +51,14 @@ void updateMoveHistory(Search* searcher, StackEntry*& stack, Move move, uint64_t
         updateCounterHist((*(stack - 4)->cont_hist)[piece][to], bonus);
 }
 
-void updateCaptureMoveHistory(Search* searcher, Move move, int16_t bonus) {
+void updateCaptureMoveHistory(SearchData* searcher, Move move, int16_t bonus) {
     assert(type(move) != CASTLE);
     const int to = sq_to(move), from = sq_from(move), cap = (type(move) == ENPASSANT ? PAWN : searcher->board.piece_type_at(to)), piece = searcher->board.piece_at(from);
 
     updateCapHist(searcher->cap_hist[piece][to][cap], bonus);
 }
 
-void updateHistory(Search* searcher, StackEntry* stack, int nrQuiets, int ply, uint64_t threats, int16_t bonus) {
+void updateHistory(SearchData* searcher, StackEntry* stack, int nrQuiets, int ply, uint64_t threats, int16_t bonus) {
     if (!nrQuiets) /// we can't update if we don't have a follow move or no quiets
         return;
     
@@ -69,7 +69,7 @@ void updateHistory(Search* searcher, StackEntry* stack, int nrQuiets, int ply, u
     updateMoveHistory(searcher, stack, best, threats, bonus);
 }
 
-void updateCapHistory(Search* searcher, StackEntry* stack, int nrCaptures, Move best, int ply, int16_t bonus) {
+void updateCapHistory(SearchData* searcher, StackEntry* stack, int nrCaptures, Move best, int ply, int16_t bonus) {
     for (int i = 0; i < nrCaptures; i++) {
         const int move = stack->captures[i], score = (move == best ? bonus : -bonus);
         const int from = sq_from(move), to = sq_to(move), piece = searcher->board.piece_at(from);
@@ -78,13 +78,13 @@ void updateCapHistory(Search* searcher, StackEntry* stack, int nrCaptures, Move 
     }
 }
 
-int16_t getCapHist(Search* searcher, Move move) {
+int16_t getCapHist(SearchData* searcher, Move move) {
     const int from = sq_from(move), to = sq_to(move), piece = searcher->board.piece_at(from);
     const int cap = (type(move) == ENPASSANT ? PAWN : searcher->board.piece_type_at(to));
     return searcher->cap_hist[piece][to][cap];
 }
 
-void getHistory(Search* searcher, StackEntry* stack, Move move, uint64_t threats, int &hist) {
+void getHistory(SearchData* searcher, StackEntry* stack, Move move, uint64_t threats, int &hist) {
     const int from = sq_from(move), to = sq_to(move), piece = searcher->board.piece_at(from);
 
     hist = searcher->hist[searcher->board.turn][!!(threats & (1ULL << from))][!!(threats & (1ULL << to))][fromTo(move)];
@@ -96,13 +96,13 @@ void getHistory(Search* searcher, StackEntry* stack, Move move, uint64_t threats
     hist += (*(stack - 4)->cont_hist)[piece][to];
 }
 
-void updateCorrHist(Search* searcher, int depth, int bonus) {
+void updateCorrHist(SearchData* searcher, int depth, int bonus) {
     int w = std::min(4 * (depth + 1) * (depth + 1), 1024);
     int& corr = searcher->corr_hist[searcher->board.turn][searcher->board.pawn_key & 65535];
     corr = (corr * (CorrHistScale - w) + bonus * CorrHistDiv * w) / CorrHistScale;
     corr = std::clamp(corr, -32 * CorrHistDiv, 32 * CorrHistDiv);
 }
 
-int getCorrectedEval(Search* searcher, int eval) {
+int getCorrectedEval(SearchData* searcher, int eval) {
     return eval + searcher->corr_hist[searcher->board.turn][searcher->board.pawn_key & 65535] / CorrHistDiv;
 }

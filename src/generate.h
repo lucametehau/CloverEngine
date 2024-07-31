@@ -33,15 +33,13 @@ struct FenData {
     std::string fen;
 };
 
-void generateFens(std::atomic <uint64_t>& sumFens, uint64_t nrFens, std::string path, uint64_t seed, uint64_t extraSeed) {
+void generateFens(SearchData &thread_data, std::atomic <uint64_t>& sumFens, uint64_t nrFens, std::string path, uint64_t seed, uint64_t extraSeed) {
     std::ofstream out(path);
     std::mt19937_64 gn((std::chrono::system_clock::now().time_since_epoch().count() + extraSeed) ^ 8257298672678ULL);
 
     Info info[1];
     int gameInd = 1;
     uint64_t totalFens = 0;
-
-    Search* searcher = new Search();
 
     info->timeset = false;
     info->depth = DEPTH;
@@ -51,12 +49,10 @@ void generateFens(std::atomic <uint64_t>& sumFens, uint64_t nrFens, std::string 
     info->nodes = -1;
 
     info->multipv = 1;
-    searcher->setTime(info);
 
     std::mutex M;
 
-    searcher->TT = new HashTable();
-    searcher->principalSearcher = true;
+    thread_data.TT = new HashTable();
     FenData fens[10000];
     std::uniform_int_distribution <uint32_t> rnd_dfrc(0, 960 * 960);
 
@@ -72,12 +68,12 @@ void generateFens(std::atomic <uint64_t>& sumFens, uint64_t nrFens, std::string 
             idx = rnd_dfrc(gn) % (960 * 960);
         }
 
-        searcher->set_dfrc(idx);
+        thread_data.board.set_dfrc(idx);
 
-        searcher->clear_history();
-        searcher->clear_stack();
+        thread_data.clear_history();
+        thread_data.clear_stack();
 
-        searcher->TT->initTable(4 * MB);
+        thread_data.TT->initTable(4 * MB);
         std::uniform_int_distribution <int> rnd_ply(0, 100000);
 
         int additionalPly = rnd_ply(gn) % 2;
@@ -88,18 +84,18 @@ void generateFens(std::atomic <uint64_t>& sumFens, uint64_t nrFens, std::string 
 
             /// game over checking
 
-            if (searcher->board.is_draw(0)) {
+            if (thread_data.board.is_draw(0)) {
                 result = 0.5;
                 break;
             }
 
             uint16_t moves[256];
 
-            int nrMoves = gen_legal_moves(searcher->board, moves);
+            int nrMoves = gen_legal_moves(thread_data.board, moves);
 
             if (!nrMoves) {
-                if (searcher->board.checkers) {
-                    result = (searcher->board.turn == WHITE ? 0.0 : 1.0);
+                if (thread_data.board.checkers) {
+                    result = (thread_data.board.turn == WHITE ? 0.0 : 1.0);
                 }
                 else {
                     result = 0.5;
@@ -111,29 +107,25 @@ void generateFens(std::atomic <uint64_t>& sumFens, uint64_t nrFens, std::string 
             if (ply < 8 + additionalPly) { /// simulating a book ?
                 std::uniform_int_distribution <uint32_t> rnd(0, nrMoves - 1);
                 move = moves[rnd(gn)];
-                searcher->make_move(move);
+                thread_data.board.make_move(move);
             }
             else {
-                searcher->TT->age();
-                searcher->clear_board();
+                thread_data.TT->age();
+                thread_data.board.clear();
 
                 //searcher->board.print();
-                std::pair <int, uint16_t> res = searcher->start_search(info);
-                score = res.first, move = res.second;
-
-                //log << searcher->board.fen() << " " << move_to_string(move) << "\n";
+                thread_data.start_search(info);
+                score = thread_data.rootScores[1], move = thread_data.bestMoves[1];
 
                 if (nrMoves == 1) { /// in this case, engine reports score 0, which might be misleading
-                    searcher->make_move(move);
+                    thread_data.board.make_move(move);
                     ply++;
                     continue;
                 }
 
-                searcher->flag = 0;
-
-                if (!searcher->board.checkers && !isNoisyMove(searcher->board, move) && abs(score) < 1000) { /// relatively quiet position
-                    data.fen = searcher->board.fen();
-                    data.score = score * (searcher->board.turn == WHITE ? 1 : -1);
+                if (!thread_data.board.checkers && !isNoisyMove(thread_data.board, move) && abs(score) < 1000) { /// relatively quiet position
+                    data.fen = thread_data.board.fen();
+                    data.score = score * (thread_data.board.turn == WHITE ? 1 : -1);
                     fens[nr_fens++] = data;
                     //std::cout << searcher->nodes << std::endl;
                 }
@@ -142,7 +134,7 @@ void generateFens(std::atomic <uint64_t>& sumFens, uint64_t nrFens, std::string 
                 drawCnt = (abs(score) <= 20 ? drawCnt + 1 : 0);
 
                 if (winCnt >= 4) {
-                    score *= (searcher->board.turn == WHITE ? 1 : -1);
+                    score *= (thread_data.board.turn == WHITE ? 1 : -1);
                     result = (score < 0 ? 0.0 : 1.0);
 
                     break;
@@ -154,7 +146,7 @@ void generateFens(std::atomic <uint64_t>& sumFens, uint64_t nrFens, std::string 
                     break;
                 }
 
-                searcher->make_move(move);
+                thread_data.board.make_move(move);
             }
 
             ply++;
@@ -181,6 +173,7 @@ void generateFens(std::atomic <uint64_t>& sumFens, uint64_t nrFens, std::string 
 
 void generateData(uint64_t nrFens, int nrThreads, std::string rootPath, uint64_t extraSeed = 0) {
 #ifdef GENERATE
+    create_pool(nrThreads);
     printStats = false;
     std::string path[100];
 
@@ -211,7 +204,7 @@ void generateData(uint64_t nrFens, int nrThreads, std::string rootPath, uint64_t
     for (auto& t : threads) {
         std::string pth = path[i];
         std::cout << "Starting thread " << i << std::endl;
-        t = std::thread{ generateFens, std::ref(sumFens), batch, pth, rng(gen), extraSeed };
+        t = std::thread{ generateFens, std::ref(threads_data[i]), std::ref(sumFens), batch, pth, rng(gen), extraSeed };
         i++;
     }
 

@@ -25,11 +25,7 @@ int main(int argc, char** argv) {
     initAttacks();
     loadNNUEWeights();
 
-    std::unique_ptr <Search> searcher(new Search);
-
-    searcher->set_fen(START_POS_FEN);
-
-    UCI uci(*searcher.get());
+    UCI uci;
     if (argc > 1) {
         if (!strncmp(argv[1], "bench", 5)) {
             int depth = -1;

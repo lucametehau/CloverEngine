@@ -26,14 +26,87 @@
 #include <fstream>
 #include <iomanip>
 
+void delete_pool() {
+    for(auto &thread : threads) {
+        if(thread.joinable())
+            thread.join();
+    }
+    threads.clear();
+    threads_data.clear();
+}
+
+void create_pool(int thread_count) {
+    delete_pool();
+    for(int i = 0; i < thread_count; i++) {
+        threads_data.emplace_back();
+        threads_data[i].thread_id = i;
+        threads_data[i].flag_stopped = false;
+    }
+}
+
+void pool_stop() {
+    for(auto &thread_data : threads_data)
+        thread_data.flag_stopped = true;
+}
+
+void clear_stack_pool() {
+    for(auto &thread_data : threads_data)
+        thread_data.clear_stack();
+}
+
+void clear_history_pool() {
+    for(auto &thread_data : threads_data)
+        thread_data.clear_history();
+}
+
+void set_fen_pool(std::string fen, bool chess960 = false) {
+    for(auto &thread_data : threads_data) {
+        thread_data.board.chess960 = chess960;
+        thread_data.board.set_fen(fen);
+    }
+}
+
+void set_dfrc_pool(int idx) {
+    for(auto &thread_data : threads_data) {
+        thread_data.board.chess960 = (idx > 0);
+        thread_data.board.set_dfrc(idx);
+    }
+}
+
+void make_move_pool(Move move) {
+    for (auto &thread_data : threads_data)
+        thread_data.board.make_move(move);
+}
+
+void clear_board_pool() {
+    for (auto &thread_data : threads_data)
+        thread_data.board.clear();
+}
+
+uint64_t get_total_nodes_pool() {
+    std::lock_guard <std::mutex> lock(threads_mutex);
+    uint64_t nodes = 0;
+    for(auto &thread_data : threads_data)
+        nodes += thread_data.nodes;
+    return nodes;
+}
+
+uint64_t get_total_tbhits_pool() {
+    std::lock_guard <std::mutex> lock(threads_mutex);
+    uint64_t nodes = 0;
+    for(auto &thread_data : threads_data)
+        nodes += thread_data.tbHits;
+    return nodes;
+}
+
 template <bool checkTime>
-bool Search::check_for_stop() {
-    if (!principalSearcher) return 0;
+bool SearchData::check_for_stop() {
+    if (thread_id) return 0;
 
-    if (flag & TERMINATED_SEARCH) return 1;
+    if (flag_stopped) return 1;
 
-    if (SMPThreadExit || (info->nodes != -1 && info->nodes <= nodes) || (info->max_nodes != -1 && nodes >= info->max_nodes)) {
-        flag |= TERMINATED_BY_LIMITS;
+    if ((info->nodes != -1 && info->nodes <= nodes) || (info->max_nodes != -1 && nodes >= info->max_nodes)) {
+        flag_stopped = true;
         return 1;
     }
 
@@ -41,12 +114,12 @@ bool Search::check_for_stop() {
 
     if (checkCount == (1 << 10)) {
         if constexpr (checkTime) {
-            if (info->timeset && getTime() > info->startTime + info->hardTimeLim) flag |= TERMINATED_BY_LIMITS;
+            if (info->timeset && getTime() > info->startTime + info->hardTimeLim) flag_stopped = true;
         }
         checkCount = 0;
     }
 
-    return (flag & TERMINATED_SEARCH);
+    return flag_stopped;
 }
 
 bool printStats = true; /// default true
@@ -152,7 +225,7 @@ std::string getSanString(Board& board, Move move) {
     return san;
 }
 
-void Search::printPv() {
+void SearchData::printPv() {
     for (int i = 0; i < pvTableLen[0]; i++) {
         if (!info->sanMode)
             std::cout << move_to_string(pvTable[0][i], info->chess960) << " ";
@@ -167,14 +240,14 @@ void Search::printPv() {
     }
 }
 
-void Search::update_pv(int ply, int move) {
+void SearchData::update_pv(int ply, int move) {
     pvTable[ply][0] = move;
     for (int i = 0; i < pvTableLen[ply + 1]; i++) pvTable[ply][i + 1] = pvTable[ply + 1][i];
     pvTableLen[ply] = 1 + pvTableLen[ply + 1];
 }
 
 template <bool pvNode>
-int Search::quiesce(int alpha, int beta, StackEntry* stack) {
+int SearchData::quiesce(int alpha, int beta, StackEntry* stack) {
     const int ply = board.ply;
 
     if (ply >= DEPTH) return evaluate(board);
@@ -271,7 +344,7 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack) {
         score = -quiesce<pvNode>(-beta, -alpha, stack + 1);
         board.undo_move(move);
 
-        if (flag & TERMINATED_SEARCH) return best;
+        if (flag_stopped) return best;
 
         if (score > best) {
             best = score;
@@ -293,7 +366,7 @@ int Search::quiesce(int alpha, int beta, StackEntry* stack) {
     return best;
 }
 template <bool rootNode, bool pvNode>
-int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* stack) {
+int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry* stack) {
     const int ply = board.ply;
 
     if (check_for_stop<true>()) return evaluate(board);
@@ -600,7 +673,7 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
 
         if constexpr (rootNode) {
             /// current root move info
-            if (principalSearcher && printStats && getTime() > info->startTime + 2500 && !info->sanMode) {
+            if (thread_id == 0 && printStats && getTime() > info->startTime + 2500 && !info->sanMode) {
                 std::cout << "info depth " << depth << " currmove " << move_to_string(move, info->chess960) << " currmovenumber " << played << std::endl;
             }
         }
@@ -656,9 +729,9 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
         }
 
         board.undo_move(move);
-        nodesSearched[fromTo(move)] += nodes - initNodes;
+        nodes_seached[fromTo(move)] += nodes - initNodes;
 
-        if (flag & TERMINATED_SEARCH) /// stop search
+        if (flag_stopped) /// stop search
             return best;
 
         if (score > best) {
@@ -704,74 +777,52 @@ int Search::search(int alpha, int beta, int depth, bool cutNode, StackEntry* sta
     return best;
 }
 
-std::pair <int, Move> Search::start_search(Info* _info) {
+void main_thread_handler(Info *info) {
+    for(size_t i = 1; i < threads_data.size(); i++)
+        threads.push_back(std::thread(&SearchData::start_search, &threads_data[i], info));
+    threads_data[0].start_search(info);
+    pool_stop();
+
+    for(auto &thread : threads) {
+        if(thread.joinable())
+           thread.join();
+    }
+
+    threads.clear();
+
+    int bs = 0;
+    Move bm = NULLMOVE;
+    
+    int bestDepth = threads_data[0].completedDepth;
+    bs = threads_data[0].rootScores[1];
+    bm = threads_data[0].bestMoves[1];
+    for (size_t i = 1; i < threads_data.size(); i++) {
+        if (threads_data[i].rootScores[1] > bs && threads_data[i].completedDepth >= bestDepth) {
+            bs = threads_data[i].rootScores[1];
+            bm = threads_data[i].bestMoves[1];
+            bestDepth = threads_data[i].completedDepth;
+        }
+    }
+
+    if (printStats) {
+        std::cout << "bestmove " << move_to_string(bm, info->chess960);
+        std::cout << std::endl;
+    }
+}
+
+void SearchData::start_search(Info* _info) {
     int alpha, beta;
 
     nodes = selDepth = tbHits = 0;
     t0 = getTime();
-    flag = 0;
+    flag_stopped = false;
     checkCount = 0;
-    bestMoveCnt = 0;
+    best_move_cnt = 0;
 
     memset(pvTable, 0, sizeof(pvTable));
     info = _info;
 
-    if (principalSearcher) {
-        /// corner cases
-        Move moves[256];
-        int nrMoves = gen_legal_moves(board, moves);
-
-        /// only 1 move legal
-        if (PROBE_ROOT && nrMoves == 1) {
-            if (printStats)
-                std::cout << "bestmove " << move_to_string(moves[0], info->chess960) << std::endl;
-            return { 0, moves[0] };
-        }
-
-        /// position is in tablebase
-        if (PROBE_ROOT && count(board.pieces[WHITE] | board.pieces[BLACK]) <= (int)TB_LARGEST) {
-            int move = NULLMOVE;
-            auto probe = probe_TB(board, 0, 1, board.halfMoves, (board.castleRights & (3 << board.turn)) > 0);
-            if (probe != TB_RESULT_CHECKMATE && probe != TB_RESULT_FAILED && probe != TB_RESULT_STALEMATE) {
-                int to = int(TB_GET_TO(probe)), from = int(TB_GET_FROM(probe)), promote = TB_GET_PROMOTES(probe), ep = TB_GET_EP(probe);
-                if (!promote && !ep) {
-                    move = getMove(from, to, 0, NEUT);
-                }
-                else {
-                    int prom = 0;
-                    switch (promote) {
-                    case TB_PROMOTES_KNIGHT:
-                        prom = KNIGHT;
-                        break;
-                    case TB_PROMOTES_BISHOP:
-                        prom = BISHOP;
-                        break;
-                    case TB_PROMOTES_ROOK:
-                        prom = ROOK;
-                        break;
-                    case TB_PROMOTES_QUEEN:
-                        prom = QUEEN;
-                        break;
-                    }
-                    move = getMove(from, to, prom - KNIGHT, PROMOTION);
-                }
-            }
-
-            for (int i = 0; i < nrMoves; i++) {
-                if (moves[i] == move) {
-                    if (printStats)
-                        std::cout << "bestmove " << move_to_string(move, info->chess960) << std::endl;
-                    return { 0, move };
-                }
-            }
-        }
-    }
-
-    if (principalSearcher)
-        start_workers(info);
-
-    uint64_t totalNodes = 0, totalHits = 0;
-    int limitDepth = (principalSearcher ? info->depth : DEPTH); /// when limited by depth, allow helper threads to pass the fixed depth
+    int limitDepth = (thread_id == 0 ? info->depth : DEPTH); /// when limited by depth, allow helper threads to pass the fixed depth
     int mainThreadScore = 0;
     Move mainThreadBestMove = NULLMOVE;
 
@@ -811,18 +862,12 @@ std::pair <int, Move> Search::start_search(Info* _info) {
                 depth = std::max({ depth, 1, tDepth - 4 });
                 selDepth = 0;
                 scores[i] = search<true, true>(alpha, beta, depth, false, stack);
-                if (flag & TERMINATED_SEARCH)
+                if (flag_stopped)
                     break;
 
-                if (principalSearcher && printStats && ((alpha < scores[i] && scores[i] < beta) || (i == 1 && getTime() > t0 + 3000))) {
-                    if (principalSearcher) {
-                        totalNodes = nodes;
-                        totalHits = tbHits;
-                        for (int i = 0; i < threadCount; i++) {
-                            totalNodes += params[i].nodes;
-                            totalHits += params[i].tbHits;
-                        }
-                    }
+                if (thread_id == 0 && printStats && ((alpha < scores[i] && scores[i] < beta) || (i == 1 && getTime() > t0 + 3000))) {
+                    uint64_t total_nodes = get_total_nodes_pool();
+                    uint64_t total_tbhits = get_total_tbhits_pool();
                     uint64_t t = (uint64_t)getTime() - t0;
                     if (!info->sanMode) {
                         std::cout << "info ";
@@ -842,24 +887,25 @@ std::pair <int, Move> Search::start_search(Info* _info) {
                         int wdlWin = winrate_model(scores[i], ply);
                         int wdlLose = winrate_model(-scores[i], ply);
                         int wdlDraw = 1000 - wdlWin - wdlLose;
-                        uint64_t shady_stuff = totalNodes * 8 / 7;
+                        uint64_t shady_stuff = total_nodes * 8 / 7;
                         std::cout << " wdl " << wdlWin << " " << wdlDraw << " " << wdlLose;
                         std::cout << " depth " << depth << " seldepth " << selDepth << " nodes " << shady_stuff;
                         if (t)
                             std::cout << " nps " << shady_stuff * 1000 / t;
                         std::cout << " time " << t << " ";
-                        std::cout << "tbhits " << totalHits << " hashfull " << TT->tableFull() << " ";
+                        std::cout << "tbhits " << total_tbhits << " hashfull " << TT->tableFull() << " ";
                         std::cout << "pv ";
                         printPv();
                         std::cout << std::endl;
                     }
                     else {
+                        uint64_t total_nodes = get_total_nodes_pool();
                         std::cout << std::setw(3) << depth << "/" << std::setw(3) << selDepth << " ";
                         if (t < 10 * 1000)
                             std::cout << std::setw(7) << std::setprecision(2) << t / 1000.0 << "s   ";
                         else
                             std::cout << std::setw(7) << t / 1000 << "s   ";
-                        std::cout << std::setw(7) << totalNodes * 1000 / (t + 1) << "n/s   ";
+                        std::cout << std::setw(7) << total_nodes * 1000 / (t + 1) << "n/s   ";
                         if (scores[i] > MATE)
                             std::cout << "#" << (INF - scores[i] + 1) / 2 << " ";
                         else if (scores[i] < -MATE)
@@ -896,19 +942,19 @@ std::pair <int, Move> Search::start_search(Info* _info) {
             }
         }
 
-        if (principalSearcher && !(flag & TERMINATED_SEARCH)) {
+        if (thread_id == 0 && !flag_stopped) {
             double scoreChange = 1.0, bestMoveStreak = 1.0, nodesSearchedPercentage = 1.0;
             float _tmNodesSearchedMaxPercentage = TimeManagerNodesSearchedMaxPercentage / 1000.0;
             float _tmBestMoveMax = TimeManagerBestMoveMax / 1000.0;
             float _tmBestMoveStep = TimeManagerBestMoveStep / 1000.0;
             if (tDepth >= TimeManagerMinDepth) {
                 scoreChange = std::max(TimeManagerScoreMin / 100.0, std::min(TimeManagerScoreBias / 100.0 + 1.0 * (mainThreadScore - rootScores[1]) / TimeManagerScoreDiv, TimeManagerScoreMax / 100.0)); /// adjust time based on score change
-                bestMoveCnt = (bestMoves[1] == mainThreadBestMove ? bestMoveCnt + 1 : 1);
+                best_move_cnt = (bestMoves[1] == mainThreadBestMove ? best_move_cnt + 1 : 1);
                 /// adjust time based on how many nodes from the total searched nodes were used for the best move
-                nodesSearchedPercentage = 1.0 * nodesSearched[fromTo(bestMoves[1])] / nodes;
+                nodesSearchedPercentage = 1.0 * nodes_seached[fromTo(bestMoves[1])] / nodes;
                 nodesSearchedPercentage = TimeManagerNodesSeachedMaxCoef / 100.0 * _tmNodesSearchedMaxPercentage -
                     TimeManagerNodesSearchedCoef / 100.0 * nodesSearchedPercentage;
-                bestMoveStreak = _tmBestMoveMax - _tmBestMoveStep * std::min(10, bestMoveCnt); /// adjust time based on how long the best move was the same
+                bestMoveStreak = _tmBestMoveMax - _tmBestMoveStep * std::min(10, best_move_cnt); /// adjust time based on how long the best move was the same
             }
             //std::cout << "Scale factor for tm is " << scoreChange * bestMoveStreak * nodesSearchedPercentage * 100 << "%\n";
             //std::cout << scoreChange * 100 << " " << bestMoveStreak * 100 << " " << _tmNodesSearchedMaxPercentage - nodesSearchedPercentage << "\n";
@@ -917,206 +963,22 @@ std::pair <int, Move> Search::start_search(Info* _info) {
             mainThreadBestMove = bestMoves[1];
         }
 
-        if (flag & TERMINATED_SEARCH)
+        if (flag_stopped)
             break;
 
         if (info->timeset && getTime() > info->stopTime) {
-            flag |= TERMINATED_BY_LIMITS;
+            flag_stopped = true;
             break;
         }
 
         if (tDepth == limitDepth) {
-            flag |= TERMINATED_BY_LIMITS;
+            flag_stopped = true;
             break;
         }
 
         if (info->min_nodes != -1 && nodes >= info->min_nodes) {
-            flag |= TERMINATED_BY_LIMITS;
+            flag_stopped = true;
             break;
         }
     }
-
-    int bs = 0;
-    Move bm = NULLMOVE;
-    if (principalSearcher) {
-        stop_workers();
-        int bestDepth = completedDepth;
-        bs = rootScores[1];
-        bm = bestMoves[1];
-        for (int i = 0; i < threadCount; i++) {
-            if (params[i].rootScores[1] > bs && params[i].completedDepth >= bestDepth) {
-                bs = params[i].rootScores[1];
-                bm = params[i].bestMoves[1];
-                bestDepth = params[i].completedDepth;
-            }
-        }
-    }
-
-    while (!(flag & TERMINATED_SEARCH) && info->timeset);
-
-    if (principalSearcher && printStats) {
-        std::cout << "bestmove " << move_to_string(bm, info->chess960);
-        std::cout << std::endl;
-    }
-
-    //TT->age();
-
-    return std::make_pair(bs, bm);
-}
-
-void Search::clear_history() {
-    memset(hist, 0, sizeof(hist));
-    memset(cap_hist, 0, sizeof(cap_hist));
-    memset(cont_history, 0, sizeof(cont_history));
-    memset(corr_hist, 0, sizeof(corr_hist));
-    for (int i = 0; i < threadCount; i++) {
-        memset(params[i].hist, 0, sizeof(params[i].hist));
-        memset(params[i].cap_hist, 0, sizeof(params[i].cap_hist));
-        memset(params[i].cont_history, 0, sizeof(params[i].cont_history));
-        memset(params[i].corr_hist, 0, sizeof(params[i].corr_hist));
-    }
-}
-
-void Search::clear_stack() {
-    memset(pvTableLen, 0, sizeof(pvTableLen));
-    memset(pvTable, 0, sizeof(pvTable));
-    memset(nodesSearched, 0, sizeof(nodesSearched));
-    for (int i = 0; i < threadCount; i++) {
-        memset(params[i].pvTableLen, 0, sizeof(params[i].pvTableLen));
-        memset(params[i].pvTable, 0, sizeof(params[i].pvTable));
-        memset(params[i].nodesSearched, 0, sizeof(params[i].nodesSearched));
-    }
-}
-
-void Search::start_workers(Info* info) {
-    for (int i = 0; i < threadCount; i++) {
-        params[i].readyMutex.lock();
-        params[i].nodes = 0;
-        params[i].selDepth = 0;
-        params[i].tbHits = 0;
-        params[i].setTime(info);
-        params[i].t0 = t0;
-        params[i].SMPThreadExit = false;
-        params[i].lazyFlag = 1;
-        params[i].flag = flag;
-        params[i].readyMutex.unlock();
-        params[i].lazyCV.notify_one();
-    }
-}
-
-void Search::flag_workers_stop() {
-    for (int i = 0; i < threadCount; i++) {
-        params[i].SMPThreadExit = true;
-        params[i].flag |= TERMINATED_BY_LIMITS;
-    }
-}
-
-void Search::stop_workers() {
-    flag_workers_stop();
-    for (int i = 0; i < threadCount; i++) {
-        while (params[i].lazyFlag);
-    }
-}
-
-void Search::isReady() {
-    flag_workers_stop();
-    flag |= TERMINATED_BY_USER;
-    std::unique_lock <std::mutex> lk(readyMutex);
-    std::cout << "readyok" << std::endl;
-}
-
-void Search::start_principal_search(Info* info) {
-    principalSearcher = true;
-    readyMutex.lock();
-    setTime(info);
-    lazyFlag = 1;
-    readyMutex.unlock();
-    lazyCV.notify_one();
-    if (!principalThread)
-        principalThread.reset(new std::thread(&Search::lazySMPSearcher, this));
-}
-
-void Search::stop_principal_search() {
-    flag |= TERMINATED_BY_USER;
-}
-
-void Search::set_num_threads(int nrThreads) {
-    if (nrThreads == threadCount)
-        return;
-    releaseThreads();
-    threadCount = nrThreads;
-    threads.reset(new std::thread[nrThreads]);
-    params.reset(new Search[nrThreads]);
-    for (int i = 0; i < nrThreads; i++)
-        threads[i] = std::thread(&Search::lazySMPSearcher, &params[i]);
-}
-
-void Search::lazySMPSearcher() {
-    while (!terminateSMP) {
-        {
-            std::unique_lock <std::mutex> lk(readyMutex);
-            lazyCV.wait(lk, std::bind(&Search::isLazySMP, this));
-            if (terminateSMP)
-                return;
-
-            start_search(info);
-            resetLazySMP();
-        }
-    }
-}
-
-void Search::releaseThreads() {
-    for (int i = 0; i < threadCount; i++) {
-        if (threads[i].joinable()) {
-            params[i].terminateSMP = true;
-            {
-                std::unique_lock <std::mutex> lk(params[i].readyMutex);
-                params[i].lazyFlag = 1;
-            }
-            params[i].lazyCV.notify_one();
-            threads[i].join();
-        }
-    }
-}
-
-void Search::kill_principal_search() {
-    if (principalThread && principalThread->joinable()) {
-        terminateSMP = true;
-        {
-            std::unique_lock <std::mutex> lk(readyMutex);
-            lazyFlag = 1;
-        }
-        lazyCV.notify_one();
-        principalThread->join();
-    }
-}
-
-void Search::set_fen(std::string fen, bool chess960) {
-    board.chess960 = chess960;
-    board.set_fen(fen);
-    for (int i = 0; i < threadCount; i++) {
-        params[i].board.chess960 = chess960;
-        params[i].board.set_fen(fen);
-    }
-}
-
-void Search::set_dfrc(int idx) {
-    board.chess960 = (idx > 0);
-    board.set_dfrc(idx);
-    for (int i = 0; i < threadCount; i++) {
-        params[i].board.chess960 = (idx > 0);
-        params[i].board.set_dfrc(idx);
-    }
-}
-
-void Search::make_move(Move move) {
-    board.make_move(move);
-    for (int i = 0; i < threadCount; i++)
-        params[i].board.make_move(move);
-}
-
-void Search::clear_board() {
-    board.clear();
-    for (int i = 0; i < threadCount; i++)
-        params[i].board.clear();
 }
