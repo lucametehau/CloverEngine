@@ -44,21 +44,19 @@ void create_pool(int thread_count) {
     }
 }
 
+void pool_stop() {
+    for(auto &thread_data : threads_data)
+        thread_data.flag_stopped = true;
+}
+
 void clear_stack_pool() {
-    for(auto &thread_data : threads_data) {
-        memset(thread_data.pvTableLen, 0, sizeof(thread_data.pvTableLen));
-        memset(thread_data.pvTable, 0, sizeof(thread_data.pvTable));
-        memset(thread_data.nodes_seached, 0, sizeof(thread_data.nodes_seached));
-    }
+    for(auto &thread_data : threads_data)
+        thread_data.clear_stack();
 }
 
 void clear_history_pool() {
-    for(auto &thread_data : threads_data) {
-        memset(thread_data.hist, 0, sizeof(thread_data.hist));
-        memset(thread_data.cap_hist, 0, sizeof(thread_data.cap_hist));
-        memset(thread_data.cont_history, 0, sizeof(thread_data.cont_history));
-        memset(thread_data.corr_hist, 0, sizeof(thread_data.corr_hist));
-    }
+    for(auto &thread_data : threads_data)
+        thread_data.clear_history();
 }
 
 void set_fen_pool(std::string fen, bool chess960 = false) {
@@ -779,12 +777,6 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
     return best;
 }
 
-void pool_stop() {
-    for(auto &thread_data : threads_data) {
-        thread_data.flag_stopped = true;
-    }
-}
-
 void main_thread_handler(Info *info) {
     for(size_t i = 1; i < threads_data.size(); i++)
         threads.push_back(std::thread(&SearchData::start_search, &threads_data[i], info));
@@ -804,7 +796,7 @@ void main_thread_handler(Info *info) {
     int bestDepth = threads_data[0].completedDepth;
     bs = threads_data[0].rootScores[1];
     bm = threads_data[0].bestMoves[1];
-    for (int i = 1; i < threads_data.size(); i++) {
+    for (size_t i = 1; i < threads_data.size(); i++) {
         if (threads_data[i].rootScores[1] > bs && threads_data[i].completedDepth >= bestDepth) {
             bs = threads_data[i].rootScores[1];
             bm = threads_data[i].bestMoves[1];

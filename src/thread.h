@@ -35,6 +35,19 @@ struct SearchData {
         }
     }
 
+    void clear_stack() {
+        memset(pvTableLen, 0, sizeof(pvTableLen));
+        memset(pvTable, 0, sizeof(pvTable));
+        memset(nodes_seached, 0, sizeof(nodes_seached));
+    }
+
+    void clear_history() {
+        memset(hist, 0, sizeof(hist));
+        memset(cap_hist, 0, sizeof(cap_hist));
+        memset(cont_history, 0, sizeof(cont_history));
+        memset(corr_hist, 0, sizeof(corr_hist));
+    }
+
     void start_search(Info* info);
 
     template <bool pvNode>
