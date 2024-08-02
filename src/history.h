@@ -89,7 +89,7 @@ void getHistory(SearchData* searcher, StackEntry* stack, Move move, uint64_t thr
 
     hist = searcher->hist[searcher->board.turn][!!(threats & (1ULL << from))][!!(threats & (1ULL << to))][fromTo(move)];
 
-    hist += 2 * (*(stack - 1)->cont_hist)[piece][to];
+    hist += (*(stack - 1)->cont_hist)[piece][to];
 
     hist += (*(stack - 2)->cont_hist)[piece][to];
 
