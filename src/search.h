@@ -125,23 +125,8 @@ bool SearchData::check_for_stop() {
 bool printStats = true; /// default true
 const bool PROBE_ROOT = true; /// default true
 
-uint32_t probe_TB(Board& board, int depth, bool probeAtRoot = 0, int halfMoves = 0, bool castlingRights = 0) {
-    if (probeAtRoot) {
-        unsigned pieces = count(board.pieces[WHITE] | board.pieces[BLACK]);
-
-        if (pieces <= TB_LARGEST) {
-            int ep = board.enPas;
-            if (ep == -1)
-                ep = 0;
-
-            return tb_probe_root(board.pieces[WHITE], board.pieces[BLACK],
-                board.bb[WK] | board.bb[BK], board.bb[WQ] | board.bb[BQ], board.bb[WR] | board.bb[BR],
-                board.bb[WB] | board.bb[BB], board.bb[WN] | board.bb[BN], board.bb[WP] | board.bb[BP],
-                halfMoves, castlingRights, ep, board.turn, nullptr);
-        }
-        return TB_RESULT_FAILED;
-    }
-    if (TB_LARGEST && depth >= 2 && !board.halfMoves && !board.castleRights) {
+uint32_t probe_TB(Board& board, int depth) {
+    if (TB_LARGEST && depth >= 2 && !board.halfMoves) {
         unsigned pieces = count(board.pieces[WHITE] | board.pieces[BLACK]);
 
         if (pieces <= TB_LARGEST) {
