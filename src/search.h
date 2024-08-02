@@ -746,7 +746,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
         if (!isNoisyMove(board, bestMove)) {
             if (stack->killer != bestMove)
                 stack->killer = bestMove;
-            updateHistory(this, stack, nrQuiets, ply, threats.threats_enemy, getHistoryBonus(depth + bad_static_eval));
+            updateHistory(this, stack, nrQuiets, ply, depth, threats.threats_enemy, getHistoryBonus(depth + bad_static_eval));
         }
         updateCapHistory(this, stack, nrCaptures, bestMove, ply, getHistoryBonus(depth + bad_static_eval));
     }
