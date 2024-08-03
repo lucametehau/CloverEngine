@@ -115,7 +115,7 @@ void generateFens(SearchData &thread_data, std::atomic <uint64_t>& sumFens, uint
 
                 //searcher->board.print();
                 thread_data.start_search(info);
-                score = thread_data.rootScores[1], move = thread_data.bestMoves[1];
+                score = thread_data.root_score[1], move = thread_data.best_move[1];
 
                 if (nrMoves == 1) { /// in this case, engine reports score 0, which might be misleading
                     thread_data.board.make_move(move);

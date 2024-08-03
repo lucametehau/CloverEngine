@@ -91,11 +91,11 @@ uint64_t get_total_nodes_pool() {
     return nodes;
 }
 
-uint64_t get_total_tbhits_pool() {
+uint64_t get_total_tb_hits_pool() {
     std::lock_guard <std::mutex> lock(threads_mutex);
     uint64_t nodes = 0;
     for(auto &thread_data : threads_data)
-        nodes += thread_data.tbHits;
+        nodes += thread_data.tb_hits;
     return nodes;
 }
 
@@ -211,24 +211,24 @@ std::string getSanString(Board& board, Move move) {
 }
 
 void SearchData::printPv() {
-    for (int i = 0; i < pvTableLen[0]; i++) {
+    for (int i = 0; i < pv_table_len[0]; i++) {
         if (!info->sanMode)
-            std::cout << move_to_string(pvTable[0][i], info->chess960) << " ";
+            std::cout << move_to_string(pv_table[0][i], info->chess960) << " ";
         else {
-            std::cout << getSanString(board, pvTable[0][i]) << " ";
-            board.make_move(pvTable[0][i]);
+            std::cout << getSanString(board, pv_table[0][i]) << " ";
+            board.make_move(pv_table[0][i]);
         }
     }
 
     if (info->sanMode) {
-        for (int i = pvTableLen[0] - 1; i >= 0; i--) board.undo_move(pvTable[0][i]);
+        for (int i = pv_table_len[0] - 1; i >= 0; i--) board.undo_move(pv_table[0][i]);
     }
 }
 
 void SearchData::update_pv(int ply, int move) {
-    pvTable[ply][0] = move;
-    for (int i = 0; i < pvTableLen[ply + 1]; i++) pvTable[ply][i + 1] = pvTable[ply + 1][i];
-    pvTableLen[ply] = 1 + pvTableLen[ply + 1];
+    pv_table[ply][0] = move;
+    for (int i = 0; i < pv_table_len[ply + 1]; i++) pv_table[ply][i + 1] = pv_table[ply + 1][i];
+    pv_table_len[ply] = 1 + pv_table_len[ply + 1];
 }
 
 template <bool pvNode>
@@ -237,7 +237,7 @@ int SearchData::quiesce(int alpha, int beta, StackEntry* stack) {
 
     if (ply >= DEPTH) return evaluate(board);
 
-    pvTableLen[ply] = 0;
+    pv_table_len[ply] = 0;
 
     nodes++;
 
@@ -374,9 +374,9 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
     bool ttHit = false;
 
     nodes++;
-    selDepth = std::max(selDepth, ply);
+    sel_depth = std::max(sel_depth, ply);
 
-    pvTableLen[ply] = 0;
+    pv_table_len[ply] = 0;
 
     if constexpr (!rootNode) {
         if (board.is_draw(ply)) return 1 - (nodes & 2); /// beal effect, credit to Ethereal for this
@@ -410,7 +410,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
         const auto probe = probe_TB(board, depth);
         if (probe != TB_RESULT_FAILED) {
             int type = NONE, score;
-            tbHits++;
+            tb_hits++;
             switch (probe) {
             case TB_WIN:
                 score = TB_WIN_SCORE - DEPTH - ply;
@@ -553,7 +553,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
         if constexpr (rootNode) {
             bool searched = false;
             for (int i = 1; i < multipv_index; i++) {
-                if (move == bestMoves[i]) {
+                if (move == best_move[i]) {
                     searched = true;
                     break;
                 }
@@ -574,7 +574,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
                 getHistory(this, stack, move, threats.threats_enemy, history);
 
                 /// approximately the new depth for the next search
-                int newDepth = std::max(0, depth - lmrRed[std::min(63, depth)][std::min(63, played)] + improving);
+                int newDepth = std::max(0, depth - lmr_red[std::min(63, depth)][std::min(63, played)] + improving);
 
                 /// futility pruning
                 if (newDepth <= FPDepth && !isCheck && 
@@ -603,7 +603,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
                     getHistory(this, stack, move, threats.threats_enemy, history);
 
                     /// approximately the new depth for the next search
-                    int newDepth = std::max(0, depth - lmrRed[std::min(63, depth)][std::min(63, played)] + improving + history / MoveloopHistDiv);
+                    int newDepth = std::max(0, depth - lmr_red[std::min(63, depth)][std::min(63, played)] + improving + history / MoveloopHistDiv);
 
                     /// futility pruning
                     if (newDepth <= FPDepth && !isCheck && 
@@ -676,7 +676,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
 
         if (depth >= 2 && played > 1 + pvNode + rootNode) { /// first few moves we don't reduce
             if (isQuiet) {
-                R = lmrRed[std::min(63, depth)][std::min(63, played)];
+                R = lmr_red[std::min(63, depth)][std::min(63, played)];
                 R += !wasPV + (improving <= 0); /// not on pv or not improving
                 R -= !rootNode && pvNode;
                 R += enemy_has_no_threats && !isCheck && eval - seeVal[KNIGHT] > beta; /// if the position is relatively quiet and eval is bigger than beta by a margin
@@ -686,7 +686,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
                 R -= history / HistReductionDiv; /// reduce based on move history
             }
             else if (!wasPV) {
-                R = lmrRedNoisy[std::min(63, depth)][std::min(63, played)];
+                R = lmr_red_noisy[std::min(63, depth)][std::min(63, played)];
                 R += improving <= 0; /// not improving
                 R += enemy_has_no_threats && picker.trueStage == STAGE_BAD_NOISY; /// if the position is relatively quiet and the capture is "very losing"
             }
@@ -724,8 +724,8 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
             bestMove = move;
             if (score > alpha) {
                 if constexpr (rootNode) {
-                    bestMoves[multipv_index] = move;
-                    rootScores[multipv_index] = score;
+                    best_move[multipv_index] = move;
+                    root_score[multipv_index] = score;
                 }
                 alpha = score;
                 if constexpr(pvNode)
@@ -778,14 +778,14 @@ void main_thread_handler(Info *info) {
     int bs = 0;
     Move bm = NULLMOVE;
     
-    int bestDepth = threads_data[0].completedDepth;
-    bs = threads_data[0].rootScores[1];
-    bm = threads_data[0].bestMoves[1];
+    int bestDepth = threads_data[0].completed_depth;
+    bs = threads_data[0].root_score[1];
+    bm = threads_data[0].best_move[1];
     for (size_t i = 1; i < threads_data.size(); i++) {
-        if (threads_data[i].rootScores[1] > bs && threads_data[i].completedDepth >= bestDepth) {
-            bs = threads_data[i].rootScores[1];
-            bm = threads_data[i].bestMoves[1];
-            bestDepth = threads_data[i].completedDepth;
+        if (threads_data[i].root_score[1] > bs && threads_data[i].completed_depth >= bestDepth) {
+            bs = threads_data[i].root_score[1];
+            bm = threads_data[i].best_move[1];
+            bestDepth = threads_data[i].completed_depth;
         }
     }
 
@@ -798,13 +798,13 @@ void main_thread_handler(Info *info) {
 void SearchData::start_search(Info* _info) {
     int alpha, beta;
 
-    nodes = selDepth = tbHits = 0;
+    nodes = sel_depth = tb_hits = 0;
     t0 = getTime();
     flag_stopped = false;
     checkCount = 0;
     best_move_cnt = 0;
 
-    memset(pvTable, 0, sizeof(pvTable));
+    memset(pv_table, 0, sizeof(pv_table));
     info = _info;
 
     int limitDepth = (thread_id == 0 ? info->depth : DEPTH); /// when limited by depth, allow helper threads to pass the fixed depth
@@ -816,8 +816,8 @@ void SearchData::start_search(Info* _info) {
     StackEntry* stack = search_stack + 10;
 
     memset(search_stack, 0, sizeof(search_stack));
-    memset(bestMoves, 0, sizeof(bestMoves));
-    memset(rootScores, 0, sizeof(rootScores));
+    memset(best_move, 0, sizeof(best_move));
+    memset(root_score, 0, sizeof(root_score));
 
     rootEval = (!board.checkers ? evaluate(board) : INF);
 
@@ -826,7 +826,7 @@ void SearchData::start_search(Info* _info) {
 
     //values[0].init("nmp_pv_rate");
 
-    completedDepth = 0;
+    completed_depth = 0;
 
     for (tDepth = 1; tDepth <= limitDepth; tDepth++) {
         multipv_index = 0;
@@ -845,14 +845,14 @@ void SearchData::start_search(Info* _info) {
             int depth = tDepth;
             while (true) {
                 depth = std::max({ depth, 1, tDepth - 4 });
-                selDepth = 0;
+                sel_depth = 0;
                 scores[i] = search<true, true>(alpha, beta, depth, false, stack);
                 if (flag_stopped)
                     break;
 
                 if (thread_id == 0 && printStats && ((alpha < scores[i] && scores[i] < beta) || (i == 1 && getTime() > t0 + 3000))) {
                     uint64_t total_nodes = get_total_nodes_pool();
-                    uint64_t total_tbhits = get_total_tbhits_pool();
+                    uint64_t total_tb_hits = get_total_tb_hits_pool();
                     uint64_t t = (uint64_t)getTime() - t0;
                     if (!info->sanMode) {
                         std::cout << "info ";
@@ -874,18 +874,18 @@ void SearchData::start_search(Info* _info) {
                         int wdlDraw = 1000 - wdlWin - wdlLose;
                         uint64_t shady_stuff = total_nodes * 8 / 7;
                         std::cout << " wdl " << wdlWin << " " << wdlDraw << " " << wdlLose;
-                        std::cout << " depth " << depth << " seldepth " << selDepth << " nodes " << shady_stuff;
+                        std::cout << " depth " << depth << " sel_depth " << sel_depth << " nodes " << shady_stuff;
                         if (t)
                             std::cout << " nps " << shady_stuff * 1000 / t;
                         std::cout << " time " << t << " ";
-                        std::cout << "tbhits " << total_tbhits << " hashfull " << TT->tableFull() << " ";
+                        std::cout << "tb_hits " << total_tb_hits << " hashfull " << TT->tableFull() << " ";
                         std::cout << "pv ";
                         printPv();
                         std::cout << std::endl;
                     }
                     else {
                         uint64_t total_nodes = get_total_nodes_pool();
-                        std::cout << std::setw(3) << depth << "/" << std::setw(3) << selDepth << " ";
+                        std::cout << std::setw(3) << depth << "/" << std::setw(3) << sel_depth << " ";
                         if (t < 10 * 1000)
                             std::cout << std::setw(7) << std::setprecision(2) << t / 1000.0 << "s   ";
                         else
@@ -911,15 +911,15 @@ void SearchData::start_search(Info* _info) {
                     beta = (beta + alpha) / 2;
                     alpha = std::max(-INF, alpha - window);
                     depth = tDepth;
-                    completedDepth = tDepth - 1;
+                    completed_depth = tDepth - 1;
                 }
                 else if (beta <= scores[i]) {
                     beta = std::min(INF, beta + window);
                     depth--;
-                    completedDepth = tDepth;
+                    completed_depth = tDepth;
                 }
                 else {
-                    completedDepth = tDepth;
+                    completed_depth = tDepth;
                     break;
                 }
 
@@ -928,24 +928,24 @@ void SearchData::start_search(Info* _info) {
         }
 
         if (thread_id == 0 && !flag_stopped) {
-            double scoreChange = 1.0, bestMoveStreak = 1.0, nodesSearchedPercentage = 1.0;
+            double scoreChange = 1.0, best_movetreak = 1.0, nodesSearchedPercentage = 1.0;
             float _tmNodesSearchedMaxPercentage = TimeManagerNodesSearchedMaxPercentage / 1000.0;
             float _tmBestMoveMax = TimeManagerBestMoveMax / 1000.0;
-            float _tmBestMoveStep = TimeManagerBestMoveStep / 1000.0;
+            float _tmbest_movetep = TimeManagerbest_movetep / 1000.0;
             if (tDepth >= TimeManagerMinDepth) {
-                scoreChange = std::max(TimeManagerScoreMin / 100.0, std::min(TimeManagerScoreBias / 100.0 + 1.0 * (mainThreadScore - rootScores[1]) / TimeManagerScoreDiv, TimeManagerScoreMax / 100.0)); /// adjust time based on score change
-                best_move_cnt = (bestMoves[1] == mainThreadBestMove ? best_move_cnt + 1 : 1);
+                scoreChange = std::max(TimeManagerScoreMin / 100.0, std::min(TimeManagerScoreBias / 100.0 + 1.0 * (mainThreadScore - root_score[1]) / TimeManagerScoreDiv, TimeManagerScoreMax / 100.0)); /// adjust time based on score change
+                best_move_cnt = (best_move[1] == mainThreadBestMove ? best_move_cnt + 1 : 1);
                 /// adjust time based on how many nodes from the total searched nodes were used for the best move
-                nodesSearchedPercentage = 1.0 * nodes_seached[fromTo(bestMoves[1])] / nodes;
+                nodesSearchedPercentage = 1.0 * nodes_seached[fromTo(best_move[1])] / nodes;
                 nodesSearchedPercentage = TimeManagerNodesSeachedMaxCoef / 100.0 * _tmNodesSearchedMaxPercentage -
                     TimeManagerNodesSearchedCoef / 100.0 * nodesSearchedPercentage;
-                bestMoveStreak = _tmBestMoveMax - _tmBestMoveStep * std::min(10, best_move_cnt); /// adjust time based on how long the best move was the same
+                best_movetreak = _tmBestMoveMax - _tmbest_movetep * std::min(10, best_move_cnt); /// adjust time based on how long the best move was the same
             }
-            //std::cout << "Scale factor for tm is " << scoreChange * bestMoveStreak * nodesSearchedPercentage * 100 << "%\n";
-            //std::cout << scoreChange * 100 << " " << bestMoveStreak * 100 << " " << _tmNodesSearchedMaxPercentage - nodesSearchedPercentage << "\n";
-            info->stopTime = info->startTime + info->goodTimeLim * scoreChange * bestMoveStreak * nodesSearchedPercentage;
-            mainThreadScore = rootScores[1];
-            mainThreadBestMove = bestMoves[1];
+            //std::cout << "Scale factor for tm is " << scoreChange * best_movetreak * nodesSearchedPercentage * 100 << "%\n";
+            //std::cout << scoreChange * 100 << " " << best_movetreak * 100 << " " << _tmNodesSearchedMaxPercentage - nodesSearchedPercentage << "\n";
+            info->stopTime = info->startTime + info->goodTimeLim * scoreChange * best_movetreak * nodesSearchedPercentage;
+            mainThreadScore = root_score[1];
+            mainThreadBestMove = best_move[1];
         }
 
         if (flag_stopped)

@@ -25,19 +25,20 @@
 
 int seeVal[] = { 0, SeeValPawn, SeeValKnight, SeeValBishop, SeeValRook, SeeValQueen, 20000 };
 
-struct SearchData {
+class SearchData {
+public:
     SearchData() {
         for (int i = 0; i < 64; i++) { /// depth
             for (int j = 0; j < 64; j++) { /// moves played 
-                lmrRed[i][j] = LMRQuietBias / 100.0 + log(i) * log(j) / (LMRQuietDiv / 100.0);
-                lmrRedNoisy[i][j] = LMRNoisyBias / 100.0 + lmrRed[i][j] / (LMRNoisyDiv / 100.0);
+                lmr_red[i][j] = LMRQuietBias / 100.0 + log(i) * log(j) / (LMRQuietDiv / 100.0);
+                lmr_red_noisy[i][j] = LMRNoisyBias / 100.0 + lmr_red[i][j] / (LMRNoisyDiv / 100.0);
             }
         }
     }
 
     void clear_stack() {
-        memset(pvTableLen, 0, sizeof(pvTableLen));
-        memset(pvTable, 0, sizeof(pvTable));
+        memset(pv_table_len, 0, sizeof(pv_table_len));
+        memset(pv_table, 0, sizeof(pv_table));
         memset(nodes_seached, 0, sizeof(nodes_seached));
     }
 
@@ -50,13 +51,14 @@ struct SearchData {
 
     void start_search(Info* info);
 
+    void setTime(Info* _info) { info = _info; }
+
+private:
     template <bool pvNode>
     int quiesce(int alpha, int beta, StackEntry* stack); /// for quiet position check (tuning)
 
     template <bool rootNode, bool pvNode>
     int search(int alpha, int beta, int depth, bool cutNode, StackEntry* stack);
-
-    void setTime(Info* tInfo) { info = tInfo; }
 
     void printPv();
     void update_pv(int ply, int move);
@@ -66,32 +68,36 @@ struct SearchData {
 
     uint64_t nodes_seached[64 * 64];
 
+public:
+    Info* info;
     int16_t hist[2][2][2][64 * 64];
     int16_t cap_hist[13][64][7];
     TablePieceTo cont_history[2][13][64];
     int corr_hist[2][65536];
 
-    int lmrRed[64][64], lmrRedNoisy[64][64];
+    int lmr_red[64][64], lmr_red_noisy[64][64];
 
-    int pvTableLen[DEPTH + 5];
-    Move pvTable[DEPTH + 5][2 * DEPTH + 5];
-    Move bestMoves[256];
-    int scores[256], rootScores[256];
+    int pv_table_len[DEPTH + 5];
+    Move pv_table[DEPTH + 5][2 * DEPTH + 5];
+    Move best_move[256];
+    int scores[256], root_score[256];
     MeanValue values[10];
 
-    uint64_t tbHits;
+private:
     int64_t t0;
-    Info* info;
     int checkCount;
 
     int best_move_cnt;
     int multipv_index;
 
-    int tDepth, completedDepth, selDepth;
+    int tDepth, sel_depth;
 
-    int rootEval, rootDepth;
+    int rootEval;
 
+public:
+    uint64_t tb_hits;
     int64_t nodes;
+    int completed_depth;
     int thread_id;
     Board board;
 

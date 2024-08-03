@@ -37,7 +37,6 @@ public:
     void Bench(int depth);
 
 private:
-
     void Uci();
     void UciNewGame(uint64_t ttSize);
     void IsReady();
