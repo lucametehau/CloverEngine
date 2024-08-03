@@ -115,10 +115,10 @@ const int Q_IN_HIDDEN = Q_IN * Q_HIDDEN;
 const reg_type zero{};
 const reg_type one = reg_set1(Q_IN);
 
-int16_t inputBiases[SIDE_NEURONS] __attribute__((aligned(ALIGN)));
+alignas(ALIGN) int16_t inputBiases[SIDE_NEURONS];
 int16_t outputBias;
-int16_t inputWeights[INPUT_NEURONS * SIDE_NEURONS] __attribute__((aligned(ALIGN)));
-int16_t outputWeights[HIDDEN_NEURONS] __attribute__((aligned(ALIGN)));
+alignas(ALIGN) int16_t inputWeights[INPUT_NEURONS * SIDE_NEURONS];
+alignas(ALIGN) int16_t outputWeights[HIDDEN_NEURONS];
 
 void loadNNUEWeights() {
     int16_t* intData = (int16_t*)gNetData;
@@ -157,7 +157,7 @@ struct NetHist {
 };
 
 struct KingBucketState {
-    int16_t output[SIDE_NEURONS] __attribute__((aligned(ALIGN)));
+    alignas(ALIGN) int16_t output[SIDE_NEURONS];
 
     uint64_t bb[13]{};
 };
@@ -168,7 +168,7 @@ public:
     Network() {
         histSz = 0;
 
-        for (auto& c : { BLACK, WHITE }) {
+        for (auto c : { BLACK, WHITE }) {
             for (int i = 0; i < 2 * KING_BUCKETS; i++) {
                 memcpy(state[c][i].output, inputBiases, sizeof(inputBiases));
                 memset(state[c][i].bb, 0, sizeof(state[c][i].bb));
@@ -483,7 +483,7 @@ public:
 
     int addSz, subSz;
 
-    int16_t output_history[2005][2][SIDE_NEURONS] __attribute__((aligned(ALIGN)));
+    alignas(ALIGN) int16_t output_history[2005][2][SIDE_NEURONS];
     KingBucketState state[2][2 * KING_BUCKETS];
 
     int16_t add_ind[32], sub_ind[32];
