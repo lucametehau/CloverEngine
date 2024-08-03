@@ -615,7 +615,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
                     if (depth <= 3 && bad_static_eval && history < -4096 * depth) continue;
 
                     if (newDepth <= SEEPruningQuietDepth && !isCheck && 
-                        !see(board, move, -SEEPruningQuietMargin * newDepth)) continue;
+                        !see(board, move, -SEEPruningQuietMargin * newDepth - history / 256)) continue;
                 }
                 else {
                     if (depth <= SEEPruningNoisyDepth && !isCheck && picker.trueStage > STAGE_GOOD_NOISY && 
