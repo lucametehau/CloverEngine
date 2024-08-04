@@ -823,8 +823,6 @@ void SearchData::start_search(Info* _info) {
 
     for (int i = 1; i <= 10; i++)
         (stack - i)->cont_hist = &cont_history[0][0][0], (stack - i)->eval = INF, (stack - i)->move = NULLMOVE;
-    for(int i = 0; i < 10; i++)
-        values[i].init("se_stuff");
 
     completed_depth = 0;
 
@@ -870,7 +868,7 @@ void SearchData::start_search(Info* _info) {
                         int wdlDraw = 1000 - wdlWin - wdlLose;
                         uint64_t shady_stuff = total_nodes * 8 / 7;
                         std::cout << " wdl " << wdlWin << " " << wdlDraw << " " << wdlLose;
-                        
+
                         std::cout << " depth " << depth << " sel_depth " << sel_depth << " nodes " << shady_stuff;
                         if (t)
                             std::cout << " nps " << shady_stuff * 1000 / t;
