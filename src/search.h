@@ -615,11 +615,12 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
                     if (depth <= 3 && bad_static_eval && history < -4096 * depth) continue;
 
                     if (newDepth <= SEEPruningQuietDepth && !isCheck && 
-                        !see(board, move, -SEEPruningQuietMargin * newDepth - history / 128)) continue;
+                        !see(board, move, -SEEPruningQuietMargin * newDepth)) continue;
                 }
                 else {
+                    history = getCapHist(this, move);
                     if (depth <= SEEPruningNoisyDepth && !isCheck && picker.trueStage > STAGE_GOOD_NOISY && 
-                        !see(board, move, -SEEPruningNoisyMargin * (depth + bad_static_eval) * (depth + bad_static_eval))) continue;
+                        !see(board, move, -SEEPruningNoisyMargin * (depth + bad_static_eval) * (depth + bad_static_eval) - history / 256)) continue;
 
                     if (depth <= FPNoisyDepth && !isCheck && 
                         static_eval + FPBias + seeVal[board.piece_type_at(sq_to(move))] + FPMargin * depth <= alpha) continue;
