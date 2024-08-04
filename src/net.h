@@ -166,7 +166,7 @@ class Network {
 public:
 
     Network() {
-        histSz = 0;
+        hist_size = 0;
 
         for (auto c : { BLACK, WHITE }) {
             for (int i = 0; i < 2 * KING_BUCKETS; i++) {
@@ -229,7 +229,7 @@ public:
             assert(-32768 <= sum && sum <= 32767);
         }
 
-        histSz = 1;
+        hist_size = 1;
         hist[0].calc[0] = hist[0].calc[1] = 1;
 
         return get_output(stm);
@@ -442,16 +442,16 @@ public:
     }
 
     void add_move_to_history(uint16_t move, uint8_t piece, uint8_t captured) {
-        hist[histSz] = { move, piece, captured, (piece_type(piece) == KING && recalc(sq_from(move), special_sqto(move), color_of(piece))), { 0, 0 } };
-        histSz++;
+        hist[hist_size] = { move, piece, captured, (piece_type(piece) == KING && recalc(sq_from(move), special_sqto(move), color_of(piece))), { 0, 0 } };
+        hist_size++;
     }
 
     void revert_move() {
-        histSz--;
+        hist_size--;
     }
 
     int get_computed_parent(int c) {
-        int i = histSz - 1;
+        int i = hist_size - 1;
         while (!hist[i].calc[c]) {
             if (color_of(hist[i].piece) == c && hist[i].recalc)
                 return -1;
@@ -463,8 +463,8 @@ public:
     int32_t get_output(bool stm) {
         reg_type_s acc{};
 
-        const reg_type* w = reinterpret_cast<const reg_type*>(output_history[histSz - 1][stm]);
-        const reg_type* w2 = reinterpret_cast<const reg_type*>(output_history[histSz - 1][stm ^ 1]);
+        const reg_type* w = reinterpret_cast<const reg_type*>(output_history[hist_size - 1][stm]);
+        const reg_type* w2 = reinterpret_cast<const reg_type*>(output_history[hist_size - 1][stm ^ 1]);
         const reg_type* v = reinterpret_cast<const reg_type*>(outputWeights);
         const reg_type* v2 = reinterpret_cast<const reg_type*>(&outputWeights[SIDE_NEURONS]);
         reg_type clamped;
@@ -479,7 +479,7 @@ public:
         return (outputBias + get_sum(acc) / Q_IN) * 225 / Q_IN_HIDDEN;
     }
 
-    int histSz;
+    int hist_size;
 
     int addSz, subSz;
 

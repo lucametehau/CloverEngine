@@ -60,7 +60,7 @@ private:
     template <bool rootNode, bool pvNode>
     int search(int alpha, int beta, int depth, bool cutNode, StackEntry* stack);
 
-    void printPv();
+    void print_pv();
     void update_pv(int ply, int move);
 
     template <bool checkTime>

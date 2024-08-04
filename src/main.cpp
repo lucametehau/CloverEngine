@@ -33,7 +33,7 @@ int main(int argc, char** argv) {
                 std::string s = argv[2];
                 depth = stoi(s);
             }
-            uci.Bench(depth);
+            uci.bench(depth);
             return 0;
         }
         if (!strncmp(argv[1], "generate", 8)) {
@@ -50,6 +50,6 @@ int main(int argc, char** argv) {
         }
     }
 
-    uci.uciLoop();
+    uci.uci_loop();
     return 0;
 }

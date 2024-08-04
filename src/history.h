@@ -59,7 +59,7 @@ void updateCaptureMoveHistory(SearchData* searcher, Move move, int16_t bonus) {
 }
 
 void updateHistory(SearchData* searcher, StackEntry* stack, int nrQuiets, int ply, int depth, uint64_t threats, int16_t bonus) {
-    if (!nrQuiets) /// we can't update if we don't have a follow move or no quiets
+    if (!nrQuiets)
         return;
     
     const Move best = stack->quiets[nrQuiets - 1];

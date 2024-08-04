@@ -28,14 +28,13 @@ uint64_t getPinnedPieces(Board& board, bool turn) {
     int color = board.turn, enemy = color ^ 1;
     int king = board.king(color);
     uint64_t mask, us = board.pieces[color], them = board.pieces[enemy];
-    uint64_t b2;
     uint64_t pinned = 0; /// squares attacked by enemy / pinned pieces
     uint64_t enemyOrthSliders = board.orthogonal_sliders(enemy), enemyDiagSliders = board.diagonal_sliders(enemy);
 
     mask = (genAttacksRook(them, king) & enemyOrthSliders) | (genAttacksBishop(them, king) & enemyDiagSliders);
 
     while (mask) {
-        b2 = us & between[sq_lsb(mask)][king];
+        uint64_t b2 = us & between[sq_lsb(mask)][king];
         if (!(b2 & (b2 - 1)))
             pinned ^= b2;
     }

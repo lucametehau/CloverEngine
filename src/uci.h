@@ -30,29 +30,25 @@ const std::string VERSION = "7.0-dev";
 class UCI {
 public:
     UCI() {}
-    ~UCI() {}
-
 public:
-    void uciLoop();
-    void Bench(int depth);
+    void uci_loop();
+    void bench(int depth = -1);
 
 private:
-    void Uci();
+    void uci();
     void UciNewGame(uint64_t ttSize);
-    void IsReady();
-    void Go(Info* info);
-    void Stop();
-    void Position();
-    void SetOption();
-    void Eval();
-    void Perft(int depth);
-    void addOption(std::string name, int value);
-    void setParameterI(std::istringstream& iss, int& value);
+    void is_ready();
+    void go(Info* info);
+    void stop();
+    void quit();
+    void eval();
+    void go_perft(int depth);
+    void set_param_int(std::istringstream& iss, int& value);
 public:
     std::thread main_thread;
 };
 
-void UCI::setParameterI(std::istringstream& iss, int& value) {
+void UCI::set_param_int(std::istringstream& iss, int& value) {
     std::string valuestr;
     iss >> valuestr;
 
@@ -61,10 +57,8 @@ void UCI::setParameterI(std::istringstream& iss, int& value) {
     value = newValue;
 }
 
-void UCI::uciLoop() {
-
+void UCI::uci_loop() {
     uint64_t ttSize = 8;
-
     std::cout << "Clover " << VERSION << " by Luca Metehau" << std::endl;
 
 #ifndef GENERATE
@@ -72,55 +66,40 @@ void UCI::uciLoop() {
 #endif
 
     Info info[1];
-
     init(info);
-
     create_pool(1);
-
     UciNewGame(ttSize);
+
     std::string input;
-
     while (getline(std::cin, input)) {
-
         std::istringstream iss(input);
-
         std::string cmd;
-
         iss >> std::skipws >> cmd;
-
         if (cmd == "isready") {
-            IsReady();
+            is_ready();
         }
         else if (cmd == "position") {
             std::string type;
-
             while (iss >> type) {
                 if (type == "startpos") {
                     set_fen_pool(START_POS_FEN);
                 }
                 else if (type == "fen") {
                     std::string fen;
-
                     for (int i = 0; i < 6; i++) {
                         std::string component;
                         iss >> component;
                         fen += component + " ";
                     }
-
                     set_fen_pool(fen, info->chess960);
                 }
                 else if (type == "moves") {
                     std::string moveStr;
-
                     while (iss >> moveStr) {
-                        int move = parse_move_string(threads_data[0].board, moveStr, info);
-
-                        make_move_pool(move);
+                        make_move_pool(parse_move_string(threads_data[0].board, moveStr, info));
                     }
                 }
             }
-
-            //searcher.board.print(); /// just to be sure
         }
         else if (cmd == "ucinewgame") {
             UciNewGame(ttSize);
@@ -128,6 +107,7 @@ void UCI::uciLoop() {
         else if (cmd == "go") {
             if(main_thread.joinable())
                 main_thread.join();
+            
             int depth = -1, movestogo = 40, movetime = -1;
             int time = -1, inc = 0;
             int64_t nodes = -1;
@@ -196,20 +176,16 @@ void UCI::uciLoop() {
             if (depth == -1)
                 info->depth = DEPTH;
 
-            Go(info);
+            go(info);
         }
         else if (cmd == "quit") {
-            Stop();
-            delete_pool();
-            if(main_thread.joinable())
-                main_thread.join();
-            return;
+            quit();
         }
         else if (cmd == "stop") {
-            Stop();
+            stop();
         }
         else if (cmd == "uci") {
-            Uci();
+            uci();
         }
         else if (cmd == "checkmove") {
             std::string moveStr;
@@ -224,61 +200,44 @@ void UCI::uciLoop() {
         }
         else if (cmd == "setoption") {
             std::string name, value;
-
             iss >> name;
-
             if (name == "name")
                 iss >> name;
+            else
+                quit();
 
             if (name == "Hash") {
-                iss >> value;
-
-                iss >> ttSize;
+                iss >> value >> ttSize;
 #ifndef GENERATE
                 TT->initTable(ttSize * MB, threads_data.size());
 #endif
             }
             else if (name == "Threads") {
                 int nrThreads;
-
-                iss >> value;
-
-                iss >> nrThreads;
-
+                iss >> value >> nrThreads;
                 create_pool(nrThreads);
                 UciNewGame(ttSize);
             }
             else if (name == "SyzygyPath") {
                 std::string path;
-
-                iss >> value;
-
-                iss >> path;
-
+                iss >> value >> path;
                 tb_init(path.c_str());
             }
             else if (name == "MultiPV") {
-                iss >> value;
-
                 int multipv;
-
-                iss >> multipv;
-
+                iss >> value >> multipv;
                 info->multipv = multipv;
             }
             else if (name == "UCI_Chess960") {
-                iss >> value;
+                std::string chess960;
+                iss >> value >> chess960;
 
-                std::string truth;
-
-                iss >> truth;
-
-                info->chess960 = (truth == "true");
+                info->chess960 = (chess960 == "true");
             }
             else {
                 for (auto& param : params) {
                     if (name == param.name) {
-                        setParameterI(iss, param.value);
+                        set_param_int(iss, param.value);
                         break;
                     }
                 }
@@ -287,26 +246,22 @@ void UCI::uciLoop() {
         else if (cmd == "generate") {
             int nrThreads, nrFens;
             std::string path;
-
             iss >> nrFens >> nrThreads >> path;
-
             generateData(nrFens, nrThreads, path);
         }
         else if (cmd == "show") {
             threads_data[0].board.print();
         }
         else if (cmd == "eval") {
-            Eval();
+            eval();
         }
         else if (cmd == "perft") {
             int depth;
-
             iss >> depth;
-
-            Perft(depth);
+            go_perft(depth);
         }
         else if (cmd == "bench") {
-            Bench(-1);
+            bench();
         }
         else if (cmd == "evalbench") {
             int eval = evaluate(threads_data[0].board);
@@ -318,25 +273,19 @@ void UCI::uciLoop() {
                 auto end = std::chrono::high_resolution_clock::now();
                 total += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
             }
-
             std::cout << eval << " evaluation and " << total / N << "ns\n";
         }
         else if (cmd == "see") {
-            std::string mv;
-            int th;
-            iss >> mv >> th;
-
-            Move move = parse_move_string(threads_data[0].board, mv, info);
-
-            std::cout << see(threads_data[0].board, move, th) << std::endl;
+            std::string move_string;
+            int threshold;
+            iss >> move_string >> threshold;
+            Move move = parse_move_string(threads_data[0].board, move_string, info);
+            std::cout << see(threads_data[0].board, move, threshold) << std::endl;
         }
-
-        if (info->quit)
-            break;
     }
 }
 
-void UCI::Uci() {
+void UCI::uci() {
     std::cout << "id name Clover " << VERSION << std::endl;
     std::cout << "id author Luca Metehau" << std::endl;
     std::cout << "option name Hash type spin default 8 min 2 max 131072" << std::endl;
@@ -344,7 +293,6 @@ void UCI::Uci() {
     std::cout << "option name SyzygyPath type string default <empty>" << std::endl;
     std::cout << "option name MultiPV type spin default 1 min 1 max 255" << std::endl;
     std::cout << "option name UCI_Chess960 type check default false" << std::endl;
-    std::cout << "option name Ponder type check default false" << std::endl;
     for (auto& param : params)
         std::cout << "option name " << param.name << " type spin default " << param.value << " min " << param.min << " max " << param.max << std::endl;
     std::cout << "uciok" << std::endl;
@@ -352,17 +300,15 @@ void UCI::Uci() {
 
 void UCI::UciNewGame(uint64_t ttSize) {
     set_fen_pool(START_POS_FEN);
-
     clear_history_pool();
     clear_stack_pool();
-
 #ifndef GENERATE
     TT->resetAge();
     TT->initTable(ttSize * MB, threads_data.size());
 #endif
 }
 
-void UCI::Go(Info* info) {
+void UCI::go(Info* info) {
 #ifndef GENERATE
     TT->age();
 #endif
@@ -371,21 +317,29 @@ void UCI::Go(Info* info) {
     main_thread = std::thread(main_thread_handler, info);
 }
 
-void UCI::Stop() {
+void UCI::stop() {
     pool_stop();
 }
 
-void UCI::Eval() {
+void UCI::quit() {
+    stop();
+    delete_pool();
+    if(main_thread.joinable())
+        main_thread.join();
+    exit(0);
+}
+
+void UCI::eval() {
     std::cout << evaluate(threads_data[0].board) << std::endl;
 }
 
-void UCI::IsReady() {
+void UCI::is_ready() {
     std::cout << "readyok" << std::endl;
 }
 
-void UCI::Perft(int depth) {
+void UCI::go_perft(int depth) {
     long double t1 = getTime();
-    uint64_t nodes = perft(threads_data[0].board, depth, 1);
+    uint64_t nodes = perft<true>(threads_data[0].board, depth);
     long double t2 = getTime();
     long double t = (t2 - t1) / 1000.0;
     uint64_t nps = nodes / t;
@@ -450,10 +404,8 @@ std::string benchPos[] = {
     "2r2b2/5p2/5k2/p1r1pP2/P2pB3/1P3P2/K1P3R1/7R w - - 23 93",
 };
 
-/// IMPORTANT NOTICE: AFTER RUNNING bench, RUN ucinewgame AGAIN (to fix)
-/// why? because tt is initialized with 16MB when bench is run
 
-void UCI::Bench(int depth) {
+void UCI::bench(int depth) {
     Info info[1];
 
 #ifndef GENERATE
@@ -461,19 +413,14 @@ void UCI::Bench(int depth) {
 #endif
 
     init(info);
-
     uint64_t ttSize = 16;
-    
     create_pool(1);
     UciNewGame(ttSize);
 
     printStats = false;
 
-    /// do fixed depth searches for some positions
-
     uint64_t start = getTime();
     uint64_t totalNodes = 0;
-
     for (auto& fen : benchPos) {
         set_fen_pool(fen);
         info->timeset = 0;
@@ -482,12 +429,8 @@ void UCI::Bench(int depth) {
         info->nodes = -1;
         threads_data[0].start_search(info);
         totalNodes += threads_data[0].nodes;
-
         UciNewGame(ttSize);
-        //std::cout << "[" << fen << "] : " << searcher.nodes << "\n";
     }
-
-    //std::cout << "};\n";
 
     uint64_t end = getTime();
     long double t = 1.0 * (end - start) / 1000.0;
