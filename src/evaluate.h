@@ -33,13 +33,13 @@ inline int scale(Board& board) {
 
 void bring_up_to_date(Board& board) {
     Network* NN = &board.NN;
-    int histSz = NN->histSz;
+    int hist_size = NN->hist_size;
     for (auto c : { BLACK, WHITE }) {
-        if (!NN->hist[histSz - 1].calc[c]) {
+        if (!NN->hist[hist_size - 1].calc[c]) {
             int i = NN->get_computed_parent(c) + 1;
             if (i != 0) { // no full refresh required
                 const int king = board.king(c);
-                for (int j = i; j < histSz; j++) {
+                for (int j = i; j < hist_size; j++) {
                     NetHist *hist = &NN->hist[j];
                     hist->calc[c] = 1;
                     NN->process_move(hist->move, hist->piece, hist->cap, king, c, NN->output_history[j][c], NN->output_history[j - 1][c]);
@@ -63,8 +63,8 @@ void bring_up_to_date(Board& board) {
                     state->bb[i] = board.bb[i];
                 }
                 NN->apply_updates(state->output, state->output);
-                memcpy(NN->output_history[histSz - 1][c], state->output, sizeof(NN->output_history[histSz - 1][c]));
-                NN->hist[histSz - 1].calc[c] = 1;
+                memcpy(NN->output_history[hist_size - 1][c], state->output, sizeof(NN->output_history[hist_size - 1][c]));
+                NN->hist[hist_size - 1].calc[c] = 1;
             }
         }
     }

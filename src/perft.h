@@ -17,7 +17,8 @@
 #pragma once
 #include "move.h"
 
-uint64_t perft(Board& board, int depth, bool print = 0) {
+template <bool RootNode>
+uint64_t perft(Board& board, int depth) {
     uint16_t moves[256];
     int nrMoves = gen_legal_moves(board, moves);
 
@@ -32,11 +33,11 @@ uint64_t perft(Board& board, int depth, bool print = 0) {
 
         board.make_move(move);
 
-        uint64_t x = perft(board, depth - 1);
+        uint64_t x = perft<false>(board, depth - 1);
 
         nodes += x;
         board.undo_move(move);
-        if (print)
+        if constexpr (RootNode)
             std::cout << move_to_string(move, false) << " " << x << "\n";
     }
     return nodes;

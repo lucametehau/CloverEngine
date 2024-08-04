@@ -123,7 +123,6 @@ bool SearchData::check_for_stop() {
 }
 
 bool printStats = true; /// default true
-const bool PROBE_ROOT = true; /// default true
 
 uint32_t probe_TB(Board& board, int depth) {
     if (TB_LARGEST && depth >= 2 && !board.halfMoves) {
@@ -210,7 +209,7 @@ std::string getSanString(Board& board, Move move) {
     return san;
 }
 
-void SearchData::printPv() {
+void SearchData::print_pv() {
     for (int i = 0; i < pv_table_len[0]; i++) {
         if (!info->sanMode)
             std::cout << move_to_string(pv_table[0][i], info->chess960) << " ";
@@ -563,7 +562,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
         if (move == stack->excluded)
             continue;
 
-        const bool isQuiet = !isNoisyMove(board, move), refutationMove = picker.trueStage == STAGE_KILLER;
+        const bool isQuiet = !isNoisyMove(board, move);
         int history = 0;
 
         /// quiet move pruning
@@ -682,7 +681,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
                 R -= !rootNode && pvNode;
                 R += enemy_has_no_threats && !isCheck && eval - seeVal[KNIGHT] > beta; /// if the position is relatively quiet and eval is bigger than beta by a margin
                 R += enemy_has_no_threats && !isCheck && static_eval - rootEval > EvalDifferenceReductionMargin && ply % 2 == 0; /// the position in quiet and static eval is way bigger than root eval
-                R -= 2 * refutationMove; /// reduce for refutation moves
+                R -= 2 * (picker.trueStage == STAGE_KILLER); /// reduce for refutation moves
                 R -= board.checkers != 0; /// move gives check
                 R -= history / HistReductionDiv; /// reduce based on move history
             }
@@ -697,7 +696,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
             R += ttCapture;
             R += enemy_has_no_threats && !isCheck && static_eval + LMRBadStaticEvalMargin <= alpha;
 
-            R = std::min(newDepth, std::max(R, 1)); /// clamp R
+            R = std::clamp(R, 1, newDepth); /// clamp R
             score = -search<false, false>(-alpha - 1, -alpha, newDepth - R, true, stack + 1);
 
             if (R > 1 && score > alpha) {
@@ -824,8 +823,8 @@ void SearchData::start_search(Info* _info) {
 
     for (int i = 1; i <= 10; i++)
         (stack - i)->cont_hist = &cont_history[0][0][0], (stack - i)->eval = INF, (stack - i)->move = NULLMOVE;
-
-    //values[0].init("nmp_pv_rate");
+    for(int i = 0; i < 10; i++)
+        values[i].init("se_stuff");
 
     completed_depth = 0;
 
@@ -856,32 +855,29 @@ void SearchData::start_search(Info* _info) {
                     uint64_t total_tb_hits = get_total_tb_hits_pool();
                     uint64_t t = (uint64_t)getTime() - t0;
                     if (!info->sanMode) {
-                        std::cout << "info ";
-                        std::cout << "multipv " << i << " ";
-                        std::cout << "score ";
-                        if (scores[i] > MATE)
-                            std::cout << "mate " << (INF - scores[i] + 1) / 2;
-                        else if (scores[i] < -MATE)
-                            std::cout << "mate -" << (INF + scores[i] + 1) / 2;
-                        else
-                            std::cout << "cp " << scores[i] * 100 / NormalizeToPawnValue;
-                        if (scores[i] >= beta)
-                            std::cout << " lowerbound";
-                        else if (scores[i] <= alpha)
-                            std::cout << " upperbound";
+                        std::cout << "info multipv " << i << " score ";
+
+                        if (scores[i] > MATE) std::cout << "mate " << (INF - scores[i] + 1) / 2;
+                        else if (scores[i] < -MATE) std::cout << "mate -" << (INF + scores[i] + 1) / 2;
+
+                        else std::cout << "cp " << scores[i] * 100 / NormalizeToPawnValue;
+                        if (scores[i] >= beta) std::cout << " lowerbound";
+                        else if (scores[i] <= alpha) std::cout << " upperbound";
+
                         int ply = board.moveIndex * 2 - 1 - board.turn;
                         int wdlWin = winrate_model(scores[i], ply);
                         int wdlLose = winrate_model(-scores[i], ply);
                         int wdlDraw = 1000 - wdlWin - wdlLose;
                         uint64_t shady_stuff = total_nodes * 8 / 7;
                         std::cout << " wdl " << wdlWin << " " << wdlDraw << " " << wdlLose;
+                        
                         std::cout << " depth " << depth << " sel_depth " << sel_depth << " nodes " << shady_stuff;
                         if (t)
                             std::cout << " nps " << shady_stuff * 1000 / t;
                         std::cout << " time " << t << " ";
                         std::cout << "tb_hits " << total_tb_hits << " hashfull " << TT->tableFull() << " ";
                         std::cout << "pv ";
-                        printPv();
+                        print_pv();
                         std::cout << std::endl;
                     }
                     else {
@@ -902,7 +898,7 @@ void SearchData::start_search(Info* _info) {
                                 score / 100 << "." << (score % 100 >= 10 ? std::to_string(score % 100) : "0" + std::to_string(score % 100)) << " ";
                         }
                         std::cout << "  ";
-                        printPv();
+                        print_pv();
                         std::cout << std::endl;
                         //std::cout << "Branching factor is " << std::fixed << std::setprecision(5) << pow(nodes, 1.0 / tDepth) << std::endl;
                     }

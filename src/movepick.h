@@ -24,7 +24,7 @@
 
 enum {
     STAGE_NONE = 0,
-    STAGE_HASHMOVE,
+    STAGE_TTMOVE,
     STAGE_GEN_NOISY, STAGE_GOOD_NOISY,
     STAGE_KILLER,
     STAGE_GEN_QUIETS, STAGE_QUIETS,
@@ -38,7 +38,7 @@ public:
     int stage, trueStage;
     //int mp_type;
 
-    Move hashMove, killer;
+    Move ttMove, killer;
     int nrNoisy, nrQuiets, nrBadNoisy;
     int index;
 
@@ -49,15 +49,15 @@ public:
     Move moves[256], badNoisy[256];
     int scores[256];
 
-    Movepick(const Move HashMove, const Move Killer, const int Threshold, const uint64_t Threats_enemy) {
-        stage = STAGE_HASHMOVE;
+    Movepick(const Move _ttMove, const Move _killer, const int _threshold, const uint64_t _threats_enemy) {
+        stage = STAGE_TTMOVE;
 
-        hashMove = HashMove;
-        killer = (Killer != hashMove ? Killer : NULLMOVE);
+        ttMove = _ttMove;
+        killer = (_killer != ttMove ? _killer : NULLMOVE);
 
         nrNoisy = nrQuiets = nrBadNoisy = 0;
-        threshold = Threshold;
-        threats_enemy = Threats_enemy;
+        threshold = _threshold;
+        threats_enemy = _threats_enemy;
     }
 
     void get_best_move(int offset, int nrMoves, Move moves[], int scores[]) {
@@ -72,12 +72,12 @@ public:
 
     Move get_next_move(SearchData* searcher, StackEntry* stack, Board& board, bool skip, bool noisyPicker) {
         switch (stage) {
-        case STAGE_HASHMOVE:
-            trueStage = STAGE_HASHMOVE;
+        case STAGE_TTMOVE:
+            trueStage = STAGE_TTMOVE;
             stage++;
 
-            if (hashMove && is_legal(board, hashMove)) {
-                return hashMove;
+            if (ttMove && is_legal(board, ttMove)) {
+                return ttMove;
             }
         case STAGE_GEN_NOISY:
         {
@@ -88,7 +88,7 @@ public:
             for (int i = 0; i < nrNoisy; i++) {
                 const Move move = moves[i];
 
-                if (move == hashMove || move == killer)
+                if (move == ttMove || move == killer)
                     continue;
 
                 if (type(move) == PROMOTION && promoted(move) + KNIGHT != QUEEN) {
@@ -148,7 +148,7 @@ public:
                 for (int i = 0; i < nrQuiets; i++) {
                     const uint16_t move = moves[i];
 
-                    if (move == hashMove || move == killer)
+                    if (move == ttMove || move == killer)
                         continue;
 
                     moves[m] = move;
