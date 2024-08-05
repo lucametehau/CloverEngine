@@ -22,7 +22,7 @@
 #include "attacks.h"
 
 void init(Info* info) {
-    info->depth = DEPTH;
+    info->depth = MAX_DEPTH;
     info->multipv = 1;
     info->nodes = info->min_nodes = info->max_nodes = -1;
     info->chess960 = false;

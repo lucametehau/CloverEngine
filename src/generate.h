@@ -42,7 +42,7 @@ void generateFens(SearchData &thread_data, std::atomic <uint64_t>& sumFens, uint
     uint64_t totalFens = 0;
 
     info->timeset = false;
-    info->depth = DEPTH;
+    info->depth = MAX_DEPTH;
     info->startTime = getTime();
     info->min_nodes = 5000;
     info->max_nodes = (1 << 20);

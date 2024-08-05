@@ -174,7 +174,7 @@ void UCI::uci_loop() {
 
             info->nodes = nodes;
             if (depth == -1)
-                info->depth = DEPTH;
+                info->depth = MAX_DEPTH;
 
             go(info);
         }

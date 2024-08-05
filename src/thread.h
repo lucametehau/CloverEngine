@@ -77,8 +77,8 @@ public:
 
     int lmr_red[64][64], lmr_red_noisy[64][64];
 
-    int pv_table_len[DEPTH + 5];
-    Move pv_table[DEPTH + 5][2 * DEPTH + 5];
+    int pv_table_len[MAX_DEPTH + 5];
+    Move pv_table[MAX_DEPTH + 5][2 * MAX_DEPTH + 5];
     Move best_move[256];
     int scores[256], root_score[256];
     MeanValue values[10];

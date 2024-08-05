@@ -96,7 +96,7 @@ const int INF = 32000;
 const int VALUE_NONE = INF + 10;
 const int MATE = 31000;
 const int TB_WIN_SCORE = 22000;
-const int DEPTH = 100;
+const int MAX_DEPTH = 200;
 const uint64_t ALL = 18446744073709551615ULL;
 const std::string START_POS_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 

@@ -234,7 +234,7 @@ template <bool pvNode>
 int SearchData::quiesce(int alpha, int beta, StackEntry* stack) {
     const int ply = board.ply;
 
-    if (ply >= DEPTH) return evaluate(board);
+    if (ply >= MAX_DEPTH) return evaluate(board);
 
     pv_table_len[ply] = 0;
 
@@ -355,7 +355,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
 
     if (check_for_stop<true>()) return evaluate(board);
 
-    if (ply >= DEPTH) return evaluate(board);
+    if (ply >= MAX_DEPTH) return evaluate(board);
 
     if (depth <= 0) return quiesce<pvNode>(alpha, beta, stack);
 
@@ -412,11 +412,11 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
             tb_hits++;
             switch (probe) {
             case TB_WIN:
-                score = TB_WIN_SCORE - DEPTH - ply;
+                score = TB_WIN_SCORE - MAX_DEPTH - ply;
                 type = LOWER;
                 break;
             case TB_LOSS:
-                score = -(TB_WIN_SCORE - DEPTH - ply);
+                score = -(TB_WIN_SCORE - MAX_DEPTH - ply);
                 type = UPPER;
                 break;
             default:
@@ -426,7 +426,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
             }
 
             if (type == EXACT || (type == UPPER && score <= alpha) || (type == LOWER && score >= beta)) {
-                TT->save(entry, key, score, DEPTH, 0, type, NULLMOVE, 0, wasPV);
+                TT->save(entry, key, score, MAX_DEPTH, 0, type, NULLMOVE, 0, wasPV);
                 return score;
             }
         }
@@ -811,12 +811,12 @@ void SearchData::start_search(Info* _info) {
     memset(pv_table, 0, sizeof(pv_table));
     info = _info;
 
-    int limitDepth = (thread_id == 0 ? info->depth : DEPTH); /// when limited by depth, allow helper threads to pass the fixed depth
+    int limitDepth = (thread_id == 0 ? info->depth : MAX_DEPTH); /// when limited by depth, allow helper threads to pass the fixed depth
     int mainThreadScore = 0;
     Move mainThreadBestMove = NULLMOVE;
 
     memset(scores, 0, sizeof(scores));
-    StackEntry search_stack[DEPTH + 15];
+    StackEntry search_stack[MAX_DEPTH + 15];
     StackEntry* stack = search_stack + 10;
 
     memset(search_stack, 0, sizeof(search_stack));
