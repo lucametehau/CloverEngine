@@ -84,6 +84,9 @@ TUNE_PARAM(FPMargin, 98, 90, 120);
 TUNE_PARAM(LMPDepth, 7, 5, 10);
 TUNE_PARAM(LMPBias, 2, 1, 5);
 
+TUNE_PARAM(HistoryPruningDepth, 3, 2, 5);
+TUNE_PARAM(HistoryPruningMargin, 4096, 2048, 6144);
+
 TUNE_PARAM(SEEPruningQuietDepth, 7, 5, 10);
 TUNE_PARAM(SEEPruningQuietMargin, 70, 60, 90);
 TUNE_PARAM(SEEPruningNoisyDepth, 8, 5, 10);
@@ -142,6 +145,7 @@ TUNE_PARAM(EvalShuffleCoef, 5, 1, 10);
 TUNE_PARAM(HistoryBonusMargin, 286, 250, 500);
 TUNE_PARAM(HistoryBonusBias, 342, 200, 600);
 TUNE_PARAM(HistoryBonusMax, 2452, 1800, 3000);
+TUNE_PARAM(HistoryUpdateMinDepth, 4, 2, 6);
 
 // correction history constants
 TUNE_PARAM(CorrHistScale, 1024, 128, 1024);

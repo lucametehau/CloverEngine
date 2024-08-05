@@ -64,7 +64,7 @@ void updateHistory(SearchData* searcher, StackEntry* stack, int nrQuiets, int pl
     
     const Move best = stack->quiets[nrQuiets - 1];
 
-    if(nrQuiets > 1 || depth >= 4)
+    if(nrQuiets > 1 || depth >= HistoryUpdateMinDepth)
         updateMoveHistory(searcher, stack, best, threats, bonus);
     for (int i = 0; i < nrQuiets - 1; i++)
         updateMoveHistory(searcher, stack, stack->quiets[i], threats, -bonus);

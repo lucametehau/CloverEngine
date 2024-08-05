@@ -537,7 +537,11 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
         }
     }
 
+#ifndef TUNE_FLAG
     constexpr int see_depth_coef = (rootNode ? RootSeeDepthCoef : PVSSeeDepthCoef);
+#else
+    int see_depth_coef = (rootNode ? RootSeeDepthCoef : PVSSeeDepthCoef);
+#endif
     const bool bad_static_eval = (static_eval <= alpha);
 
     Movepick picker(ttMove,
@@ -611,7 +615,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
                     /// late move pruning
                     if (newDepth <= LMPDepth && played >= (LMPBias + newDepth * newDepth) / (2 - improving)) skip = 1;
 
-                    if (depth <= 3 && bad_static_eval && history < -4096 * depth) continue;
+                    if (depth <= HistoryPruningDepth && bad_static_eval && history < -HistoryPruningMargin * depth) continue;
 
                     if (newDepth <= SEEPruningQuietDepth && !isCheck && 
                         !see(board, move, -SEEPruningQuietMargin * newDepth)) continue;
