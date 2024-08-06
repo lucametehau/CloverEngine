@@ -158,7 +158,6 @@ struct NetHist {
 
 struct KingBucketState {
     alignas(ALIGN) int16_t output[SIDE_NEURONS];
-
     uint64_t bb[13]{};
 };
 
@@ -167,7 +166,6 @@ public:
 
     Network() {
         hist_size = 0;
-
         for (auto c : { BLACK, WHITE }) {
             for (int i = 0; i < 2 * KING_BUCKETS; i++) {
                 memcpy(state[c][i].output, inputBiases, sizeof(inputBiases));

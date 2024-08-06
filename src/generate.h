@@ -123,7 +123,7 @@ void generateFens(SearchData &thread_data, std::atomic <uint64_t>& sumFens, uint
                     continue;
                 }
 
-                if (!thread_data.board.checkers && !isNoisyMove(thread_data.board, move) && abs(score) < 1000) { /// relatively quiet position
+                if (!thread_data.board.checkers && !thread_data.board.is_noisy_move(move) && abs(score) < 1000) { /// relatively quiet position
                     data.fen = thread_data.board.fen();
                     data.score = score * (thread_data.board.turn == WHITE ? 1 : -1);
                     fens[nr_fens++] = data;
