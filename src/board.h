@@ -20,6 +20,7 @@
 #include <iostream>
 #include "defs.h"
 #include "net.h"
+#include "attacks.h"
 
 class Undo {
 public:
@@ -38,18 +39,19 @@ public:
     uint8_t captured; /// keeping track of last captured piece so i reduce the size of move
     uint8_t castleRights; /// 1 - bq, 2 - bk, 4 - wq, 8 - wk
     int8_t enPas;
-    uint8_t board[64], rookSq[2][2];
+    std::array<uint8_t, 64> board;
+    std::array<std::array<uint8_t, 2>, 2> rookSq;
 
     uint16_t ply, game_ply;
     uint16_t halfMoves, moveIndex;
     
-    uint8_t castleRightsDelta[2][64];
+    std::array<std::array<uint8_t, 64>, 2> castleRightsDelta;
 
     uint64_t checkers, pinnedPieces;
-    uint64_t bb[13];
-    uint64_t pieces[2];
+    std::array<uint64_t, 13> bb;
+    std::array<uint64_t, 2> pieces;
     uint64_t key, pawn_key;
-    Undo history[2000]; /// fuck it
+    std::array<Undo, 2000> history; /// fuck it
 
     Network NN;
 
@@ -57,47 +59,66 @@ public:
         set_fen(START_POS_FEN);
     }
 
-    uint64_t diagonal_sliders(int color) {
-        return bb[get_piece(BISHOP, color)] | bb[get_piece(QUEEN, color)];
+    inline uint64_t diagonal_sliders(const bool color) const { return bb[get_piece(BISHOP, color)] | bb[get_piece(QUEEN, color)]; }
+
+    inline uint64_t orthogonal_sliders(const bool color) const { return bb[get_piece(ROOK, color)] | bb[get_piece(QUEEN, color)]; }
+
+    inline uint64_t get_bb_piece(const int piece, const bool color) const { return bb[get_piece(piece, color)]; }
+
+    inline uint64_t get_bb_color(const bool color) const { return pieces[color]; }
+
+    inline uint64_t get_bb_piece_type(const int piece_type) const { 
+        return get_bb_piece(piece_type, WHITE) | get_bb_piece(piece_type, BLACK);
     }
 
-    uint64_t orthogonal_sliders(int color) {
-        return bb[get_piece(ROOK, color)] | bb[get_piece(QUEEN, color)];
+    inline uint64_t get_attackers(const int color, const uint64_t blockers, const int sq) const {
+        return (genAttacksPawn(1 ^ color, sq) & get_bb_piece(PAWN, color)) |
+            (genAttacksKnight(sq) & get_bb_piece(KNIGHT, color)) | 
+            (genAttacksBishop(blockers, sq) & diagonal_sliders(color)) |
+            (genAttacksRook(blockers, sq) & orthogonal_sliders(color)) | 
+            (genAttacksKing(sq) & get_bb_piece(KING, color));
     }
 
-    int piece_type_at(int sq) {
-        return piece_type(board[sq]);
+    inline uint64_t getOrthSliderAttackers(const int color, const uint64_t blockers, const int sq) const {
+        return genAttacksRook(blockers, sq) & orthogonal_sliders(color);
+    }
+    inline uint64_t get_pawn_attacks(const int color) const {
+        const uint64_t b = get_bb_piece(PAWN, color);
+        const int fileA = (color == WHITE ? 0 : 7), fileH = 7 - fileA;
+        return shift(color, NORTHWEST, b & ~fileMask[fileA]) | shift(color, NORTHEAST, b & ~fileMask[fileH]);
     }
 
-    int piece_at(int sq) {
-        return board[sq];
+    inline int piece_type_at(const int sq) const { return piece_type(board[sq]); }
+
+    inline int piece_at(const int sq) const { return board[sq]; }
+
+    inline int king(const bool color) const { return Sq(get_bb_piece(KING, color)); }
+
+    inline bool is_capture(const Move move) const { return type(move) != CASTLE && piece_at(sq_to(move)); }
+
+    inline bool is_noisy_move(const Move move) const { 
+        return (type(move) && type(move) != CASTLE) || is_capture(move); 
     }
 
-    int king(bool color) {
-        return Sq(bb[get_piece(KING, color)]);
+    inline bool is_attacked_by(const int color, const int sq) const { 
+        return get_attackers(color, get_bb_color(WHITE) | get_bb_color(BLACK), sq); 
     }
 
-    bool isCapture(Move move) {
-        return type(move) != CASTLE && (board[sq_to(move)] > 0);
-    }
+    void make_move(const Move move);
 
-    void make_move(Move move);
-
-    void undo_move(Move move);
+    void undo_move(const Move move);
 
     void make_null_move();
 
     void undo_null_move();
 
-    bool has_non_pawn_material(bool color) {
-        return (pieces[color] ^ bb[get_piece(KING, color)] ^ bb[get_piece(PAWN, color)]) != 0;
+    inline bool has_non_pawn_material(const bool color) const {
+        return (get_bb_piece(KING, color) ^ get_bb_piece(PAWN, color)) != get_bb_color(color);
     }
 
     void clear() {
         ply = 0;
-
         NetInput input = to_netinput();
-
         NN.calc(input, turn);
     }
 
@@ -109,13 +130,11 @@ public:
         }
     }
 
-    NetInput to_netinput() {
+    NetInput to_netinput() const {
         NetInput ans;
-
-        int kingsSide[2] = {
+        const std::array <int, 2> kingsSide = {
             king(BLACK), king(WHITE)
         };
-
         for (int i = 1; i <= 12; i++) {
             uint64_t b = bb[i];
             while (b) {
@@ -140,7 +159,7 @@ public:
 
     void set_fen(const std::string fen); // check init.h
 
-    void setFRCside(bool color, int idx);
+    void set_frc_side(bool color, int idx);
     
     void set_dfrc(int idx);
 
@@ -204,7 +223,7 @@ public:
 
     uint64_t speculative_next_key(uint64_t move) {
         const int from = sq_from(move), to = sq_to(move), piece = board[from];
-        return key ^ hashKey[piece][from] ^ hashKey[piece][to] ^ (board[to] ? hashKey[board[to]][to] : 0) ^ 1;
+        return key ^ hashKey[piece][from] ^ hashKey[piece][to] ^ (piece_at(to) ? hashKey[piece_at(to)][to] : 0) ^ 1;
     }
 
     bool isMaterialDraw() {

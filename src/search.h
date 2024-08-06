@@ -111,7 +111,6 @@ bool SearchData::check_for_stop() {
     }
 
     checkCount++;
-
     if (checkCount == (1 << 10)) {
         if constexpr (checkTime) {
             if (info->timeset && getTime() > info->startTime + info->hardTimeLim) flag_stopped = true;
@@ -126,39 +125,32 @@ bool printStats = true; /// default true
 
 uint32_t probe_TB(Board& board, int depth) {
     if (TB_LARGEST && depth >= 2 && !board.halfMoves) {
-        unsigned pieces = count(board.pieces[WHITE] | board.pieces[BLACK]);
-
-        if (pieces <= TB_LARGEST) {
-            int ep = board.enPas;
-            if (ep == -1)
-                ep = 0;
-
-            return tb_probe_wdl(board.pieces[WHITE], board.pieces[BLACK],
-                board.bb[WK] | board.bb[BK], board.bb[WQ] | board.bb[BQ], board.bb[WR] | board.bb[BR],
-                board.bb[WB] | board.bb[BB], board.bb[WN] | board.bb[BN], board.bb[WP] | board.bb[BP],
-                0, 0, ep, board.turn);
-        }
+        if (count(board.get_bb_color(WHITE) | board.get_bb_color(BLACK)) <= TB_LARGEST)
+            return tb_probe_wdl(board.get_bb_color(WHITE), board.get_bb_color(BLACK),
+                board.get_bb_piece_type(KING), board.get_bb_piece_type(QUEEN), board.get_bb_piece_type(ROOK),
+                board.get_bb_piece_type(BISHOP), board.get_bb_piece_type(KNIGHT), board.get_bb_piece_type(PAWN),
+                0, 0, (board.enPas == -1 ? 0 : board.enPas), board.turn);
     }
     return TB_RESULT_FAILED;
 }
 
-Threats getThreats(Board& board, const bool us) {
+Threats get_threats(Board& board, const bool us) {
     const bool enemy = 1 ^ us;
-    uint64_t ourPieces = board.pieces[us] ^ board.bb[get_piece(PAWN, us)];
-    uint64_t att = getPawnAttacks(enemy, board.bb[get_piece(PAWN, enemy)]), attPieces = att & ourPieces;
-    uint64_t pieces, b, all = board.pieces[WHITE] | board.pieces[BLACK];
+    uint64_t ourPieces = board.get_bb_color(us) ^ board.get_bb_piece(PAWN, us);
+    uint64_t att = getPawnAttacks(enemy, board.get_bb_piece(PAWN, enemy)), attPieces = att & ourPieces;
+    uint64_t pieces, b, all = board.get_bb_color(WHITE) | board.get_bb_color(BLACK);
 
-    ourPieces ^= board.bb[get_piece(KNIGHT, us)] | board.bb[get_piece(BISHOP, us)];
+    ourPieces ^= board.get_bb_piece(KNIGHT, us) | board.get_bb_piece(BISHOP, us);
 
-    pieces = board.bb[get_piece(KNIGHT, enemy)];
+    pieces = board.get_bb_piece(KNIGHT, enemy);
     while (pieces) {
         b = lsb(pieces);
-        att |= knightBBAttacks[Sq(b)];
+        att |= genAttacksKnight(Sq(b));
         attPieces |= att & ourPieces;
         pieces ^= b;
     }
 
-    pieces = board.bb[get_piece(BISHOP, enemy)];
+    pieces = board.get_bb_piece(BISHOP, enemy);
     while (pieces) {
         b = lsb(pieces);
         att |= genAttacksBishop(all, Sq(b));
@@ -166,9 +158,9 @@ Threats getThreats(Board& board, const bool us) {
         pieces ^= b;
     }
 
-    ourPieces ^= board.bb[get_piece(ROOK, us)];
+    ourPieces ^= board.get_bb_piece(ROOK, us);
 
-    pieces = board.bb[get_piece(ROOK, enemy)];
+    pieces = board.get_bb_piece(ROOK, enemy);
     while (pieces) {
         b = lsb(pieces);
         att |= genAttacksRook(all, Sq(b));
@@ -176,14 +168,14 @@ Threats getThreats(Board& board, const bool us) {
         pieces ^= b;
     }
 
-    pieces = board.bb[get_piece(QUEEN, enemy)];
+    pieces = board.get_bb_piece(QUEEN, enemy);
     while (pieces) {
         b = lsb(pieces);
         att |= genAttacksRook(all, Sq(b));
         pieces ^= b;
     }
 
-    att |= kingBBAttacks[board.king(enemy)];
+    att |= genAttacksKing(board.king(enemy));
 
     return { att, attPieces };
 }
@@ -195,8 +187,8 @@ std::string getSanString(Board& board, Move move) {
 
     if (piece != PAWN) san += pieceChar[piece + 6];
     else san += char('a' + (from & 7));
-    if (board.isCapture(move)) san += "x";
-    if (piece != PAWN || board.isCapture(move)) san += char('a' + (to & 7));
+    if (board.is_capture(move)) san += "x";
+    if (piece != PAWN || board.is_capture(move)) san += char('a' + (to & 7));
 
     san += char('1' + (to >> 3));
 
@@ -269,7 +261,7 @@ int SearchData::quiesce(int alpha, int beta, StackEntry* stack) {
 
     const bool isCheck = (board.checkers != 0);
     Threats threats{};
-    if (isCheck) threats = getThreats(board, board.turn);
+    if (isCheck) threats = get_threats(board, board.turn);
     int futilityValue;
 
     if (isCheck) {
@@ -322,7 +314,7 @@ int SearchData::quiesce(int alpha, int beta, StackEntry* stack) {
         TT->prefetch(board.speculative_next_key(move));
         stack->move = move;
         stack->piece = board.piece_at(sq_from(move));
-        stack->cont_hist = &cont_history[!isNoisyMove(board, move)][stack->piece][sq_to(move)];
+        stack->cont_hist = &cont_history[!board.is_noisy_move(move)][stack->piece][sq_to(move)];
 
         board.make_move(move);
         score = -quiesce<pvNode>(-beta, -alpha, stack + 1);
@@ -433,7 +425,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
     }
 
     const bool isCheck = (board.checkers != 0);
-    const Threats threats = getThreats(board, board.turn);
+    const Threats threats = get_threats(board, board.turn);
     const bool enemy_has_no_threats = !threats.threats_pieces;
     int raw_eval{};
     //int quietEnemy = quietness(board, 1 ^ board.turn);
@@ -506,7 +498,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
             // probcut
             int probBeta = beta + ProbcutMargin;
             if (depth >= ProbcutDepth && abs(beta) < MATE && !(ttHit && ttDepth >= depth - 3 && ttValue < probBeta)) {
-                Movepick picker((ttMove && isNoisyMove(board, ttMove) && see(board, ttMove, probBeta - static_eval) ? ttMove : NULLMOVE),
+                Movepick picker((ttMove && board.is_noisy_move(ttMove) && see(board, ttMove, probBeta - static_eval) ? ttMove : NULLMOVE),
                     NULLMOVE,
                     probBeta - static_eval,
                     threats.threats_enemy);
@@ -550,7 +542,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
         threats.threats_enemy);
 
     Move move;
-    const bool ttCapture = ttMove && isNoisyMove(board, ttMove);
+    const bool ttCapture = ttMove && board.is_noisy_move(ttMove);
 
     while ((move = picker.get_next_move(this, stack, board, skip, false)) != NULLMOVE) {
         if constexpr (rootNode) {
@@ -566,7 +558,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
         if (move == stack->excluded)
             continue;
 
-        const bool isQuiet = !isNoisyMove(board, move);
+        const bool isQuiet = !board.is_noisy_move(move);
         int history = 0;
 
         /// quiet move pruning
@@ -747,9 +739,8 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
 
     /// update killer and history heuristics in case of a cutoff
     if (best >= beta) {
-        if (!isNoisyMove(board, bestMove)) {
-            if (stack->killer != bestMove)
-                stack->killer = bestMove;
+        if (!board.is_noisy_move(bestMove)) {
+            stack->killer = bestMove;
             updateHistory(this, stack, nrQuiets, ply, depth, threats.threats_enemy, getHistoryBonus(depth + bad_static_eval));
         }
         updateCapHistory(this, stack, nrCaptures, bestMove, ply, getHistoryBonus(depth + bad_static_eval));
@@ -758,7 +749,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
     /// update tt only if we aren't in a singular search
     if (!stack->excluded) {
         bound = (best >= beta ? LOWER : (best > alphaOrig ? EXACT : UPPER));
-        if ((bound == UPPER || !isNoisyMove(board, bestMove)) && !isCheck && !(bound == LOWER && best <= static_eval) && !(bound == UPPER && best >= static_eval))
+        if ((bound == UPPER || !board.is_noisy_move(bestMove)) && !isCheck && !(bound == LOWER && best <= static_eval) && !(bound == UPPER && best >= static_eval))
             updateCorrHist(this, depth, best - static_eval);
         TT->save(entry, key, best, depth, ply, bound, (bound == UPPER ? NULLMOVE : bestMove), raw_eval, wasPV);
     }

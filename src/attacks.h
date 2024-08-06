@@ -18,7 +18,6 @@
 #pragma once
 #include "magic.h"
 #include "defs.h"
-#include "board.h"
 
 uint64_t rookAttacksMask[64], bishopAttacksMask[64];
 uint64_t pawnAttacksMask[2][64];
@@ -229,8 +228,6 @@ inline void initAttacks() {
     initRookMagic();
 }
 
-/// these 2 are not very useful, but I might use them for readability
-
 inline uint64_t genAttacksPawn(int color, int sq) {
     return pawnAttacksMask[color][sq];
 }
@@ -259,10 +256,14 @@ inline uint64_t genAttacksQueen(uint64_t blockers, int sq) {
     return genAttacksBishop(blockers, sq) | genAttacksRook(blockers, sq);
 }
 
+inline uint64_t genAttacksKing(int sq) {
+    return kingBBAttacks[sq];
+}
+
 inline uint64_t genAttacksSq(uint64_t blockers, int sq, int pieceType) {
     switch (pieceType) {
     case KNIGHT:
-        return knightBBAttacks[sq];
+        return genAttacksKnight(sq);
     case BISHOP:
         return genAttacksBishop(blockers, sq);
     case ROOK:
@@ -274,25 +275,8 @@ inline uint64_t genAttacksSq(uint64_t blockers, int sq, int pieceType) {
     return 0;
 }
 
-inline uint64_t getAttackers(Board& board, int color, uint64_t blockers, int sq) {
-    return (pawnAttacksMask[color ^ 1][sq] & board.bb[get_piece(PAWN, color)]) |
-        (knightBBAttacks[sq] & board.bb[get_piece(KNIGHT, color)]) | (genAttacksBishop(blockers, sq) & board.diagonal_sliders(color)) |
-        (genAttacksRook(blockers, sq) & board.orthogonal_sliders(color)) | (kingBBAttacks[sq] & board.bb[get_piece(KING, color)]);
-}
-
-inline uint64_t getOrthSliderAttackers(Board& board, int color, uint64_t blockers, int sq) {
-    return genAttacksRook(blockers, sq) & board.orthogonal_sliders(color);
-}
-
 /// same as the below one, only difference is that b is known
-
 inline uint64_t getPawnAttacks(int color, uint64_t b) {
-    int fileA = (color == WHITE ? 0 : 7), fileH = 7 - fileA;
-    return shift(color, NORTHWEST, b & ~fileMask[fileA]) | shift(color, NORTHEAST, b & ~fileMask[fileH]);
-}
-
-inline uint64_t pawnAttacks(Board& board, int color) {
-    uint64_t b = board.bb[get_piece(PAWN, color)];
     int fileA = (color == WHITE ? 0 : 7), fileH = 7 - fileA;
     return shift(color, NORTHWEST, b & ~fileMask[fileA]) | shift(color, NORTHEAST, b & ~fileMask[fileH]);
 }

@@ -1,5 +1,5 @@
 SRC = *.cpp Fathom/src/tbprobe.c
-EXE = Clover.7.0.7
+EXE = Clover.7.0.8
 EVALFILE = clover-mse-0.95-1280-505.bin
 
 ifeq ($(CXX),)

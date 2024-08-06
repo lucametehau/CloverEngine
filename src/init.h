@@ -168,13 +168,13 @@ void Board::set_fen(const std::string fen) {
 
     NetInput input = to_netinput();
 
-    checkers = getAttackers(*this, 1 ^ turn, pieces[WHITE] | pieces[BLACK], king(turn));
+    checkers = get_attackers(1 ^ turn, pieces[WHITE] | pieces[BLACK], king(turn));
     pinnedPieces = getPinnedPieces(*this, turn);
 
     NN.calc(input, turn);
 }
 
-void Board::setFRCside(bool color, int idx) {
+void Board::set_frc_side(bool color, int idx) {
     int ind = (color == WHITE ? 0 : 56);
 
     place_piece_at_sq(get_piece(BISHOP, color), ind + 1 + (idx % 4) * 2);
@@ -243,8 +243,8 @@ void Board::set_dfrc(int idx) {
     pieces[BLACK] = pieces[WHITE] = 0;
 
     int idxw = idx / 960, idxb = idx % 960;
-    setFRCside(WHITE, idxw);
-    setFRCside(BLACK, idxb);
+    set_frc_side(WHITE, idxw);
+    set_frc_side(BLACK, idxb);
 
     for (int i = 8; i < 16; i++)
         place_piece_at_sq(WP, i);
@@ -302,7 +302,7 @@ void Board::set_dfrc(int idx) {
 
     NetInput input = to_netinput();
 
-    checkers = getAttackers(*this, 1 ^ turn, pieces[WHITE] | pieces[BLACK], king(turn));
+    checkers = get_attackers(1 ^ turn, pieces[WHITE] | pieces[BLACK], king(turn));
     pinnedPieces = getPinnedPieces(*this, turn);
 
     NN.calc(input, turn);

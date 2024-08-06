@@ -37,13 +37,9 @@ struct CreateParam {
 };
 
 #ifndef TUNE_FLAG
-
 #define TUNE_PARAM(name, value, min, max) constexpr int name = value;
-
 #else
-
 #define TUNE_PARAM(name, value, min, max) CreateParam name(#name, value, min, max);
-
 #endif
 
 // search constants

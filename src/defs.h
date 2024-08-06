@@ -38,7 +38,7 @@
 std::mt19937_64 gen(0xBEEF);
 std::uniform_int_distribution <uint64_t> rng;
 
-typedef std::array <std::array <int16_t, 64>, 13> TablePieceTo;
+typedef std::array<std::array<int16_t, 64>, 13> TablePieceTo;
 typedef uint16_t Move;
 
 struct StackEntry { /// info to keep in the stack
@@ -90,44 +90,33 @@ enum {
     NONE = 0, UPPER, LOWER, EXACT
 };
 
-const int NULLMOVE = 0;
-const int HALFMOVES = 100;
-const int INF = 32000;
-const int VALUE_NONE = INF + 10;
-const int MATE = 31000;
-const int TB_WIN_SCORE = 22000;
-const int MAX_DEPTH = 200;
-const uint64_t ALL = 18446744073709551615ULL;
+constexpr Move NULLMOVE = 0;
+constexpr int HALFMOVES = 100;
+constexpr int INF = 32000;
+constexpr int VALUE_NONE = INF + 10;
+constexpr int MATE = 31000;
+constexpr int TB_WIN_SCORE = 22000;
+constexpr int MAX_DEPTH = 200;
+constexpr uint64_t ALL = 18446744073709551615ULL;
 const std::string START_POS_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 std::map <char, int> cod;
 uint64_t hashKey[13][64], castleKey[2][2], enPasKey[64];
 uint64_t castleKeyModifier[16];
 char pieceChar[13];
-uint64_t fileMask[8], rankMask[8];
-uint64_t between[64][64], Line[64][64];
+std::array<uint64_t, 8> fileMask, rankMask;
+uint64_t between_mask[64][64], line_mask[64][64];
 
-const std::pair <int, int> knightDir[] = { {-1, -2}, {-2, -1}, {-2, 1}, {-1, 2}, {1, 2}, {2, 1}, {2, -1}, {1, -2} };
-const std::pair <int, int> rookDir[] = { {-1, 0}, {1, 0}, {0, -1}, {0, 1} };
-const std::pair <int, int> bishopDir[] = { {-1, 1}, {-1, -1}, {1, -1}, {1, 1} };
-const std::pair <int, int> kingDir[] = { {-1, 0}, {0, 1}, {1, 0}, {0, -1}, {1, 1}, {1, -1}, {-1, 1}, {-1, -1} };
-const std::pair <int, int> pawnCapDirWhite[] = { {1, -1}, {1, 1} };
-const std::pair <int, int> pawnCapDirBlack[] = { {-1, -1}, {-1, 1} };
+constexpr std::pair<int, int> knightDir[8] = { {-1, -2}, {-2, -1}, {-2, 1}, {-1, 2}, {1, 2}, {2, 1}, {2, -1}, {1, -2} };
+constexpr std::pair<int, int> rookDir[4] = { {-1, 0}, {1, 0}, {0, -1}, {0, 1} };
+constexpr std::pair<int, int> bishopDir[4] = { {-1, 1}, {-1, -1}, {1, -1}, {1, 1} };
+constexpr std::pair<int, int> kingDir[8] = { {-1, 0}, {0, 1}, {1, 0}, {0, -1}, {1, 1}, {1, -1}, {-1, 1}, {-1, -1} };
+constexpr std::pair<int, int> pawnCapDirWhite[2] = { {1, -1}, {1, 1} };
+constexpr std::pair<int, int> pawnCapDirBlack[2] = { {-1, -1}, {-1, 1} };
 
-int deltaPos[8]; /// how does my position change when moving in direction D
+std::array<int, 8> deltaPos; /// how does my position change when moving in direction D
 
-const int kingIndTable2[64] = {
-    3, 2, 1, 0, 0, 1, 2, 3,
-    3, 2, 1, 0, 0, 1, 2, 3,
-    5, 5, 4, 4, 4, 4, 5, 5,
-    5, 5, 4, 4, 4, 4, 5, 5,
-    6, 6, 6, 6, 6, 6, 6, 6,
-    6, 6, 6, 6, 6, 6, 6, 6,
-    7, 7, 7, 7, 7, 7, 7, 7,
-    7, 7, 7, 7, 7, 7, 7, 7,
-};
-
-const int kingIndTable[64] = {
+constexpr std::array<int, 64> kingIndTable = {
     0, 0, 1, 1, 1, 1, 0, 0,
     0, 0, 1, 1, 1, 1, 0, 0,
     2, 2, 2, 2, 2, 2, 2, 2,
@@ -192,7 +181,7 @@ inline bool recalc(int from, int to, bool side) {
     return (from & 4) != (to & 4) || kingIndTable[from ^ (56 * !side)] != kingIndTable[to ^ (56 * !side)];
 }
 
-inline int count(uint64_t b) {
+inline uint32_t count(uint64_t b) {
     return __builtin_popcountll(b);
 }
 
@@ -364,7 +353,7 @@ inline void init_defs() {
                     r += kingDir[i].first, f += kingDir[i].second;
                     if (!inside_board(r, f))
                         break;
-                    between[get_sq(rank, file)][get_sq(r, f)] = mask;
+                    between_mask[get_sq(rank, file)][get_sq(r, f)] = mask;
                     int x = r, y = f, d = (i < 4 ? (i + 2) % 4 : 11 - i);
                     uint64_t mask2 = 0;
                     while (inside_board(x, y)) {
@@ -376,7 +365,7 @@ inline void init_defs() {
                         mask2 |= (1ULL << get_sq(x, y));
                         x += kingDir[d].first, y += kingDir[d].second;
                     }
-                    Line[get_sq(rank, file)][get_sq(r, f)] = mask | mask2;
+                    line_mask[get_sq(rank, file)][get_sq(r, f)] = mask | mask2;
 
                     mask |= (1ULL << get_sq(r, f));
                 }

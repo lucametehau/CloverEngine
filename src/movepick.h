@@ -98,14 +98,15 @@ public:
 
                 moves[m] = move;
 
-                const int p = board.piece_at(sq_from(move)), cap = (type(move) == ENPASSANT ? PAWN : board.piece_type_at(sq_to(move))), to = sq_to(move);
+                const int piece = board.piece_at(sq_from(move));
+                const int to = sq_to(move), cap = (type(move) == ENPASSANT ? PAWN : board.piece_type_at(to));
                 int score = 0;
 
                 score = GoodNoisyValueCoef * seeVal[cap];
-                if (type(move) == PROMOTION && piece_type(p) >= ROOK)
+                if (type(move) == PROMOTION && piece_type(piece) >= ROOK)
                     score += GoodNoisyPromotionBonus;
 
-                score += searcher->cap_hist[p][to][cap];
+                score += searcher->cap_hist[piece][to][cap];
 
                 scores[m++] = score;
             }
@@ -140,7 +141,8 @@ public:
             if (!skip) {
                 nrQuiets = gen_legal_quiet_moves(board, moves);
                 const bool turn = board.turn, enemy = 1 ^ turn;
-                const uint64_t enemyPawns = board.bb[get_piece(PAWN, turn ^ 1)], allPieces = board.pieces[WHITE] | board.pieces[BLACK];
+                const uint64_t enemyPawns = board.get_bb_piece(PAWN, turn ^ 1);
+                const uint64_t allPieces = board.get_bb_color(WHITE) | board.get_bb_color(BLACK);
                 const uint64_t pawnAttacks = getPawnAttacks(enemy, enemyPawns);
                 const uint64_t enemyKingRing = kingRingMask[board.king(enemy)] & ~(shift(enemy, NORTHEAST, enemyPawns & ~fileMask[(enemy == WHITE ? 7 : 0)]) & shift(enemy, NORTHWEST, enemyPawns & ~fileMask[(enemy == WHITE ? 0 : 7)]));
                 int m = 0;
@@ -234,56 +236,56 @@ bool see(Board& board, Move move, int threshold) {
     diag = board.diagonal_sliders(WHITE) | board.diagonal_sliders(BLACK);
     orth = board.orthogonal_sliders(WHITE) | board.orthogonal_sliders(BLACK);
 
-    occ = board.pieces[WHITE] | board.pieces[BLACK];
+    occ = board.get_bb_color(WHITE) | board.get_bb_color(BLACK);
     occ = (occ ^ (1ULL << from)) | (1ULL << to);
 
     if (t == ENPASSANT)
         occ ^= (1ULL << board.enPas);
 
-    att = (getAttackers(board, WHITE, occ, to) | getAttackers(board, BLACK, occ, to));
+    att = board.get_attackers(WHITE, occ, to) | board.get_attackers(BLACK, occ, to);
 
     col = 1 ^ board.turn;
 
     while (true) {
         att &= occ;
-        myAtt = att & board.pieces[col];
+        myAtt = att & board.get_bb_color(col);
 
         if (!myAtt)
             break;
 
-        if (myAtt & board.bb[get_piece(PAWN, col)]) {
-            occ ^= lsb(myAtt & board.bb[get_piece(PAWN, col)]);
+        if (myAtt & board.get_bb_piece(PAWN, col)) {
+            occ ^= lsb(myAtt & board.get_bb_piece(PAWN, col));
             att |= genAttacksBishop(occ, to) & diag;
             score = -score - 1 - seeVal[PAWN];
             col ^= 1;
             if (score >= 0)
                 break;
         }
-        else if (myAtt & board.bb[get_piece(KNIGHT, col)]) {
-            occ ^= lsb(myAtt & board.bb[get_piece(KNIGHT, col)]);
+        else if (myAtt & board.get_bb_piece(KNIGHT, col)) {
+            occ ^= lsb(myAtt & board.get_bb_piece(KNIGHT, col));
             score = -score - 1 - seeVal[KNIGHT];
             col ^= 1;
             if (score >= 0)
                 break;
         }
-        else if (myAtt & board.bb[get_piece(BISHOP, col)]) {
-            occ ^= lsb(myAtt & board.bb[get_piece(BISHOP, col)]);
+        else if (myAtt & board.get_bb_piece(BISHOP, col)) {
+            occ ^= lsb(myAtt & board.get_bb_piece(BISHOP, col));
             att |= genAttacksBishop(occ, to) & diag;
             score = -score - 1 - seeVal[BISHOP];
             col ^= 1;
             if (score >= 0)
                 break;
         }
-        else if (myAtt & board.bb[get_piece(ROOK, col)]) {
-            occ ^= lsb(myAtt & board.bb[get_piece(ROOK, col)]);
+        else if (myAtt & board.get_bb_piece(ROOK, col)) {
+            occ ^= lsb(myAtt & board.get_bb_piece(ROOK, col));
             att |= genAttacksRook(occ, to) & orth;
             score = -score - 1 - seeVal[ROOK];
             col ^= 1;
             if (score >= 0)
                 break;
         }
-        else if (myAtt & board.bb[get_piece(QUEEN, col)]) {
-            occ ^= lsb(myAtt & board.bb[get_piece(QUEEN, col)]);
+        else if (myAtt & board.get_bb_piece(QUEEN, col)) {
+            occ ^= lsb(myAtt & board.get_bb_piece(QUEEN, col));
             att |= genAttacksBishop(occ, to) & diag;
             att |= genAttacksRook(occ, to) & orth;
             score = -score - 1 - seeVal[QUEEN];
@@ -292,12 +294,12 @@ bool see(Board& board, Move move, int threshold) {
                 break;
         }
         else {
-            assert(myAtt & board.bb[get_piece(KING, col)]);
-            occ ^= board.bb[get_piece(KING, col)];
+            assert(myAtt & board.get_bb_piece(KING, col));
+            occ ^= board.get_bb_piece(KING, col);
             col ^= 1;
             score = -score - 1 - seeVal[KING];
             if (score >= 0) {
-                if ((att & occ & board.pieces[col]))
+                if (att & occ & board.get_bb_color(col))
                     col ^= 1;
                 break;
             }

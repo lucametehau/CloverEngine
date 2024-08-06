@@ -23,17 +23,17 @@
 
 inline int scale(Board& board) {
     return EvalScaleBias +
-        (count(board.bb[WP] | board.bb[BP]) * seeVal[PAWN] + 
-        count(board.bb[WN] | board.bb[BN]) * seeVal[KNIGHT] +
-        count(board.bb[WB] | board.bb[BB]) * seeVal[BISHOP] +
-        count(board.bb[WR] | board.bb[BR]) * seeVal[ROOK] +
-        count(board.bb[WQ] | board.bb[BQ]) * seeVal[QUEEN]) / 32 - 
+        (count(board.get_bb_piece_type(PAWN)) * seeVal[PAWN] + 
+        count(board.get_bb_piece_type(KNIGHT)) * seeVal[KNIGHT] +
+        count(board.get_bb_piece_type(BISHOP)) * seeVal[BISHOP] +
+        count(board.get_bb_piece_type(ROOK)) * seeVal[ROOK] +
+        count(board.get_bb_piece_type(QUEEN)) * seeVal[QUEEN]) / 32 - 
         board.halfMoves * EvalShuffleCoef;
 }
 
 void bring_up_to_date(Board& board) {
     Network* NN = &board.NN;
-    int hist_size = NN->hist_size;
+    const int hist_size = NN->hist_size;
     for (auto c : { BLACK, WHITE }) {
         if (!NN->hist[hist_size - 1].calc[c]) {
             int i = NN->get_computed_parent(c) + 1;
@@ -74,8 +74,6 @@ int evaluate(Board& board) {
     bring_up_to_date(board);
 
     int eval = board.NN.get_output(board.turn);
-
     eval = eval * scale(board) / 1024;
-
     return eval;
 }
