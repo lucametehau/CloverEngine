@@ -59,6 +59,20 @@ public:
         set_fen(START_POS_FEN);
     }
 
+    void clear() {
+        ply = 0;
+        NetInput input = to_netinput();
+        NN.calc(input, turn);
+    }
+
+    void print() {
+        for (int i = 7; i >= 0; i--) {
+            for (int j = 0; j <= 7; j++)
+                std::cerr << pieceChar[board[8 * i + j]] << " ";
+            std::cerr << "\n";
+        }
+    }
+
     inline uint64_t diagonal_sliders(const bool color) const { return bb[get_piece(BISHOP, color)] | bb[get_piece(QUEEN, color)]; }
 
     inline uint64_t orthogonal_sliders(const bool color) const { return bb[get_piece(ROOK, color)] | bb[get_piece(QUEEN, color)]; }
@@ -116,19 +130,7 @@ public:
         return (get_bb_piece(KING, color) ^ get_bb_piece(PAWN, color)) != get_bb_color(color);
     }
 
-    void clear() {
-        ply = 0;
-        NetInput input = to_netinput();
-        NN.calc(input, turn);
-    }
-
-    void print() {
-        for (int i = 7; i >= 0; i--) {
-            for (int j = 0; j <= 7; j++)
-                std::cerr << pieceChar[board[8 * i + j]] << " ";
-            std::cerr << "\n";
-        }
-    }
+    void bring_up_to_date();
 
     NetInput to_netinput() const {
         NetInput ans;

@@ -31,47 +31,49 @@ inline int scale(Board& board) {
         board.halfMoves * EvalShuffleCoef;
 }
 
-void bring_up_to_date(Board& board) {
-    Network* NN = &board.NN;
-    const int hist_size = NN->hist_size;
-    for (auto c : { BLACK, WHITE }) {
-        if (!NN->hist[hist_size - 1].calc[c]) {
-            int i = NN->get_computed_parent(c) + 1;
-            if (i != 0) { // no full refresh required
-                const int king = board.king(c);
-                for (int j = i; j < hist_size; j++) {
-                    NetHist *hist = &NN->hist[j];
-                    hist->calc[c] = 1;
-                    NN->process_move(hist->move, hist->piece, hist->cap, king, c, NN->output_history[j][c], NN->output_history[j - 1][c]);
+inline int get_king_bucket_cache(const int king_sq, const bool c) {
+    return 5 * ((king_sq & 7) >= 4) + kingIndTable[king_sq ^ (56 * !c)];
+}
+
+void Board::bring_up_to_date() {
+    const int hist_size = NN.hist_size;
+    for (auto side : { BLACK, WHITE }) {
+        if (!NN.hist[hist_size - 1].calc[side]) {
+            int last_computed_pos = NN.get_computed_parent(side) + 1;
+            const int king_sq = king(side);
+            if (last_computed_pos) { // no full refresh required
+                while(last_computed_pos < hist_size) {
+                    NetHist *hist = &NN.hist[last_computed_pos];
+                    hist->calc[side] = 1;
+                    NN.process_move(hist->move, hist->piece, hist->cap, king_sq, side, NN.output_history[last_computed_pos][side], NN.output_history[last_computed_pos - 1][side]);
+                    last_computed_pos++;
                 }
             }
             else {
-                const int kingSq = board.king(c);
-                KingBucketState* state = &NN->state[c][5 * ((kingSq & 7) >= 4) + kingIndTable[kingSq ^ (56 * !c)]];
-                NN->addSz = 0;
-                NN->subSz = 0;
+                KingBucketState* state = &NN.state[side][get_king_bucket_cache(king_sq, side)];
+                NN.clear_updates();
                 for (int i = 1; i <= 12; i++) {
                     uint64_t prev = state->bb[i];
-                    uint64_t curr = board.bb[i];
+                    uint64_t curr = bb[i];
 
                     uint64_t b = curr & ~prev; // additions
-                    while (b) NN->addInput(net_index(i, sq_lsb(b), kingSq, c));
+                    while (b) NN.add_input(net_index(i, sq_lsb(b), king_sq, side));
 
                     b = prev & ~curr; // removals
-                    while (b) NN->remInput(net_index(i, sq_lsb(b), kingSq, c));
+                    while (b) NN.remove_input(net_index(i, sq_lsb(b), king_sq, side));
 
-                    state->bb[i] = board.bb[i];
+                    state->bb[i] = bb[i];
                 }
-                NN->apply_updates(state->output, state->output);
-                memcpy(NN->output_history[hist_size - 1][c], state->output, sizeof(NN->output_history[hist_size - 1][c]));
-                NN->hist[hist_size - 1].calc[c] = 1;
+                NN.apply_updates(state->output, state->output);
+                memcpy(NN.output_history[hist_size - 1][side], state->output, sizeof(NN.output_history[hist_size - 1][side]));
+                NN.hist[hist_size - 1].calc[side] = 1;
             }
         }
     }
 }
 
 int evaluate(Board& board) {
-    bring_up_to_date(board);
+    board.bring_up_to_date();
 
     int eval = board.NN.get_output(board.turn);
     eval = eval * scale(board) / 1024;

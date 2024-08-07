@@ -345,23 +345,23 @@ template <bool rootNode, bool pvNode>
 int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry* stack) {
     const int ply = board.ply;
 
-    if (check_for_stop<true>()) return evaluate(board);
-
-    if (ply >= MAX_DEPTH) return evaluate(board);
+    if (check_for_stop<true>() || ply >= MAX_DEPTH) return evaluate(board);
 
     if (depth <= 0) return quiesce<pvNode>(alpha, beta, stack);
 
-    const bool allNode = (!pvNode && !cutNode);
-    const bool nullSearch = ((stack - 1)->move == NULLMOVE);
+    const bool allNode = !pvNode && !cutNode;
+    const bool nullSearch = (stack - 1)->move == NULLMOVE;
     const int alphaOrig = alpha;
     const uint64_t key = board.key;
-    Move ttMove = NULLMOVE;
+
     uint16_t nrQuiets = 0;
     uint16_t nrCaptures = 0;
-    int played = 0, bound = NONE, skip = 0;
+    int played = 0, skip = 0;
     int best = -INF;
     Move bestMove = NULLMOVE;
-    int ttValue = 0, ttDepth = -100;
+
+    Move ttMove = NULLMOVE;
+    int ttBound = NONE, ttValue = 0, ttDepth = -100;
     bool ttHit = false;
 
     nodes++;
@@ -373,7 +373,8 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
         if (board.is_draw(ply)) return 1 - (nodes & 2); /// beal effect, credit to Ethereal for this
 
         /// mate distance pruning   
-        alpha = std::max(alpha, -INF + ply), beta = std::min(beta, INF - ply - 1);
+        alpha = std::max(alpha, -INF + ply);
+        beta = std::min(beta, INF - ply - 1);
         if (alpha >= beta) return alpha;
     }
 
@@ -386,13 +387,13 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
     if (!stack->excluded && ttHit) {
         const int score = entry->value(ply);
         ttValue = score;
-        bound = entry->bound();
+        ttBound = entry->bound();
         ttMove = entry->move;
         eval = entry->eval;
         ttDepth = entry->depth();
         wasPV |= entry->wasPV();
         if constexpr (!pvNode) {
-            if (score != VALUE_NONE && ttDepth >= depth && (bound == EXACT || (bound == LOWER && score >= beta) || (bound == UPPER && score <= alpha))) return score;
+            if (score != VALUE_NONE && ttDepth >= depth && (ttBound & (score >= beta ? LOWER : UPPER))) return score;
         }
     }
 
@@ -445,7 +446,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
         if (stack->excluded) raw_eval = evaluate(board);
         else raw_eval = eval;
         stack->eval = eval = getCorrectedEval(this, raw_eval);
-        if (bound == EXACT || (bound == LOWER && ttValue > eval) || (bound == UPPER && ttValue < eval)) eval = ttValue;
+        if (ttBound == EXACT || (ttBound == LOWER && ttValue > eval) || (ttBound == UPPER && ttValue < eval)) eval = ttValue;
     }
 
     const int static_eval = stack->eval;
@@ -628,7 +629,8 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
         /// avoid extending too far (might cause stack overflow)
         if (ply < 2 * tDepth && !rootNode) {
             /// singular extension (look if the tt move is better than the rest)
-            if (!stack->excluded && !allNode && move == ttMove && abs(ttValue) < MATE && depth >= SEDepth && ttDepth >= depth - 3 && (bound & LOWER)) {
+            if (!stack->excluded && !allNode && move == ttMove && abs(ttValue) < MATE 
+                && depth >= SEDepth && ttDepth >= depth - 3 && (ttBound & LOWER)) {
                 int rBeta = ttValue - SEMargin * depth / 64;
 
                 stack->excluded = move;
@@ -641,7 +643,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
             }
             else if (isCheck) ex = 1;
         }
-        else if (allNode && played >= 1 && ttDepth >= depth - 3 && bound == UPPER) ex = -1;
+        else if (allNode && played >= 1 && ttDepth >= depth - 3 && ttBound == UPPER) ex = -1;
 
         /// update stack info
         TT->prefetch(board.speculative_next_key(move));
@@ -748,10 +750,10 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
 
     /// update tt only if we aren't in a singular search
     if (!stack->excluded) {
-        bound = (best >= beta ? LOWER : (best > alphaOrig ? EXACT : UPPER));
-        if ((bound == UPPER || !board.is_noisy_move(bestMove)) && !isCheck && !(bound == LOWER && best <= static_eval) && !(bound == UPPER && best >= static_eval))
+        ttBound = (best >= beta ? LOWER : (best > alphaOrig ? EXACT : UPPER));
+        if ((ttBound == UPPER || !board.is_noisy_move(bestMove)) && !isCheck && !(ttBound == LOWER && best <= static_eval) && !(ttBound == UPPER && best >= static_eval))
             updateCorrHist(this, depth, best - static_eval);
-        TT->save(entry, key, best, depth, ply, bound, (bound == UPPER ? NULLMOVE : bestMove), raw_eval, wasPV);
+        TT->save(entry, key, best, depth, ply, ttBound, (ttBound == UPPER ? NULLMOVE : bestMove), raw_eval, wasPV);
     }
 
     return best;

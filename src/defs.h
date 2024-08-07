@@ -38,13 +38,25 @@
 std::mt19937_64 gen(0xBEEF);
 std::uniform_int_distribution <uint64_t> rng;
 
-typedef std::array<std::array<int16_t, 64>, 13> TablePieceTo;
+
+template <int Divisor>
+class History {
+public:
+    int16_t hist;
+    History() : hist(0) {}
+
+    void update(int16_t score) { hist += score - hist * abs(score) / Divisor; }
+
+    operator int16_t() { return hist; }
+};
+
+typedef std::array<std::array<History<16384>, 64>, 13> TablePieceTo;
 typedef uint16_t Move;
 
 struct StackEntry { /// info to keep in the stack
     uint16_t piece;
     Move move, killer, excluded;
-    Move quiets[256], captures[256];
+    std::array<Move, 256> quiets, captures;
     int eval;
     TablePieceTo* cont_hist;
 };
@@ -97,6 +109,7 @@ constexpr int VALUE_NONE = INF + 10;
 constexpr int MATE = 31000;
 constexpr int TB_WIN_SCORE = 22000;
 constexpr int MAX_DEPTH = 200;
+constexpr int MAX_MOVES = 256;
 constexpr uint64_t ALL = 18446744073709551615ULL;
 const std::string START_POS_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
@@ -127,11 +140,13 @@ constexpr std::array<int, 64> kingIndTable = {
     4, 4, 4, 4, 4, 4, 4, 4,
 };
 
-struct MeanValue {
+class MeanValue {
+private:
     std::string name;
     double valuesSum;
     int valuesCount;
 
+public:
     void init(std::string _name) {
         name = _name;
         valuesSum = 0.0;
