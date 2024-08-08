@@ -17,6 +17,7 @@
 #pragma once
 #include "board.h"
 #include "tt.h"
+#include "history.h"
 
 #include <cassert>
 #include <thread>
@@ -37,10 +38,7 @@ public:
     }
 
     void clear_history() {
-        fill_multiarray<History<16384>, 2, 2, 2, 64 * 64>(hist, 0);
-        fill_multiarray<History<16384>, 13, 64, 7>(cap_hist, 0);
-        fill_multiarray<History<16384>, 2, 13, 64, 13, 64>(cont_history, 0);
-        fill_multiarray<int, 2, 65536>(corr_hist, 0);
+        histories.clear_history();
     }
 
     void start_search(Info* info);
@@ -65,10 +63,7 @@ private:
 public:
     Info* info;
 
-    MultiArray<History<16384>, 2, 2, 2, 64 * 64> hist;
-    MultiArray<History<16384>, 13, 64, 7> cap_hist;
-    MultiArray<History<16384>, 2, 13, 64, 13, 64> cont_history;
-    MultiArray<int, 2, 65536> corr_hist;
+    Histories histories;
 
     std::array<int, MAX_DEPTH + 5> pv_table_len;
     MultiArray<Move, MAX_DEPTH + 5, 2 * MAX_DEPTH + 5> pv_table;

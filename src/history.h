@@ -18,78 +18,93 @@
 #include <vector>
 #include "board.h"
 #include "defs.h"
-#include "thread.h"
+
+constexpr int CORR_HIST_SIZE = (1 << 16);
+constexpr int CORR_HIST_MASK = CORR_HIST_SIZE - 1;
+
+class Histories {
+public:
+    MultiArray<History<16384>, 2, 2, 2, 64 * 64> hist;
+    MultiArray<History<16384>, 13, 64, 7> cap_hist;
+    MultiArray<History<16384>, 2, 13, 64, 13, 64> cont_history;
+    MultiArray<int, 2, CORR_HIST_SIZE> corr_hist;
+
+public:
+    void clear_history() {
+        fill_multiarray<History<16384>, 2, 2, 2, 64 * 64>(hist, 0);
+        fill_multiarray<History<16384>, 13, 64, 7>(cap_hist, 0);
+        fill_multiarray<History<16384>, 2, 13, 64, 13, 64>(cont_history, 0);
+        fill_multiarray<int, 2, CORR_HIST_SIZE>(corr_hist, 0);
+    }
+
+    Histories() { clear_history(); }
+
+    inline History<16384>& get_hist(const int from, const int to, const int from_to, const bool turn, const uint64_t threats) {
+        return hist[turn][!!(threats & (1ULL << from))][!!(threats & (1ULL << to))][from_to];
+    }
+
+    inline History<16384>& get_cont_hist(const int piece, const int to, StackEntry *stack, const int delta) {
+        return (*(stack - delta)->cont_hist)[piece][to];
+    }
+
+    inline History<16384>& get_cap_hist(const int piece, const int to, const int cap) {
+        assert(cap <= 6);
+        return cap_hist[piece][to][cap];
+    }
+
+    inline int& get_corr_hist(const bool turn, const uint64_t pawn_key) {
+        return corr_hist[turn][pawn_key & CORR_HIST_MASK];
+    }
+
+    inline void update_cont_hist_move(const int piece, const int to, StackEntry *&stack, const int16_t bonus) {
+        if((stack - 1)->move)
+            get_cont_hist(piece, to, stack, 1).update(bonus);
+        if((stack - 2)->move)
+            get_cont_hist(piece, to, stack, 2).update(bonus);
+        if((stack - 4)->move)
+            get_cont_hist(piece, to, stack, 4).update(bonus);
+    }
+
+    inline void update_hist_move(const Move move, const uint64_t threats, const bool turn, const int16_t bonus) {
+        get_hist(sq_from(move), sq_to(move), fromTo(move), turn, threats).update(bonus);
+    }
+
+    void update_hist_quiet_move(const Move move, const int piece, const uint64_t threats, const bool turn, StackEntry *&stack, const int16_t bonus) {
+        update_hist_move(move, threats, turn, bonus);
+        update_cont_hist_move(piece, sq_to(move), stack, bonus);
+    }
+
+    inline int get_history_search(const Move move, const int piece, const uint64_t threats, const bool turn, StackEntry *stack) {
+        return get_hist(sq_from(move), sq_to(move), fromTo(move), turn, threats)
+             + get_cont_hist(piece, sq_to(move), stack, 1)
+             + get_cont_hist(piece, sq_to(move), stack, 2)
+             + get_cont_hist(piece, sq_to(move), stack, 4);
+    }
+
+    inline int get_history_movepick(const Move move, const int piece, const uint64_t threats, const bool turn, StackEntry *stack) {
+        const int to = sq_to(move);
+        return QuietHistCoef  * get_hist(sq_from(move), to, fromTo(move), turn, threats)
+             + QuietContHist1 * get_cont_hist(piece, to, stack, 1)
+             + QuietContHist2 * get_cont_hist(piece, to, stack, 2)
+             + QuietContHist4 * get_cont_hist(piece, to, stack, 4);
+    }
+
+    inline void update_cap_hist_move(const int piece, const int to, const int cap, const int16_t bonus) {
+        get_cap_hist(piece, to, cap).update(bonus);
+    }
+
+    inline void update_corr_hist(const bool turn, const uint64_t pawn_key, const int depth, const int delta) {
+        const int w = std::min(4 * (depth + 1) * (depth + 1), 1024);
+        int& corr = get_corr_hist(turn, pawn_key);
+        corr = (corr * (CorrHistScale - w) + delta * CorrHistDiv * w) / CorrHistScale;
+        corr = std::clamp(corr, -32 * CorrHistDiv, 32 * CorrHistDiv);
+    }
+
+    inline int get_corrected_eval(const int eval, const bool turn, const uint64_t pawn_key) {
+        return eval + get_corr_hist(turn, pawn_key) / CorrHistDiv;
+    }
+};
 
 int getHistoryBonus(int depth) {
     return std::min<int>(HistoryBonusMargin * depth - HistoryBonusBias, HistoryBonusMax);
-}
-
-void updateMoveHistory(SearchData &searcher, StackEntry*& stack, Move move, uint64_t threats, int16_t bonus) {
-    const int from = sq_from(move), to = sq_to(move), piece = searcher.board.piece_at(from);
-
-    searcher.hist[searcher.board.turn][!!(threats & (1ULL << from))][!!(threats & (1ULL << to))][fromTo(move)].update(bonus);
-
-    if ((stack - 1)->move)
-        (*(stack - 1)->cont_hist)[piece][to].update(bonus);
-
-    if ((stack - 2)->move)
-        (*(stack - 2)->cont_hist)[piece][to].update(bonus);
-
-    if ((stack - 4)->move)
-        (*(stack - 4)->cont_hist)[piece][to].update(bonus);
-}
-
-void updateCaptureMoveHistory(SearchData &searcher, Move move, int16_t bonus) {
-    const int to = sq_to(move), from = sq_from(move);
-    const int cap = (type(move) == ENPASSANT ? PAWN : searcher.board.piece_type_at(to));
-    const int piece = searcher.board.piece_at(from);
-
-    searcher.cap_hist[piece][to][cap].update(bonus);
-}
-
-void updateHistory(SearchData &searcher, StackEntry* stack, int nrQuiets, int ply, int depth, uint64_t threats, int16_t bonus) {
-    if (!nrQuiets)
-        return;
-    
-    const Move best = stack->quiets[nrQuiets - 1];
-
-    if(nrQuiets > 1 || depth >= HistoryUpdateMinDepth)
-        updateMoveHistory(searcher, stack, best, threats, bonus);
-    for (int i = 0; i < nrQuiets - 1; i++)
-        updateMoveHistory(searcher, stack, stack->quiets[i], threats, -bonus);
-}
-
-void updateCapHistory(SearchData &searcher, StackEntry* stack, int nrCaptures, Move best, int ply, int16_t bonus) {
-    for (int i = 0; i < nrCaptures; i++) {
-        const int move = stack->captures[i], score = (move == best ? bonus : -bonus);
-        const int from = sq_from(move), to = sq_to(move), piece = searcher.board.piece_at(from);
-        const int cap = (type(move) == ENPASSANT ? PAWN : searcher.board.piece_type_at(to));
-        searcher.cap_hist[piece][to][cap].update(score);
-    }
-}
-
-int16_t getCapHist(SearchData &searcher, Move move) {
-    const int from = sq_from(move), to = sq_to(move), piece = searcher.board.piece_at(from);
-    const int cap = (type(move) == ENPASSANT ? PAWN : searcher.board.piece_type_at(to));
-    return searcher.cap_hist[piece][to][cap];
-}
-
-void getHistory(SearchData &searcher, StackEntry* stack, Move move, uint64_t threats, int &hist) {
-    const int from = sq_from(move), to = sq_to(move), piece = searcher.board.piece_at(from);
-
-    hist = searcher.hist[searcher.board.turn][!!(threats & (1ULL << from))][!!(threats & (1ULL << to))][fromTo(move)];
-    hist += (*(stack - 1)->cont_hist)[piece][to];
-    hist += (*(stack - 2)->cont_hist)[piece][to];
-    hist += (*(stack - 4)->cont_hist)[piece][to];
-}
-
-void updateCorrHist(SearchData &searcher, int depth, int bonus) {
-    const int w = std::min(4 * (depth + 1) * (depth + 1), 1024);
-    int& corr = searcher.corr_hist[searcher.board.turn][searcher.board.pawn_key & 65535];
-    corr = (corr * (CorrHistScale - w) + bonus * CorrHistDiv * w) / CorrHistScale;
-    corr = std::clamp(corr, -32 * CorrHistDiv, 32 * CorrHistDiv);
-}
-
-int getCorrectedEval(SearchData &searcher, int eval) {
-    return eval + searcher.corr_hist[searcher.board.turn][searcher.board.pawn_key & 65535] / CorrHistDiv;
 }

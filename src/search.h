@@ -237,6 +237,7 @@ int SearchData::quiesce(int alpha, int beta, StackEntry* stack) {
     if (check_for_stop<false>()) return evaluate(board);
 
     const uint64_t key = board.key;
+    const bool turn = board.turn;
     int score = INF, best = -INF, alphaOrig = alpha;
     int bound = NONE;
     Move bestMove = NULLMOVE, ttMove = NULLMOVE;
@@ -261,7 +262,7 @@ int SearchData::quiesce(int alpha, int beta, StackEntry* stack) {
 
     const bool isCheck = (board.checkers != 0);
     Threats threats{};
-    if (isCheck) threats = get_threats(board, board.turn);
+    if (isCheck) threats = get_threats(board, turn);
     int futilityValue;
 
     if (isCheck) {
@@ -270,12 +271,12 @@ int SearchData::quiesce(int alpha, int beta, StackEntry* stack) {
     }
     else if (!ttHit) {
         raw_eval = evaluate(board);
-        stack->eval = best = eval = getCorrectedEval(*this, raw_eval);
+        stack->eval = best = eval = histories.get_corrected_eval(raw_eval, turn, board.pawn_key);
         futilityValue = best + QuiesceFutilityBias;
     }
     else { /// ttValue might be a better evaluation
         raw_eval = eval;
-        stack->eval = eval = getCorrectedEval(*this, raw_eval);
+        stack->eval = eval = histories.get_corrected_eval(raw_eval, turn, board.pawn_key);
         if (bound == EXACT || (bound == LOWER && ttValue > eval) || (bound == UPPER && ttValue < eval)) best = ttValue;
         futilityValue = best + QuiesceFutilityBias;
     }
@@ -296,7 +297,7 @@ int SearchData::quiesce(int alpha, int beta, StackEntry* stack) {
     Move move;
     int played = 0;
 
-    while ((move = noisyPicker.get_next_move(this, stack, board, !isCheck, true))) {
+    while ((move = noisyPicker.get_next_move(histories, stack, board, !isCheck, true))) {
         // futility pruning
         played++;
         if (played == 4) break;
@@ -314,7 +315,7 @@ int SearchData::quiesce(int alpha, int beta, StackEntry* stack) {
         TT->prefetch(board.speculative_next_key(move));
         stack->move = move;
         stack->piece = board.piece_at(sq_from(move));
-        stack->cont_hist = &cont_history[!board.is_noisy_move(move)][stack->piece][sq_to(move)];
+        stack->cont_hist = &histories.cont_history[!board.is_noisy_move(move)][stack->piece][sq_to(move)];
 
         board.make_move(move);
         score = -quiesce<pvNode>(-beta, -alpha, stack + 1);
@@ -353,6 +354,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
     const bool nullSearch = (stack - 1)->move == NULLMOVE;
     const int alphaOrig = alpha;
     const uint64_t key = board.key;
+    const bool turn = board.turn;
 
     uint16_t nrQuiets = 0;
     uint16_t nrCaptures = 0;
@@ -426,10 +428,10 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
     }
 
     const bool isCheck = (board.checkers != 0);
-    const Threats threats = get_threats(board, board.turn);
+    const Threats threats = get_threats(board, turn);
     const bool enemy_has_no_threats = !threats.threats_pieces;
     int raw_eval{};
-    //int quietEnemy = quietness(board, 1 ^ board.turn);
+    //int quietEnemy = quietness(board, 1 ^ turn);
 
     if (isCheck) { /// when in check, don't evaluate
         stack->eval = raw_eval = eval = INF;
@@ -438,14 +440,14 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
         if (stack->excluded) raw_eval = eval = stack->eval;
         else {
             raw_eval = evaluate(board);
-            stack->eval = eval = getCorrectedEval(*this, raw_eval);
+            stack->eval = eval = histories.get_corrected_eval(raw_eval, turn, board.pawn_key);
             TT->save(entry, key, VALUE_NONE, 0, ply, 0, NULLMOVE, raw_eval, wasPV);
         }
     }
     else { /// ttValue might be a better evaluation
         if (stack->excluded) raw_eval = evaluate(board);
         else raw_eval = eval;
-        stack->eval = eval = getCorrectedEval(*this, raw_eval);
+        stack->eval = eval = histories.get_corrected_eval(raw_eval, turn, board.pawn_key);
         if (ttBound == EXACT || (ttBound == LOWER && ttValue > eval) || (ttBound == UPPER && ttValue < eval)) eval = ttValue;
     }
 
@@ -482,12 +484,12 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
             /// null move pruning (when last move wasn't null, we still have non pawn material, we have a good position)
             if (!nullSearch && !stack->excluded && enemy_has_no_threats &&
                 eval >= beta + NMPEvalMargin * (depth <= 3) && eval >= static_eval &&
-                board.has_non_pawn_material(board.turn)) {
+                board.has_non_pawn_material(turn)) {
                 int R = NMPReduction + depth / NMPDepthDiv + (eval - beta) / NMPEvalDiv + improving;
 
                 stack->move = NULLMOVE;
                 stack->piece = 0;
-                stack->cont_hist = &cont_history[0][0][0];
+                stack->cont_hist = &histories.cont_history[0][0][0];
 
                 board.make_null_move();
                 int score = -search<false, false>(-beta, -beta + 1, depth - R, !cutNode, stack + 1);
@@ -505,13 +507,13 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
                     threats.threats_enemy);
 
                 Move move;
-                while ((move = picker.get_next_move(this, stack, board, true, true)) != NULLMOVE) {
+                while ((move = picker.get_next_move(histories, stack, board, true, true)) != NULLMOVE) {
                     if (move == stack->excluded)
                         continue;
 
                     stack->move = move;
                     stack->piece = board.piece_at(sq_from(move));
-                    stack->cont_hist = &cont_history[0][stack->piece][sq_to(move)];
+                    stack->cont_hist = &histories.cont_history[0][stack->piece][sq_to(move)];
 
                     board.make_move(move);
 
@@ -545,7 +547,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
     Move move;
     const bool ttCapture = ttMove && board.is_noisy_move(ttMove);
 
-    while ((move = picker.get_next_move(this, stack, board, skip, false)) != NULLMOVE) {
+    while ((move = picker.get_next_move(histories, stack, board, skip, false)) != NULLMOVE) {
         if constexpr (rootNode) {
             bool searched = false;
             for (int i = 1; i < multipv_index; i++) {
@@ -560,14 +562,15 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
             continue;
 
         const bool isQuiet = !board.is_noisy_move(move);
+        const int from = sq_from(move), to = sq_to(move), piece = board.piece_at(from);
         int history = 0;
 
         /// quiet move pruning
 
 #ifdef GENERATE
-        if (best > -MATE && board.has_non_pawn_material(board.turn) && !pvNode) {
+        if (best > -MATE && board.has_non_pawn_material(turn) && !pvNode) {
             if (isQuiet) {
-                getHistory(*this, stack, move, threats.threats_enemy, history);
+                history = histories.get_history_search(move, piece, threats.threats_enemy, turn, stack);
 
                 /// approximately the new depth for the next search
                 int newDepth = std::max(0, depth - lmr_red[std::min(63, depth)][std::min(63, played)] + improving);
@@ -585,8 +588,9 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
                     !see(board, move, -SEEPruningQuietMargin * depth)) continue;
             }
             else {
+                history = histories.get_cap_hist(piece, to, type(move) == ENPASSANT ? PAWN : board.piece_type_at(to));
                 if (depth <= SEEPruningNoisyDepth && !isCheck && picker.trueStage > STAGE_GOOD_NOISY && 
-                    !see(board, move, -SEEPruningNoisyMargin * (depth + bad_static_eval) * (depth + bad_static_eval))) continue;
+                    !see(board, move, -SEEPruningNoisyMargin * (depth + bad_static_eval) * (depth + bad_static_eval) - history / 256)) continue;
 
                 if (depth <= FPNoisyDepth && !isCheck && 
                     static_eval + FPBias + seeVal[board.piece_type_at(sq_to(move))] + FPMargin * depth <= alpha) continue;
@@ -594,10 +598,10 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
         }
 #else
         if constexpr (!rootNode) {
-            if (best > -MATE && board.has_non_pawn_material(board.turn)) {
+            if (best > -MATE && board.has_non_pawn_material(turn)) {
                 if (isQuiet) {
-                    getHistory(*this, stack, move, threats.threats_enemy, history);
-
+                    history = histories.get_history_search(move, piece, threats.threats_enemy, turn, stack);
+                    
                     /// approximately the new depth for the next search
                     int newDepth = std::max(0, depth - lmr_red[std::min(63, depth)][std::min(63, played)] + improving + history / MoveloopHistDiv);
 
@@ -614,7 +618,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
                         !see(board, move, -SEEPruningQuietMargin * newDepth)) continue;
                 }
                 else {
-                    history = getCapHist(*this, move);
+                    history = histories.get_cap_hist(piece, to, type(move) == ENPASSANT ? PAWN : board.piece_type_at(to));
                     if (depth <= SEEPruningNoisyDepth && !isCheck && picker.trueStage > STAGE_GOOD_NOISY && 
                         !see(board, move, -SEEPruningNoisyMargin * (depth + bad_static_eval) * (depth + bad_static_eval) - history / 256)) continue;
 
@@ -648,8 +652,8 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
         /// update stack info
         TT->prefetch(board.speculative_next_key(move));
         stack->move = move;
-        stack->piece = board.piece_at(sq_from(move));
-        stack->cont_hist = &cont_history[isQuiet][stack->piece][sq_to(move)];
+        stack->piece = piece;
+        stack->cont_hist = &histories.cont_history[isQuiet][piece][to];
 
         board.make_move(move);
         played++;
@@ -743,16 +747,29 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
     if (best >= beta) {
         if (!board.is_noisy_move(bestMove)) {
             stack->killer = bestMove;
-            updateHistory(*this, stack, nrQuiets, ply, depth, threats.threats_enemy, getHistoryBonus(depth + bad_static_eval));
+            if (nrQuiets) {
+                const int quiet_bonus = getHistoryBonus(depth + bad_static_eval);
+                assert(stack->quiets[nrQuiets - 1] == bestMove);
+                if (nrQuiets > 1 || depth >= HistoryUpdateMinDepth)
+                    histories.update_hist_quiet_move(bestMove, board.piece_at(sq_from(bestMove)), threats.threats_enemy, turn, stack, quiet_bonus);
+                for (int i = 0; i < nrQuiets - 1; i++) {
+                    const Move move = stack->quiets[i];
+                    histories.update_hist_quiet_move(move, board.piece_at(sq_from(move)), threats.threats_enemy, turn, stack, -quiet_bonus);
+                }
+            }
         }
-        updateCapHistory(*this, stack, nrCaptures, bestMove, ply, getHistoryBonus(depth + bad_static_eval));
+        const int noisy_bonus = getHistoryBonus(depth + bad_static_eval);
+        for (int i = 0; i < nrCaptures; i++) {
+            const Move move = stack->captures[i];
+            histories.update_cap_hist_move(board.piece_at(sq_from(move)), sq_to(move), type(move) == ENPASSANT ? PAWN : board.piece_type_at(sq_to(move)), move == bestMove ? noisy_bonus : -noisy_bonus);
+        }
     }
 
     /// update tt only if we aren't in a singular search
     if (!stack->excluded) {
         ttBound = (best >= beta ? LOWER : (best > alphaOrig ? EXACT : UPPER));
         if ((ttBound == UPPER || !board.is_noisy_move(bestMove)) && !isCheck && !(ttBound == LOWER && best <= static_eval) && !(ttBound == UPPER && best >= static_eval))
-            updateCorrHist(*this, depth, best - static_eval);
+            histories.update_corr_hist(turn, board.pawn_key, depth, best - static_eval);
         TT->save(entry, key, best, depth, ply, ttBound, (ttBound == UPPER ? NULLMOVE : bestMove), raw_eval, wasPV);
     }
 
@@ -819,7 +836,7 @@ void SearchData::start_search(Info* _info) {
     rootEval = (!board.checkers ? evaluate(board) : INF);
 
     for (int i = 1; i <= 10; i++) {
-        (stack - i)->cont_hist = &cont_history[0][0][0], (stack - i)->eval = INF, (stack - i)->move = NULLMOVE;
+        (stack - i)->cont_hist = &histories.cont_history[0][0][0], (stack - i)->eval = INF, (stack - i)->move = NULLMOVE;
     }
 
     completed_depth = 0;

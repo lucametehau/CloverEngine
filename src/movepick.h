@@ -69,7 +69,7 @@ public:
         std::swap(moves[ind], moves[offset]);
     }
 
-    Move get_next_move(SearchData* searcher, StackEntry* stack, Board& board, bool skip, bool noisyPicker) {
+    Move get_next_move(Histories &histories, StackEntry* stack, Board &board, bool skip, bool noisyPicker) {
         switch (stage) {
         case STAGE_TTMOVE:
             trueStage = STAGE_TTMOVE;
@@ -96,13 +96,11 @@ public:
 
                 const int piece = board.piece_at(sq_from(move));
                 const int to = sq_to(move), cap = (type(move) == ENPASSANT ? PAWN : board.piece_type_at(to));
-                int score = 0;
-
-                score = GoodNoisyValueCoef * seeVal[cap];
+                int score = GoodNoisyValueCoef * seeVal[cap];
                 if (type(move) == PROMOTION && piece_type(piece) >= ROOK)
                     score += GoodNoisyPromotionBonus;
 
-                score += searcher->cap_hist[piece][to][cap];
+                score += histories.get_cap_hist(piece, to, cap);
 
                 scores[m++] = score;
             }
@@ -123,7 +121,7 @@ public:
             }
             if (skip) { /// no need to go through quiets
                 stage = STAGE_PRE_BAD_NOISY;
-                return get_next_move(searcher, stack, board, skip, noisyPicker);
+                return get_next_move(histories, stack, board, skip, noisyPicker);
             }
             stage++;
         case STAGE_KILLER:
@@ -144,18 +142,13 @@ public:
                 
                 int m = 0;
                 for (int i = 0; i < nrQuiets; i++) {
-                    const uint16_t move = moves[i];
+                    const Move move = moves[i];
                     if (move == ttMove || move == killer)
                         continue;
 
                     moves[m] = move;
-                    int score = 0;
-                    const int from = sq_from(move), to = sq_to(move), piece = board.piece_at(from), pt = piece_type(piece);
-
-                    score =  QuietHistCoef * searcher->hist[board.turn][!!(threats_enemy & (1ULL << from))][!!(threats_enemy & (1ULL << to))][fromTo(move)];
-                    score += QuietContHist1 * (*(stack - 1)->cont_hist)[piece][to];
-                    score += QuietContHist2 * (*(stack - 2)->cont_hist)[piece][to];
-                    score += QuietContHist4 * (*(stack - 4)->cont_hist)[piece][to];
+                    const int to = sq_to(move), piece = board.piece_at(sq_from(move)), pt = piece_type(piece);
+                    int score = histories.get_history_movepick(move, piece, threats_enemy, turn, stack);
 
                     if (pt != PAWN && (pawnAttacks & (1ULL << to)))
                         score -= QuietPawnAttackedCoef * seeVal[pt];
