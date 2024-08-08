@@ -106,6 +106,8 @@ public:
 
     inline int piece_type_at(const int sq) const { return piece_type(board[sq]); }
 
+    inline int get_captured_type(const Move move) const { return type(move) == ENPASSANT ? PAWN : piece_type_at(sq_to(move)); }
+
     inline int piece_at(const int sq) const { return board[sq]; }
 
     inline int king(const bool color) const { return Sq(get_bb_piece(KING, color)); }
