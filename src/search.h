@@ -618,7 +618,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
                         !see(board, move, -SEEPruningQuietMargin * newDepth)) continue;
                 }
                 else {
-                    history = histories.get_cap_hist(piece, to, type(move) == ENPASSANT ? PAWN : board.piece_type_at(to));
+                    history = histories.get_cap_hist(piece, to, board.get_captured_type(move));
                     if (depth <= SEEPruningNoisyDepth && !isCheck && picker.trueStage > STAGE_GOOD_NOISY && 
                         !see(board, move, -SEEPruningNoisyMargin * (depth + bad_static_eval) * (depth + bad_static_eval) - history / 256)) continue;
 
@@ -747,21 +747,18 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
     if (best >= beta) {
         if (!board.is_noisy_move(bestMove)) {
             stack->killer = bestMove;
-            if (nrQuiets) {
-                const int quiet_bonus = getHistoryBonus(depth + bad_static_eval);
-                assert(stack->quiets[nrQuiets - 1] == bestMove);
-                if (nrQuiets > 1 || depth >= HistoryUpdateMinDepth)
-                    histories.update_hist_quiet_move(bestMove, board.piece_at(sq_from(bestMove)), threats.threats_enemy, turn, stack, quiet_bonus);
-                for (int i = 0; i < nrQuiets - 1; i++) {
-                    const Move move = stack->quiets[i];
-                    histories.update_hist_quiet_move(move, board.piece_at(sq_from(move)), threats.threats_enemy, turn, stack, -quiet_bonus);
-                }
+            const int quiet_bonus = getHistoryBonus(depth + bad_static_eval);
+            if (nrQuiets > 1 || depth >= HistoryUpdateMinDepth)
+                histories.update_hist_quiet_move(bestMove, board.piece_at(sq_from(bestMove)), threats.threats_enemy, turn, stack, quiet_bonus);
+            for (int i = 0; i < nrQuiets - 1; i++) {
+                const Move move = stack->quiets[i];
+                histories.update_hist_quiet_move(move, board.piece_at(sq_from(move)), threats.threats_enemy, turn, stack, -quiet_bonus);
             }
         }
         const int noisy_bonus = getHistoryBonus(depth + bad_static_eval);
         for (int i = 0; i < nrCaptures; i++) {
             const Move move = stack->captures[i];
-            histories.update_cap_hist_move(board.piece_at(sq_from(move)), sq_to(move), type(move) == ENPASSANT ? PAWN : board.piece_type_at(sq_to(move)), move == bestMove ? noisy_bonus : -noisy_bonus);
+            histories.update_cap_hist_move(board.piece_at(sq_from(move)), sq_to(move), board.get_captured_type(move), move == bestMove ? noisy_bonus : -noisy_bonus);
         }
     }
 

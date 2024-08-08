@@ -23,11 +23,13 @@ constexpr int CORR_HIST_SIZE = (1 << 16);
 constexpr int CORR_HIST_MASK = CORR_HIST_SIZE - 1;
 
 class Histories {
-public:
+private:
     MultiArray<History<16384>, 2, 2, 2, 64 * 64> hist;
     MultiArray<History<16384>, 13, 64, 7> cap_hist;
-    MultiArray<History<16384>, 2, 13, 64, 13, 64> cont_history;
     MultiArray<int, 2, CORR_HIST_SIZE> corr_hist;
+
+public:
+    MultiArray<History<16384>, 2, 13, 64, 13, 64> cont_history;
 
 public:
     void clear_history() {
@@ -48,7 +50,6 @@ public:
     }
 
     inline History<16384>& get_cap_hist(const int piece, const int to, const int cap) {
-        assert(cap <= 6);
         return cap_hist[piece][to][cap];
     }
 
@@ -57,11 +58,11 @@ public:
     }
 
     inline void update_cont_hist_move(const int piece, const int to, StackEntry *&stack, const int16_t bonus) {
-        if((stack - 1)->move)
+        if ((stack - 1)->move)
             get_cont_hist(piece, to, stack, 1).update(bonus);
-        if((stack - 2)->move)
+        if ((stack - 2)->move)
             get_cont_hist(piece, to, stack, 2).update(bonus);
-        if((stack - 4)->move)
+        if ((stack - 4)->move)
             get_cont_hist(piece, to, stack, 4).update(bonus);
     }
 
@@ -69,16 +70,17 @@ public:
         get_hist(sq_from(move), sq_to(move), fromTo(move), turn, threats).update(bonus);
     }
 
-    void update_hist_quiet_move(const Move move, const int piece, const uint64_t threats, const bool turn, StackEntry *&stack, const int16_t bonus) {
+    inline void update_hist_quiet_move(const Move move, const int piece, const uint64_t threats, const bool turn, StackEntry *&stack, const int16_t bonus) {
         update_hist_move(move, threats, turn, bonus);
         update_cont_hist_move(piece, sq_to(move), stack, bonus);
     }
 
     inline int get_history_search(const Move move, const int piece, const uint64_t threats, const bool turn, StackEntry *stack) {
-        return get_hist(sq_from(move), sq_to(move), fromTo(move), turn, threats)
-             + get_cont_hist(piece, sq_to(move), stack, 1)
-             + get_cont_hist(piece, sq_to(move), stack, 2)
-             + get_cont_hist(piece, sq_to(move), stack, 4);
+        const int to = sq_to(move);
+        return get_hist(sq_from(move), to, fromTo(move), turn, threats)
+             + get_cont_hist(piece, to, stack, 1)
+             + get_cont_hist(piece, to, stack, 2)
+             + get_cont_hist(piece, to, stack, 4);
     }
 
     inline int get_history_movepick(const Move move, const int piece, const uint64_t threats, const bool turn, StackEntry *stack) {
