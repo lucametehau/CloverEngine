@@ -19,6 +19,7 @@
 #include "magic.h"
 #include "defs.h"
 
+namespace attacks {
 std::array<uint64_t, 64> rookAttacksMask, bishopAttacksMask;
 MultiArray<uint64_t, 2, 64> pawnAttacksMask;
 MultiArray<uint64_t, 64, 4096> rookTable;
@@ -221,7 +222,7 @@ inline void initBishopMagic() {
     }
 }
 
-inline void initAttacks() {
+inline void init_attacks() {
     initRays();
     initPawnAttacks();
     initKnightAndKingAttacks();
@@ -281,6 +282,6 @@ inline uint64_t getPawnAttacks(int color, uint64_t b) {
     int fileA = (color == WHITE ? 0 : 7), fileH = 7 - fileA;
     return shift(color, NORTHWEST, b & ~fileMask[fileA]) | shift(color, NORTHEAST, b & ~fileMask[fileH]);
 }
-
+};
 
 

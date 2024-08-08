@@ -22,6 +22,8 @@
 #include "net.h"
 #include "attacks.h"
 
+using namespace attacks;
+
 class Undo {
 public:
     int8_t enPas;

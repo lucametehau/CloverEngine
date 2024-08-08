@@ -22,7 +22,7 @@
 
 int main(int argc, char** argv) {
     init_defs();
-    initAttacks();
+    attacks::init_attacks();
     loadNNUEWeights();
 
     UCI uci;

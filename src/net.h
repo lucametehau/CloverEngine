@@ -442,6 +442,12 @@ public:
         }
     }
 
+    void process_historic_update(const int index, const int king_sq, const bool side) {
+        hist[index].calc[side] = 1;
+        process_move(hist[index].move, hist[index].piece, hist[index].cap, king_sq, side,
+            output_history[index][side], output_history[index - 1][side]);
+    }
+
     void add_move_to_history(uint16_t move, uint8_t piece, uint8_t captured) {
         hist[hist_size] = { move, piece, captured, piece_type(piece) == KING && recalc(sq_from(move), special_sqto(move), color_of(piece)), { 0, 0 } };
         hist_size++;
