@@ -18,6 +18,7 @@
 #include "board.h"
 #include "tt.h"
 
+#include <cassert>
 #include <thread>
 #include <mutex>
 #include <condition_variable>
@@ -37,16 +38,16 @@ public:
     }
 
     void clear_stack() {
-        memset(pv_table_len, 0, sizeof(pv_table_len));
-        memset(pv_table, 0, sizeof(pv_table));
-        memset(nodes_seached, 0, sizeof(nodes_seached));
+        pv_table_len.fill(0);
+        nodes_seached.fill(0);
+        fill_multiarray<Move, MAX_DEPTH + 5, 2 * MAX_DEPTH + 5>(pv_table, 0);
     }
 
     void clear_history() {
-        memset(hist, 0, sizeof(hist));
-        memset(cap_hist, 0, sizeof(cap_hist));
-        memset(cont_history, 0, sizeof(cont_history));
-        memset(corr_hist, 0, sizeof(corr_hist));
+        fill_multiarray<History<16384>, 2, 2, 2, 64 * 64>(hist, 0);
+        fill_multiarray<History<16384>, 13, 64, 7>(cap_hist, 0);
+        fill_multiarray<History<16384>, 2, 13, 64, 13, 64>(cont_history, 0);
+        fill_multiarray<int, 2, 65536>(corr_hist, 0);
     }
 
     void start_search(Info* info);
@@ -66,22 +67,24 @@ private:
     template <bool checkTime>
     bool check_for_stop();
 
-    uint64_t nodes_seached[64 * 64];
+    std::array<uint64_t, 64 * 64> nodes_seached;
 
 public:
     Info* info;
-    History<16384> hist[2][2][2][64 * 64];
-    History<16384> cap_hist[13][64][7];
-    TablePieceTo cont_history[2][13][64];
-    int corr_hist[2][65536];
 
-    int lmr_red[64][64], lmr_red_noisy[64][64];
+    MultiArray<History<16384>, 2, 2, 2, 64 * 64> hist;
+    MultiArray<History<16384>, 13, 64, 7> cap_hist;
+    MultiArray<History<16384>, 2, 13, 64, 13, 64> cont_history;
+    MultiArray<int, 2, 65536> corr_hist;
 
-    int pv_table_len[MAX_DEPTH + 5];
-    Move pv_table[MAX_DEPTH + 5][2 * MAX_DEPTH + 5];
-    Move best_move[256];
-    int scores[256], root_score[256];
-    MeanValue values[10];
+    MultiArray<int, 64, 64> lmr_red, lmr_red_noisy;
+
+    std::array<int, MAX_DEPTH + 5> pv_table_len;
+    MultiArray<Move, MAX_DEPTH + 5, 2 * MAX_DEPTH + 5> pv_table;
+
+    std::array<Move, 256> best_move;
+    std::array<int, 256> scores, root_score;
+    std::array<MeanValue, 10> values;
 
 private:
     int64_t t0;

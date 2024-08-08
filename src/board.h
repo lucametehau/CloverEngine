@@ -68,7 +68,7 @@ public:
     void print() {
         for (int i = 7; i >= 0; i--) {
             for (int j = 0; j <= 7; j++)
-                std::cerr << pieceChar[board[8 * i + j]] << " ";
+                std::cerr << piece_char[board[8 * i + j]] << " ";
             std::cerr << "\n";
         }
     }
@@ -176,7 +176,7 @@ public:
                     if (cnt)
                         fen += char(cnt + '0');
                     cnt = 0;
-                    fen += pieceChar[board[sq]];
+                    fen += piece_char[board[sq]];
                 }
             }
             if (cnt)

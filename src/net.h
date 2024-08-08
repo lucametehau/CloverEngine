@@ -443,7 +443,7 @@ public:
     }
 
     void add_move_to_history(uint16_t move, uint8_t piece, uint8_t captured) {
-        hist[hist_size] = { move, piece, captured, (piece_type(piece) == KING && recalc(sq_from(move), special_sqto(move), color_of(piece))), { 0, 0 } };
+        hist[hist_size] = { move, piece, captured, piece_type(piece) == KING && recalc(sq_from(move), special_sqto(move), color_of(piece)), { 0, 0 } };
         hist_size++;
     }
 
