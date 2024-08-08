@@ -19,12 +19,14 @@
 #include "magic.h"
 #include "defs.h"
 
-uint64_t rookAttacksMask[64], bishopAttacksMask[64];
-uint64_t pawnAttacksMask[2][64];
-uint64_t rookTable[64][4096], bishopTable[64][512];
-uint64_t raysMask[64][8];
-uint64_t knightBBAttacks[64], kingBBAttacks[64];
-uint64_t kingRingMask[64], kingSquareMask[64], pawnShieldMask[64];
+namespace attacks {
+std::array<uint64_t, 64> rookAttacksMask, bishopAttacksMask;
+MultiArray<uint64_t, 2, 64> pawnAttacksMask;
+MultiArray<uint64_t, 64, 4096> rookTable;
+MultiArray<uint64_t, 64, 512> bishopTable;
+MultiArray<uint64_t, 64, 8> raysMask;
+std::array<uint64_t, 64> knightBBAttacks, kingBBAttacks;
+std::array<uint64_t, 64> kingRingMask, kingSquareMask, pawnShieldMask;
 
 inline uint64_t genAttacksBishopSlow(uint64_t blockers, int sq) {
     uint64_t attacks = 0;
@@ -220,7 +222,7 @@ inline void initBishopMagic() {
     }
 }
 
-inline void initAttacks() {
+inline void init_attacks() {
     initRays();
     initPawnAttacks();
     initKnightAndKingAttacks();
@@ -280,6 +282,6 @@ inline uint64_t getPawnAttacks(int color, uint64_t b) {
     int fileA = (color == WHITE ? 0 : 7), fileH = 7 - fileA;
     return shift(color, NORTHWEST, b & ~fileMask[fileA]) | shift(color, NORTHEAST, b & ~fileMask[fileH]);
 }
-
+};
 
 

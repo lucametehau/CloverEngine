@@ -442,6 +442,12 @@ public:
         }
     }
 
+    void process_historic_update(const int index, const int king_sq, const bool side) {
+        hist[index].calc[side] = 1;
+        process_move(hist[index].move, hist[index].piece, hist[index].cap, king_sq, side,
+            output_history[index][side], output_history[index - 1][side]);
+    }
+
     void add_move_to_history(uint16_t move, uint8_t piece, uint8_t captured) {
         hist[hist_size] = { move, piece, captured, piece_type(piece) == KING && recalc(sq_from(move), special_sqto(move), color_of(piece)), { 0, 0 } };
         hist_size++;
@@ -487,6 +493,6 @@ public:
     alignas(ALIGN) int16_t output_history[2005][2][SIDE_NEURONS];
     KingBucketState state[2][2 * KING_BUCKETS];
 
-    int16_t add_ind[32], sub_ind[32];
-    NetHist hist[2005];
+    std::array<int16_t, 32> add_ind, sub_ind;
+    std::array<NetHist, 2005> hist;
 };

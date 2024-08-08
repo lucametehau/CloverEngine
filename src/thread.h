@@ -28,14 +28,7 @@ int seeVal[] = { 0, SeeValPawn, SeeValKnight, SeeValBishop, SeeValRook, SeeValQu
 
 class SearchData {
 public:
-    SearchData() {
-        for (int i = 0; i < 64; i++) { /// depth
-            for (int j = 0; j < 64; j++) { /// moves played 
-                lmr_red[i][j] = LMRQuietBias / 100.0 + log(i) * log(j) / (LMRQuietDiv / 100.0);
-                lmr_red_noisy[i][j] = LMRNoisyBias / 100.0 + lmr_red[i][j] / (LMRNoisyDiv / 100.0);
-            }
-        }
-    }
+    SearchData() {}
 
     void clear_stack() {
         pv_table_len.fill(0);
@@ -76,8 +69,6 @@ public:
     MultiArray<History<16384>, 13, 64, 7> cap_hist;
     MultiArray<History<16384>, 2, 13, 64, 13, 64> cont_history;
     MultiArray<int, 2, 65536> corr_hist;
-
-    MultiArray<int, 64, 64> lmr_red, lmr_red_noisy;
 
     std::array<int, MAX_DEPTH + 5> pv_table_len;
     MultiArray<Move, MAX_DEPTH + 5, 2 * MAX_DEPTH + 5> pv_table;

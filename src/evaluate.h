@@ -43,9 +43,7 @@ void Board::bring_up_to_date() {
             const int king_sq = king(side);
             if (last_computed_pos) { // no full refresh required
                 while(last_computed_pos < hist_size) {
-                    NetHist *hist = &NN.hist[last_computed_pos];
-                    hist->calc[side] = 1;
-                    NN.process_move(hist->move, hist->piece, hist->cap, king_sq, side, NN.output_history[last_computed_pos][side], NN.output_history[last_computed_pos - 1][side]);
+                    NN.process_historic_update(last_computed_pos, king_sq, side);
                     last_computed_pos++;
                 }
             }
@@ -65,7 +63,7 @@ void Board::bring_up_to_date() {
                     state->bb[i] = bb[i];
                 }
                 NN.apply_updates(state->output, state->output);
-                memcpy(NN.output_history[hist_size - 1][side], state->output, sizeof(NN.output_history[hist_size - 1][side]));
+                memcpy(NN.output_history[hist_size - 1][side], state->output, SIDE_NEURONS * sizeof(int16_t));
                 NN.hist[hist_size - 1].calc[side] = 1;
             }
         }
