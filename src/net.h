@@ -174,12 +174,16 @@ public:
         }
     }
 
-    void addInput(int ind) {
-        add_ind[addSz++] = ind;
+    void add_input(int ind) {
+        add_ind[add_size++] = ind;
     }
 
-    void remInput(int ind) {
-        sub_ind[subSz++] = ind;
+    void remove_input(int ind) {
+        sub_ind[sub_size++] = ind;
+    }
+
+    void clear_updates() {
+        add_size = sub_size = 0;
     }
 
     int32_t get_sum(reg_type_s& x) {
@@ -197,7 +201,6 @@ public:
 #else
         __m128i b = _mm_add_epi32(a, _mm_srli_si128(a, 8));
         __m128i c = _mm_add_epi32(b, _mm_srli_si128(b, 4));
-
         return _mm_cvtsi128_si32(c);
 #endif
     }
@@ -297,13 +300,13 @@ public:
             const reg_type* reg_in = reinterpret_cast<const reg_type*>(&input[offset]);
             for (int i = 0; i < UNROLL_LENGTH; i++)
                 regs[i] = reg_load(&reg_in[i]);
-            for (int idx = 0; idx < addSz; idx++) {
+            for (int idx = 0; idx < add_size; idx++) {
                 reg_type* reg = reinterpret_cast<reg_type*>(&inputWeights[add_ind[idx] * SIDE_NEURONS + offset]);
                 for (int i = 0; i < UNROLL_LENGTH; i++)
                     regs[i] = reg_add16(regs[i], reg[i]);
             }
 
-            for (int idx = 0; idx < subSz; idx++) {
+            for (int idx = 0; idx < sub_size; idx++) {
                 reg_type* reg = reinterpret_cast<reg_type*>(&inputWeights[sub_ind[idx] * SIDE_NEURONS + offset]);
                 for (int i = 0; i < UNROLL_LENGTH; i++)
                     regs[i] = reg_sub16(regs[i], reg[i]);
@@ -440,7 +443,7 @@ public:
     }
 
     void add_move_to_history(uint16_t move, uint8_t piece, uint8_t captured) {
-        hist[hist_size] = { move, piece, captured, (piece_type(piece) == KING && recalc(sq_from(move), special_sqto(move), color_of(piece))), { 0, 0 } };
+        hist[hist_size] = { move, piece, captured, piece_type(piece) == KING && recalc(sq_from(move), special_sqto(move), color_of(piece)), { 0, 0 } };
         hist_size++;
     }
 
@@ -479,7 +482,7 @@ public:
 
     int hist_size;
 
-    int addSz, subSz;
+    int add_size, sub_size;
 
     alignas(ALIGN) int16_t output_history[2005][2][SIDE_NEURONS];
     KingBucketState state[2][2 * KING_BUCKETS];

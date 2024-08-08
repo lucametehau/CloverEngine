@@ -38,15 +38,57 @@
 std::mt19937_64 gen(0xBEEF);
 std::uniform_int_distribution <uint64_t> rng;
 
-typedef std::array<std::array<int16_t, 64>, 13> TablePieceTo;
+template<typename T, std::size_t size, std::size_t... sizes>
+struct MultiArray_impl {
+    using type = std::array<typename MultiArray_impl<T, sizes...>::type, size>;
+};
+
+template<typename T, std::size_t size>
+struct MultiArray_impl<T, size> {
+    using type = std::array<T, size>;
+};
+
+template<typename T, std::size_t... sizes>
+using MultiArray = typename MultiArray_impl<T, sizes...>::type;
+
+
+template<typename T, std::size_t size>
+void fill_multiarray(MultiArray<T, size> &array, T value) {
+    array.fill(value);
+}
+
+template<typename T, std::size_t size, std::size_t... sizes>
+void fill_multiarray(MultiArray<typename MultiArray_impl<T, sizes...>::type, size> &array, T value) {
+    for(std::size_t i = 0; i < size; i++)
+        fill_multiarray<T, sizes...>(array[i], value);
+}
+
+
+template <int Divisor>
+class History {
+public:
+    int16_t hist;
+    History() : hist(0) {}
+    History(int16_t value) : hist(value) {}
+
+    inline void update(int16_t score) { hist += score - hist * abs(score) / Divisor; }
+
+    inline operator int16_t() { return hist; }
+
+    History& operator=(int16_t value) {
+        hist = value;
+        return *this;
+    }
+};
+
 typedef uint16_t Move;
 
 struct StackEntry { /// info to keep in the stack
     uint16_t piece;
     Move move, killer, excluded;
-    Move quiets[256], captures[256];
+    std::array<Move, 256> quiets, captures;
     int eval;
-    TablePieceTo* cont_hist;
+    MultiArray<History<16384>, 13, 64>* cont_hist;
 };
 
 struct Threats {
@@ -97,15 +139,16 @@ constexpr int VALUE_NONE = INF + 10;
 constexpr int MATE = 31000;
 constexpr int TB_WIN_SCORE = 22000;
 constexpr int MAX_DEPTH = 200;
+constexpr int MAX_MOVES = 256;
 constexpr uint64_t ALL = 18446744073709551615ULL;
+const std::string piece_char = ".pnbrqkPNBRQK";
 const std::string START_POS_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
-std::map <char, int> cod;
+std::map<char, int> cod;
 uint64_t hashKey[13][64], castleKey[2][2], enPasKey[64];
-uint64_t castleKeyModifier[16];
-char pieceChar[13];
+std::array<uint64_t, 16> castleKeyModifier;
 std::array<uint64_t, 8> fileMask, rankMask;
-uint64_t between_mask[64][64], line_mask[64][64];
+std::array<std::array<uint64_t, 64>, 64> between_mask, line_mask;
 
 constexpr std::pair<int, int> knightDir[8] = { {-1, -2}, {-2, -1}, {-2, 1}, {-1, 2}, {1, 2}, {2, 1}, {2, -1}, {1, -2} };
 constexpr std::pair<int, int> rookDir[4] = { {-1, 0}, {1, 0}, {0, -1}, {0, 1} };
@@ -127,11 +170,13 @@ constexpr std::array<int, 64> kingIndTable = {
     4, 4, 4, 4, 4, 4, 4, 4,
 };
 
-struct MeanValue {
+class MeanValue {
+private:
     std::string name;
     double valuesSum;
     int valuesCount;
 
+public:
     void init(std::string _name) {
         name = _name;
         valuesSum = 0.0;
@@ -275,7 +320,7 @@ inline std::string move_to_string(Move move, bool chess960) {
     ans += char((sq2 & 7) + 'a');
     ans += char((sq2 >> 3) + '1');
     if (type(move) == PROMOTION)
-        ans += pieceChar[((move & 16383) >> 12) + BN];
+        ans += piece_char[((move & 16383) >> 12) + BN];
     return ans;
 }
 
@@ -307,18 +352,10 @@ inline void init_defs() {
     deltaPos[NORTHWEST] = 7, deltaPos[NORTHEAST] = 9;
     deltaPos[SOUTHWEST] = -9, deltaPos[SOUTHEAST] = -7;
 
-    for (int i = 0; i < 256; i++)
-        cod[i] = 0;
-
     cod['p'] = 1, cod['n'] = 2, cod['b'] = 3, cod['r'] = 4, cod['q'] = 5, cod['k'] = 6;
     cod['P'] = 7, cod['N'] = 8, cod['B'] = 9, cod['R'] = 10, cod['Q'] = 11, cod['K'] = 12;
 
-    pieceChar[0] = '.';
-    pieceChar[1] = 'p', pieceChar[2] = 'n', pieceChar[3] = 'b', pieceChar[4] = 'r', pieceChar[5] = 'q', pieceChar[6] = 'k';
-    pieceChar[7] = 'P', pieceChar[8] = 'N', pieceChar[9] = 'B', pieceChar[10] = 'R', pieceChar[11] = 'Q', pieceChar[12] = 'K';
-
     /// zobrist keys
-
     for (int i = 0; i <= 12; i++) {
         for (int j = 0; j < 64; j++)
             hashKey[i][j] = rng(gen);

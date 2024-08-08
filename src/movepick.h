@@ -46,8 +46,8 @@ public:
 
     int threshold;
 
-    Move moves[256], badNoisy[256];
-    int scores[256];
+    std::array<Move, MAX_MOVES> moves, badNoisy;
+    std::array<int, MAX_MOVES> scores;
 
     Movepick(const Move _ttMove, const Move _killer, const int _threshold, const uint64_t _threats_enemy) {
         stage = STAGE_TTMOVE;
@@ -60,7 +60,7 @@ public:
         threats_enemy = _threats_enemy;
     }
 
-    void get_best_move(int offset, int nrMoves, Move moves[], int scores[]) {
+    void get_best_move(int offset, int nrMoves, std::array<Move, MAX_MOVES> &moves, std::array<int, MAX_MOVES> &scores) {
         int ind = offset;
         for (int i = offset + 1; i < nrMoves; i++) {
             if (scores[ind] < scores[i])

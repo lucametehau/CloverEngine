@@ -19,22 +19,17 @@
 
 template <bool RootNode>
 uint64_t perft(Board& board, int depth) {
-    uint16_t moves[256];
+    std::array<Move, MAX_MOVES> moves;
     int nrMoves = gen_legal_moves(board, moves);
 
-    if (depth == 1) {
-        return nrMoves;
-    }
+    if (depth == 1) return nrMoves;
 
     uint64_t nodes = 0;
 
     for (int i = 0; i < nrMoves; i++) {
-        uint16_t move = moves[i];
-
+        Move move = moves[i];
         board.make_move(move);
-
         uint64_t x = perft<false>(board, depth - 1);
-
         nodes += x;
         board.undo_move(move);
         if constexpr (RootNode)

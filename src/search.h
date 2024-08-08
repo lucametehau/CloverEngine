@@ -185,14 +185,14 @@ std::string getSanString(Board& board, Move move) {
     int from = sq_from(move), to = sq_to(move), prom = (type(move) == PROMOTION ? promoted(move) + KNIGHT + 6 : 0), piece = board.piece_type_at(from);
     std::string san;
 
-    if (piece != PAWN) san += pieceChar[piece + 6];
+    if (piece != PAWN) san += piece_char[piece + 6];
     else san += char('a' + (from & 7));
     if (board.is_capture(move)) san += "x";
     if (piece != PAWN || board.is_capture(move)) san += char('a' + (to & 7));
 
     san += char('1' + (to >> 3));
 
-    if (prom) san += "=", san += pieceChar[prom];
+    if (prom) san += "=", san += piece_char[prom];
 
     board.make_move(move);
     if (board.checkers) san += '+';
@@ -270,12 +270,12 @@ int SearchData::quiesce(int alpha, int beta, StackEntry* stack) {
     }
     else if (!ttHit) {
         raw_eval = evaluate(board);
-        stack->eval = best = eval = getCorrectedEval(this, raw_eval);
+        stack->eval = best = eval = getCorrectedEval(*this, raw_eval);
         futilityValue = best + QuiesceFutilityBias;
     }
     else { /// ttValue might be a better evaluation
         raw_eval = eval;
-        stack->eval = eval = getCorrectedEval(this, raw_eval);
+        stack->eval = eval = getCorrectedEval(*this, raw_eval);
         if (bound == EXACT || (bound == LOWER && ttValue > eval) || (bound == UPPER && ttValue < eval)) best = ttValue;
         futilityValue = best + QuiesceFutilityBias;
     }
@@ -345,23 +345,23 @@ template <bool rootNode, bool pvNode>
 int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry* stack) {
     const int ply = board.ply;
 
-    if (check_for_stop<true>()) return evaluate(board);
-
-    if (ply >= MAX_DEPTH) return evaluate(board);
+    if (check_for_stop<true>() || ply >= MAX_DEPTH) return evaluate(board);
 
     if (depth <= 0) return quiesce<pvNode>(alpha, beta, stack);
 
-    const bool allNode = (!pvNode && !cutNode);
-    const bool nullSearch = ((stack - 1)->move == NULLMOVE);
+    const bool allNode = !pvNode && !cutNode;
+    const bool nullSearch = (stack - 1)->move == NULLMOVE;
     const int alphaOrig = alpha;
     const uint64_t key = board.key;
-    Move ttMove = NULLMOVE;
+
     uint16_t nrQuiets = 0;
     uint16_t nrCaptures = 0;
-    int played = 0, bound = NONE, skip = 0;
+    int played = 0, skip = 0;
     int best = -INF;
     Move bestMove = NULLMOVE;
-    int ttValue = 0, ttDepth = -100;
+
+    Move ttMove = NULLMOVE;
+    int ttBound = NONE, ttValue = 0, ttDepth = -100;
     bool ttHit = false;
 
     nodes++;
@@ -373,7 +373,8 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
         if (board.is_draw(ply)) return 1 - (nodes & 2); /// beal effect, credit to Ethereal for this
 
         /// mate distance pruning   
-        alpha = std::max(alpha, -INF + ply), beta = std::min(beta, INF - ply - 1);
+        alpha = std::max(alpha, -INF + ply);
+        beta = std::min(beta, INF - ply - 1);
         if (alpha >= beta) return alpha;
     }
 
@@ -386,13 +387,13 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
     if (!stack->excluded && ttHit) {
         const int score = entry->value(ply);
         ttValue = score;
-        bound = entry->bound();
+        ttBound = entry->bound();
         ttMove = entry->move;
         eval = entry->eval;
         ttDepth = entry->depth();
         wasPV |= entry->wasPV();
         if constexpr (!pvNode) {
-            if (score != VALUE_NONE && ttDepth >= depth && (bound == EXACT || (bound == LOWER && score >= beta) || (bound == UPPER && score <= alpha))) return score;
+            if (score != VALUE_NONE && ttDepth >= depth && (ttBound & (score >= beta ? LOWER : UPPER))) return score;
         }
     }
 
@@ -437,15 +438,15 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
         if (stack->excluded) raw_eval = eval = stack->eval;
         else {
             raw_eval = evaluate(board);
-            stack->eval = eval = getCorrectedEval(this, raw_eval);
+            stack->eval = eval = getCorrectedEval(*this, raw_eval);
             TT->save(entry, key, VALUE_NONE, 0, ply, 0, NULLMOVE, raw_eval, wasPV);
         }
     }
     else { /// ttValue might be a better evaluation
         if (stack->excluded) raw_eval = evaluate(board);
         else raw_eval = eval;
-        stack->eval = eval = getCorrectedEval(this, raw_eval);
-        if (bound == EXACT || (bound == LOWER && ttValue > eval) || (bound == UPPER && ttValue < eval)) eval = ttValue;
+        stack->eval = eval = getCorrectedEval(*this, raw_eval);
+        if (ttBound == EXACT || (ttBound == LOWER && ttValue > eval) || (ttBound == UPPER && ttValue < eval)) eval = ttValue;
     }
 
     const int static_eval = stack->eval;
@@ -566,7 +567,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
 #ifdef GENERATE
         if (best > -MATE && board.has_non_pawn_material(board.turn) && !pvNode) {
             if (isQuiet) {
-                getHistory(this, stack, move, threats.threats_enemy, history);
+                getHistory(*this, stack, move, threats.threats_enemy, history);
 
                 /// approximately the new depth for the next search
                 int newDepth = std::max(0, depth - lmr_red[std::min(63, depth)][std::min(63, played)] + improving);
@@ -595,7 +596,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
         if constexpr (!rootNode) {
             if (best > -MATE && board.has_non_pawn_material(board.turn)) {
                 if (isQuiet) {
-                    getHistory(this, stack, move, threats.threats_enemy, history);
+                    getHistory(*this, stack, move, threats.threats_enemy, history);
 
                     /// approximately the new depth for the next search
                     int newDepth = std::max(0, depth - lmr_red[std::min(63, depth)][std::min(63, played)] + improving + history / MoveloopHistDiv);
@@ -613,7 +614,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
                         !see(board, move, -SEEPruningQuietMargin * newDepth)) continue;
                 }
                 else {
-                    history = getCapHist(this, move);
+                    history = getCapHist(*this, move);
                     if (depth <= SEEPruningNoisyDepth && !isCheck && picker.trueStage > STAGE_GOOD_NOISY && 
                         !see(board, move, -SEEPruningNoisyMargin * (depth + bad_static_eval) * (depth + bad_static_eval) - history / 256)) continue;
 
@@ -628,7 +629,8 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
         /// avoid extending too far (might cause stack overflow)
         if (ply < 2 * tDepth && !rootNode) {
             /// singular extension (look if the tt move is better than the rest)
-            if (!stack->excluded && !allNode && move == ttMove && abs(ttValue) < MATE && depth >= SEDepth && ttDepth >= depth - 3 && (bound & LOWER)) {
+            if (!stack->excluded && !allNode && move == ttMove && abs(ttValue) < MATE 
+                && depth >= SEDepth && ttDepth >= depth - 3 && (ttBound & LOWER)) {
                 int rBeta = ttValue - SEMargin * depth / 64;
 
                 stack->excluded = move;
@@ -641,7 +643,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
             }
             else if (isCheck) ex = 1;
         }
-        else if (allNode && played >= 1 && ttDepth >= depth - 3 && bound == UPPER) ex = -1;
+        else if (allNode && played >= 1 && ttDepth >= depth - 3 && ttBound == UPPER) ex = -1;
 
         /// update stack info
         TT->prefetch(board.speculative_next_key(move));
@@ -741,17 +743,17 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
     if (best >= beta) {
         if (!board.is_noisy_move(bestMove)) {
             stack->killer = bestMove;
-            updateHistory(this, stack, nrQuiets, ply, depth, threats.threats_enemy, getHistoryBonus(depth + bad_static_eval));
+            updateHistory(*this, stack, nrQuiets, ply, depth, threats.threats_enemy, getHistoryBonus(depth + bad_static_eval));
         }
-        updateCapHistory(this, stack, nrCaptures, bestMove, ply, getHistoryBonus(depth + bad_static_eval));
+        updateCapHistory(*this, stack, nrCaptures, bestMove, ply, getHistoryBonus(depth + bad_static_eval));
     }
 
     /// update tt only if we aren't in a singular search
     if (!stack->excluded) {
-        bound = (best >= beta ? LOWER : (best > alphaOrig ? EXACT : UPPER));
-        if ((bound == UPPER || !board.is_noisy_move(bestMove)) && !isCheck && !(bound == LOWER && best <= static_eval) && !(bound == UPPER && best >= static_eval))
-            updateCorrHist(this, depth, best - static_eval);
-        TT->save(entry, key, best, depth, ply, bound, (bound == UPPER ? NULLMOVE : bestMove), raw_eval, wasPV);
+        ttBound = (best >= beta ? LOWER : (best > alphaOrig ? EXACT : UPPER));
+        if ((ttBound == UPPER || !board.is_noisy_move(bestMove)) && !isCheck && !(ttBound == LOWER && best <= static_eval) && !(ttBound == UPPER && best >= static_eval))
+            updateCorrHist(*this, depth, best - static_eval);
+        TT->save(entry, key, best, depth, ply, ttBound, (ttBound == UPPER ? NULLMOVE : bestMove), raw_eval, wasPV);
     }
 
     return best;
@@ -799,25 +801,26 @@ void SearchData::start_search(Info* _info) {
     checkCount = 0;
     best_move_cnt = 0;
 
-    memset(pv_table, 0, sizeof(pv_table));
+    fill_multiarray<Move, MAX_DEPTH + 5, 2 * MAX_DEPTH + 5>(pv_table, 0);
     info = _info;
 
     int limitDepth = (thread_id == 0 ? info->depth : MAX_DEPTH); /// when limited by depth, allow helper threads to pass the fixed depth
     int mainThreadScore = 0;
     Move mainThreadBestMove = NULLMOVE;
 
-    memset(scores, 0, sizeof(scores));
+    scores.fill(0);
+    best_move.fill(0);
+    root_score.fill(0);
     StackEntry search_stack[MAX_DEPTH + 15];
     StackEntry* stack = search_stack + 10;
 
     memset(search_stack, 0, sizeof(search_stack));
-    memset(best_move, 0, sizeof(best_move));
-    memset(root_score, 0, sizeof(root_score));
 
     rootEval = (!board.checkers ? evaluate(board) : INF);
 
-    for (int i = 1; i <= 10; i++)
+    for (int i = 1; i <= 10; i++) {
         (stack - i)->cont_hist = &cont_history[0][0][0], (stack - i)->eval = INF, (stack - i)->move = NULLMOVE;
+    }
 
     completed_depth = 0;
 

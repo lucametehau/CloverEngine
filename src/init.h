@@ -312,7 +312,7 @@ bool Board::is_draw(int ply) {
     if (halfMoves < 100 || !checkers)
         return isMaterialDraw() || is_repetition(ply) || halfMoves >= 100;
     int nrmoves = 0;
-    Move moves[256];
+    std::array<Move, 256> moves;
     nrmoves = gen_legal_moves(*this, moves);
     return nrmoves > 0;
 }
