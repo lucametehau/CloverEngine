@@ -83,7 +83,12 @@ public:
 
 typedef uint16_t Move;
 
-struct StackEntry { /// info to keep in the stack
+class StackEntry { /// info to keep in the stack
+public:
+    StackEntry() : piece(0), move(0), killer(0), excluded(0), eval(0) {
+        quiets.fill(0);
+        captures.fill(0);
+    }
     uint16_t piece;
     Move move, killer, excluded;
     std::array<Move, 256> quiets, captures;
@@ -145,10 +150,14 @@ const std::string piece_char = ".pnbrqkPNBRQK";
 const std::string START_POS_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 std::map<char, int> cod;
-uint64_t hashKey[13][64], castleKey[2][2], enPasKey[64];
+MultiArray<uint64_t, 13, 64> hashKey;
+MultiArray<uint64_t, 2, 2> castleKey;
+std::array<uint64_t, 64> enPasKey;
 std::array<uint64_t, 16> castleKeyModifier;
 std::array<uint64_t, 8> fileMask, rankMask;
-std::array<std::array<uint64_t, 64>, 64> between_mask, line_mask;
+MultiArray<uint64_t, 64, 64> between_mask, line_mask;
+
+MultiArray<int, 64, 64> lmr_red, lmr_red_noisy;
 
 constexpr std::pair<int, int> knightDir[8] = { {-1, -2}, {-2, -1}, {-2, 1}, {-1, 2}, {1, 2}, {2, 1}, {2, -1}, {1, -2} };
 constexpr std::pair<int, int> rookDir[4] = { {-1, 0}, {1, 0}, {0, -1}, {0, 1} };
@@ -407,6 +416,14 @@ inline void init_defs() {
                     mask |= (1ULL << get_sq(r, f));
                 }
             }
+        }
+    }
+
+    
+    for (int i = 0; i < 64; i++) { /// depth
+        for (int j = 0; j < 64; j++) { /// moves played 
+            lmr_red[i][j] = LMRQuietBias / 100.0 + log(i) * log(j) / (LMRQuietDiv / 100.0);
+            lmr_red_noisy[i][j] = LMRNoisyBias / 100.0 + lmr_red[i][j] / (LMRNoisyDiv / 100.0);
         }
     }
 }

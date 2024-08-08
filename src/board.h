@@ -40,12 +40,12 @@ public:
     uint8_t castleRights; /// 1 - bq, 2 - bk, 4 - wq, 8 - wk
     int8_t enPas;
     std::array<uint8_t, 64> board;
-    std::array<std::array<uint8_t, 2>, 2> rookSq;
+    MultiArray<uint8_t, 2, 2> rookSq;
 
     uint16_t ply, game_ply;
     uint16_t halfMoves, moveIndex;
     
-    std::array<std::array<uint8_t, 64>, 2> castleRightsDelta;
+    MultiArray<uint8_t, 2, 64> castleRightsDelta;
 
     uint64_t checkers, pinnedPieces;
     std::array<uint64_t, 13> bb;

@@ -40,10 +40,9 @@ void updateMoveHistory(SearchData &searcher, StackEntry*& stack, Move move, uint
 }
 
 void updateCaptureMoveHistory(SearchData &searcher, Move move, int16_t bonus) {
-    assert(type(move) != CASTLE);
     const int to = sq_to(move), from = sq_from(move);
     const int cap = (type(move) == ENPASSANT ? PAWN : searcher.board.piece_type_at(to));
-    const int  piece = searcher.board.piece_at(from);
+    const int piece = searcher.board.piece_at(from);
 
     searcher.cap_hist[piece][to][cap].update(bonus);
 }
@@ -85,7 +84,7 @@ void getHistory(SearchData &searcher, StackEntry* stack, Move move, uint64_t thr
 }
 
 void updateCorrHist(SearchData &searcher, int depth, int bonus) {
-    int w = std::min(4 * (depth + 1) * (depth + 1), 1024);
+    const int w = std::min(4 * (depth + 1) * (depth + 1), 1024);
     int& corr = searcher.corr_hist[searcher.board.turn][searcher.board.pawn_key & 65535];
     corr = (corr * (CorrHistScale - w) + bonus * CorrHistDiv * w) / CorrHistScale;
     corr = std::clamp(corr, -32 * CorrHistDiv, 32 * CorrHistDiv);

@@ -487,6 +487,6 @@ public:
     alignas(ALIGN) int16_t output_history[2005][2][SIDE_NEURONS];
     KingBucketState state[2][2 * KING_BUCKETS];
 
-    int16_t add_ind[32], sub_ind[32];
-    NetHist hist[2005];
+    std::array<int16_t, 32> add_ind, sub_ind;
+    std::array<NetHist, 2005> hist;
 };

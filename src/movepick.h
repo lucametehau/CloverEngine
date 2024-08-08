@@ -36,7 +36,6 @@ bool see(Board& board, Move move, int threshold);
 class Movepick {
 public:
     int stage, trueStage;
-    //int mp_type;
 
     Move ttMove, killer;
     int nrNoisy, nrQuiets, nrBadNoisy;
@@ -82,12 +81,9 @@ public:
         case STAGE_GEN_NOISY:
         {
             nrNoisy = gen_legal_noisy_moves(board, moves);
-
             int m = 0;
-
             for (int i = 0; i < nrNoisy; i++) {
                 const Move move = moves[i];
-
                 if (move == ttMove || move == killer)
                     continue;
 
@@ -145,11 +141,10 @@ public:
                 const uint64_t allPieces = board.get_bb_color(WHITE) | board.get_bb_color(BLACK);
                 const uint64_t pawnAttacks = getPawnAttacks(enemy, enemyPawns);
                 const uint64_t enemyKingRing = kingRingMask[board.king(enemy)] & ~(shift(enemy, NORTHEAST, enemyPawns & ~fileMask[(enemy == WHITE ? 7 : 0)]) & shift(enemy, NORTHWEST, enemyPawns & ~fileMask[(enemy == WHITE ? 0 : 7)]));
+                
                 int m = 0;
-
                 for (int i = 0; i < nrQuiets; i++) {
                     const uint16_t move = moves[i];
-
                     if (move == ttMove || move == killer)
                         continue;
 
@@ -197,7 +192,7 @@ public:
             stage++;
         case STAGE_BAD_NOISY:
             trueStage = STAGE_BAD_NOISY;
-            if (index < nrBadNoisy) { /// bad captures can't improve the current position in quiesce search
+            if (index < nrBadNoisy) {
                 return badNoisy[index++];
             }
             return NULLMOVE;

@@ -760,7 +760,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
 }
 
 void main_thread_handler(Info *info) {
-    for(size_t i = 1; i < threads_data.size(); i++)
+    for(std::size_t i = 1; i < threads_data.size(); i++)
         threads.push_back(std::thread(&SearchData::start_search, &threads_data[i], info));
     threads_data[0].start_search(info);
     pool_stop();
@@ -778,7 +778,7 @@ void main_thread_handler(Info *info) {
     int bestDepth = threads_data[0].completed_depth;
     bs = threads_data[0].root_score[1];
     bm = threads_data[0].best_move[1];
-    for (size_t i = 1; i < threads_data.size(); i++) {
+    for (std::size_t i = 1; i < threads_data.size(); i++) {
         if (threads_data[i].root_score[1] > bs && threads_data[i].completed_depth >= bestDepth) {
             bs = threads_data[i].root_score[1];
             bm = threads_data[i].best_move[1];
@@ -811,10 +811,10 @@ void SearchData::start_search(Info* _info) {
     scores.fill(0);
     best_move.fill(0);
     root_score.fill(0);
-    StackEntry search_stack[MAX_DEPTH + 15];
-    StackEntry* stack = search_stack + 10;
+    std::array<StackEntry, MAX_DEPTH + 15> search_stack;
+    StackEntry* stack = search_stack.data() + 10;
 
-    memset(search_stack, 0, sizeof(search_stack));
+    search_stack.fill(StackEntry());
 
     rootEval = (!board.checkers ? evaluate(board) : INF);
 
