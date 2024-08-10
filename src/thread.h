@@ -25,25 +25,29 @@
 #include <condition_variable>
 #include <functional>
 
+#ifndef TUNE_FLAG
+constexpr int seeVal[] = { 0, SeeValPawn, SeeValKnight, SeeValBishop, SeeValRook, SeeValQueen, 20000 };
+#else
 int seeVal[] = { 0, SeeValPawn, SeeValKnight, SeeValBishop, SeeValRook, SeeValQueen, 20000 };
+#endif
 
 class SearchData {
 public:
     SearchData() {}
 
-    void clear_stack() {
+    inline void clear_stack() {
         pv_table_len.fill(0);
         nodes_seached.fill(0);
         fill_multiarray<Move, MAX_DEPTH + 5, 2 * MAX_DEPTH + 5>(pv_table, 0);
     }
 
-    void clear_history() {
+    inline void clear_history() {
         histories.clear_history();
     }
 
     void start_search(Info* info);
 
-    void setTime(Info* _info) { info = _info; }
+    inline void setTime(Info* _info) { info = _info; }
 
 private:
     template <bool pvNode>
@@ -63,16 +67,16 @@ private:
 public:
     Info* info;
 
-    Histories histories;
-
-    std::array<int, MAX_DEPTH + 5> pv_table_len;
-    MultiArray<Move, MAX_DEPTH + 5, 2 * MAX_DEPTH + 5> pv_table;
-
     std::array<Move, 256> best_move;
     std::array<int, 256> scores, root_score;
     std::array<MeanValue, 10> values;
 
 private:
+    std::array<int, MAX_DEPTH + 5> pv_table_len;
+    MultiArray<Move, MAX_DEPTH + 5, 2 * MAX_DEPTH + 5> pv_table;
+    
+    Histories histories;
+
     int64_t t0;
     int checkCount;
 

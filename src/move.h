@@ -532,10 +532,10 @@ int gen_legal_moves(Board& board, std::array<Move, MAX_MOVES> &moves) {
 
     int rank7 = (color == WHITE ? 6 : 1), rank3 = (color == WHITE ? 2 : 5);
     int fileA = (color == WHITE ? 0 : 7), fileH = 7 - fileA;
-    b1 = board.get_bb_piece(PAWN, color) & notPinned & ~rankMask[rank7];
+    b1 = board.get_bb_piece(PAWN, color) & notPinned & ~rank_mask[rank7];
 
     b2 = shift(color, NORTH, b1) & ~all; /// single push
-    b3 = shift(color, NORTH, b2 & rankMask[rank3]) & quietMask; /// double push
+    b3 = shift(color, NORTH, b2 & rank_mask[rank3]) & quietMask; /// double push
     b2 &= quietMask;
 
     while (b2) {
@@ -547,8 +547,8 @@ int gen_legal_moves(Board& board, std::array<Move, MAX_MOVES> &moves) {
         moves[nrMoves++] = getMove(sq_dir(color, SOUTH, sq2), sq, 0, NEUT);
     }
 
-    b2 = shift(color, NORTHWEST, b1 & ~fileMask[fileA]) & capMask;
-    b3 = shift(color, NORTHEAST, b1 & ~fileMask[fileH]) & capMask;
+    b2 = shift(color, NORTHWEST, b1 & ~file_mask[fileA]) & capMask;
+    b3 = shift(color, NORTHEAST, b1 & ~file_mask[fileH]) & capMask;
     /// captures
 
     while (b2) {
@@ -560,7 +560,7 @@ int gen_legal_moves(Board& board, std::array<Move, MAX_MOVES> &moves) {
         moves[nrMoves++] = getMove(sq_dir(color, SOUTHWEST, sq), sq, 0, NEUT);
     }
 
-    b1 = board.get_bb_piece(PAWN, color) & notPinned & rankMask[rank7];
+    b1 = board.get_bb_piece(PAWN, color) & notPinned & rank_mask[rank7];
     if (b1) {
         /// quiet promotions
         b2 = shift(color, NORTH, b1) & quietMask;
@@ -571,8 +571,8 @@ int gen_legal_moves(Board& board, std::array<Move, MAX_MOVES> &moves) {
 
         /// capture promotions
 
-        b2 = shift(color, NORTHWEST, b1 & ~fileMask[fileA]) & capMask;
-        b3 = shift(color, NORTHEAST, b1 & ~fileMask[fileH]) & capMask;
+        b2 = shift(color, NORTHWEST, b1 & ~file_mask[fileA]) & capMask;
+        b3 = shift(color, NORTHEAST, b1 & ~file_mask[fileH]) & capMask;
         while (b2) {
             int sq = sq_lsb(b2);
             for (int i = 0; i < 4; i++) moves[nrMoves++] = getMove(sq_dir(color, SOUTHEAST, sq), sq, i, PROMOTION);
@@ -720,10 +720,10 @@ int gen_legal_noisy_moves(Board& board, std::array<Move, MAX_MOVES> &moves) {
 
     int rank7 = (color == WHITE ? 6 : 1);
     int fileA = (color == WHITE ? 0 : 7), fileH = 7 - fileA;
-    b1 = board.get_bb_piece(PAWN, color) & notPinned & ~rankMask[rank7];
+    b1 = board.get_bb_piece(PAWN, color) & notPinned & ~rank_mask[rank7];
 
-    b2 = shift(color, NORTHWEST, b1 & ~fileMask[fileA]) & capMask;
-    b3 = shift(color, NORTHEAST, b1 & ~fileMask[fileH]) & capMask;
+    b2 = shift(color, NORTHWEST, b1 & ~file_mask[fileA]) & capMask;
+    b3 = shift(color, NORTHEAST, b1 & ~file_mask[fileH]) & capMask;
     /// captures
 
     while (b2) {
@@ -735,7 +735,7 @@ int gen_legal_noisy_moves(Board& board, std::array<Move, MAX_MOVES> &moves) {
         moves[nrMoves++] = getMove(sq_dir(color, SOUTHWEST, sq), sq, 0, NEUT);
     }
 
-    b1 = board.get_bb_piece(PAWN, color) & notPinned & rankMask[rank7];
+    b1 = board.get_bb_piece(PAWN, color) & notPinned & rank_mask[rank7];
     if (b1) {
         /// quiet promotions
         b2 = shift(color, NORTH, b1) & quietMask;
@@ -745,8 +745,8 @@ int gen_legal_noisy_moves(Board& board, std::array<Move, MAX_MOVES> &moves) {
         }
 
         /// capture promotions
-        b2 = shift(color, NORTHWEST, b1 & ~fileMask[fileA]) & capMask;
-        b3 = shift(color, NORTHEAST, b1 & ~fileMask[fileH]) & capMask;
+        b2 = shift(color, NORTHWEST, b1 & ~file_mask[fileA]) & capMask;
+        b3 = shift(color, NORTHEAST, b1 & ~file_mask[fileH]) & capMask;
         while (b2) {
             int sq = sq_lsb(b2);
             for (int i = 0; i < 4; i++) moves[nrMoves++] = getMove(sq_dir(color, SOUTHEAST, sq), sq, i, PROMOTION);
@@ -891,10 +891,10 @@ int gen_legal_quiet_moves(Board& board, std::array<Move, MAX_MOVES> &moves) {
 
     const int rank7 = (color == WHITE ? 6 : 1), rank3 = (color == WHITE ? 2 : 5);
 
-    b1 = board.get_bb_piece(PAWN, color) & notPinned & ~rankMask[rank7];
+    b1 = board.get_bb_piece(PAWN, color) & notPinned & ~rank_mask[rank7];
 
     b2 = shift(color, NORTH, b1) & ~all; /// single push
-    b3 = shift(color, NORTH, b2 & rankMask[rank3]) & quietMask; /// double push
+    b3 = shift(color, NORTH, b2 & rank_mask[rank3]) & quietMask; /// double push
     b2 &= quietMask;
 
     while (b2) {

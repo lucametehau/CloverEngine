@@ -154,7 +154,12 @@ MultiArray<uint64_t, 13, 64> hashKey;
 MultiArray<uint64_t, 2, 2> castleKey;
 std::array<uint64_t, 64> enPasKey;
 std::array<uint64_t, 16> castleKeyModifier;
-std::array<uint64_t, 8> fileMask, rankMask;
+constexpr std::array<uint64_t, 8> file_mask = {
+    72340172838076673ull, 144680345676153346ull, 289360691352306692ull, 578721382704613384ull, 1157442765409226768ull, 2314885530818453536ull, 4629771061636907072ull, 9259542123273814144ull
+};
+constexpr std::array<uint64_t, 8> rank_mask = {
+    255ull, 65280ull, 16711680ull, 4278190080ull, 1095216660480ull, 280375465082880ull, 71776119061217280ull, 18374686479671623680ull
+};
 MultiArray<uint64_t, 64, 64> between_mask, line_mask;
 
 MultiArray<int, 64, 64> lmr_red, lmr_red_noisy;
@@ -247,16 +252,6 @@ inline int mirror(bool color, int sq) {
     return sq ^ (56 * !color);
 }
 
-inline int mirrorVert(int sq) {
-    return (sq % 8 >= 4 ? 7 - sq % 8 : sq % 8) + 8 * (sq / 8);
-}
-
-inline int getFrontBit(int color, uint64_t bb) {
-    if (!bb)
-        return 0;
-    return (color == WHITE ? Sq(bb) : __builtin_ctzll(bb));
-}
-
 inline int sq_dir(int color, int dir, int sq) {
     if (color == BLACK) {
         if (dir < 4)
@@ -285,7 +280,7 @@ inline int get_piece(int piece_type, int color) {
     return 6 * color + piece_type;
 }
 
-inline int color_of(int piece) {
+inline bool color_of(int piece) {
     return piece > 6;
 }
 
@@ -293,7 +288,7 @@ inline bool inside_board(int rank, int file) {
     return rank >= 0 && file >= 0 && rank <= 7 && file <= 7;
 }
 
-inline int getMove(int from, int to, int prom, int type) {
+inline Move getMove(int from, int to, int prom, int type) {
     return from | (to << 6) | (prom << 12) | (type << 14);
 }
 
@@ -384,14 +379,9 @@ inline void init_defs() {
     for (int i = 0; i < 64; i++)
         enPasKey[i] = rng(gen);
 
-    for (int i = 0; i < 8; i++)
-        fileMask[i] = rankMask[i] = 0;
-
-    /// mask for every file and rank
     /// mask squares between 2 squares
     for (int file = 0; file < 8; file++) {
         for (int rank = 0; rank < 8; rank++) {
-            fileMask[file] |= (1ULL << get_sq(rank, file)), rankMask[rank] |= (1ULL << get_sq(rank, file));
             for (int i = 0; i < 8; i++) {
                 int r = rank, f = file;
                 uint64_t mask = 0;

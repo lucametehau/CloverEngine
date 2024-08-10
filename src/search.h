@@ -495,7 +495,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
                 int score = -search<false, false>(-beta, -beta + 1, depth - R, !cutNode, stack + 1);
                 board.undo_null_move();
 
-                if (score >= beta) return (abs(score) > MATE ? beta : score); /// don't trust mate scores
+                if (score >= beta) return abs(score) > MATE ? beta : score; /// don't trust mate scores
             }
 
             // probcut
@@ -740,7 +740,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
     }
 
     if (!played) {
-        return (isCheck ? -INF + ply : 0);
+        return isCheck ? -INF + ply : 0;
     }
 
     /// update killer and history heuristics in case of a cutoff

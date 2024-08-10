@@ -189,13 +189,13 @@ inline void initRays() {
 }
 
 inline void initRookMagic() {
-    //uint64_t edge = (fileMask[0] | fileMask[7] | rankMask[0] | rankMask[7]);
+    //uint64_t edge = (file_mask[0] | file_mask[7] | rank_mask[0] | rank_mask[7]);
     for (int sq = 0; sq < 64; sq++) {
         rookAttacksMask[sq] = 0;
-        rookAttacksMask[sq] |= raysMask[sq][NORTH] & ~rankMask[7];
-        rookAttacksMask[sq] |= raysMask[sq][SOUTH] & ~rankMask[0];
-        rookAttacksMask[sq] |= raysMask[sq][EAST] & ~fileMask[7];
-        rookAttacksMask[sq] |= raysMask[sq][WEST] & ~fileMask[0];
+        rookAttacksMask[sq] |= raysMask[sq][NORTH] & ~rank_mask[7];
+        rookAttacksMask[sq] |= raysMask[sq][SOUTH] & ~rank_mask[0];
+        rookAttacksMask[sq] |= raysMask[sq][EAST] & ~file_mask[7];
+        rookAttacksMask[sq] |= raysMask[sq][WEST] & ~file_mask[0];
         for (int blockerInd = 0; blockerInd < (1 << rookIndexBits[sq]); blockerInd++) {
             uint64_t blockers = getBlocker(rookAttacksMask[sq], blockerInd);
 #ifndef PEXT_GOOD
@@ -208,7 +208,7 @@ inline void initRookMagic() {
 }
 
 inline void initBishopMagic() {
-    uint64_t edge = (fileMask[0] | fileMask[7] | rankMask[0] | rankMask[7]);
+    uint64_t edge = (file_mask[0] | file_mask[7] | rank_mask[0] | rank_mask[7]);
     for (int sq = 0; sq < 64; sq++) {
         bishopAttacksMask[sq] = (raysMask[sq][NORTHWEST] | raysMask[sq][SOUTHWEST] | raysMask[sq][NORTHEAST] | raysMask[sq][SOUTHEAST]) & (~edge);
         for (int blockerInd = 0; blockerInd < (1 << bishopIndexBits[sq]); blockerInd++) {
@@ -280,7 +280,7 @@ inline uint64_t genAttacksSq(uint64_t blockers, int sq, int pieceType) {
 /// same as the below one, only difference is that b is known
 inline uint64_t getPawnAttacks(int color, uint64_t b) {
     int fileA = (color == WHITE ? 0 : 7), fileH = 7 - fileA;
-    return shift(color, NORTHWEST, b & ~fileMask[fileA]) | shift(color, NORTHEAST, b & ~fileMask[fileH]);
+    return shift(color, NORTHWEST, b & ~file_mask[fileA]) | shift(color, NORTHEAST, b & ~file_mask[fileH]);
 }
 };
 
