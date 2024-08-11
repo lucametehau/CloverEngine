@@ -109,7 +109,7 @@ TUNE_PARAM(AspirationWindowExpandBias, 0, 0, 10);
 TUNE_PARAM(TimeManagerMinDepth, 8, 5, 11);
 TUNE_PARAM(TimeManagerNodesSearchedMaxPercentage, 1568, 1200, 1800);
 TUNE_PARAM(TimeManagerBestMoveMax, 1217, 1100, 1500);
-TUNE_PARAM(TimeManagerbest_movetep, 64, 10, 100);
+TUNE_PARAM(TimeManagerbestMoveStep, 64, 10, 100);
 TUNE_PARAM(TimeManagerScoreMin, 47, 40, 90);
 TUNE_PARAM(TimeManagerScoreMax, 161, 110, 200);
 TUNE_PARAM(TimeManagerScoreBias, 112, 10, 150);

@@ -300,7 +300,7 @@ inline int sq_to(Move move) {
     return (move & 4095) >> 6;
 }
 
-inline int fromTo(Move move) {
+inline int from_to(Move move) {
     return move & 4095;
 }
 
@@ -410,8 +410,8 @@ inline void init_defs() {
     }
 
     
-    for (int i = 0; i < 64; i++) { /// depth
-        for (int j = 0; j < 64; j++) { /// moves played 
+    for (int i = 1; i < 64; i++) { /// depth
+        for (int j = 1; j < 64; j++) { /// moves played 
             lmr_red[i][j] = LMRQuietBias / 100.0 + log(i) * log(j) / (LMRQuietDiv / 100.0);
             lmr_red_noisy[i][j] = LMRNoisyBias / 100.0 + lmr_red[i][j] / (LMRNoisyDiv / 100.0);
         }

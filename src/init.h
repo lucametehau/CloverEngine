@@ -31,17 +31,14 @@ void init(Info* info) {
 void Board::set_fen(const std::string fen) {
     int ind = 0;
     key = pawn_key = 0;
-
     ply = game_ply = 0;
     captured = 0;
 
     //checkers = 0;
-
     for (int i = 0; i <= 12; i++)
         bb[i] = 0;
 
     pieces[BLACK] = pieces[WHITE] = 0;
-
     for (int i = 7; i >= 0; i--) {
         int j = 0;
         while (fen[ind] != '/' && fen[ind] != ' ') {
@@ -66,8 +63,6 @@ void Board::set_fen(const std::string fen) {
         turn = BLACK;
 
     key ^= turn;
-
-    //cout << "key " << key << "\n";
 
     castleRights = 0;
     ind += 2;
@@ -137,8 +132,7 @@ void Board::set_fen(const std::string fen) {
         castleRightsDelta[WHITE][rookSq[WHITE][0]] = 11, castleRightsDelta[WHITE][king(WHITE)] = 3;
     if (rookSq[WHITE][1] != 64)
         castleRightsDelta[WHITE][rookSq[WHITE][1]] = 7, castleRightsDelta[WHITE][king(WHITE)] = 3;
-    //std::cout << int(rookSq[WHITE][0]) << " " << int(rookSq[WHITE][1]) << " " << int(rookSq[BLACK][0]) << " " << int(rookSq[BLACK][1]) << "\n";
-    //cout << "key " << key << "\n";
+    
     ind++;
     if (fen[ind] != '-') {
         int file = fen[ind] - 'a';
@@ -153,7 +147,6 @@ void Board::set_fen(const std::string fen) {
         enPas = -1;
         ind += 2;
     }
-    //cout << "key " << key << "\n";
 
     int nr = 0;
     while ('0' <= fen[ind] && fen[ind] <= '9')
@@ -299,12 +292,10 @@ void Board::set_dfrc(int idx) {
     enPas = -1;
     halfMoves = 0;
     moveIndex = 1;
-
-    NetInput input = to_netinput();
-
     checkers = get_attackers(1 ^ turn, pieces[WHITE] | pieces[BLACK], king(turn));
     pinnedPieces = getPinnedPieces(*this, turn);
 
+    NetInput input = to_netinput();
     NN.calc(input, turn);
 }
 

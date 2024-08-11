@@ -37,6 +37,7 @@ class Movepick {
 public:
     int stage, trueStage;
 
+private:
     Move ttMove, killer;
     int nrNoisy, nrQuiets, nrBadNoisy;
     int index;
@@ -48,6 +49,7 @@ public:
     std::array<Move, MAX_MOVES> moves, badNoisy;
     std::array<int, MAX_MOVES> scores;
 
+public:
     Movepick(const Move _ttMove, const Move _killer, const int _threshold, const uint64_t _threats_enemy) {
         stage = STAGE_TTMOVE;
 
@@ -91,7 +93,6 @@ public:
                     badNoisy[nrBadNoisy++] = move;
                     continue;
                 }
-
                 moves[m] = move;
 
                 const int piece = board.piece_at(sq_from(move));
@@ -99,9 +100,7 @@ public:
                 int score = GoodNoisyValueCoef * seeVal[cap];
                 if (type(move) == PROMOTION && piece_type(piece) >= ROOK)
                     score += GoodNoisyPromotionBonus;
-
                 score += histories.get_cap_hist(piece, to, cap);
-
                 scores[m++] = score;
             }
 
