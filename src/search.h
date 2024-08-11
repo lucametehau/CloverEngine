@@ -582,7 +582,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
                 /// late move pruning
                 if (newDepth <= LMPDepth && played >= (LMPBias + newDepth * newDepth) / (2 - improving)) skip = 1;
 
-                if (depth <= 3 && bad_static_eval && history < -4096 * depth) continue;
+                if (depth <= HistoryPruningDepth && bad_static_eval && history < -HistoryPruningMargin * depth) continue;
 
                 if (depth <= SEEPruningQuietDepth && !isCheck && 
                     !see(board, move, -SEEPruningQuietMargin * depth)) continue;
@@ -612,7 +612,10 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
                     /// late move pruning
                     if (newDepth <= LMPDepth && played >= (LMPBias + newDepth * newDepth) / (2 - improving)) skip = 1;
 
-                    if (depth <= HistoryPruningDepth && bad_static_eval && history < -HistoryPruningMargin * depth) continue;
+                    if (depth <= HistoryPruningDepth && bad_static_eval && history < -HistoryPruningMargin * depth) {
+                        skip = 1;
+                        continue;
+                    }
 
                     if (newDepth <= SEEPruningQuietDepth && !isCheck && 
                         !see(board, move, -SEEPruningQuietMargin * newDepth)) continue;
