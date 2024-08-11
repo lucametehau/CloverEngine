@@ -880,12 +880,11 @@ void SearchData::start_search(Info* _info) {
                         int wdlWin = winrate_model(scores[i], ply);
                         int wdlLose = winrate_model(-scores[i], ply);
                         int wdlDraw = 1000 - wdlWin - wdlLose;
-                        uint64_t shady_stuff = total_nodes * 8 / 7;
                         std::cout << " wdl " << wdlWin << " " << wdlDraw << " " << wdlLose;
 
-                        std::cout << " depth " << depth << " sel_depth " << sel_depth << " nodes " << shady_stuff;
+                        std::cout << " depth " << depth << " sel_depth " << sel_depth << " nodes " << total_nodes;
                         if (t)
-                            std::cout << " nps " << shady_stuff * 1000 / t;
+                            std::cout << " nps " << total_nodes * 1000 / t;
                         std::cout << " time " << t << " ";
                         std::cout << "tb_hits " << total_tb_hits << " hashfull " << TT->tableFull() << " ";
                         std::cout << "pv ";
