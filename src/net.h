@@ -168,21 +168,21 @@ public:
         hist_size = 0;
         for (auto c : { BLACK, WHITE }) {
             for (int i = 0; i < 2 * KING_BUCKETS; i++) {
-                memcpy(state[c][i].output, inputBiases, sizeof(inputBiases));
-                memset(state[c][i].bb, 0, sizeof(state[c][i].bb));
+                memcpy(cached_states[c][i].output, inputBiases, sizeof(inputBiases));
+                memset(cached_states[c][i].bb, 0, sizeof(cached_states[c][i].bb));
             }
         }
     }
 
-    void add_input(int ind) {
+    inline void add_input(int ind) {
         add_ind[add_size++] = ind;
     }
 
-    void remove_input(int ind) {
+    inline void remove_input(int ind) {
         sub_ind[sub_size++] = ind;
     }
 
-    void clear_updates() {
+    inline void clear_updates() {
         add_size = sub_size = 0;
     }
 
@@ -442,22 +442,22 @@ public:
         }
     }
 
-    void process_historic_update(const int index, const int king_sq, const bool side) {
+    inline void process_historic_update(const int index, const int king_sq, const bool side) {
         hist[index].calc[side] = 1;
         process_move(hist[index].move, hist[index].piece, hist[index].cap, king_sq, side,
             output_history[index][side], output_history[index - 1][side]);
     }
 
-    void add_move_to_history(uint16_t move, uint8_t piece, uint8_t captured) {
+    inline void add_move_to_history(uint16_t move, uint8_t piece, uint8_t captured) {
         hist[hist_size] = { move, piece, captured, piece_type(piece) == KING && recalc(sq_from(move), special_sqto(move), color_of(piece)), { 0, 0 } };
         hist_size++;
     }
 
-    void revert_move() {
+    inline void revert_move() {
         hist_size--;
     }
 
-    int get_computed_parent(int c) {
+    int get_computed_parent(const bool c) {
         int i = hist_size - 1;
         while (!hist[i].calc[c]) {
             if (color_of(hist[i].piece) == c && hist[i].recalc)
@@ -491,7 +491,7 @@ public:
     int add_size, sub_size;
 
     alignas(ALIGN) int16_t output_history[2005][2][SIDE_NEURONS];
-    KingBucketState state[2][2 * KING_BUCKETS];
+    MultiArray<KingBucketState, 2, 2 * KING_BUCKETS> cached_states;
 
     std::array<int16_t, 32> add_ind, sub_ind;
     std::array<NetHist, 2005> hist;

@@ -495,7 +495,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
                 int score = -search<false, false>(-beta, -beta + 1, depth - R, !cutNode, stack + 1);
                 board.undo_null_move();
 
-                if (score >= beta) return (abs(score) > MATE ? beta : score); /// don't trust mate scores
+                if (score >= beta) return abs(score) > MATE ? beta : score; /// don't trust mate scores
             }
 
             // probcut
@@ -716,7 +716,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
         }
 
         board.undo_move(move);
-        nodes_seached[fromTo(move)] += nodes - initNodes;
+        nodes_seached[from_to(move)] += nodes - initNodes;
 
         if (flag_stopped) /// stop search
             return best;
@@ -740,7 +740,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
     }
 
     if (!played) {
-        return (isCheck ? -INF + ply : 0);
+        return isCheck ? -INF + ply : 0;
     }
 
     /// update killer and history heuristics in case of a cutoff
@@ -807,8 +807,6 @@ void main_thread_handler(Info *info) {
 }
 
 void SearchData::start_search(Info* _info) {
-    int alpha, beta;
-
     nodes = sel_depth = tb_hits = 0;
     t0 = getTime();
     flag_stopped = false;
@@ -818,9 +816,10 @@ void SearchData::start_search(Info* _info) {
     fill_multiarray<Move, MAX_DEPTH + 5, 2 * MAX_DEPTH + 5>(pv_table, 0);
     info = _info;
 
+    int alpha, beta;
     int limitDepth = (thread_id == 0 ? info->depth : MAX_DEPTH); /// when limited by depth, allow helper threads to pass the fixed depth
-    int mainThreadScore = 0;
-    Move mainThreadBestMove = NULLMOVE;
+    int last_root_score = 0;
+    Move last_best_move = NULLMOVE;
 
     scores.fill(0);
     best_move.fill(0);
@@ -935,24 +934,22 @@ void SearchData::start_search(Info* _info) {
         }
 
         if (thread_id == 0 && !flag_stopped) {
-            double scoreChange = 1.0, best_movetreak = 1.0, nodesSearchedPercentage = 1.0;
-            float _tmNodesSearchedMaxPercentage = TimeManagerNodesSearchedMaxPercentage / 1000.0;
-            float _tmBestMoveMax = TimeManagerBestMoveMax / 1000.0;
-            float _tmbest_movetep = TimeManagerbest_movetep / 1000.0;
+            double scoreChange = 1.0, bestMoveStreak = 1.0, nodesSearchedPercentage = 1.0;
+            const float _tmNodesSearchedMaxPercentage = TimeManagerNodesSearchedMaxPercentage / 1000.0;
+            const float _tmBestMoveMax = TimeManagerBestMoveMax / 1000.0;
+            const float _tmBestMoveStep = TimeManagerbestMoveStep / 1000.0;
             if (tDepth >= TimeManagerMinDepth) {
-                scoreChange = std::max(TimeManagerScoreMin / 100.0, std::min(TimeManagerScoreBias / 100.0 + 1.0 * (mainThreadScore - root_score[1]) / TimeManagerScoreDiv, TimeManagerScoreMax / 100.0)); /// adjust time based on score change
-                best_move_cnt = (best_move[1] == mainThreadBestMove ? best_move_cnt + 1 : 1);
+                scoreChange = std::clamp(TimeManagerScoreBias / 100.0 + 1.0 * (last_root_score - root_score[1]) / TimeManagerScoreDiv, TimeManagerScoreMin / 100.0, TimeManagerScoreMax / 100.0); /// adjust time based on score change
+                best_move_cnt = (best_move[1] == last_best_move ? best_move_cnt + 1 : 1);
                 /// adjust time based on how many nodes from the total searched nodes were used for the best move
-                nodesSearchedPercentage = 1.0 * nodes_seached[fromTo(best_move[1])] / nodes;
+                nodesSearchedPercentage = 1.0 * nodes_seached[from_to(best_move[1])] / nodes;
                 nodesSearchedPercentage = TimeManagerNodesSeachedMaxCoef / 100.0 * _tmNodesSearchedMaxPercentage -
                     TimeManagerNodesSearchedCoef / 100.0 * nodesSearchedPercentage;
-                best_movetreak = _tmBestMoveMax - _tmbest_movetep * std::min(10, best_move_cnt); /// adjust time based on how long the best move was the same
+                bestMoveStreak = _tmBestMoveMax - _tmBestMoveStep * std::min(10, best_move_cnt); /// adjust time based on how long the best move was the same
             }
-            //std::cout << "Scale factor for tm is " << scoreChange * best_movetreak * nodesSearchedPercentage * 100 << "%\n";
-            //std::cout << scoreChange * 100 << " " << best_movetreak * 100 << " " << _tmNodesSearchedMaxPercentage - nodesSearchedPercentage << "\n";
-            info->stopTime = info->startTime + info->goodTimeLim * scoreChange * best_movetreak * nodesSearchedPercentage;
-            mainThreadScore = root_score[1];
-            mainThreadBestMove = best_move[1];
+            info->stopTime = info->startTime + info->goodTimeLim * scoreChange * bestMoveStreak * nodesSearchedPercentage;
+            last_root_score = root_score[1];
+            last_best_move = best_move[1];
         }
 
         if (flag_stopped)

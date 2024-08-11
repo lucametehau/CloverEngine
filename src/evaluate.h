@@ -48,7 +48,7 @@ void Board::bring_up_to_date() {
                 }
             }
             else {
-                KingBucketState* state = &NN.state[side][get_king_bucket_cache(king_sq, side)];
+                KingBucketState* state = &NN.cached_states[side][get_king_bucket_cache(king_sq, side)];
                 NN.clear_updates();
                 for (int i = 1; i <= 12; i++) {
                     uint64_t prev = state->bb[i];

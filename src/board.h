@@ -101,7 +101,7 @@ public:
     inline uint64_t get_pawn_attacks(const int color) const {
         const uint64_t b = get_bb_piece(PAWN, color);
         const int fileA = (color == WHITE ? 0 : 7), fileH = 7 - fileA;
-        return shift(color, NORTHWEST, b & ~fileMask[fileA]) | shift(color, NORTHEAST, b & ~fileMask[fileH]);
+        return shift(color, NORTHWEST, b & ~file_mask[fileA]) | shift(color, NORTHEAST, b & ~file_mask[fileH]);
     }
 
     inline int piece_type_at(const int sq) const { return piece_type(board[sq]); }
@@ -174,13 +174,13 @@ public:
         for (int i = 7; i >= 0; i--) {
             int cnt = 0;
             for (int j = 0, sq = i * 8; j < 8; j++, sq++) {
-                if (board[sq] == 0)
+                if (piece_at(sq) == 0)
                     cnt++;
                 else {
                     if (cnt)
                         fen += char(cnt + '0');
                     cnt = 0;
-                    fen += piece_char[board[sq]];
+                    fen += piece_char[piece_at(sq)];
                 }
             }
             if (cnt)
@@ -227,19 +227,19 @@ public:
         return fen;
     }
 
-    uint64_t speculative_next_key(uint64_t move) {
-        const int from = sq_from(move), to = sq_to(move), piece = board[from];
+    inline uint64_t speculative_next_key(const Move move) const {
+        const int from = sq_from(move), to = sq_to(move), piece = piece_at(from);
         return key ^ hashKey[piece][from] ^ hashKey[piece][to] ^ (piece_at(to) ? hashKey[piece_at(to)][to] : 0) ^ 1;
     }
 
-    bool isMaterialDraw() {
+    inline bool isMaterialDraw() const {
         /// KvK, KBvK, KNvK, KNNvK
-        int num = count(pieces[WHITE]) + count(pieces[BLACK]);
-        return (num == 2 || (num == 3 && (bb[WN] || bb[BN] || bb[WB] || bb[BB])) ||
+        const int num = count(get_bb_color(WHITE) | get_bb_color(BLACK));
+        return (num == 2 || (num == 3 && (get_bb_piece_type(BISHOP) || get_bb_piece_type(KNIGHT))) ||
             (num == 4 && (count(bb[WN]) == 2 || count(bb[BN]) == 2)));
     }
     
-    bool is_repetition(int ply) {
+    bool is_repetition(const int ply) const {
         int cnt = 1;
         for (int i = game_ply - 2; i >= game_ply - halfMoves; i -= 2) {
             if (history[i].key == key) {
