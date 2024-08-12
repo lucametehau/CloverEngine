@@ -137,7 +137,7 @@ public:
                 const uint64_t enemyPawns = board.get_bb_piece(PAWN, enemy);
                 const uint64_t allPieces = board.get_bb_color(WHITE) | board.get_bb_color(BLACK);
                 const uint64_t pawnAttacks = getPawnAttacks(enemy, enemyPawns);
-                const uint64_t enemyKingRing = kingRingMask[board.king(enemy)] & ~(shift(enemy, NORTHEAST, enemyPawns & ~file_mask[(enemy == WHITE ? 7 : 0)]) & shift(enemy, NORTHWEST, enemyPawns & ~file_mask[(enemy == WHITE ? 0 : 7)]));
+                const uint64_t enemyKingRing = kingRingMask[board.king(enemy)];
                 
                 int m = 0;
                 for (int i = 0; i < nrQuiets; i++) {
