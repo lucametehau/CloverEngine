@@ -98,13 +98,12 @@ public:
 
 class Threats {
 public:
-    uint64_t threats_pieces[6];
+    uint64_t threats_pieces[5];
     uint64_t all_threats;
     uint64_t threatened_pieces;
 
     Threats() {
-        for(int i = 1; i <= 5; i++) threats_pieces[i] = 0;
-        threatened_pieces = 0;
+        for(int i = 1; i <= 4; i++) threats_pieces[i] = 0;
     }
 };
 
@@ -229,7 +228,7 @@ inline int Sq(uint64_t bb) {
     return 63 - __builtin_clzll(bb);
 }
 
-int sq_lsb(uint64_t &b) {
+inline int sq_lsb(uint64_t &b) {
     const int sq = Sq(lsb(b));
     b &= b - 1;
     return sq;
