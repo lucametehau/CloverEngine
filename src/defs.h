@@ -96,9 +96,16 @@ public:
     MultiArray<History<16384>, 13, 64>* cont_hist;
 };
 
-struct Threats {
-    uint64_t threats_enemy;
-    uint64_t threats_pieces;
+class Threats {
+public:
+    uint64_t threats_pieces[6];
+    uint64_t all_threats;
+    uint64_t threatened_pieces;
+
+    Threats() {
+        for(int i = 1; i <= 5; i++) threats_pieces[i] = 0;
+        threatened_pieces = 0;
+    }
 };
 
 enum {
