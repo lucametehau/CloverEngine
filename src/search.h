@@ -136,57 +136,48 @@ uint32_t probe_TB(Board& board, int depth) {
 
 void get_threats(Threats& threats, Board& board, const bool us) {
     const bool enemy = 1 ^ us;
-    uint64_t ourPieces = board.get_bb_color(us) ^ board.get_bb_piece(PAWN, us);
-    uint64_t att = getPawnAttacks(enemy, board.get_bb_piece(PAWN, enemy)), attPieces = att & ourPieces;
-    uint64_t pieces, b, all = board.get_bb_color(WHITE) | board.get_bb_color(BLACK);
+    uint64_t our_pieces = board.get_bb_color(us) ^ board.get_bb_piece(PAWN, us);
+    uint64_t att = getPawnAttacks(enemy, board.get_bb_piece(PAWN, enemy)), threatened_pieces = att & our_pieces;
+    uint64_t pieces, att_mask;
+    const uint64_t all = board.get_bb_color(WHITE) | board.get_bb_color(BLACK);
 
     threats.threats_pieces[PAWN] = att;
-    ourPieces ^= board.get_bb_piece(KNIGHT, us) | board.get_bb_piece(BISHOP, us);
+    our_pieces ^= board.get_bb_piece(KNIGHT, us) | board.get_bb_piece(BISHOP, us);
 
     pieces = board.get_bb_piece(KNIGHT, enemy);
     while (pieces) {
-        b = lsb(pieces);
-        uint64_t att_mask = genAttacksKnight(Sq(b));
+        att_mask = genAttacksKnight(sq_lsb(pieces));
         att |= att_mask;
         threats.threats_pieces[KNIGHT] |= att_mask;
-        attPieces |= att & ourPieces;
-        pieces ^= b;
+        threatened_pieces |= att & our_pieces;
     }
 
     pieces = board.get_bb_piece(BISHOP, enemy);
     while (pieces) {
-        b = lsb(pieces);
-        uint64_t att_mask = genAttacksBishop(all, Sq(b));
+        att_mask = genAttacksBishop(all, sq_lsb(pieces));
         att |= att_mask;
         threats.threats_pieces[BISHOP] |= att_mask;
-        attPieces |= att & ourPieces;
-        pieces ^= b;
+        threatened_pieces |= att & our_pieces;
     }
 
-    ourPieces ^= board.get_bb_piece(ROOK, us);
+    our_pieces ^= board.get_bb_piece(ROOK, us);
 
     pieces = board.get_bb_piece(ROOK, enemy);
     while (pieces) {
-        b = lsb(pieces);
-        uint64_t att_mask = genAttacksRook(all, Sq(b));
+        att_mask = genAttacksRook(all, sq_lsb(pieces));
         att |= att_mask;
         threats.threats_pieces[ROOK] |= att_mask;
-        attPieces |= att & ourPieces;
-        pieces ^= b;
+        threatened_pieces |= att & our_pieces;
     }
 
     pieces = board.get_bb_piece(QUEEN, enemy);
     while (pieces) {
-        b = lsb(pieces);
-        uint64_t att_mask = genAttacksQueen(all, Sq(b));
-        att |= att_mask;
-        threats.threats_pieces[QUEEN] |= att_mask;
-        pieces ^= b;
+        att |= genAttacksQueen(all, sq_lsb(pieces));
     }
 
     att |= genAttacksKing(board.king(enemy));
     threats.all_threats = att;
-    threats.threatened_pieces = attPieces;
+    threats.threatened_pieces = threatened_pieces;
 }
 
 std::string getSanString(Board& board, Move move) {
@@ -441,7 +432,6 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
     get_threats(threats, board, turn);
     const bool enemy_has_no_threats = !threats.threatened_pieces;
     int raw_eval{};
-    //int quietEnemy = quietness(board, 1 ^ turn);
 
     if (isCheck) { /// when in check, don't evaluate
         stack->eval = raw_eval = eval = INF;

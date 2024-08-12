@@ -388,7 +388,7 @@ int gen_legal_moves(Board& board, std::array<Move, MAX_MOVES> &moves) {
         return nrMoves;
     }
     else if (cnt == 1) { /// one check
-        int sq = Sq(lsb(board.checkers));
+        int sq = sq_single_bit(board.checkers);
         switch (board.piece_type_at(sq)) {
         case PAWN:
             /// make en passant to cancel the check
@@ -415,7 +415,7 @@ int gen_legal_moves(Board& board, std::array<Move, MAX_MOVES> &moves) {
             b1 = b2 & notPinned;
             while (b1) {
                 b = lsb(b1);
-                int sq = Sq(b);
+                int sq = sq_single_bit(b);
                 if (!(genAttacksRook(all ^ b ^ (1ULL << sq2) ^ (1ULL << ep), king) & enemyOrthSliders) &&
                     !(genAttacksBishop(all ^ b ^ (1ULL << sq2) ^ (1ULL << ep), king) & enemyDiagSliders)) {
                     moves[nrMoves++] =  getMove(sq, ep, 0, ENPASSANT);
@@ -423,7 +423,7 @@ int gen_legal_moves(Board& board, std::array<Move, MAX_MOVES> &moves) {
                 b1 ^= b;
             }
             b1 = b2 & pinned & line_mask[ep][king];
-            if (b1) moves[nrMoves++] = getMove(Sq(b1), ep, 0, ENPASSANT);
+            if (b1) moves[nrMoves++] = getMove(sq_single_bit(b1), ep, 0, ENPASSANT);
         }
 
         if (!board.chess960) {
@@ -497,12 +497,13 @@ int gen_legal_moves(Board& board, std::array<Move, MAX_MOVES> &moves) {
                 /// single pawn push
                 b2 = (1ULL << (sq_dir(color, NORTH, sq))) & emptySq & line_mask[king][sq];
                 if (b2) {
-                    moves[nrMoves++] = getMove(sq, Sq(b2), 0, NEUT);
+                    const int sq2 = sq_single_bit(b2);
+                    moves[nrMoves++] = getMove(sq, sq2, 0, NEUT);
 
                     /// double pawn push
-                    b3 = (1ULL << (sq_dir(color, NORTH, Sq(b2)))) & emptySq & line_mask[king][sq];
-                    if (b3 && Sq(b2) / 8 == rank3) {
-                        moves[nrMoves++] = getMove(sq, Sq(b3), 0, NEUT);
+                    b3 = (1ULL << (sq_dir(color, NORTH, sq2))) & emptySq & line_mask[king][sq];
+                    if (b3 && sq2 / 8 == rank3) {
+                        moves[nrMoves++] = getMove(sq, sq_single_bit(b3), 0, NEUT);
                     }
                 }
             }
@@ -624,7 +625,7 @@ int gen_legal_noisy_moves(Board& board, std::array<Move, MAX_MOVES> &moves) {
         return nrMoves;
     }
     else if (cnt == 1) { /// one check
-        int sq = Sq(lsb(board.checkers));
+        int sq = sq_single_bit(board.checkers);
         switch (board.piece_type_at(sq)) {
         case PAWN:
             /// make en passant to cancel the check
@@ -651,7 +652,7 @@ int gen_legal_noisy_moves(Board& board, std::array<Move, MAX_MOVES> &moves) {
             b1 = b2 & notPinned;
             while (b1) {
                 b = lsb(b1);
-                int sq = Sq(b);
+                int sq = sq_single_bit(b);
                 if (!(genAttacksRook(all ^ b ^ (1ULL << sq2) ^ (1ULL << ep), king) & enemyOrthSliders) &&
                     !(genAttacksBishop(all ^ b ^ (1ULL << sq2) ^ (1ULL << ep), king) & enemyDiagSliders)) {
                     moves[nrMoves++] = getMove(sq, ep, 0, ENPASSANT);
@@ -659,7 +660,7 @@ int gen_legal_noisy_moves(Board& board, std::array<Move, MAX_MOVES> &moves) {
                 b1 ^= b;
             }
             b1 = b2 & pinned & line_mask[ep][king];
-            if (b1) moves[nrMoves++] = getMove(Sq(b1), ep, 0, ENPASSANT);
+            if (b1) moves[nrMoves++] = getMove(sq_single_bit(b1), ep, 0, ENPASSANT);
         }
 
 
@@ -678,15 +679,13 @@ int gen_legal_noisy_moves(Board& board, std::array<Move, MAX_MOVES> &moves) {
         }
 
         /// pinned pawns
-
         b1 = pinned & board.get_bb_piece(PAWN, color);
         while (b1) {
-            b = lsb(b1);
-            int sq = Sq(b), rank7 = (color == WHITE ? 6 : 1);
+            const int sq = sq_lsb(b1), rank7 = (color == WHITE ? 6 : 1);
             if (sq / 8 == rank7) { /// promotion captures
                 b2 = pawnAttacksMask[color][sq] & capMask & line_mask[king][sq];
                 while (b2) {
-                    int sq2 = sq_lsb(b2);
+                    const int sq2 = sq_lsb(b2);
                     for (int j = 0; j < 4; j++) moves[nrMoves++] = (getMove(sq, sq2, j, PROMOTION));
                 }
             }
@@ -694,7 +693,6 @@ int gen_legal_noisy_moves(Board& board, std::array<Move, MAX_MOVES> &moves) {
                 b2 = pawnAttacksMask[color][sq] & capMask & line_mask[king][sq];
                 add_moves(moves, nrMoves, sq, b2);
             }
-            b1 ^= b;
         }
     }
 
@@ -794,7 +792,7 @@ int gen_legal_quiet_moves(Board& board, std::array<Move, MAX_MOVES> &moves) {
         return nrMoves;
     }
     else if (cnt == 1) { /// one check
-        const int sq = Sq(lsb(board.checkers));
+        const int sq = sq_single_bit(board.checkers);
         quietMask = between_mask[king][sq];
         if (board.piece_type_at(sq) == KNIGHT || !quietMask)
             return nrMoves;
@@ -859,11 +857,12 @@ int gen_legal_quiet_moves(Board& board, std::array<Move, MAX_MOVES> &moves) {
                 /// single pawn push
                 b2 = (1ULL << (sq_dir(color, NORTH, sq))) & emptySq & line_mask[king][sq];
                 if (b2) {
-                    moves[nrMoves++] = getMove(sq, Sq(b2), 0, NEUT);
+                    const int sq2 = sq_single_bit(b2);
+                    moves[nrMoves++] = getMove(sq, sq2, 0, NEUT);
 
                     /// double pawn push
-                    b3 = (1ULL << (sq_dir(color, NORTH, Sq(b2)))) & emptySq & line_mask[king][sq];
-                    if (b3 && Sq(b2) / 8 == rank3) moves[nrMoves++] = getMove(sq, Sq(b3), 0, NEUT);
+                    b3 = (1ULL << (sq_dir(color, NORTH, sq2))) & emptySq & line_mask[king][sq];
+                    if (b3 && sq2 / 8 == rank3) moves[nrMoves++] = getMove(sq, sq_single_bit(b3), 0, NEUT);
                 }
 
             }
@@ -1042,7 +1041,7 @@ bool is_legal(Board& board, Move move) {
     if(!board.checkers)
         return 1;
     
-    return (board.checkers & (board.checkers - 1)) ? false : (1ULL << to) & (board.checkers | between_mask[king][Sq(board.checkers)]);
+    return (board.checkers & (board.checkers - 1)) ? false : (1ULL << to) & (board.checkers | between_mask[king][sq_single_bit(board.checkers)]);
 }
 
 bool is_legal_dummy(Board& board, Move move) {

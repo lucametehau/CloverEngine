@@ -98,13 +98,12 @@ public:
 
 class Threats {
 public:
-    uint64_t threats_pieces[6];
+    uint64_t threats_pieces[5];
     uint64_t all_threats;
     uint64_t threatened_pieces;
 
     Threats() {
-        for(int i = 1; i <= 5; i++) threats_pieces[i] = 0;
-        threatened_pieces = 0;
+        for(int i = 1; i <= 4; i++) threats_pieces[i] = 0;
     }
 };
 
@@ -225,12 +224,16 @@ inline uint64_t lsb(uint64_t nr) {
     return nr & -nr;
 }
 
-inline int Sq(uint64_t bb) {
-    return 63 - __builtin_clzll(bb);
+inline int Sq(const uint64_t b) {
+    return 63 - __builtin_clzll(b);
 }
 
-int sq_lsb(uint64_t &b) {
-    const int sq = Sq(lsb(b));
+inline int sq_single_bit(const uint64_t b) {
+    return __builtin_ctzll(b);
+}
+
+inline int sq_lsb(uint64_t &b) {
+    const int sq = sq_single_bit(b);
     b &= b - 1;
     return sq;
 }
@@ -337,9 +340,7 @@ inline std::string move_to_string(Move move, bool chess960) {
 
 inline void printBB(uint64_t mask) {
     while (mask) {
-        uint64_t b = lsb(mask);
-        std::cout << Sq(b) << " ";
-        mask ^= b;
+        std::cout << sq_lsb(mask) << " ";
     }
     std::cout << " mask\n";
 }
