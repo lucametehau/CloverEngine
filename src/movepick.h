@@ -42,7 +42,7 @@ private:
     int nrNoisy, nrQuiets, nrBadNoisy;
     int index;
 
-    uint64_t threats_enemy;
+    uint64_t all_threats, threats_p, threats_bn, threats_r;
 
     int threshold;
 
@@ -50,7 +50,7 @@ private:
     std::array<int, MAX_MOVES> scores;
 
 public:
-    Movepick(const Move _ttMove, const Move _killer, const int _threshold, const uint64_t _threats_enemy) {
+    Movepick(const Move _ttMove, const Move _killer, const int _threshold, const Threats threats) {
         stage = STAGE_TTMOVE;
 
         ttMove = _ttMove;
@@ -58,7 +58,12 @@ public:
 
         nrNoisy = nrQuiets = nrBadNoisy = 0;
         threshold = _threshold;
-        threats_enemy = _threats_enemy;
+        all_threats = threats.all_threats;
+        threats_p = threats.threats_pieces[PAWN];
+        threats_bn = threats.threats_pieces[KNIGHT] | threats.threats_pieces[BISHOP];
+        threats_r = threats.threats_pieces[ROOK];
+        threats_bn |= threats_p;
+        threats_r |= threats_bn;
     }
 
     void get_best_move(int offset, int nrMoves, std::array<Move, MAX_MOVES> &moves, std::array<int, MAX_MOVES> &scores) {
@@ -134,9 +139,7 @@ public:
             if (!skip) {
                 nrQuiets = gen_legal_quiet_moves(board, moves);
                 const bool turn = board.turn, enemy = 1 ^ turn;
-                const uint64_t enemyPawns = board.get_bb_piece(PAWN, enemy);
                 const uint64_t allPieces = board.get_bb_color(WHITE) | board.get_bb_color(BLACK);
-                const uint64_t pawnAttacks = getPawnAttacks(enemy, enemyPawns);
                 const uint64_t enemyKingRing = kingRingMask[board.king(enemy)];
                 
                 int m = 0;
@@ -146,17 +149,29 @@ public:
                         continue;
 
                     moves[m] = move;
-                    const int to = sq_to(move), piece = board.piece_at(sq_from(move)), pt = piece_type(piece);
-                    int score = histories.get_history_movepick(move, piece, threats_enemy, turn, stack);
-
-                    if (pt != PAWN && (pawnAttacks & (1ULL << to)))
-                        score -= QuietPawnAttackedCoef * seeVal[pt];
+                    const int from = sq_from(move), to = sq_to(move), piece = board.piece_at(from), pt = piece_type(piece);
+                    int score = histories.get_history_movepick(move, piece, all_threats, turn, stack);
 
                     if (pt == PAWN) // pawn push, generally good?
                         score += QuietPawnPushBonus;
 
-                    if (pt != KING && pt != PAWN)
+                    if (pt != KING && pt != PAWN) {
                         score += QuietKingRingAttackBonus * count(genAttacksSq(allPieces, to, pt) & enemyKingRing);
+                        
+                        if(threats_p & (1ULL << to))
+                            score -= QuietPawnAttackedCoef * seeVal[pt];
+                        else if(pt >= ROOK && (threats_bn & (1ULL << to)))
+                            score -= 16384;
+                        else if(pt == QUEEN && (threats_r & (1ULL << to)))
+                            score -= 16384;
+
+                        if(threats_p & (1ULL << from))
+                            score += QuietPawnAttackedDodgeCoef * seeVal[pt];
+                        else if(pt >= ROOK && (threats_bn & (1ULL << from)))
+                            score += 16384;
+                        else if(pt == QUEEN && (threats_r & (1ULL << from)))
+                            score += 16384;   
+                    }
 
                     scores[m++] = score;
                 }

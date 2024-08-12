@@ -134,18 +134,21 @@ uint32_t probe_TB(Board& board, int depth) {
     return TB_RESULT_FAILED;
 }
 
-Threats get_threats(Board& board, const bool us) {
+void get_threats(Threats& threats, Board& board, const bool us) {
     const bool enemy = 1 ^ us;
     uint64_t ourPieces = board.get_bb_color(us) ^ board.get_bb_piece(PAWN, us);
     uint64_t att = getPawnAttacks(enemy, board.get_bb_piece(PAWN, enemy)), attPieces = att & ourPieces;
     uint64_t pieces, b, all = board.get_bb_color(WHITE) | board.get_bb_color(BLACK);
 
+    threats.threats_pieces[PAWN] = att;
     ourPieces ^= board.get_bb_piece(KNIGHT, us) | board.get_bb_piece(BISHOP, us);
 
     pieces = board.get_bb_piece(KNIGHT, enemy);
     while (pieces) {
         b = lsb(pieces);
-        att |= genAttacksKnight(Sq(b));
+        uint64_t att_mask = genAttacksKnight(Sq(b));
+        att |= att_mask;
+        threats.threats_pieces[KNIGHT] |= att_mask;
         attPieces |= att & ourPieces;
         pieces ^= b;
     }
@@ -153,7 +156,9 @@ Threats get_threats(Board& board, const bool us) {
     pieces = board.get_bb_piece(BISHOP, enemy);
     while (pieces) {
         b = lsb(pieces);
-        att |= genAttacksBishop(all, Sq(b));
+        uint64_t att_mask = genAttacksBishop(all, Sq(b));
+        att |= att_mask;
+        threats.threats_pieces[BISHOP] |= att_mask;
         attPieces |= att & ourPieces;
         pieces ^= b;
     }
@@ -163,7 +168,9 @@ Threats get_threats(Board& board, const bool us) {
     pieces = board.get_bb_piece(ROOK, enemy);
     while (pieces) {
         b = lsb(pieces);
-        att |= genAttacksRook(all, Sq(b));
+        uint64_t att_mask = genAttacksRook(all, Sq(b));
+        att |= att_mask;
+        threats.threats_pieces[ROOK] |= att_mask;
         attPieces |= att & ourPieces;
         pieces ^= b;
     }
@@ -171,13 +178,15 @@ Threats get_threats(Board& board, const bool us) {
     pieces = board.get_bb_piece(QUEEN, enemy);
     while (pieces) {
         b = lsb(pieces);
-        att |= genAttacksRook(all, Sq(b));
+        uint64_t att_mask = genAttacksQueen(all, Sq(b));
+        att |= att_mask;
+        threats.threats_pieces[QUEEN] |= att_mask;
         pieces ^= b;
     }
 
     att |= genAttacksKing(board.king(enemy));
-
-    return { att, attPieces };
+    threats.all_threats = att;
+    threats.threatened_pieces = attPieces;
 }
 
 std::string getSanString(Board& board, Move move) {
@@ -261,8 +270,8 @@ int SearchData::quiesce(int alpha, int beta, StackEntry* stack) {
     }
 
     const bool isCheck = (board.checkers != 0);
-    Threats threats{};
-    if (isCheck) threats = get_threats(board, turn);
+    Threats threats;
+    if (isCheck) get_threats(threats, board, turn);
     int futilityValue;
 
     if (isCheck) {
@@ -292,7 +301,7 @@ int SearchData::quiesce(int alpha, int beta, StackEntry* stack) {
     Movepick noisyPicker(!isCheck && see(board, ttMove, 0) ? ttMove : NULLMOVE,
         NULLMOVE,
         0,
-        threats.threats_enemy);
+        threats);
 
     Move move;
     int played = 0;
@@ -428,8 +437,9 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
     }
 
     const bool isCheck = (board.checkers != 0);
-    const Threats threats = get_threats(board, turn);
-    const bool enemy_has_no_threats = !threats.threats_pieces;
+    Threats threats;
+    get_threats(threats, board, turn);
+    const bool enemy_has_no_threats = !threats.threatened_pieces;
     int raw_eval{};
     //int quietEnemy = quietness(board, 1 ^ turn);
 
@@ -504,7 +514,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
                 Movepick picker((ttMove && board.is_noisy_move(ttMove) && see(board, ttMove, probBeta - static_eval) ? ttMove : NULLMOVE),
                     NULLMOVE,
                     probBeta - static_eval,
-                    threats.threats_enemy);
+                    threats);
 
                 Move move;
                 while ((move = picker.get_next_move(histories, stack, board, true, true)) != NULLMOVE) {
@@ -542,7 +552,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
     Movepick picker(ttMove,
         stack->killer,
         -see_depth_coef * depth,
-        threats.threats_enemy);
+        threats);
 
     Move move;
     const bool ttCapture = ttMove && board.is_noisy_move(ttMove);
@@ -570,7 +580,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
 #ifdef GENERATE
         if (best > -MATE && board.has_non_pawn_material(turn) && !pvNode) {
             if (isQuiet) {
-                history = histories.get_history_search(move, piece, threats.threats_enemy, turn, stack);
+                history = histories.get_history_search(move, piece, threats.all_threats, turn, stack);
 
                 /// approximately the new depth for the next search
                 int newDepth = std::max(0, depth - lmr_red[std::min(63, depth)][std::min(63, played)] + improving);
@@ -600,7 +610,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
         if constexpr (!rootNode) {
             if (best > -MATE && board.has_non_pawn_material(turn)) {
                 if (isQuiet) {
-                    history = histories.get_history_search(move, piece, threats.threats_enemy, turn, stack);
+                    history = histories.get_history_search(move, piece, threats.all_threats, turn, stack);
                     
                     /// approximately the new depth for the next search
                     int newDepth = std::max(0, depth - lmr_red[std::min(63, depth)][std::min(63, played)] + improving + history / MoveloopHistDiv);
@@ -752,10 +762,10 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
             stack->killer = bestMove;
             const int quiet_bonus = getHistoryBonus(depth + bad_static_eval);
             if (nrQuiets > 1 || depth >= HistoryUpdateMinDepth)
-                histories.update_hist_quiet_move(bestMove, board.piece_at(sq_from(bestMove)), threats.threats_enemy, turn, stack, quiet_bonus);
+                histories.update_hist_quiet_move(bestMove, board.piece_at(sq_from(bestMove)), threats.all_threats, turn, stack, quiet_bonus);
             for (int i = 0; i < nrQuiets - 1; i++) {
                 const Move move = stack->quiets[i];
-                histories.update_hist_quiet_move(move, board.piece_at(sq_from(move)), threats.threats_enemy, turn, stack, -quiet_bonus);
+                histories.update_hist_quiet_move(move, board.piece_at(sq_from(move)), threats.all_threats, turn, stack, -quiet_bonus);
             }
         }
         const int noisy_bonus = getHistoryBonus(depth + bad_static_eval);
