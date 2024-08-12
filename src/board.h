@@ -110,7 +110,7 @@ public:
 
     inline int piece_at(const int sq) const { return board[sq]; }
 
-    inline int king(const bool color) const { return Sq(get_bb_piece(KING, color)); }
+    inline int king(const bool color) const { return sq_single_bit(get_bb_piece(KING, color)); }
 
     inline bool is_capture(const Move move) const { return type(move) != CASTLE && piece_at(sq_to(move)); }
 

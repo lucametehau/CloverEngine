@@ -224,12 +224,16 @@ inline uint64_t lsb(uint64_t nr) {
     return nr & -nr;
 }
 
-inline int Sq(uint64_t bb) {
-    return 63 - __builtin_clzll(bb);
+inline int Sq(const uint64_t b) {
+    return 63 - __builtin_clzll(b);
+}
+
+inline int sq_single_bit(const uint64_t b) {
+    return __builtin_ctzll(b);
 }
 
 inline int sq_lsb(uint64_t &b) {
-    const int sq = Sq(lsb(b));
+    const int sq = sq_single_bit(b);
     b &= b - 1;
     return sq;
 }
@@ -336,9 +340,7 @@ inline std::string move_to_string(Move move, bool chess960) {
 
 inline void printBB(uint64_t mask) {
     while (mask) {
-        uint64_t b = lsb(mask);
-        std::cout << Sq(b) << " ";
-        mask ^= b;
+        std::cout << sq_lsb(mask) << " ";
     }
     std::cout << " mask\n";
 }
