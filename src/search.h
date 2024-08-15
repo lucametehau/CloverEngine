@@ -886,7 +886,7 @@ void SearchData::start_search(Info* _info) {
                         if (t)
                             std::cout << " nps " << total_nodes * 1000 / t;
                         std::cout << " time " << t << " ";
-                        std::cout << "tb_hits " << total_tb_hits << " hashfull " << TT->tableFull() << " ";
+                        std::cout << "tbhits " << total_tb_hits << " hashfull " << TT->tableFull() << " ";
                         std::cout << "pv ";
                         print_pv();
                         std::cout << std::endl;
@@ -911,7 +911,6 @@ void SearchData::start_search(Info* _info) {
                         std::cout << "  ";
                         print_pv();
                         std::cout << std::endl;
-                        //std::cout << "Branching factor is " << std::fixed << std::setprecision(5) << pow(nodes, 1.0 / tDepth) << std::endl;
                     }
                 }
 
