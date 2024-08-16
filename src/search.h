@@ -303,7 +303,7 @@ int SearchData::quiesce(int alpha, int beta, StackEntry* stack) {
         if (played == 4) break;
         if (played > 1) {
             if (futilityValue > -MATE) {
-                const int value = futilityValue + seeVal[board.piece_type_at(sq_to(move))];
+                const int value = futilityValue + seeVal[board.get_captured_type(move)];
                 if (type(move) != PROMOTION && value <= alpha) {
                     best = std::max(best, value);
                     continue;
@@ -593,7 +593,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
                     !see(board, move, -SEEPruningNoisyMargin * (depth + bad_static_eval) * (depth + bad_static_eval) - history / 256)) continue;
 
                 if (depth <= FPNoisyDepth && !isCheck && 
-                    static_eval + FPBias + seeVal[board.piece_type_at(sq_to(move))] + FPMargin * depth <= alpha) continue;
+                    static_eval + FPBias + seeVal[board.get_captured_type(move)] + FPMargin * depth <= alpha) continue;
             }
         }
 #else
@@ -626,7 +626,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
                         !see(board, move, -SEEPruningNoisyMargin * (depth + bad_static_eval) * (depth + bad_static_eval) - history / 256)) continue;
 
                     if (depth <= FPNoisyDepth && !isCheck && 
-                        static_eval + FPBias + seeVal[board.piece_type_at(sq_to(move))] + FPMargin * depth <= alpha) continue;
+                        static_eval + FPBias + seeVal[board.get_captured_type(move)] + FPMargin * depth <= alpha) continue;
                 }
             }
         }
