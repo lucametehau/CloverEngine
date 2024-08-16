@@ -63,7 +63,7 @@ void Board::bring_up_to_date() {
                     state->bb[i] = bb[i];
                 }
                 NN.apply_updates(state->output, state->output);
-                memcpy(NN.output_history[hist_size - 1][side], state->output, SIDE_NEURONS * sizeof(int16_t));
+                memcpy(&NN.output_history[hist_size - 1][side * SIDE_NEURONS], state->output, SIDE_NEURONS * sizeof(int16_t));
                 NN.hist[hist_size - 1].calc[side] = 1;
             }
         }

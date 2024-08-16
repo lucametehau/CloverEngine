@@ -112,6 +112,8 @@ const int Q_IN = 255;
 const int Q_HIDDEN = 64;
 const int Q_IN_HIDDEN = Q_IN * Q_HIDDEN;
 
+const int STACK_SIZE = 2000;
+
 const reg_type zero{};
 const reg_type one = reg_set1(Q_IN);
 
@@ -217,7 +219,7 @@ public:
 
             assert(-32768 <= sum && sum <= 32767);
 
-            output_history[0][WHITE][n] = sum;
+            output_history[0][SIDE_NEURONS + n] = sum;
 
             sum = inputBiases[n];
 
@@ -225,7 +227,7 @@ public:
                 sum += inputWeights[prevN * SIDE_NEURONS + n];
             }
 
-            output_history[0][BLACK][n] = sum;
+            output_history[0][n] = sum;
 
             assert(-32768 <= sum && sum <= 32767);
         }
@@ -445,7 +447,7 @@ public:
     inline void process_historic_update(const int index, const int king_sq, const bool side) {
         hist[index].calc[side] = 1;
         process_move(hist[index].move, hist[index].piece, hist[index].cap, king_sq, side,
-            output_history[index][side], output_history[index - 1][side]);
+            &output_history[index][side * SIDE_NEURONS], &output_history[index - 1][side * SIDE_NEURONS]);
     }
 
     inline void add_move_to_history(uint16_t move, uint8_t piece, uint8_t captured) {
@@ -470,8 +472,8 @@ public:
     int32_t get_output(bool stm) {
         reg_type_s acc{};
 
-        const reg_type* w = reinterpret_cast<const reg_type*>(output_history[hist_size - 1][stm]);
-        const reg_type* w2 = reinterpret_cast<const reg_type*>(output_history[hist_size - 1][stm ^ 1]);
+        const reg_type* w = reinterpret_cast<const reg_type*>(&output_history[hist_size - 1][stm * SIDE_NEURONS]);
+        const reg_type* w2 = reinterpret_cast<const reg_type*>(&output_history[hist_size - 1][(stm ^ 1) * SIDE_NEURONS]);
         const reg_type* v = reinterpret_cast<const reg_type*>(outputWeights);
         const reg_type* v2 = reinterpret_cast<const reg_type*>(&outputWeights[SIDE_NEURONS]);
         reg_type clamped;
@@ -490,9 +492,9 @@ public:
 
     int add_size, sub_size;
 
-    alignas(ALIGN) int16_t output_history[2005][2][SIDE_NEURONS];
+    alignas(ALIGN) int16_t output_history[STACK_SIZE][HIDDEN_NEURONS];
     MultiArray<KingBucketState, 2, 2 * KING_BUCKETS> cached_states;
 
     std::array<int16_t, 32> add_ind, sub_ind;
-    std::array<NetHist, 2005> hist;
+    std::array<NetHist, STACK_SIZE> hist;
 };
