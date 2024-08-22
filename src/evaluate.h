@@ -32,7 +32,7 @@ inline int scale(Board& board) {
 }
 
 inline int get_king_bucket_cache(const int king_sq, const bool c) {
-    return 5 * ((king_sq & 7) >= 4) + kingIndTable[king_sq ^ (56 * !c)];
+    return KING_BUCKETS * ((king_sq & 7) >= 4) + kingIndTable[king_sq ^ (56 * !c)];
 }
 
 void Board::bring_up_to_date() {
