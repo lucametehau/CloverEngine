@@ -99,7 +99,7 @@
 
 INCBIN(Net, EVALFILE);
 
-const int KING_BUCKETS = 5;
+const int KING_BUCKETS = 7;
 const int INPUT_NEURONS = 768 * KING_BUCKETS;
 const int SIDE_NEURONS = 1280;
 const int HIDDEN_NEURONS = 2 * SIDE_NEURONS;
