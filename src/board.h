@@ -24,7 +24,7 @@
 
 using namespace attacks;
 
-class Undo {
+class HistoricalState {
 public:
     int8_t enPas;
     uint8_t castleRights;
@@ -53,7 +53,7 @@ public:
     std::array<uint64_t, 13> bb;
     std::array<uint64_t, 2> pieces;
     uint64_t key, pawn_key;
-    std::array<Undo, 2000> history; /// fuck it
+    std::array<HistoricalState, STACK_SIZE> history; /// fuck it
 
     Network NN;
 
