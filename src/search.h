@@ -281,8 +281,8 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
     const uint64_t key = board.key;
     const bool turn = board.turn;
 
-    uint16_t nrQuiets = 0;
-    uint16_t nrCaptures = 0;
+    uint16_t nr_quiets = 0;
+    uint16_t nr_noisies = 0;
     int played = 0, skip = 0;
     int best = -INF;
     Move bestMove = NULLMOVE;
@@ -593,12 +593,6 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
             }
         }
 
-        /// store quiets for history
-        if (isQuiet)
-            stack->quiets[nrQuiets++] = move;
-        else
-            stack->captures[nrCaptures++] = move;
-
         int newDepth = depth + ex, R = 1;
 
         uint64_t initNodes = nodes;
@@ -664,6 +658,14 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
                     break;
                 }
             }
+            else {
+                if (isQuiet) stack->quiets[nr_quiets++] = move;
+                else stack->noisies[nr_noisies++] = move;
+            }
+        }
+        else {
+            if (isQuiet) stack->quiets[nr_quiets++] = move;
+            else stack->noisies[nr_noisies++] = move;
         }
     }
 
@@ -673,20 +675,22 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
 
     /// update killer and history heuristics in case of a cutoff
     if (best >= beta) {
+        const int bonus = getHistoryBonus(depth + bad_static_eval);
         if (!board.is_noisy_move(bestMove)) {
             stack->killer = bestMove;
-            const int quiet_bonus = getHistoryBonus(depth + bad_static_eval);
-            if (nrQuiets > 1 || depth >= HistoryUpdateMinDepth)
-                histories.update_hist_quiet_move(bestMove, board.piece_at(sq_from(bestMove)), threats.all_threats, turn, stack, quiet_bonus);
-            for (int i = 0; i < nrQuiets - 1; i++) {
+            if (nr_quiets || depth >= HistoryUpdateMinDepth)
+                histories.update_hist_quiet_move(bestMove, board.piece_at(sq_from(bestMove)), threats.all_threats, turn, stack, bonus);
+            for (int i = 0; i < nr_quiets; i++) {
                 const Move move = stack->quiets[i];
-                histories.update_hist_quiet_move(move, board.piece_at(sq_from(move)), threats.all_threats, turn, stack, -quiet_bonus);
+                histories.update_hist_quiet_move(move, board.piece_at(sq_from(move)), threats.all_threats, turn, stack, -bonus);
             }
         }
-        const int noisy_bonus = getHistoryBonus(depth + bad_static_eval);
-        for (int i = 0; i < nrCaptures; i++) {
-            const Move move = stack->captures[i];
-            histories.update_cap_hist_move(board.piece_at(sq_from(move)), sq_to(move), board.get_captured_type(move), move == bestMove ? noisy_bonus : -noisy_bonus);
+        else {
+            histories.update_cap_hist_move(board.piece_at(sq_from(bestMove)), sq_to(bestMove), board.get_captured_type(bestMove), bonus);
+        }
+        for (int i = 0; i < nr_noisies; i++) {
+            const Move move = stack->noisies[i];
+            histories.update_cap_hist_move(board.piece_at(sq_from(move)), sq_to(move), board.get_captured_type(move), -bonus);
         }
     }
 

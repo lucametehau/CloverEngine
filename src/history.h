@@ -43,11 +43,11 @@ class StackEntry { /// info to keep in the stack
 public:
     StackEntry() : piece(0), move(0), killer(0), excluded(0), eval(0) {
         quiets.fill(0);
-        captures.fill(0);
+        noisies.fill(0);
     }
     uint16_t piece;
     Move move, killer, excluded;
-    std::array<Move, MAX_MOVES> quiets, captures;
+    std::array<Move, MAX_MOVES> quiets, noisies;
     int eval;
     MultiArray<History<16384>, 13, 64>* cont_hist;
 };
