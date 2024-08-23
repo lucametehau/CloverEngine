@@ -21,9 +21,9 @@
 #include "evaluate.h"
 
 uint64_t getPinnedPieces(Board& board, bool turn) {
-    int color = board.turn, enemy = color ^ 1;
-    int king = board.king(color);
-    uint64_t mask, us = board.pieces[color], them = board.pieces[enemy];
+    const int stm = board.turn, enemy = stm ^ 1;
+    const int king = board.king(stm);
+    uint64_t mask, us = board.pieces[stm], them = board.pieces[enemy];
     uint64_t pinned = 0; /// squares attacked by enemy / pinned pieces
     uint64_t enemyOrthSliders = board.orthogonal_sliders(enemy), enemyDiagSliders = board.diagonal_sliders(enemy);
 
@@ -38,7 +38,7 @@ uint64_t getPinnedPieces(Board& board, bool turn) {
     return pinned;
 }
 
-void add_moves(std::array<Move, MAX_MOVES> &moves, int& nrMoves, int pos, uint64_t att) {
+inline void add_moves(std::array<Move, MAX_MOVES> &moves, int& nrMoves, int pos, uint64_t att) {
     while (att) moves[nrMoves++] = getMove(pos, sq_lsb(att), 0, NEUT);
 }
 
@@ -210,8 +210,7 @@ void Board::make_move(const Move move) { /// assuming move is at least pseudo-le
     ply++;
     game_ply++;
     key ^= 1;
-    if (turn == WHITE)
-        moveIndex++;
+    if (turn == WHITE) moveIndex++;
 
     pinnedPieces = getPinnedPieces(*this, turn);
 }

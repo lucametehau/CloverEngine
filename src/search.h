@@ -20,84 +20,11 @@
 #include "movepick.h"
 #include "tt.h"
 #include "Fathom/src/tbprobe.h"
-#include "thread.h"
+#include "threadpool.h"
 #include <cstring>
 #include <cmath>
 #include <fstream>
 #include <iomanip>
-
-void delete_pool() {
-    for(auto &thread : threads) {
-        if(thread.joinable())
-            thread.join();
-    }
-    threads.clear();
-    threads_data.clear();
-}
-
-void create_pool(int thread_count) {
-    delete_pool();
-    for(int i = 0; i < thread_count; i++) {
-        threads_data.emplace_back();
-        threads_data[i].thread_id = i;
-        threads_data[i].flag_stopped = false;
-    }
-}
-
-void pool_stop() {
-    for(auto &thread_data : threads_data)
-        thread_data.flag_stopped = true;
-}
-
-void clear_stack_pool() {
-    for(auto &thread_data : threads_data)
-        thread_data.clear_stack();
-}
-
-void clear_history_pool() {
-    for(auto &thread_data : threads_data)
-        thread_data.clear_history();
-}
-
-void set_fen_pool(std::string fen, bool chess960 = false) {
-    for(auto &thread_data : threads_data) {
-        thread_data.board.chess960 = chess960;
-        thread_data.board.set_fen(fen);
-    }
-}
-
-void set_dfrc_pool(int idx) {
-    for(auto &thread_data : threads_data) {
-        thread_data.board.chess960 = (idx > 0);
-        thread_data.board.set_dfrc(idx);
-    }
-}
-
-void make_move_pool(Move move) {
-    for (auto &thread_data : threads_data)
-        thread_data.board.make_move(move);
-}
-
-void clear_board_pool() {
-    for (auto &thread_data : threads_data)
-        thread_data.board.clear();
-}
-
-uint64_t get_total_nodes_pool() {
-    std::lock_guard <std::mutex> lock(threads_mutex);
-    uint64_t nodes = 0;
-    for(auto &thread_data : threads_data)
-        nodes += thread_data.nodes;
-    return nodes;
-}
-
-uint64_t get_total_tb_hits_pool() {
-    std::lock_guard <std::mutex> lock(threads_mutex);
-    uint64_t nodes = 0;
-    for(auto &thread_data : threads_data)
-        nodes += thread_data.tb_hits;
-    return nodes;
-}
 
 template <bool checkTime>
 bool SearchData::check_for_stop() {
@@ -120,8 +47,6 @@ bool SearchData::check_for_stop() {
 
     return flag_stopped;
 }
-
-bool printStats = true; /// default true
 
 uint32_t probe_TB(Board& board, int depth) {
     if (TB_LARGEST && depth >= 2 && !board.halfMoves) {
@@ -776,39 +701,6 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
     return best;
 }
 
-void main_thread_handler(Info *info) {
-    for(std::size_t i = 1; i < threads_data.size(); i++)
-        threads.push_back(std::thread(&SearchData::start_search, &threads_data[i], info));
-    threads_data[0].start_search(info);
-    pool_stop();
-
-    for(auto &thread : threads) {
-        if(thread.joinable())
-           thread.join();
-    }
-
-    threads.clear();
-
-    int bs = 0;
-    Move bm = NULLMOVE;
-    
-    int bestDepth = threads_data[0].completed_depth;
-    bs = threads_data[0].root_score[1];
-    bm = threads_data[0].best_move[1];
-    for (std::size_t i = 1; i < threads_data.size(); i++) {
-        if (threads_data[i].root_score[1] > bs && threads_data[i].completed_depth >= bestDepth) {
-            bs = threads_data[i].root_score[1];
-            bm = threads_data[i].best_move[1];
-            bestDepth = threads_data[i].completed_depth;
-        }
-    }
-
-    if (printStats) {
-        std::cout << "bestmove " << move_to_string(bm, info->chess960);
-        std::cout << std::endl;
-    }
-}
-
 void SearchData::start_search(Info* _info) {
     nodes = sel_depth = tb_hits = 0;
     t0 = getTime();
@@ -863,8 +755,8 @@ void SearchData::start_search(Info* _info) {
                     break;
 
                 if (thread_id == 0 && printStats && ((alpha < scores[i] && scores[i] < beta) || (i == 1 && getTime() > t0 + 3000))) {
-                    uint64_t total_nodes = get_total_nodes_pool();
-                    uint64_t total_tb_hits = get_total_tb_hits_pool();
+                    uint64_t total_nodes = thread_pool.get_total_nodes_pool();
+                    uint64_t total_tb_hits = thread_pool.get_total_tb_hits_pool();
                     uint64_t t = (uint64_t)getTime() - t0;
                     if (!info->sanMode) {
                         std::cout << "info multipv " << i << " score ";
@@ -880,13 +772,13 @@ void SearchData::start_search(Info* _info) {
                         if (t)
                             std::cout << " nps " << total_nodes * 1000 / t;
                         std::cout << " time " << t << " ";
-                        std::cout << "tbhits " << total_tb_hits << " hashfull " << TT->tableFull() << " ";
+                        std::cout << "tbhits " << total_tb_hits << " hashfull " << TT->hashfull() << " ";
                         std::cout << "pv ";
                         print_pv();
                         std::cout << std::endl;
                     }
                     else {
-                        uint64_t total_nodes = get_total_nodes_pool();
+                        uint64_t total_nodes = thread_pool.get_total_nodes_pool();
                         std::cout << std::setw(3) << depth << "/" << std::setw(3) << sel_depth << " ";
                         if (t < 10 * 1000)
                             std::cout << std::setw(7) << std::setprecision(2) << t / 1000.0 << "s   ";

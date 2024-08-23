@@ -19,12 +19,6 @@
 #include "tt.h"
 #include "history.h"
 
-#include <cassert>
-#include <thread>
-#include <mutex>
-#include <condition_variable>
-#include <functional>
-
 #ifndef TUNE_FLAG
 constexpr int seeVal[] = { 0, SeeValPawn, SeeValKnight, SeeValBishop, SeeValRook, SeeValQueen, 20000 };
 #else
@@ -101,7 +95,3 @@ public:
 #endif
     
 };
-
-std::vector<std::thread> threads;
-std::vector<SearchData> threads_data;
-std::mutex threads_mutex;
