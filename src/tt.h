@@ -27,47 +27,37 @@ struct Entry {
     int16_t score;
     int16_t eval;
     uint16_t move;
-    void refresh(int gen) {
-        about = (about & 1023u) | (gen << 10u);
-    }
+    inline void refresh(int gen) { about = (about & 1023u) | (gen << 10u); }
 
-    int value(int ply) const {
+    inline int value(int ply) const {
         if (score != VALUE_NONE) {
-            if (score >= TB_WIN_SCORE)
-                return score - ply;
-            else if (score <= -TB_WIN_SCORE)
-                return score + ply;
+            if (score >= TB_WIN_SCORE) return score - ply;
+            else if (score <= -TB_WIN_SCORE) return score + ply;
         }
         return score;
     }
 
-    int bound() const {
-        return about & 3;
-    }
+    inline int bound() const { return about & 3; }
 
-    int depth() const {
-        return (about >> 2) & 127;
-    }
+    inline int depth() const { return (about >> 2) & 127; }
 
-    bool wasPV() const {
-        return (about >> 9) & 1;
-    }
+    inline bool wasPV() const { return (about >> 9) & 1; }
 
-    int generation() const {
-        return (about >> 10);
-    }
-
+    inline int generation() const { return (about >> 10); }
 };
 
 class HashTable {
 public:
     Entry* table;
     uint64_t entries;
+
+private:
     int generation = 1;
 
+public:
     HashTable();
 
-    void initTableSlice(uint64_t start, uint64_t size);
+    inline void initTableSlice(uint64_t start, uint64_t size);
 
     void initTable(uint64_t size, int nr_threads = 1);
 
@@ -75,17 +65,17 @@ public:
 
     HashTable(const HashTable&) = delete;
 
-    void prefetch(uint64_t hash);
+    inline void prefetch(uint64_t hash);
 
     Entry* probe(uint64_t hash, bool &ttHit);
 
     void save(Entry* entry, uint64_t hash, int score, int depth, int ply, int bound, uint16_t move, int eval, bool wasPV);
 
-    void resetAge();
+    inline void resetAge();
 
-    void age();
+    inline void age();
 
-    int tableFull();
+    int hashfull();
 };
 
 #ifndef GENERATE
@@ -94,7 +84,7 @@ HashTable* TT; /// shared hash table
 
 inline uint64_t pow2(uint64_t size) {
     if (size & (size - 1)) {
-        for (unsigned i = 1; i < 64; i++)
+        for (int i = 1; i < 64; i++)
             size |= size >> i;
         size++;
         size >>= 1;
@@ -102,11 +92,11 @@ inline uint64_t pow2(uint64_t size) {
     return size;
 }
 
-inline HashTable::HashTable() {
+HashTable::HashTable() {
     entries = 0;
 }
 
-inline HashTable::~HashTable() {
+HashTable::~HashTable() {
     delete[] table;
 }
 
@@ -114,7 +104,7 @@ void HashTable::initTableSlice(uint64_t start, uint64_t size) {
     memset(&table[start], 0, size * sizeof(Entry));
 }
 
-inline void HashTable::initTable(uint64_t size, int nr_threads) {
+void HashTable::initTable(uint64_t size, int nr_threads) {
     size /= (sizeof(Entry) * BUCKET);
     size = pow2(size);
 
@@ -141,18 +131,18 @@ inline void HashTable::initTable(uint64_t size, int nr_threads) {
         start += slice_size;
     }
     for (auto& t : threads) {
-        if(t.joinable())
+        if (t.joinable())
            t.join();
     }
 }
 
-inline void HashTable::prefetch(uint64_t hash) {
+void HashTable::prefetch(uint64_t hash) {
     uint64_t ind = (hash & entries) * BUCKET;
     Entry* bucket = table + ind;
     __builtin_prefetch(bucket);
 }
 
-inline Entry* HashTable::probe(uint64_t hash, bool &ttHit) {
+Entry* HashTable::probe(uint64_t hash, bool &ttHit) {
     uint64_t ind = (hash & entries) * BUCKET;
     Entry* bucket = table + ind;
 
@@ -167,15 +157,13 @@ inline Entry* HashTable::probe(uint64_t hash, bool &ttHit) {
     ttHit = 0;
     int idx = 0;
     for (int i = 1; i < BUCKET; i++) {
-        if (bucket[i].depth() + bucket[i].generation() < bucket[idx].depth() + bucket[idx].generation()) {
-            idx = i;
-        }
+        if (bucket[i].depth() + bucket[i].generation() < bucket[idx].depth() + bucket[idx].generation()) idx = i;
     }
 
     return bucket + idx;
 }
 
-inline void HashTable::save(Entry* entry, uint64_t hash, int score, int depth, int ply, int bound, uint16_t move, int eval, bool wasPV) {
+void HashTable::save(Entry* entry, uint64_t hash, int score, int depth, int ply, int bound, uint16_t move, int eval, bool wasPV) {
     if (score != VALUE_NONE) {
         if (score >= TB_WIN_SCORE)
             score += ply;
@@ -193,14 +181,14 @@ inline void HashTable::save(Entry* entry, uint64_t hash, int score, int depth, i
     }
 }
 
-inline void HashTable::resetAge() {
+void HashTable::resetAge() {
     generation = 1;
 
     for (uint64_t i = 0; i < (uint64_t)entries * BUCKET; i++)
         table[i].refresh(0);
 }
 
-inline void HashTable::age() {
+void HashTable::age() {
     generation++;
 
     if (generation == 63) {
@@ -211,7 +199,7 @@ inline void HashTable::age() {
     }
 }
 
-inline int HashTable::tableFull() {
+int HashTable::hashfull() {
     int tempSize = 4000, divis = 4, cnt = 0;
 
     for (int i = 0; i < tempSize; i++) {
