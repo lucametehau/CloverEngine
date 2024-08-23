@@ -658,10 +658,10 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
                     break;
                 }
             }
-            else {
-                if(isQuiet) stack->quiets[nr_quiets++] = move;
-                else stack->noisies[nr_noisies++] = move;
-            }
+        }
+        else {
+            if (isQuiet) stack->quiets[nr_quiets++] = move;
+            else stack->noisies[nr_noisies++] = move;
         }
     }
 
