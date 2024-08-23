@@ -28,7 +28,7 @@ inline int scale(Board& board) {
         count(board.get_bb_piece_type(BISHOP)) * seeVal[BISHOP] +
         count(board.get_bb_piece_type(ROOK)) * seeVal[ROOK] +
         count(board.get_bb_piece_type(QUEEN)) * seeVal[QUEEN]) / 32 - 
-        board.halfMoves * EvalShuffleCoef;
+        board.half_moves() * EvalShuffleCoef;
 }
 
 inline int get_king_bucket_cache(const int king_sq, const bool c) {

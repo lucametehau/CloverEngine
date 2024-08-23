@@ -38,22 +38,17 @@ class Board {
 public:
     bool turn, chess960;
 
-    uint8_t captured; /// keeping track of last captured piece so i reduce the size of move
-    uint8_t castleRights; /// 1 - bq, 2 - bk, 4 - wq, 8 - wk
-    int8_t enPas;
-    std::array<uint8_t, 64> board;
-    MultiArray<uint8_t, 2, 2> rookSq;
+    HistoricalState state;
+    std::array<HistoricalState, STACK_SIZE> history; /// fuck it
 
-    uint16_t ply, game_ply;
-    uint16_t halfMoves, moveIndex;
-    
+    std::array<uint8_t, 64> board;
+    MultiArray<uint8_t, 2, 2> rookSq;    
     MultiArray<uint8_t, 2, 64> castleRightsDelta;
 
-    uint64_t checkers, pinnedPieces;
+    uint16_t ply, game_ply;
+
     std::array<uint64_t, 13> bb;
     std::array<uint64_t, 2> pieces;
-    uint64_t key, pawn_key;
-    std::array<HistoricalState, STACK_SIZE> history; /// fuck it
 
     Network NN;
 
@@ -74,6 +69,24 @@ public:
             std::cerr << "\n";
         }
     }
+
+    inline uint64_t& key() { return state.key; }
+
+    inline uint64_t& pawn_key() { return state.pawn_key; }
+
+    inline uint64_t& checkers() { return state.checkers; }
+
+    inline uint64_t& pinned_pieces() { return state.pinnedPieces; }
+
+    inline int8_t& enpas() { return state.enPas; }
+
+    inline uint16_t& half_moves() { return state.halfMoves; }
+
+    inline uint16_t& move_index() { return state.moveIndex; }
+
+    inline uint8_t& castle_rights() { return state.castleRights; }
+
+    inline uint8_t& captured() { return state.captured; }
 
     inline uint64_t diagonal_sliders(const bool color) const { return bb[get_piece(BISHOP, color)] | bb[get_piece(QUEEN, color)]; }
 
@@ -156,8 +169,8 @@ public:
 
     void place_piece_at_sq(int piece, int sq) {
         board[sq] = piece;
-        key ^= hashKey[piece][sq];
-        if (piece_type(piece) == PAWN) pawn_key ^= hashKey[piece][sq];
+        key() ^= hashKey[piece][sq];
+        if (piece_type(piece) == PAWN) pawn_key() ^= hashKey[piece][sq];
 
         pieces[(piece > 6)] |= (1ULL << sq);
         bb[piece] |= (1ULL << sq);
@@ -191,35 +204,35 @@ public:
         fen += " ";
         fen += (turn == WHITE ? "w" : "b");
         fen += " ";
-        if (castleRights & 8)
+        if (castle_rights() & 8)
             fen += "K";
-        if (castleRights & 4)
+        if (castle_rights() & 4)
             fen += "Q";
-        if (castleRights & 2)
+        if (castle_rights() & 2)
             fen += "k";
-        if (castleRights & 1)
+        if (castle_rights() & 1)
             fen += "q";
-        if (!castleRights)
+        if (!castle_rights())
             fen += "-";
         fen += " ";
-        if (enPas >= 0) {
-            fen += char('a' + enPas % 8);
-            fen += char('1' + enPas / 8);
+        if (enpas() >= 0) {
+            fen += char('a' + enpas() % 8);
+            fen += char('1' + enpas() / 8);
         }
         else
             fen += "-";
         fen += " ";
         std::string s;
-        int nr = halfMoves;
+        int nr = half_moves();
         while (nr)
             s += char('0' + nr % 10), nr /= 10;
         std::reverse(s.begin(), s.end());
-        if (halfMoves)
+        if (half_moves())
             fen += s;
         else
             fen += "0";
         fen += " ";
-        s = "", nr = moveIndex;
+        s = "", nr = move_index();
         while (nr)
             s += char('0' + nr % 10), nr /= 10;
         std::reverse(s.begin(), s.end());
@@ -227,9 +240,9 @@ public:
         return fen;
     }
 
-    inline uint64_t speculative_next_key(const Move move) const {
+    inline uint64_t speculative_next_key(const Move move) {
         const int from = sq_from(move), to = sq_to(move), piece = piece_at(from);
-        return key ^ hashKey[piece][from] ^ hashKey[piece][to] ^ (piece_at(to) ? hashKey[piece_at(to)][to] : 0) ^ 1;
+        return key() ^ hashKey[piece][from] ^ hashKey[piece][to] ^ (piece_at(to) ? hashKey[piece_at(to)][to] : 0) ^ 1;
     }
 
     inline bool isMaterialDraw() const {
@@ -239,10 +252,10 @@ public:
             (num == 4 && (count(bb[WN]) == 2 || count(bb[BN]) == 2)));
     }
     
-    bool is_repetition(const int ply) const {
+    bool is_repetition(const int ply) {
         int cnt = 1;
-        for (int i = game_ply - 2; i >= game_ply - halfMoves; i -= 2) {
-            if (history[i].key == key) {
+        for (int i = game_ply - 2; i >= game_ply - half_moves(); i -= 2) {
+            if (history[i].key == key()) {
                 cnt++;
                 if (i > game_ply - ply)
                     return 1;

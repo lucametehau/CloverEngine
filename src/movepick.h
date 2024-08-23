@@ -238,7 +238,7 @@ bool see(Board& board, Move move, int threshold) {
     occ = (occ ^ (1ULL << from)) | (1ULL << to);
 
     if (t == ENPASSANT)
-        occ ^= (1ULL << board.enPas);
+        occ ^= (1ULL << board.enpas());
 
     att = board.get_attackers(WHITE, occ, to) | board.get_attackers(BLACK, occ, to);
 
