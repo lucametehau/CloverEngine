@@ -381,3 +381,8 @@ inline void init_defs() {
         }
     }
 }
+
+uint64_t mul_hi(uint64_t a, uint64_t b) {
+    using uint128_t = unsigned __int128;
+    return (uint64_t)(((uint128_t)a * (uint128_t)b) >> 64);
+}
