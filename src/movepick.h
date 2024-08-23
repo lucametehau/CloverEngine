@@ -52,18 +52,14 @@ private:
 public:
     Movepick(const Move _ttMove, const Move _killer, const int _threshold, const Threats threats) {
         stage = STAGE_TTMOVE;
-
         ttMove = _ttMove;
         killer = (_killer != ttMove ? _killer : NULLMOVE);
-
         nrNoisy = nrQuiets = nrBadNoisy = 0;
         threshold = _threshold;
         all_threats = threats.all_threats;
         threats_p = threats.threats_pieces[PAWN];
-        threats_bn = threats.threats_pieces[KNIGHT] | threats.threats_pieces[BISHOP];
-        threats_r = threats.threats_pieces[ROOK];
-        threats_bn |= threats_p;
-        threats_r |= threats_bn;
+        threats_bn = threats.threats_pieces[KNIGHT] | threats.threats_pieces[BISHOP] | threats_p;
+        threats_r = threats.threats_pieces[ROOK] | threats_bn;
     }
 
     void get_best_move(int offset, int nrMoves, std::array<Move, MAX_MOVES> &moves, std::array<int, MAX_MOVES> &scores) {
@@ -215,7 +211,7 @@ public:
 };
 
 bool see(Board& board, Move move, int threshold) {
-    int from = sq_from(move), to = sq_to(move), t = type(move), col, nextVictim, score = -threshold;
+    int from = sq_from(move), to = sq_to(move), t = type(move), stm, nextVictim, score = -threshold;
     uint64_t diag, orth, occ, att, myAtt;
 
     nextVictim = (t != PROMOTION ? board.piece_type_at(from) : promoted(move) + KNIGHT);
@@ -246,67 +242,67 @@ bool see(Board& board, Move move, int threshold) {
 
     att = board.get_attackers(WHITE, occ, to) | board.get_attackers(BLACK, occ, to);
 
-    col = 1 ^ board.turn;
+    stm = 1 ^ board.turn;
 
     while (true) {
         att &= occ;
-        myAtt = att & board.get_bb_color(col);
+        myAtt = att & board.get_bb_color(stm);
 
         if (!myAtt)
             break;
 
-        if (myAtt & board.get_bb_piece(PAWN, col)) {
-            occ ^= lsb(myAtt & board.get_bb_piece(PAWN, col));
+        if (myAtt & board.get_bb_piece(PAWN, stm)) {
+            occ ^= lsb(myAtt & board.get_bb_piece(PAWN, stm));
             att |= genAttacksBishop(occ, to) & diag;
             score = -score - 1 - seeVal[PAWN];
-            col ^= 1;
+            stm ^= 1;
             if (score >= 0)
                 break;
         }
-        else if (myAtt & board.get_bb_piece(KNIGHT, col)) {
-            occ ^= lsb(myAtt & board.get_bb_piece(KNIGHT, col));
+        else if (myAtt & board.get_bb_piece(KNIGHT, stm)) {
+            occ ^= lsb(myAtt & board.get_bb_piece(KNIGHT, stm));
             score = -score - 1 - seeVal[KNIGHT];
-            col ^= 1;
+            stm ^= 1;
             if (score >= 0)
                 break;
         }
-        else if (myAtt & board.get_bb_piece(BISHOP, col)) {
-            occ ^= lsb(myAtt & board.get_bb_piece(BISHOP, col));
+        else if (myAtt & board.get_bb_piece(BISHOP, stm)) {
+            occ ^= lsb(myAtt & board.get_bb_piece(BISHOP, stm));
             att |= genAttacksBishop(occ, to) & diag;
             score = -score - 1 - seeVal[BISHOP];
-            col ^= 1;
+            stm ^= 1;
             if (score >= 0)
                 break;
         }
-        else if (myAtt & board.get_bb_piece(ROOK, col)) {
-            occ ^= lsb(myAtt & board.get_bb_piece(ROOK, col));
+        else if (myAtt & board.get_bb_piece(ROOK, stm)) {
+            occ ^= lsb(myAtt & board.get_bb_piece(ROOK, stm));
             att |= genAttacksRook(occ, to) & orth;
             score = -score - 1 - seeVal[ROOK];
-            col ^= 1;
+            stm ^= 1;
             if (score >= 0)
                 break;
         }
-        else if (myAtt & board.get_bb_piece(QUEEN, col)) {
-            occ ^= lsb(myAtt & board.get_bb_piece(QUEEN, col));
+        else if (myAtt & board.get_bb_piece(QUEEN, stm)) {
+            occ ^= lsb(myAtt & board.get_bb_piece(QUEEN, stm));
             att |= genAttacksBishop(occ, to) & diag;
             att |= genAttacksRook(occ, to) & orth;
             score = -score - 1 - seeVal[QUEEN];
-            col ^= 1;
+            stm ^= 1;
             if (score >= 0)
                 break;
         }
         else {
-            assert(myAtt & board.get_bb_piece(KING, col));
-            occ ^= board.get_bb_piece(KING, col);
-            col ^= 1;
+            assert(myAtt & board.get_bb_piece(KING, stm));
+            occ ^= board.get_bb_piece(KING, stm);
+            stm ^= 1;
             score = -score - 1 - seeVal[KING];
             if (score >= 0) {
-                if (att & occ & board.get_bb_color(col))
-                    col ^= 1;
+                if (att & occ & board.get_bb_color(stm))
+                    stm ^= 1;
                 break;
             }
         }
     }
 
-    return board.turn != col;
+    return board.turn != stm;
 }

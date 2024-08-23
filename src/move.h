@@ -591,8 +591,8 @@ int gen_legal_moves(Board& board, std::array<Move, MAX_MOVES> &moves) {
 
 int gen_legal_noisy_moves(Board& board, std::array<Move, MAX_MOVES> &moves) {
     int nrMoves = 0;
-    int color = board.turn, enemy = color ^ 1;
-    int king = board.king(color), enemyKing = board.king(enemy);
+    const int color = board.turn, enemy = color ^ 1;
+    const int king = board.king(color), enemyKing = board.king(enemy);
     uint64_t pieces, mask, us = board.pieces[color], them = board.pieces[enemy];
     uint64_t b, b1, b2, b3;
     uint64_t attacked = 0, pinned = board.pinnedPieces; /// squares attacked by enemy / pinned pieces
@@ -620,8 +620,7 @@ int gen_legal_noisy_moves(Board& board, std::array<Move, MAX_MOVES> &moves) {
 
     int cnt = count(board.checkers);
 
-    if (cnt == 2) { /// double check
-      /// only king moves are legal
+    if (cnt == 2) { /// double check, only king moves are legal
         return nrMoves;
     }
     else if (cnt == 1) { /// one check
@@ -686,7 +685,7 @@ int gen_legal_noisy_moves(Board& board, std::array<Move, MAX_MOVES> &moves) {
                 b2 = pawnAttacksMask[color][sq] & capMask & line_mask[king][sq];
                 while (b2) {
                     const int sq2 = sq_lsb(b2);
-                    for (int j = 0; j < 4; j++) moves[nrMoves++] = (getMove(sq, sq2, j, PROMOTION));
+                    for (int j = 0; j < 4; j++) moves[nrMoves++] = getMove(sq, sq2, j, PROMOTION);
                 }
             }
             else {
@@ -759,11 +758,11 @@ int gen_legal_noisy_moves(Board& board, std::array<Move, MAX_MOVES> &moves) {
 }
 
 /// generate quiet moves
-
 int gen_legal_quiet_moves(Board& board, std::array<Move, MAX_MOVES> &moves) {
     int nrMoves = 0;
     const int color = board.turn, enemy = color ^ 1;
     const int king = board.king(color), enemyKing = board.king(enemy);
+    const int rank7 = (color == WHITE ? 6 : 1), rank3 = (color == WHITE ? 2 : 5);
     uint64_t pieces, mask, us = board.get_bb_color(color), them = board.get_bb_color(enemy);
     uint64_t b1, b2, b3;
     uint64_t attacked = 0, pinned = board.pinnedPieces; /// squares attacked by enemy / pinned pieces
@@ -852,16 +851,16 @@ int gen_legal_quiet_moves(Board& board, std::array<Move, MAX_MOVES> &moves) {
         /// pinned pawns
         b1 = pinned & board.get_bb_piece(PAWN, color);
         while (b1) {
-            int sq = sq_lsb(b1), rank7 = (color == WHITE ? 6 : 1), rank3 = (color == WHITE ? 2 : 5);
+            int sq = sq_lsb(b1);
             if (sq / 8 != rank7) {
                 /// single pawn push
-                b2 = (1ULL << (sq_dir(color, NORTH, sq))) & emptySq & line_mask[king][sq];
+                b2 = (1ULL << sq_dir(color, NORTH, sq)) & emptySq & line_mask[king][sq];
                 if (b2) {
                     const int sq2 = sq_single_bit(b2);
                     moves[nrMoves++] = getMove(sq, sq2, 0, NEUT);
 
                     /// double pawn push
-                    b3 = (1ULL << (sq_dir(color, NORTH, sq2))) & emptySq & line_mask[king][sq];
+                    b3 = (1ULL << sq_dir(color, NORTH, sq2)) & emptySq & line_mask[king][sq];
                     if (b3 && sq2 / 8 == rank3) moves[nrMoves++] = getMove(sq, sq_single_bit(b3), 0, NEUT);
                 }
 
@@ -888,8 +887,6 @@ int gen_legal_quiet_moves(Board& board, std::array<Move, MAX_MOVES> &moves) {
         add_moves(moves, nrMoves, sq, genAttacksRook(all, sq) & quietMask);
     }
 
-    const int rank7 = (color == WHITE ? 6 : 1), rank3 = (color == WHITE ? 2 : 5);
-
     b1 = board.get_bb_piece(PAWN, color) & notPinned & ~rank_mask[rank7];
 
     b2 = shift(color, NORTH, b1) & ~all; /// single push
@@ -908,11 +905,9 @@ int gen_legal_quiet_moves(Board& board, std::array<Move, MAX_MOVES> &moves) {
     return nrMoves;
 }
 
-inline bool isNoisyMove(Board& board, Move move) {
-    if (type(move) && type(move) != CASTLE)
-        return 1;
-
-    return board.is_capture(move);
+inline bool isNoisyMove(Board& board, const Move move) {
+    const int t = type(move);
+    return t == PROMOTION || t == ENPASSANT || board.is_capture(move);
 }
 
 bool is_pseudo_legal(Board& board, Move move) {
@@ -923,37 +918,29 @@ bool is_pseudo_legal(Board& board, Move move) {
     const uint64_t own = board.get_bb_color(color), enemy = board.get_bb_color(1 ^ color);
     const uint64_t occ = own | enemy;
 
-    if (color != board.piece_at(from) / 7) /// different color
-        return 0;
+    if (!(own & (1ULL << from))) return 0;
 
-    if (!board.piece_at(from)) /// there isn't a piece
-        return 0;
+    if (t == CASTLE) return 1;
 
-    if (t == CASTLE)
-        return 1;
-
-    if (own & (1ULL << to)) /// can't move piece on the same square as one of our pieces
-        return 0;
+    if (own & (1ULL << to)) return 0;
 
     if (pt == PAWN) {
         uint64_t att = pawnAttacksMask[color][from];
 
         /// enpassant
-        if (t == ENPASSANT)
-            return to == board.enPas && (att & (1ULL << to));
+        if (t == ENPASSANT) return to == board.enPas && (att & (1ULL << to));
 
         uint64_t push = shift(color, NORTH, (1ULL << from)) & ~occ;
+        const int rank_to = to / 8;
 
         /// promotion
-        if (t == PROMOTION)
-            return (to / 8 == 0 || to / 8 == 7) && (((att & enemy) | push) & (1ULL << to));
+        if (t == PROMOTION) return (rank_to == 0 || rank_to == 7) && (((att & enemy) | push) & (1ULL << to));
 
         /// add double push to mask
-
         if (from / 8 == 1 || from / 8 == 6)
             push |= shift(color, NORTH, push) & ~occ;
 
-        return (to / 8 && to / 8 != 7) && t == NEUT && (((att & enemy) | push) & (1ULL << to));
+        return (rank_to != 0 && rank_to != 7) && t == NEUT && (((att & enemy) | push) & (1ULL << to));
     }
 
     if (t != NEUT)
@@ -990,15 +977,14 @@ bool is_legal(Board& board, Move move) {
     const int king = board.king(us);
 
     if (type(move) == CASTLE) {
-        if (from != board.king(us) || board.checkers)
-            return 0;
-        int side = (to > from); /// queen side or king side
+        if (from != king || board.checkers) return 0;
+        bool side = (to > from); /// queen side or king side
 
         if (board.castleRights & (1 << (2 * us + side))) { /// can i castle
-            int rFrom = to, rTo = mirror(us, (side ? F1 : D1));
+            const int rFrom = to, rTo = mirror(us, (side ? F1 : D1));
             to = mirror(us, (side ? G1 : C1));
             uint64_t mask = between_mask[from][to] | (1ULL << to);
-            //printBB(mask);
+            
             while (mask) {
                 if (board.is_attacked_by(enemy, sq_lsb(mask)))
                     return 0;
@@ -1035,13 +1021,11 @@ bool is_legal(Board& board, Move move) {
                        ((1ULL << from) & between_mask[king][to]) || 
                        ((1ULL << to) & between_mask[king][from]);
 
-    if (!notInCheck)
-        return 0;
+    if (!notInCheck) return 0;
 
-    if(!board.checkers)
-        return 1;
+    if (!board.checkers) return 1;
     
-    return (board.checkers & (board.checkers - 1)) ? false : (1ULL << to) & (board.checkers | between_mask[king][sq_single_bit(board.checkers)]);
+    return board.checkers & (board.checkers - 1) ? false : (1ULL << to) & (board.checkers | between_mask[king][sq_single_bit(board.checkers)]);
 }
 
 bool is_legal_dummy(Board& board, Move move) {

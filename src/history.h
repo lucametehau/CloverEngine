@@ -22,6 +22,36 @@
 constexpr int CORR_HIST_SIZE = (1 << 16);
 constexpr int CORR_HIST_MASK = CORR_HIST_SIZE - 1;
 
+template <int16_t Divisor>
+class History {
+public:
+    int16_t hist;
+    History() : hist(0) {}
+    History(int16_t value) : hist(value) {}
+
+    inline void update(int16_t score) { hist += score - hist * abs(score) / Divisor; }
+
+    inline operator int16_t() { return hist; }
+
+    History& operator=(int16_t value) {
+        hist = value;
+        return *this;
+    }
+};
+
+class StackEntry { /// info to keep in the stack
+public:
+    StackEntry() : piece(0), move(0), killer(0), excluded(0), eval(0) {
+        quiets.fill(0);
+        captures.fill(0);
+    }
+    uint16_t piece;
+    Move move, killer, excluded;
+    std::array<Move, MAX_MOVES> quiets, captures;
+    int eval;
+    MultiArray<History<16384>, 13, 64>* cont_hist;
+};
+
 class Histories {
 private:
     MultiArray<History<16384>, 2, 2, 2, 64 * 64> hist;

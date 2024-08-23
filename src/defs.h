@@ -63,38 +63,7 @@ void fill_multiarray(MultiArray<typename MultiArray_impl<T, sizes...>::type, siz
         fill_multiarray<T, sizes...>(array[i], value);
 }
 
-
-template <int Divisor>
-class History {
-public:
-    int16_t hist;
-    History() : hist(0) {}
-    History(int16_t value) : hist(value) {}
-
-    inline void update(int16_t score) { hist += score - hist * abs(score) / Divisor; }
-
-    inline operator int16_t() { return hist; }
-
-    History& operator=(int16_t value) {
-        hist = value;
-        return *this;
-    }
-};
-
 typedef uint16_t Move;
-
-class StackEntry { /// info to keep in the stack
-public:
-    StackEntry() : piece(0), move(0), killer(0), excluded(0), eval(0) {
-        quiets.fill(0);
-        captures.fill(0);
-    }
-    uint16_t piece;
-    Move move, killer, excluded;
-    std::array<Move, 256> quiets, captures;
-    int eval;
-    MultiArray<History<16384>, 13, 64>* cont_hist;
-};
 
 class Threats {
 public:
@@ -343,19 +312,6 @@ inline void printBB(uint64_t mask) {
         std::cout << sq_lsb(mask) << " ";
     }
     std::cout << " mask\n";
-}
-
-const int NormalizeToPawnValue = 130;
-
-int winrate_model(int score, int ply) {
-    constexpr double as[] = { -0.66398391,   -0.49826081,   39.11399082,   92.97752809 };
-    constexpr double bs[] = { -2.53637448,   19.01555550,  -41.44937435,   63.22725557 };
-    assert(NormalizeToPawnValue == static_cast<int>(as[0] + as[1] + as[2] + as[3]));
-    const double m = std::min<double>(240, ply) / 64.0;
-    const double a = ((as[0] * m + as[1]) * m + as[2]) * m + as[3];
-    const double b = ((bs[0] * m + bs[1]) * m + bs[2]) * m + bs[3];
-    const double x = std::min<double>(std::max<double>(-4000, score), 4000);
-    return static_cast<int>(0.5 + 1000.0 / (1.0 + std::exp((a - x) / b)));
 }
 
 inline void init_defs() {
