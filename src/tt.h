@@ -167,10 +167,12 @@ void HashTable::save(Entry* entry, uint64_t hash, int score, int depth, int ply,
             score -= ply;
     }
 
-    if (move || hash != entry->hash) entry->move = move;
+    uint16_t hash16 = (uint16_t)hash;
 
-    if (bound == EXACT || (uint16_t)hash != entry->hash || depth + 3 >= entry->depth()) {
-        entry->hash = (uint16_t)hash;
+    if (move || hash16 != entry->hash) entry->move = move;
+
+    if (bound == EXACT || hash16 != entry->hash || depth + 3 >= entry->depth()) {
+        entry->hash = hash16;
         entry->score = score;
         entry->eval = eval;
         entry->about = uint16_t(bound | (depth << 2) | (wasPV << 9) | (generation << 10));
