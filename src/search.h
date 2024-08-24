@@ -182,7 +182,7 @@ int SearchData::quiesce(int alpha, int beta, StackEntry* stack) {
         }
     }
 
-    const bool in_check = (board.checkers() != 0);
+    const bool in_check = board.checkers() != 0;
     Threats threats;
     if (in_check) get_threats(threats, board, turn);
     int futilityValue;
