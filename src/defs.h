@@ -178,7 +178,7 @@ public:
     }
 
     void print_mean() {
-        std::cout << name << " has the mean value " << valuesSum / valuesCount << " (" << valuesCount << " calls)\n";
+        std::cout << name << " has the mean value " << valuesSum / valuesCount << "\n";//(" << valuesCount << " calls)\n";
     }
 };
 
@@ -187,6 +187,11 @@ const auto t_init = std::chrono::steady_clock::now();
 inline int64_t getTime() {
     auto t = std::chrono::steady_clock::now();
     return std::chrono::duration_cast<std::chrono::milliseconds>(t - t_init).count();
+}
+
+inline uint64_t mul_hi(const uint64_t a, const uint64_t b) {
+    using uint128_t = unsigned __int128;
+    return (static_cast<uint128_t>(a) * static_cast<uint128_t>(b)) >> 64;
 }
 
 inline uint64_t lsb(uint64_t nr) {
@@ -380,9 +385,4 @@ inline void init_defs() {
             lmr_red_noisy[i][j] = LMRNoisyBias / 100.0 + lmr_red[i][j] / (LMRNoisyDiv / 100.0);
         }
     }
-}
-
-uint64_t mul_hi(uint64_t a, uint64_t b) {
-    using uint128_t = unsigned __int128;
-    return (uint64_t)(((uint128_t)a * (uint128_t)b) >> 64);
 }

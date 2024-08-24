@@ -45,13 +45,15 @@ public:
 
 private:
     template <bool pvNode>
-    int quiesce(int alpha, int beta, StackEntry* stack); /// for quiet position check (tuning)
+    int quiesce(int alpha, int beta, StackEntry* stack);
 
     template <bool rootNode, bool pvNode>
     int search(int alpha, int beta, int depth, bool cutNode, StackEntry* stack);
 
     void print_pv();
     void update_pv(int ply, int move);
+
+    void print_iteration_info(bool san_mode, int multipv, int score, int alpha, int beta, uint64_t t, int depth, int sel_depth, uint64_t total_nodes, uint64_t total_tb_hits);
 
     template <bool checkTime>
     bool check_for_stop();
@@ -61,9 +63,9 @@ private:
 public:
     Info* info;
 
-    std::array<Move, 256> best_move;
-    std::array<int, 256> scores, root_score;
-    std::array<MeanValue, 10> values;
+    std::array<Move, MAX_MOVES> best_move;
+    std::array<int, MAX_MOVES> scores, root_score;
+    std::array<MeanValue, 100> values;
 
 private:
     std::array<int, MAX_DEPTH + 5> pv_table_len;

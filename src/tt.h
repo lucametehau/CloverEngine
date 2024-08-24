@@ -41,7 +41,7 @@ struct Entry {
 
     inline int depth() const { return (about >> 2) & 127; }
 
-    inline bool wasPV() const { return (about >> 9) & 1; }
+    inline bool was_pv() const { return (about >> 9) & 1; }
 
     inline int generation() const { return (about >> 10); }
 };
@@ -76,7 +76,7 @@ public:
 
     Entry* probe(uint64_t hash, bool &ttHit);
 
-    void save(Entry* entry, uint64_t hash, int score, int depth, int ply, int bound, uint16_t move, int eval, bool wasPV);
+    void save(Entry* entry, uint64_t hash, int score, int depth, int ply, int bound, uint16_t move, int eval, bool was_pv);
 
     inline void resetAge();
 
@@ -141,9 +141,10 @@ void HashTable::prefetch(uint64_t hash) {
 Entry* HashTable::probe(uint64_t hash, bool &ttHit) {
     uint64_t ind = mul_hi(hash, buckets);
     Entry* bucket = table[ind].entries.data();
+    const uint16_t hash16 = static_cast<uint16_t>(hash);
 
     for (int i = 0; i < BUCKET; i++) {
-        if (bucket[i].hash == (uint16_t)hash) {
+        if (bucket[i].hash == hash16) {
             ttHit = 1;
             bucket[i].refresh(generation);
             return bucket + i;
@@ -159,7 +160,7 @@ Entry* HashTable::probe(uint64_t hash, bool &ttHit) {
     return bucket + idx;
 }
 
-void HashTable::save(Entry* entry, uint64_t hash, int score, int depth, int ply, int bound, uint16_t move, int eval, bool wasPV) {
+void HashTable::save(Entry* entry, uint64_t hash, int score, int depth, int ply, int bound, uint16_t move, int eval, bool was_pv) {
     if (score != VALUE_NONE) {
         if (score >= TB_WIN_SCORE)
             score += ply;
@@ -167,7 +168,7 @@ void HashTable::save(Entry* entry, uint64_t hash, int score, int depth, int ply,
             score -= ply;
     }
 
-    uint16_t hash16 = (uint16_t)hash;
+    const uint16_t hash16 = static_cast<uint16_t>(hash);
 
     if (move || hash16 != entry->hash) entry->move = move;
 
@@ -175,7 +176,7 @@ void HashTable::save(Entry* entry, uint64_t hash, int score, int depth, int ply,
         entry->hash = hash16;
         entry->score = score;
         entry->eval = eval;
-        entry->about = uint16_t(bound | (depth << 2) | (wasPV << 9) | (generation << 10));
+        entry->about = uint16_t(bound | (depth << 2) | (was_pv << 9) | (generation << 10));
     }
 }
 
