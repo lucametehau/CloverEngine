@@ -19,10 +19,10 @@
 #include <thread>
 
 const int MB = (1 << 20);
-const int BUCKET = 4;
+const int BUCKET = 3;
 
 struct Entry {
-    uint64_t hash;
+    uint16_t hash;
     uint16_t about;
     int16_t score;
     int16_t eval;
@@ -46,10 +46,17 @@ struct Entry {
     inline int generation() const { return (about >> 10); }
 };
 
+struct Bucket {
+    std::array<Entry, BUCKET> entries;
+    char padding[2];
+};
+
+static_assert(sizeof(Bucket) == 32);
+
 class HashTable {
 public:
-    Entry* table;
-    uint64_t entries;
+    Bucket* table;
+    uint64_t buckets;
 
 private:
     int generation = 1;
@@ -82,18 +89,8 @@ public:
 HashTable* TT; /// shared hash table
 #endif
 
-inline uint64_t pow2(uint64_t size) {
-    if (size & (size - 1)) {
-        for (int i = 1; i < 64; i++)
-            size |= size >> i;
-        size++;
-        size >>= 1;
-    }
-    return size;
-}
-
 HashTable::HashTable() {
-    entries = 0;
+    buckets = 0;
 }
 
 HashTable::~HashTable() {
@@ -101,32 +98,31 @@ HashTable::~HashTable() {
 }
 
 void HashTable::initTableSlice(uint64_t start, uint64_t size) {
-    memset(&table[start], 0, size * sizeof(Entry));
+    memset(&table[start], 0, size * sizeof(Bucket));
 }
 
 void HashTable::initTable(uint64_t size, int nr_threads) {
-    size /= (sizeof(Entry) * BUCKET);
-    size = pow2(size);
+    size /= sizeof(Bucket);
 
-    if (entries)
+    if (buckets)
         delete[] table;
 
-    if (size < sizeof(Entry)) {
-        entries = 0;
+    if (size < sizeof(Bucket)) {
+        buckets = 0;
         return;
     }
     else {
-        entries = size - 1;
+        buckets = size;
     }
 
-    table = (Entry*)malloc((entries * BUCKET + BUCKET) * sizeof(Entry));
+    table = (Bucket*)malloc(buckets * sizeof(Bucket));
 
     std::vector <std::thread> threads(nr_threads);
     uint64_t start = 0;
-    uint64_t slice_size = (entries * BUCKET + BUCKET) / nr_threads + 1;
+    uint64_t slice_size = buckets / nr_threads + 1;
 
     for (auto& t : threads) {
-        uint64_t good_size = std::min(entries * BUCKET + BUCKET - start, slice_size);
+        uint64_t good_size = std::min(buckets - start, slice_size);
         t = std::thread{ &HashTable::initTableSlice, this, start, good_size };
         start += slice_size;
     }
@@ -137,17 +133,17 @@ void HashTable::initTable(uint64_t size, int nr_threads) {
 }
 
 void HashTable::prefetch(uint64_t hash) {
-    uint64_t ind = (hash & entries) * BUCKET;
-    Entry* bucket = table + ind;
+    uint64_t ind = mul_hi(hash, buckets);
+    Bucket* bucket = table + ind;
     __builtin_prefetch(bucket);
 }
 
 Entry* HashTable::probe(uint64_t hash, bool &ttHit) {
-    uint64_t ind = (hash & entries) * BUCKET;
-    Entry* bucket = table + ind;
+    uint64_t ind = mul_hi(hash, buckets);
+    Entry* bucket = table[ind].entries.data();
 
     for (int i = 0; i < BUCKET; i++) {
-        if (bucket[i].hash == hash) {
+        if (bucket[i].hash == (uint16_t)hash) {
             ttHit = 1;
             bucket[i].refresh(generation);
             return bucket + i;
@@ -171,10 +167,12 @@ void HashTable::save(Entry* entry, uint64_t hash, int score, int depth, int ply,
             score -= ply;
     }
 
-    if (move || hash != entry->hash) entry->move = move;
+    uint16_t hash16 = (uint16_t)hash;
 
-    if (bound == EXACT || hash != entry->hash || depth + 3 >= entry->depth()) {
-        entry->hash = hash;
+    if (move || hash16 != entry->hash) entry->move = move;
+
+    if (bound == EXACT || hash16 != entry->hash || depth + 3 >= entry->depth()) {
+        entry->hash = hash16;
         entry->score = score;
         entry->eval = eval;
         entry->about = uint16_t(bound | (depth << 2) | (wasPV << 9) | (generation << 10));
@@ -184,8 +182,9 @@ void HashTable::save(Entry* entry, uint64_t hash, int score, int depth, int ply,
 void HashTable::resetAge() {
     generation = 1;
 
-    for (uint64_t i = 0; i < (uint64_t)entries * BUCKET; i++)
-        table[i].refresh(0);
+    for (uint64_t i = 0; i < buckets; i++)
+        for (int j = 0; j < BUCKET; j++)
+            table[i].entries[j].refresh(0);
 }
 
 void HashTable::age() {
@@ -194,18 +193,21 @@ void HashTable::age() {
     if (generation == 63) {
         generation = 1;
 
-        for (uint64_t i = 0; i < (uint64_t)entries * BUCKET; i++)
-            table[i].refresh(0);
+        for (uint64_t i = 0; i < buckets; i++)
+            for (int j = 0; j < BUCKET; j++)
+                table[i].entries[j].refresh(0);
     }
 }
 
 int HashTable::hashfull() {
-    int tempSize = 4000, divis = 4, cnt = 0;
+    int tempSize = 1000, cnt = 0;
 
     for (int i = 0; i < tempSize; i++) {
-        if (table[i].generation() == generation)
-            cnt++;
+        for (int j = 0; j < BUCKET; j++) {
+            if (table[i].entries[j].generation() == generation)
+                cnt++;
+        }
     }
 
-    return cnt / divis;
+    return cnt / BUCKET;
 }
