@@ -178,7 +178,7 @@ public:
     }
 
     void print_mean() {
-        std::cout << name << " has the mean value " << valuesSum / valuesCount << " (" << valuesCount << " calls)\n";
+        std::cout << name << " has the mean value " << valuesSum / valuesCount << "\n";//(" << valuesCount << " calls)\n";
     }
 };
 

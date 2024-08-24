@@ -65,7 +65,7 @@ public:
 
     std::array<Move, MAX_MOVES> best_move;
     std::array<int, MAX_MOVES> scores, root_score;
-    std::array<MeanValue, 10> values;
+    std::array<MeanValue, 100> values;
 
 private:
     std::array<int, MAX_DEPTH + 5> pv_table_len;

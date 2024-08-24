@@ -684,9 +684,8 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
         }
     }
 
-    if (!played) {
-        return in_check ? -INF + ply : 0;
-    }
+
+    if (!played) return in_check ? -INF + ply : 0;
 
     /// update tt only if we aren't in a singular search
     if (!stack->excluded) {
@@ -768,7 +767,9 @@ void SearchData::start_search(Info* _info) {
     rootEval = (!board.checkers() ? evaluate(board) : INF);
 
     for (int i = 1; i <= 10; i++) {
-        (stack - i)->cont_hist = &histories.cont_history[0][0][0], (stack - i)->eval = INF, (stack - i)->move = NULLMOVE;
+        (stack - i)->cont_hist = &histories.cont_history[0][0][0];
+        (stack - i)->eval = INF;
+        (stack - i)->move = NULLMOVE;
     }
 
     completed_depth = 0;
