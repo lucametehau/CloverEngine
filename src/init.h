@@ -44,7 +44,7 @@ void Board::set_fen(const std::string fen) {
         while (fen[ind] != '/' && fen[ind] != ' ') {
             int sq = get_sq(i, j);
             if (fen[ind] < '0' || '9' < fen[ind]) {
-                place_piece_at_sq(cod[int(fen[ind])], sq);
+                place_piece_at_sq(cod[fen[ind]], sq);
                 j++;
             }
             else {
@@ -149,14 +149,12 @@ void Board::set_fen(const std::string fen) {
     }
 
     int nr = 0;
-    while ('0' <= fen[ind] && fen[ind] <= '9')
-        nr = nr * 10 + fen[ind] - '0', ind++;
+    while ('0' <= fen[ind] && fen[ind] <= '9') nr = nr * 10 + fen[ind++] - '0';
     half_moves() = nr;
 
     ind++;
     nr = 0;
-    while ('0' <= fen[ind] && fen[ind] <= '9')
-        nr = nr * 10 + fen[ind] - '0', ind++;
+    while ('0' <= fen[ind] && fen[ind] <= '9') nr = nr * 10 + fen[ind++] - '0';
     move_index() = nr;
 
     NetInput input = to_netinput();
@@ -187,15 +185,9 @@ void Board::set_frc_side(bool color, int idx) {
     idx /= 6;
 
     constexpr int vals[10][2] = {
-        {0, 1},
-        {0, 2},
-        {0, 3},
-        {0, 4},
-        {1, 2},
-        {1, 3},
-        {1, 4},
-        {2, 3},
-        {2, 4},
+        {0, 1}, {0, 2}, {0, 3}, {0, 4},
+        {1, 2}, {1, 3}, {1, 4},
+        {2, 3}, {2, 4},
         {3, 4},
     };
     cnt = 0;
