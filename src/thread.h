@@ -20,9 +20,9 @@
 #include "history.h"
 
 #ifndef TUNE_FLAG
-constexpr int seeVal[] = { 0, SeeValPawn, SeeValKnight, SeeValBishop, SeeValRook, SeeValQueen, 20000 };
+constexpr int seeVal[] = { SeeValPawn, SeeValKnight, SeeValBishop, SeeValRook, SeeValQueen, 20000, 0 };
 #else
-int seeVal[] = { 0, SeeValPawn, SeeValKnight, SeeValBishop, SeeValRook, SeeValQueen, 20000 };
+int seeVal[] = { SeeValPawn, SeeValKnight, SeeValBishop, SeeValRook, SeeValQueen, 20000, 0 };
 #endif
 
 class SearchData {

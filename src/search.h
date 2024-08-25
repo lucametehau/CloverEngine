@@ -411,7 +411,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
 
                 stack->move = NULLMOVE;
                 stack->piece = 0;
-                stack->cont_hist = &histories.cont_history[0][0][0];
+                stack->cont_hist = &histories.cont_history[0][NO_PIECE][0];
 
                 board.make_null_move();
                 int score = -search<false, false>(-beta, -beta + 1, depth - R, !cutNode, stack + 1);
@@ -767,7 +767,7 @@ void SearchData::start_search(Info* _info) {
     rootEval = (!board.checkers() ? evaluate(board) : INF);
 
     for (int i = 1; i <= 10; i++) {
-        (stack - i)->cont_hist = &histories.cont_history[0][0][0];
+        (stack - i)->cont_hist = &histories.cont_history[0][NO_PIECE][0];
         (stack - i)->eval = INF;
         (stack - i)->move = NULLMOVE;
     }

@@ -54,7 +54,7 @@ void Board::make_move(const Move move) { /// assuming move is at least pseudo-le
     if (piece_type(pieceFrom) == PAWN)
         half_moves() = 0;
 
-    captured() = 0;
+    captured() = NO_PIECE;
     enpas() = -1;
 
     switch (type(move)) {
@@ -71,7 +71,7 @@ void Board::make_move(const Move move) { /// assuming move is at least pseudo-le
         else if (pieceFrom == BR)
             castle_rights() &= castleRightsDelta[BLACK][posFrom];
 
-        if (pieceTo) {
+        if (pieceTo != NO_PIECE) {
             half_moves() = 0;
 
             pieces[1 ^ turn] ^= (1ULL << posTo);
@@ -86,7 +86,7 @@ void Board::make_move(const Move move) { /// assuming move is at least pseudo-le
                 castle_rights() &= castleRightsDelta[BLACK][posTo];
         }
 
-        board[posFrom] = 0;
+        board[posFrom] = NO_PIECE;
         board[posTo] = pieceFrom;
         captured() = pieceTo;
 
@@ -119,9 +119,8 @@ void Board::make_move(const Move move) { /// assuming move is at least pseudo-le
         pieces[1 ^ turn] ^= (1ULL << pos);
         bb[pieceCap] ^= (1ULL << pos);
 
-        board[posFrom] = 0;
+        board[posFrom] = board[pos] = NO_PIECE;
         board[posTo] = pieceFrom;
-        board[pos] = 0;
     }
 
     break;
@@ -147,10 +146,10 @@ void Board::make_move(const Move move) { /// assuming move is at least pseudo-le
         key() ^= hashKey[pieceFrom][posFrom] ^ hashKey[pieceFrom][posTo] ^
             hashKey[rPiece][rFrom] ^ hashKey[rPiece][rTo];
 
-        board[posFrom] = board[rFrom] = 0;
+        board[posFrom] = board[rFrom] = NO_PIECE;
         board[posTo] = pieceFrom;
         board[rTo] = rPiece;
-        captured() = 0;
+        captured() = NO_PIECE;
 
         if (pieceFrom == WK)
             castle_rights() &= castleRightsDelta[WHITE][posFrom];
@@ -167,7 +166,7 @@ void Board::make_move(const Move move) { /// assuming move is at least pseudo-le
         bb[pieceFrom] ^= (1ULL << posFrom);
         bb[promPiece] ^= (1ULL << posTo);
 
-        if (pieceTo) {
+        if (pieceTo != NO_PIECE) {
             bb[pieceTo] ^= (1ULL << posTo);
             pieces[1 ^ turn] ^= (1ULL << posTo);
             key() ^= hashKey[pieceTo][posTo];
@@ -179,7 +178,7 @@ void Board::make_move(const Move move) { /// assuming move is at least pseudo-le
                 castle_rights() &= castleRightsDelta[BLACK][posTo];
         }
 
-        board[posFrom] = 0;
+        board[posFrom] = NO_PIECE;
         board[posTo] = promPiece;
         captured() = pieceTo;
 
@@ -212,7 +211,7 @@ void Board::undo_move(const Move move) {
     
     state = history[game_ply];
 
-    int posFrom = sq_from(move), posTo = sq_to(move), piece = board[posTo];
+    int posFrom = sq_from(move), posTo = sq_to(move), piece = piece_at(posTo);
 
     switch (type(move)) {
     case NEUT:
@@ -222,7 +221,7 @@ void Board::undo_move(const Move move) {
         board[posFrom] = piece;
         board[posTo] = pieceCap;
 
-        if (pieceCap) {
+        if (pieceCap != NO_PIECE) {
             pieces[1 ^ turn] ^= (1ULL << posTo);
             bb[pieceCap] ^= (1ULL << posTo);
         }
@@ -248,7 +247,7 @@ void Board::undo_move(const Move move) {
         bb[piece] ^= (1ULL << posFrom) ^ (1ULL << posTo);
         bb[rPiece] ^= (1ULL << rFrom) ^ (1ULL << rTo);
 
-        board[posTo] = board[rTo] = 0;
+        board[posTo] = board[rTo] = NO_PIECE;
         board[posFrom] = piece;
         board[rFrom] = rPiece;
     }
@@ -265,7 +264,7 @@ void Board::undo_move(const Move move) {
         pieces[1 ^ turn] ^= (1ULL << pos);
         bb[pieceCap] ^= (1ULL << pos);
 
-        board[posTo] = 0;
+        board[posTo] = NO_PIECE;
         board[posFrom] = piece;
         board[pos] = pieceCap;
     }
@@ -283,7 +282,7 @@ void Board::undo_move(const Move move) {
         board[posTo] = pieceCap;
         board[posFrom] = piece;
 
-        if (pieceCap) {
+        if (pieceCap != NO_PIECE) {
             pieces[1 ^ turn] ^= (1ULL << posTo);
             bb[pieceCap] ^= (1ULL << posTo);
         }
@@ -302,7 +301,7 @@ void Board::make_null_move() {
     key() ^= (enpas() >= 0 ? enPasKey[enpas()] : 0);
 
     checkers() = get_attackers(turn, pieces[WHITE] | pieces[BLACK], king(1 ^ turn));
-    captured() = 0;
+    captured() = NO_PIECE;
     enpas() = -1;
     turn ^= 1;
     key() ^= 1;

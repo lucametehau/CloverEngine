@@ -160,7 +160,7 @@ struct NetHist {
 
 struct KingBucketState {
     alignas(ALIGN) int16_t output[SIDE_NEURONS];
-    uint64_t bb[13]{};
+    uint64_t bb[12]{};
 };
 
 class Network {
@@ -409,7 +409,7 @@ public:
         bool turn = color_of(pieceFrom);
         switch (type(move)) {
         case NEUT: {
-            if (!captured)
+            if (captured == NO_PIECE)
                 apply_sub_add(a, b, net_index(pieceFrom, posFrom, king, side), net_index(pieceFrom, posTo, king, side));
             else
                 apply_sub_add_sub(a, b, net_index(pieceFrom, posFrom, king, side), net_index(pieceFrom, posTo, king, side), net_index(captured, posTo, king, side));
@@ -435,7 +435,7 @@ public:
         break;
         default: {
             const int promPiece = get_piece(promoted(move) + KNIGHT, turn);
-            if (!captured)
+            if (captured == NO_PIECE)
                 apply_sub_add(a, b, net_index(pieceFrom, posFrom, king, side), net_index(promPiece, posTo, king, side));
             else
                 apply_sub_add_sub(a, b, net_index(pieceFrom, posFrom, king, side), net_index(promPiece, posTo, king, side), net_index(captured, posTo, king, side));

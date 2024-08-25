@@ -50,7 +50,7 @@ void Board::bring_up_to_date() {
             else {
                 KingBucketState* state = &NN.cached_states[side][get_king_bucket_cache(king_sq, side)];
                 NN.clear_updates();
-                for (int i = 1; i <= 12; i++) {
+                for (int i = BP; i <= WK; i++) {
                     uint64_t prev = state->bb[i];
                     uint64_t curr = bb[i];
 
