@@ -429,7 +429,6 @@ void UCI::bench(int depth) {
         info->nodes = -1;
         thread_pool.threads_data[0].start_search(info);
         totalNodes += thread_pool.threads_data[0].nodes;
-        std::cout << fen << " " << thread_pool.threads_data[0].nodes << "\n";
         ucinewgame(ttSize);
     }
 

@@ -410,7 +410,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
                 int R = NMPReduction + depth / NMPDepthDiv + (eval - beta) / NMPEvalDiv + improving;
 
                 stack->move = NULLMOVE;
-                stack->piece = 0;
+                stack->piece = NO_PIECE;
                 stack->cont_hist = &histories.cont_history[0][NO_PIECE][0];
 
                 board.make_null_move();

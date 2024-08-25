@@ -329,11 +329,8 @@ inline void init_defs() {
     cod['p'] = BP, cod['n'] = BN, cod['b'] = BB, cod['r'] = BR, cod['q'] = BQ, cod['k'] = BK;
     cod['P'] = WP, cod['N'] = WN, cod['B'] = WB, cod['R'] = WR, cod['Q'] = WQ, cod['K'] = WK;
 
-    for(int j= 0; j < 64; j++) {
-        int x = rng(gen);
-    }
     /// zobrist keys
-    for (int i = BP; i <= WQ; i++) {
+    for (int i = BP; i <= WK; i++) {
         for (int j = 0; j < 64; j++)
             hashKey[i][j] = rng(gen);
     }
