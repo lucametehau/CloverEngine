@@ -1,0 +1,24 @@
+[
+  {
+    "command": "./Clover",
+    "name": "Clover 7.1.10",
+    "restart": "on",
+    "rating": "?",
+    "options": [
+      {
+        "name": "Threads",
+        "value": "104"
+      },
+      {
+        "name": "Hash",
+        "value": "98304"
+      },
+      {
+        "name": "SyzygyPath",
+        "value": "/home/syzygy7"
+      }
+    ],
+    "protocol": "uci",
+    "workingDirectory": "/home/tcec/Engines/Clover/"
+  }
+]
