@@ -124,7 +124,6 @@ TUNE_PARAM(LMRNoisyDiv, 458, 300, 470);
 
 // movepicker constants
 TUNE_PARAM(GoodNoisyValueCoef, 9, 1, 20);
-TUNE_PARAM(GoodNoisyPromotionBonus, 9672, 5000, 12000);
 TUNE_PARAM(QuietHistCoef, 2, 1, 4);
 TUNE_PARAM(QuietContHist1, 2, 1, 2);
 TUNE_PARAM(QuietContHist2, 2, 1, 2);

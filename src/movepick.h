@@ -99,8 +99,6 @@ public:
                 const int piece = board.piece_at(sq_from(move));
                 const int to = sq_to(move), cap = board.get_captured_type(move);
                 int score = GoodNoisyValueCoef * seeVal[cap];
-                if (type(move) == PROMOTION && piece_type(piece) >= ROOK)
-                    score += GoodNoisyPromotionBonus;
                 score += histories.get_cap_hist(piece, to, cap);
                 scores[m++] = score;
             }

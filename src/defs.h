@@ -67,12 +67,12 @@ typedef uint16_t Move;
 
 class Threats {
 public:
-    uint64_t threats_pieces[5];
+    uint64_t threats_pieces[4];
     uint64_t all_threats;
     uint64_t threatened_pieces;
 
     Threats() {
-        for(int i = 1; i <= 4; i++) threats_pieces[i] = 0;
+        for(int i = 0; i < 4; i++) threats_pieces[i] = 0;
     }
 };
 
@@ -88,12 +88,13 @@ enum {
 };
 
 enum {
-    PAWN = 1, KNIGHT, BISHOP, ROOK, QUEEN, KING
+    PAWN = 0, KNIGHT, BISHOP, ROOK, QUEEN, KING, NO_PIECE_TYPE
 };
 
 enum {
-    BP = 1, BN, BB, BR, BQ, BK,
-    WP, WN, WB, WR, WQ, WK
+    BP = 0, BN, BB, BR, BQ, BK,
+    WP = 6, WN, WB, WR, WQ, WK,
+    NO_PIECE
 };
 
 enum {
@@ -121,11 +122,11 @@ constexpr int TB_WIN_SCORE = 22000;
 constexpr int MAX_DEPTH = 200;
 constexpr int MAX_MOVES = 256;
 constexpr uint64_t ALL = 18446744073709551615ULL;
-const std::string piece_char = ".pnbrqkPNBRQK";
+const std::string piece_char = "pnbrqkPNBRQK.";
 const std::string START_POS_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 std::map<char, int> cod;
-MultiArray<uint64_t, 13, 64> hashKey;
+MultiArray<uint64_t, 12, 64> hashKey;
 MultiArray<uint64_t, 2, 2> castleKey;
 std::array<uint64_t, 64> enPasKey;
 std::array<uint64_t, 16> castleKeyModifier;
@@ -213,11 +214,11 @@ inline int sq_lsb(uint64_t &b) {
 }
 
 inline int piece_type(int piece) {
-    return piece > 6 ? piece - 6 : piece;
+    return piece >= 6 ? piece - 6 : piece;
 }
 
 inline int16_t net_index(int piece, int sq, int kingSq, bool side) {
-    return 64 * 12 * kingIndTable[kingSq ^ (56 * !side)] + 64 * (piece + side * (piece > 6 ? -6 : +6) - 1) + (sq ^ (56 * !side) ^ (7 * ((kingSq >> 2) & 1))); // kingSq should be ^7, if kingSq&7 >= 4
+    return 64 * 12 * kingIndTable[kingSq ^ (56 * !side)] + 64 * (piece + side * (piece >= 6 ? -6 : +6)) + (sq ^ (56 * !side) ^ (7 * ((kingSq >> 2) & 1))); // kingSq should be ^7, if kingSq&7 >= 4
 }
 
 inline bool recalc(int from, int to, bool side) {
@@ -260,12 +261,12 @@ inline uint64_t shift(int color, int dir, uint64_t mask) {
     return mask >> (-deltaPos[dir]);
 }
 
-inline int get_piece(int piece_type, int color) {
+inline int get_piece(const int piece_type, const bool color) {
     return 6 * color + piece_type;
 }
 
 inline bool color_of(int piece) {
-    return piece > 6;
+    return piece >= 6;
 }
 
 inline bool inside_board(int rank, int file) {
@@ -325,11 +326,11 @@ inline void init_defs() {
     deltaPos[NORTHWEST] = 7, deltaPos[NORTHEAST] = 9;
     deltaPos[SOUTHWEST] = -9, deltaPos[SOUTHEAST] = -7;
 
-    cod['p'] = 1, cod['n'] = 2, cod['b'] = 3, cod['r'] = 4, cod['q'] = 5, cod['k'] = 6;
-    cod['P'] = 7, cod['N'] = 8, cod['B'] = 9, cod['R'] = 10, cod['Q'] = 11, cod['K'] = 12;
+    cod['p'] = BP, cod['n'] = BN, cod['b'] = BB, cod['r'] = BR, cod['q'] = BQ, cod['k'] = BK;
+    cod['P'] = WP, cod['N'] = WN, cod['B'] = WB, cod['R'] = WR, cod['Q'] = WQ, cod['K'] = WK;
 
     /// zobrist keys
-    for (int i = 0; i <= 12; i++) {
+    for (int i = BP; i <= WK; i++) {
         for (int j = 0; j < 64; j++)
             hashKey[i][j] = rng(gen);
     }

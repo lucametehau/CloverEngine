@@ -47,7 +47,7 @@ public:
 
     uint16_t ply, game_ply;
 
-    std::array<uint64_t, 13> bb;
+    std::array<uint64_t, 12> bb;
     std::array<uint64_t, 2> pieces;
 
     Network NN;
@@ -125,7 +125,7 @@ public:
 
     inline int king(const bool color) const { return sq_single_bit(get_bb_piece(KING, color)); }
 
-    inline bool is_capture(const Move move) const { return type(move) != CASTLE && piece_at(sq_to(move)); }
+    inline bool is_capture(const Move move) const { return type(move) != CASTLE && piece_at(sq_to(move)) != NO_PIECE; }
 
     inline bool is_noisy_move(const Move move) const { 
         return (type(move) && type(move) != CASTLE) || is_capture(move); 
@@ -154,7 +154,7 @@ public:
         const std::array <int, 2> kingsSide = {
             king(BLACK), king(WHITE)
         };
-        for (int i = 1; i <= 12; i++) {
+        for (int i = BP; i <= WK; i++) {
             uint64_t b = bb[i];
             while (b) {
                 uint64_t b2 = lsb(b);
@@ -172,7 +172,7 @@ public:
         key() ^= hashKey[piece][sq];
         if (piece_type(piece) == PAWN) pawn_key() ^= hashKey[piece][sq];
 
-        pieces[(piece > 6)] |= (1ULL << sq);
+        pieces[color_of(piece)] |= (1ULL << sq);
         bb[piece] |= (1ULL << sq);
     }
 
@@ -187,7 +187,7 @@ public:
         for (int i = 7; i >= 0; i--) {
             int cnt = 0;
             for (int j = 0, sq = i * 8; j < 8; j++, sq++) {
-                if (piece_at(sq) == 0)
+                if (piece_at(sq) == NO_PIECE)
                     cnt++;
                 else {
                     if (cnt)
@@ -242,7 +242,7 @@ public:
 
     inline uint64_t speculative_next_key(const Move move) {
         const int from = sq_from(move), to = sq_to(move), piece = piece_at(from);
-        return key() ^ hashKey[piece][from] ^ hashKey[piece][to] ^ (piece_at(to) ? hashKey[piece_at(to)][to] : 0) ^ 1;
+        return key() ^ hashKey[piece][from] ^ hashKey[piece][to] ^ (piece_at(to) != NO_PIECE ? hashKey[piece_at(to)][to] : 0) ^ 1;
     }
 
     inline bool isMaterialDraw() const {

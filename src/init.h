@@ -32,10 +32,10 @@ void Board::set_fen(const std::string fen) {
     int ind = 0;
     key() = pawn_key() = 0;
     ply = game_ply = 0;
-    captured() = 0;
+    captured() = NO_PIECE;
 
     //checkers() = 0;
-    for (int i = 0; i <= 12; i++)
+    for (int i = 0; i < 12; i++)
         bb[i] = 0;
 
     pieces[BLACK] = pieces[WHITE] = 0;
@@ -50,7 +50,7 @@ void Board::set_fen(const std::string fen) {
             else {
                 int nr = fen[ind] - '0';
                 while (nr)
-                    board[sq] = 0, j++, sq++, nr--;
+                    board[sq] = NO_PIECE, j++, sq++, nr--;
             }
             ind++;
         }
@@ -219,11 +219,11 @@ void Board::set_dfrc(int idx) {
 
     //checkers() = 0;
 
-    for (int i = 0; i <= 12; i++)
+    for (int i = 0; i < 12; i++)
         bb[i] = 0;
 
     for (int i = 0; i < 64; i++)
-        board[i] = 0;
+        board[i] = NO_PIECE;
 
     pieces[BLACK] = pieces[WHITE] = 0;
 

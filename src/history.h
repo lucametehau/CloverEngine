@@ -41,7 +41,7 @@ public:
 
 class StackEntry { /// info to keep in the stack
 public:
-    StackEntry() : piece(0), move(0), killer(0), excluded(0), eval(0) {
+    StackEntry() : piece(NO_PIECE), move(0), killer(0), excluded(0), eval(0) {
         quiets.fill(0);
         noisies.fill(0);
     }
@@ -55,7 +55,7 @@ public:
 class Histories {
 private:
     MultiArray<History<16384>, 2, 2, 2, 64 * 64> hist;
-    MultiArray<History<16384>, 13, 64, 7> cap_hist;
+    MultiArray<History<16384>, 12, 64, 7> cap_hist;
     MultiArray<int, 2, CORR_HIST_SIZE> corr_hist;
 
 public:
@@ -64,7 +64,7 @@ public:
 public:
     void clear_history() {
         fill_multiarray<History<16384>, 2, 2, 2, 64 * 64>(hist, 0);
-        fill_multiarray<History<16384>, 13, 64, 7>(cap_hist, 0);
+        fill_multiarray<History<16384>, 12, 64, 7>(cap_hist, 0);
         fill_multiarray<History<16384>, 2, 13, 64, 13, 64>(cont_history, 0);
         fill_multiarray<int, 2, CORR_HIST_SIZE>(corr_hist, 0);
     }
