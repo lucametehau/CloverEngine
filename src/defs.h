@@ -221,6 +221,10 @@ inline int16_t net_index(int piece, int sq, int kingSq, bool side) {
     return 64 * 12 * kingIndTable[kingSq ^ (56 * !side)] + 64 * (piece + side * (piece >= 6 ? -6 : +6)) + (sq ^ (56 * !side) ^ (7 * ((kingSq >> 2) & 1))); // kingSq should be ^7, if kingSq&7 >= 4
 }
 
+inline int get_output_bucket(int piece_count) {
+    return std::min((63 - piece_count) * (32 - piece_count) / 225, 7);
+}
+
 inline bool recalc(int from, int to, bool side) {
     return (from & 4) != (to & 4) || kingIndTable[from ^ (56 * !side)] != kingIndTable[to ^ (56 * !side)];
 }

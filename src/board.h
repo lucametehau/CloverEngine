@@ -59,7 +59,7 @@ public:
     void clear() {
         ply = 0;
         NetInput input = to_netinput();
-        NN.calc(input, turn);
+        NN.calc(input, turn, get_output_bucket(count(get_bb_color(WHITE) | get_bb_color(BLACK))));
     }
 
     void print() {

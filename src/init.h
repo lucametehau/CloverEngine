@@ -162,7 +162,7 @@ void Board::set_fen(const std::string fen) {
     checkers() = get_attackers(1 ^ turn, pieces[WHITE] | pieces[BLACK], king(turn));
     pinned_pieces() = getPinnedPieces(*this, turn);
 
-    NN.calc(input, turn);
+    NN.calc(input, turn, get_output_bucket(count(get_bb_color(WHITE) | get_bb_color(BLACK))));
 }
 
 void Board::set_frc_side(bool color, int idx) {
@@ -288,7 +288,7 @@ void Board::set_dfrc(int idx) {
     pinned_pieces() = getPinnedPieces(*this, turn);
 
     NetInput input = to_netinput();
-    NN.calc(input, turn);
+    NN.calc(input, turn, get_output_bucket(count(get_bb_color(WHITE) | get_bb_color(BLACK))));
 }
 
 bool Board::is_draw(int ply) {

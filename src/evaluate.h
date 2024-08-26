@@ -73,7 +73,7 @@ void Board::bring_up_to_date() {
 int evaluate(Board& board) {
     board.bring_up_to_date();
 
-    int eval = board.NN.get_output(board.turn);
+    int eval = board.NN.get_output(board.turn, get_output_bucket(count(board.get_bb_color(WHITE) | board.get_bb_color(BLACK))));
     eval = eval * scale(board) / 1024;
     return eval;
 }
