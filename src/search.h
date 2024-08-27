@@ -491,40 +491,9 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
 
 #ifdef GENERATE
         if constexpr (!pvNode) {
-            if (best > -MATE && board.has_non_pawn_material(turn)) {
-                if (isQuiet) {
-                    history = histories.get_history_search(move, piece, threats.all_threats, turn, stack);
-                    
-                    /// approximately the new depth for the next search
-                    int newDepth = std::max(0, depth - lmr_red[std::min(63, depth)][std::min(63, played)] + improving + history / MoveloopHistDiv);
-
-                    /// futility pruning
-                    if (newDepth <= FPDepth && !in_check && 
-                        static_eval + FPBias + FPMargin * newDepth <= alpha) skip = 1;
-
-                    /// late move pruning
-                    if (newDepth <= LMPDepth && played >= (LMPBias + newDepth * newDepth) / (2 - improving)) skip = 1;
-
-                    if (depth <= HistoryPruningDepth && bad_static_eval && history < -HistoryPruningMargin * depth) {
-                        skip = 1;
-                        continue;
-                    }
-
-                    if (newDepth <= SEEPruningQuietDepth && !in_check && 
-                        !see(board, move, -SEEPruningQuietMargin * newDepth)) continue;
-                }
-                else {
-                    history = histories.get_cap_hist(piece, to, board.get_captured_type(move));
-                    if (depth <= SEEPruningNoisyDepth && !in_check && picker.trueStage > STAGE_GOOD_NOISY && 
-                        !see(board, move, -SEEPruningNoisyMargin * (depth + bad_static_eval) * (depth + bad_static_eval) - history / 256)) continue;
-
-                    if (depth <= FPNoisyDepth && !in_check && 
-                        static_eval + FPBias + seeVal[board.get_captured_type(move)] + FPMargin * depth <= alpha) continue;
-                }
-            }
-        }
 #else
         if constexpr (!rootNode) {
+#endif
             if (best > -MATE && board.has_non_pawn_material(turn)) {
                 if (isQuiet) {
                     history = histories.get_history_search(move, piece, threats.all_threats, turn, stack);
@@ -557,7 +526,6 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
                 }
             }
         }
-#endif
 
         int ex = 0;
         /// avoid extending too far (might cause stack overflow)
