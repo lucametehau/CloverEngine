@@ -485,7 +485,7 @@ public:
             acc = reg_add32(acc, reg_madd16(reg_mullo(clamped, v2[j]), clamped));
         }
 
-        return (outputBias + get_sum(acc) / Q_IN) * 225 / Q_IN_HIDDEN;
+        return (outputBias + get_sum(acc) / Q_IN) * 400 / Q_IN_HIDDEN;
     }
 
     int hist_size;
