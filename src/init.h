@@ -174,7 +174,7 @@ void Board::set_frc_side(bool color, int idx) {
     idx /= 4;
     int cnt = 0;
     for (int i = ind; i < ind + 8; i++) {
-        if (!board[i]) {
+        if (piece_at(i) == NO_PIECE) {
             if (idx % 6 == cnt) {
                 place_piece_at_sq(get_piece(QUEEN, color), i);
                 break;
@@ -192,7 +192,7 @@ void Board::set_frc_side(bool color, int idx) {
     };
     cnt = 0;
     for (int i = ind; i < ind + 8; i++) {
-        if (!board[i]) {
+        if (piece_at(i) == NO_PIECE) {
             if (cnt == vals[idx][0] || cnt == vals[idx][1]) {
                 place_piece_at_sq(get_piece(KNIGHT, color), i);
             }
@@ -201,7 +201,7 @@ void Board::set_frc_side(bool color, int idx) {
     }
     cnt = 0;
     for (int i = ind; i < ind + 8; i++) {
-        if (!board[i]) {
+        if (piece_at(i) == NO_PIECE) {
             if (cnt == 0 || cnt == 2) {
                 place_piece_at_sq(get_piece(ROOK, color), i);
             }
@@ -215,7 +215,7 @@ void Board::set_frc_side(bool color, int idx) {
 
 void Board::set_dfrc(int idx) {
     ply = game_ply = 0;
-    captured() = 0;
+    captured() = NO_PIECE;
 
     //checkers() = 0;
 
