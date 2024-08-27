@@ -1,6 +1,6 @@
 SRC = *.cpp Fathom/src/tbprobe.c
 EXE = Clover.7.1.12
-EVALFILE = clover-7buckets-mpe2.5-0.95-1280-484.bin
+EVALFILE = clover-7buckets-mpe2.5-0.95-1280-605.bin
 
 ifeq ($(CXX),)
     CXX = g++
