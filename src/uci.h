@@ -20,7 +20,7 @@
 #include <sstream>
 #include "move.h"
 #include "search.h"
-#include "Fathom/src/tbprobe.h"
+#include "3rdparty/Fathom/src/tbprobe.h"
 #include "init.h"
 #include "perft.h"
 #include "generate.h"
