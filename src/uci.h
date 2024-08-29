@@ -108,7 +108,7 @@ void UCI::uci_loop() {
             if(main_thread.joinable())
                 main_thread.join();
             
-            int depth = -1, movestogo = 40, movetime = -1;
+            int depth = -1, movetime = -1;
             int time = -1, inc = 0;
             int64_t nodes = -1;
             bool turn = thread_pool.threads_data[0].board.turn;
@@ -118,36 +118,14 @@ void UCI::uci_loop() {
             std::string param;
 
             while (iss >> param) {
-                if (param == "infinite") {
-                    ;
-                }
-                else if (param == "binc" && turn == BLACK) {
-                    iss >> inc;
-                }
-                else if (param == "winc" && turn == WHITE) {
-                    iss >> inc;
-                }
-                else if (param == "wtime" && turn == WHITE) {
-                    iss >> time;
-                }
-                else if (param == "btime" && turn == BLACK) {
-                    iss >> time;
-                }
-                else if (param == "movestogo") {
-                    iss >> movestogo;
-                }
-                else if (param == "movetime") {
-                    iss >> movetime;
-                }
-                else if (param == "depth") {
-                    iss >> depth;
-                }
-                else if (param == "nodes") {
-                    iss >> nodes;
-                }
-                else if (param == "san") {
-                    info->sanMode = true;
-                }
+                if (param == "binc" && turn == BLACK) { iss >> inc; }
+                else if (param == "winc" && turn == WHITE) { iss >> inc; }
+                else if (param == "wtime" && turn == WHITE) { iss >> time; }
+                else if (param == "btime" && turn == BLACK) { iss >> time; }
+                else if (param == "movetime") { iss >> movetime; }
+                else if (param == "depth") { iss >> depth; }
+                else if (param == "nodes") { iss >> nodes; }
+                else if (param == "san") { info->sanMode = true; }
             }
 
             info->startTime = getTime();
@@ -162,9 +140,9 @@ void UCI::uci_loop() {
             else if (time != -1) {
                 const int MOVE_OVERHEAD = 100; // idk
                 time -= MOVE_OVERHEAD;
-                int incTime = time + movestogo * inc;
+                int incTime = time + 40 * inc;
                 int goodTimeLim, hardTimeLim;
-                goodTimeLim = std::min<int>(incTime / std::max(movestogo / 2, 1), time * 0.35);
+                goodTimeLim = std::min<int>(incTime * 0.05, time * 0.35);
                 hardTimeLim = std::min<int>(goodTimeLim * 5.5, time * 0.75);
                 info->goodTimeLim = goodTimeLim;
                 info->hardTimeLim = hardTimeLim;

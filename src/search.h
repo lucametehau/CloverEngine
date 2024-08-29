@@ -161,7 +161,7 @@ int SearchData::quiesce(int alpha, int beta, StackEntry* stack) {
     const uint64_t key = board.key();
     const bool turn = board.turn;
     int score = INF, best = -INF, alphaOrig = alpha;
-    int bound = NONE;
+    int ttBound = NONE;
     Move bestMove = NULLMOVE, ttMove = NULLMOVE;
 
     bool ttHit = false;
@@ -174,11 +174,11 @@ int SearchData::quiesce(int alpha, int beta, StackEntry* stack) {
     if (ttHit) {
         best = eval = entry->eval;
         ttValue = score = entry->value(ply);
-        bound = entry->bound();
+        ttBound = entry->bound();
         ttMove = entry->move;
         was_pv |= entry->was_pv();
         if constexpr (!pvNode) {
-            if (score != VALUE_NONE && (bound == EXACT || (bound == LOWER && score >= beta) || (bound == UPPER && score <= alpha))) return score;
+            if (score != VALUE_NONE && (ttBound & (score >= beta ? LOWER : UPPER))) return score;
         }
     }
 
@@ -199,7 +199,8 @@ int SearchData::quiesce(int alpha, int beta, StackEntry* stack) {
     else { /// ttValue might be a better evaluation
         raw_eval = eval;
         stack->eval = eval = histories.get_corrected_eval(raw_eval, turn, board.pawn_key());
-        if (bound == EXACT || (bound == LOWER && ttValue > eval) || (bound == UPPER && ttValue < eval)) best = ttValue;
+        if (ttBound == EXACT || (ttBound == LOWER && ttValue > eval) || (ttBound == UPPER && ttValue < eval)) 
+            best = ttValue;
         futilityValue = best + QuiesceFutilityBias;
     }
 
@@ -211,10 +212,7 @@ int SearchData::quiesce(int alpha, int beta, StackEntry* stack) {
 
     alpha = std::max(alpha, best);
 
-    Movepick noisyPicker(!in_check && see(board, ttMove, 0) ? ttMove : NULLMOVE,
-        NULLMOVE,
-        0,
-        threats);
+    Movepick noisyPicker(!in_check && see(board, ttMove, 0) ? ttMove : NULLMOVE, NULLMOVE, 0, threats);
 
     Move move;
     int played = 0;
@@ -250,7 +248,6 @@ int SearchData::quiesce(int alpha, int beta, StackEntry* stack) {
             bestMove = move;
             if (score > alpha) {
                 alpha = score;
-                update_pv(ply, move);
                 if (alpha >= beta) break;
             }
         }
@@ -259,8 +256,8 @@ int SearchData::quiesce(int alpha, int beta, StackEntry* stack) {
     if (in_check && best == -INF) return -INF + ply;
 
     /// store info in transposition table
-    bound = (best >= beta ? LOWER : (best > alphaOrig ? EXACT : UPPER));
-    TT->save(entry, key, best, 0, ply, bound, bestMove, raw_eval, was_pv);
+    ttBound = (best >= beta ? LOWER : (best > alphaOrig ? EXACT : UPPER));
+    TT->save(entry, key, best, 0, ply, ttBound, bestMove, raw_eval, was_pv);
 
     return best;
 }
@@ -275,7 +272,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
     const bool allNode = !pvNode && !cutNode;
     const bool nullSearch = (stack - 1)->move == NULLMOVE;
     const int alphaOrig = alpha;
-    const uint64_t key = board.key();
+    const uint64_t key = board.key(), pawn_key = board.pawn_key();
     const bool turn = board.turn;
 
     uint16_t nr_quiets = 0;
@@ -325,25 +322,25 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
     if constexpr (!rootNode) {
         const auto probe = probe_TB(board, depth);
         if (probe != TB_RESULT_FAILED) {
-            int type = NONE, score;
+            int score;
             tb_hits++;
             switch (probe) {
             case TB_WIN:
                 score = TB_WIN_SCORE - MAX_DEPTH - ply;
-                type = LOWER;
+                ttBound = LOWER;
                 break;
             case TB_LOSS:
                 score = -(TB_WIN_SCORE - MAX_DEPTH - ply);
-                type = UPPER;
+                ttBound = UPPER;
                 break;
             default:
                 score = 0;
-                type = EXACT;
+                ttBound = EXACT;
                 break;
             }
 
-            if (type == EXACT || (type == UPPER && score <= alpha) || (type == LOWER && score >= beta)) {
-                TT->save(entry, key, score, MAX_DEPTH, 0, type, NULLMOVE, 0, was_pv);
+            if (ttBound & (score >= beta ? LOWER : UPPER)) {
+                TT->save(entry, key, score, MAX_DEPTH, 0, ttBound, NULLMOVE, 0, was_pv);
                 return score;
             }
         }
@@ -362,22 +359,22 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
         if (stack->excluded) raw_eval = eval = stack->eval;
         else {
             raw_eval = evaluate(board);
-            stack->eval = eval = histories.get_corrected_eval(raw_eval, turn, board.pawn_key());
+            stack->eval = eval = histories.get_corrected_eval(raw_eval, turn, pawn_key);
             TT->save(entry, key, VALUE_NONE, 0, ply, 0, NULLMOVE, raw_eval, was_pv);
         }
     }
     else { /// ttValue might be a better evaluation
         if (stack->excluded) raw_eval = evaluate(board);
         else raw_eval = eval;
-        stack->eval = eval = histories.get_corrected_eval(raw_eval, turn, board.pawn_key());
+        stack->eval = eval = histories.get_corrected_eval(raw_eval, turn, pawn_key);
         if (ttBound == EXACT || (ttBound == LOWER && ttValue > eval) || (ttBound == UPPER && ttValue < eval)) eval = ttValue;
     }
 
     const int static_eval = stack->eval;
     int eval_diff = 0;
-    if (ply > 1 && (stack - 2)->eval != INF)
+    if ((stack - 2)->eval != INF)
         eval_diff = static_eval - (stack - 2)->eval;
-    else if (ply > 3 && (stack - 4)->eval != INF)
+    else if ((stack - 4)->eval != INF)
         eval_diff = static_eval - (stack - 4)->eval;
 
     const int improving = (in_check || eval_diff == 0 ? 0 :
@@ -665,7 +662,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
         ttBound = (best >= beta ? LOWER : (best > alphaOrig ? EXACT : UPPER));
         if ((ttBound == UPPER || !board.is_noisy_move(bestMove)) && !in_check && 
             !(ttBound == LOWER && best <= static_eval) && !(ttBound == UPPER && best >= static_eval))
-            histories.update_corr_hist(turn, board.pawn_key(), depth, best - static_eval);
+            histories.update_corr_hist(turn, pawn_key, depth, best - static_eval);
         TT->save(entry, key, best, depth, ply, ttBound, bestMove, raw_eval, was_pv);
     }
 
