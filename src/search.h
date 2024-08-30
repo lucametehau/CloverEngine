@@ -577,9 +577,10 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
                 R -= history / HistReductionDiv; /// reduce based on move history
             }
             else if (!was_pv) {
-                R = lmr_red_noisy[std::min(63, depth)][std::min(63, played)];
+                R = lmr_red[std::min(63, depth)][std::min(63, played)];
                 R += improving <= 0; /// not improving
                 R += enemy_has_no_threats && picker.trueStage == STAGE_BAD_NOISY; /// if the position is relatively quiet and the capture is "very losing"
+                R -= history / 4096;
             }
 
             R += 2 * cutNode;
