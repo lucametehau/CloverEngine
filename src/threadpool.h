@@ -97,6 +97,10 @@ public:
             thread_data.board.clear();
     }
 
+    Board& get_board() {
+        return threads_data[0].board;
+    }
+
     uint64_t get_total_nodes_pool() {
         std::lock_guard <std::mutex> lock(threads_mutex);
         uint64_t nodes = 0;

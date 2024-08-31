@@ -528,8 +528,9 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
         /// avoid extending too far (might cause stack overflow)
         if (ply < 2 * tDepth && !rootNode) {
             /// singular extension (look if the tt move is better than the rest)
-            if (!stack->excluded && !allNode && move == ttMove && abs(ttValue) < MATE 
-                && depth >= SEDepth && ttDepth >= depth - 3 && (ttBound & LOWER)) {
+            if (!stack->excluded && !allNode && move == ttMove && abs(ttValue) < MATE &&
+                depth >= SEDepth && ttDepth >= depth - 3 && (ttBound & LOWER)
+            ) {
                 int rBeta = ttValue - SEMargin * depth / 64;
 
                 stack->excluded = move;
@@ -811,17 +812,7 @@ void SearchData::start_search(Info* _info) {
         if (flag_stopped)
             break;
 
-        if (info->timeset && getTime() > info->stopTime) {
-            flag_stopped = true;
-            break;
-        }
-
-        if (tDepth == limitDepth) {
-            flag_stopped = true;
-            break;
-        }
-
-        if (info->min_nodes != -1 && nodes >= info->min_nodes) {
+        if ((info->timeset && getTime() > info->stopTime) || tDepth == limitDepth || (info->min_nodes != -1 && nodes >= info->min_nodes)) {
             flag_stopped = true;
             break;
         }

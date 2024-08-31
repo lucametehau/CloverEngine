@@ -106,7 +106,7 @@ void UCI::uci_loop() {
                 else if (type == "moves") {
                     std::string moveStr;
                     while (iss >> moveStr) {
-                        thread_pool.make_move_pool(parse_move_string(thread_pool.threads_data[0].board, moveStr, info));
+                        thread_pool.make_move_pool(parse_move_string(thread_pool.get_board(), moveStr, info));
                     }
                 }
             }
@@ -121,7 +121,7 @@ void UCI::uci_loop() {
             int depth = -1, movetime = -1;
             int time = -1, inc = 0;
             int64_t nodes = -1;
-            bool turn = thread_pool.threads_data[0].board.turn;
+            bool turn = thread_pool.get_board().turn;
             info->timeset = 0;
             info->sanMode = 0;
 
@@ -152,8 +152,8 @@ void UCI::uci_loop() {
                 time -= MOVE_OVERHEAD;
                 int incTime = time + 40 * inc;
                 int goodTimeLim, hardTimeLim;
-                goodTimeLim = std::min<int>(incTime * 0.05, time * 0.35);
-                hardTimeLim = std::min<int>(goodTimeLim * 5.5, time * 0.75);
+                goodTimeLim = std::min<int>(incTime * TMCoef1, time * TMCoef2);
+                hardTimeLim = std::min<int>(goodTimeLim * TMCoef3, time * TMCoef4);
                 info->goodTimeLim = goodTimeLim;
                 info->hardTimeLim = hardTimeLim;
                 info->timeset = 1;
@@ -178,8 +178,8 @@ void UCI::uci_loop() {
         else if (cmd == "checkmove") {
             std::string moveStr;
             iss >> moveStr;
-            Move move = parse_move_string(thread_pool.threads_data[0].board, moveStr, info);
-            std::cout << is_legal(thread_pool.threads_data[0].board, move) << " " << is_legal_slow(thread_pool.threads_data[0].board, move) << "\n";
+            Move move = parse_move_string(thread_pool.get_board(), moveStr, info);
+            std::cout << is_legal(thread_pool.get_board(), move) << " " << is_legal_slow(thread_pool.get_board(), move) << "\n";
         }
         else if (cmd == "printparams") {
 #ifdef TUNE_FLAG
@@ -244,7 +244,7 @@ void UCI::uci_loop() {
             generateData(nrFens, nrThreads, path);
         }
         else if (cmd == "show") {
-            thread_pool.threads_data[0].board.print();
+            thread_pool.get_board().print();
         }
         else if (cmd == "eval") {
             eval();
@@ -258,12 +258,12 @@ void UCI::uci_loop() {
             bench();
         }
         else if (cmd == "evalbench") {
-            int eval = evaluate(thread_pool.threads_data[0].board);
+            int eval = evaluate(thread_pool.get_board());
             uint64_t total = 0;
             const int N = (int)1e8;
             for (int i = 0; i < N; i++) {
                 auto start = std::chrono::high_resolution_clock::now();
-                eval = evaluate(thread_pool.threads_data[0].board);
+                eval = evaluate(thread_pool.get_board());
                 auto end = std::chrono::high_resolution_clock::now();
                 total += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
             }
@@ -273,8 +273,8 @@ void UCI::uci_loop() {
             std::string move_string;
             int threshold;
             iss >> move_string >> threshold;
-            Move move = parse_move_string(thread_pool.threads_data[0].board, move_string, info);
-            std::cout << see(thread_pool.threads_data[0].board, move, threshold) << std::endl;
+            Move move = parse_move_string(thread_pool.get_board(), move_string, info);
+            std::cout << see(thread_pool.get_board(), move, threshold) << std::endl;
         }
     }
 }
