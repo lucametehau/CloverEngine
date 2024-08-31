@@ -768,11 +768,9 @@ void SearchData::start_search(Info* _info) {
                     break;
 
                 if (thread_id == 0 && printStats && ((alpha < scores[i] && scores[i] < beta) || (i == 1 && getTime() > t0 + 3000))) {
-                    uint64_t total_nodes = thread_pool.get_total_nodes_pool();
-                    uint64_t total_tb_hits = thread_pool.get_total_tb_hits_pool();
-                    uint64_t t = static_cast<uint64_t>(getTime()) - t0;
-
-                    print_iteration_info(info->sanMode, i, scores[i], alpha, beta, t, depth, sel_depth, total_nodes, total_tb_hits);
+                    print_iteration_info(info->sanMode, i, scores[i], alpha, beta, 
+                                        static_cast<uint64_t>(getTime()) - t0, depth, sel_depth, 
+                                        thread_pool.get_total_nodes_pool(), thread_pool.get_total_tb_hits_pool());
                 }
 
                 if (scores[i] <= alpha) {
@@ -797,17 +795,13 @@ void SearchData::start_search(Info* _info) {
 
         if (thread_id == 0 && !flag_stopped) {
             double scoreChange = 1.0, bestMoveStreak = 1.0, nodesSearchedPercentage = 1.0;
-            const float _tmNodesSearchedMaxPercentage = TimeManagerNodesSearchedMaxPercentage / 1000.0;
-            const float _tmBestMoveMax = TimeManagerBestMoveMax / 1000.0;
-            const float _tmBestMoveStep = TimeManagerbestMoveStep / 1000.0;
             if (tDepth >= TimeManagerMinDepth) {
-                scoreChange = std::clamp(TimeManagerScoreBias / 100.0 + 1.0 * (last_root_score - root_score[1]) / TimeManagerScoreDiv, TimeManagerScoreMin / 100.0, TimeManagerScoreMax / 100.0); /// adjust time based on score change
+                scoreChange = std::clamp<double>(TimeManagerScoreBias + 1.0 * (last_root_score - root_score[1]) / TimeManagerScoreDiv, TimeManagerScoreMin, TimeManagerScoreMax); /// adjust time based on score change
                 best_move_cnt = (best_move[1] == last_best_move ? best_move_cnt + 1 : 1);
                 /// adjust time based on how many nodes from the total searched nodes were used for the best move
                 nodesSearchedPercentage = 1.0 * nodes_seached[from_to(best_move[1])] / nodes;
-                nodesSearchedPercentage = TimeManagerNodesSeachedMaxCoef / 100.0 * _tmNodesSearchedMaxPercentage -
-                    TimeManagerNodesSearchedCoef / 100.0 * nodesSearchedPercentage;
-                bestMoveStreak = _tmBestMoveMax - _tmBestMoveStep * std::min(10, best_move_cnt); /// adjust time based on how long the best move was the same
+                nodesSearchedPercentage = TimeManagerNodesSearchedMaxPercentage - TimeManagerNodesSearchedCoef * nodesSearchedPercentage;
+                bestMoveStreak = TimeManagerBestMoveMax - TimeManagerbestMoveStep * std::min(10, best_move_cnt); /// adjust time based on how long the best move was the same
             }
             info->stopTime = info->startTime + info->goodTimeLim * scoreChange * bestMoveStreak * nodesSearchedPercentage;
             last_root_score = root_score[1];

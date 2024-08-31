@@ -138,7 +138,7 @@ constexpr std::array<uint64_t, 8> rank_mask = {
 };
 MultiArray<uint64_t, 64, 64> between_mask, line_mask;
 
-MultiArray<int, 64, 64> lmr_red, lmr_red_noisy;
+MultiArray<int, 64, 64> lmr_red;
 
 constexpr std::pair<int, int> knightDir[8] = { {-1, -2}, {-2, -1}, {-2, 1}, {-1, 2}, {1, 2}, {2, 1}, {2, -1}, {1, -2} };
 constexpr std::pair<int, int> rookDir[4] = { {-1, 0}, {1, 0}, {0, -1}, {0, 1} };
@@ -382,8 +382,7 @@ inline void init_defs() {
     
     for (int i = 1; i < 64; i++) { /// depth
         for (int j = 1; j < 64; j++) { /// moves played 
-            lmr_red[i][j] = LMRQuietBias / 100.0 + log(i) * log(j) / (LMRQuietDiv / 100.0);
-            lmr_red_noisy[i][j] = LMRNoisyBias / 100.0 + lmr_red[i][j] / (LMRNoisyDiv / 100.0);
+            lmr_red[i][j] = LMRQuietBias + log(i) * log(j) / LMRQuietDiv;
         }
     }
 }

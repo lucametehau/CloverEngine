@@ -16,31 +16,43 @@
 */
 
 #pragma once
+#include <type_traits>
+#include <cassert>
 
 // tuning param/option
+template <typename T>
 struct Parameter {
     std::string name;
-    int &value;
-    int min, max;
+    T &value;
+    T min, max;
 };
 
-std::vector <Parameter> params;
+
+std::vector<Parameter<int>> params_int;
+std::vector<Parameter<double>> params_double;
 
 // trick to be able to create options
+template <typename T>
 struct CreateParam {
-    int _value;
-    CreateParam(std::string name, int value, int min, int max) : _value(value) { params.push_back({ name, _value, min, max }); }
-
-    operator int() const {
-        return _value;
+    T value;
+    CreateParam(std::string name, T _value, T min, T max) : value(_value) { 
+        assert(min <= _value && _value <= max);
+        if constexpr (std::is_integral_v<T>) params_int.push_back({ name, _value, min, max });
+        else params_double.push_back({ name, value, min, max }); 
     }
+
+    operator T() const { return value; }
 };
+
 
 #ifndef TUNE_FLAG
 #define TUNE_PARAM(name, value, min, max) constexpr int name = value;
+#define TUNE_PARAM_DOUBLE(name, value, min, max) constexpr double name = value;
 #else
-#define TUNE_PARAM(name, value, min, max) CreateParam name(#name, value, min, max);
+#define TUNE_PARAM(name, value, min, max) CreateParam<int> name(#name, value, min, max);
+#define TUNE_PARAM_DOUBLE(name, value, min, max) CreateParam<double> name(#name, value, min, max);
 #endif
+
 
 // search constants
 TUNE_PARAM(DeltaPruningMargin, 1010, 900, 1100);
@@ -107,20 +119,19 @@ TUNE_PARAM(AspirationWindowExpandMargin, 31, 10, 100);
 TUNE_PARAM(AspirationWindowExpandBias, 0, 0, 10);
 
 TUNE_PARAM(TimeManagerMinDepth, 8, 5, 11);
-TUNE_PARAM(TimeManagerNodesSearchedMaxPercentage, 1568, 1200, 1800);
-TUNE_PARAM(TimeManagerBestMoveMax, 1217, 1100, 1500);
-TUNE_PARAM(TimeManagerbestMoveStep, 64, 10, 100);
-TUNE_PARAM(TimeManagerScoreMin, 47, 40, 90);
-TUNE_PARAM(TimeManagerScoreMax, 161, 110, 200);
-TUNE_PARAM(TimeManagerScoreBias, 112, 10, 150);
-TUNE_PARAM(TimeManagerScoreDiv, 111, 90, 150);
-TUNE_PARAM(TimeManagerNodesSeachedMaxCoef, 116, 90, 200);
-TUNE_PARAM(TimeManagerNodesSearchedCoef, 114, 50, 200);
+TUNE_PARAM_DOUBLE(TimeManagerNodesSearchedMaxPercentage, 1.81888, 1.400, 2.000);
+TUNE_PARAM_DOUBLE(TimeManagerNodesSearchedCoef, 1.140, 0.500, 2.000);
 
-TUNE_PARAM(LMRQuietBias, 117, 100, 125);
-TUNE_PARAM(LMRQuietDiv, 259, 150, 270);
-TUNE_PARAM(LMRNoisyBias, 64, 40, 70);
-TUNE_PARAM(LMRNoisyDiv, 458, 300, 470);
+TUNE_PARAM_DOUBLE(TimeManagerBestMoveMax, 1.217, 1.100, 1.500);
+TUNE_PARAM_DOUBLE(TimeManagerbestMoveStep, 0.640, 0.100, 1.000);
+
+TUNE_PARAM_DOUBLE(TimeManagerScoreMin, 0.470, 0.400, 0.900);
+TUNE_PARAM_DOUBLE(TimeManagerScoreMax, 1.610, 1.100, 2.000);
+TUNE_PARAM_DOUBLE(TimeManagerScoreBias, 1.120, 0.700, 1.500);
+TUNE_PARAM(TimeManagerScoreDiv, 111, 90, 150);
+
+TUNE_PARAM_DOUBLE(LMRQuietBias, 1.17, 1.00, 1.25);
+TUNE_PARAM_DOUBLE(LMRQuietDiv, 2.59, 1.50, 2.70);
 
 // movepicker constants
 TUNE_PARAM(GoodNoisyValueCoef, 9, 1, 20);
@@ -155,7 +166,10 @@ TUNE_PARAM(SeeValRook, 504, 450, 600);
 TUNE_PARAM(SeeValQueen, 989, 900, 1100);
 
 void print_params_for_ob() {
-    for (auto& param : params) {
+    for (auto& param : params_int) {
         std::cout << param.name << ", int, " << param.value << ", " << param.min << ", " << param.max << ", " << std::max(0.5, (param.max - param.min) / 20.0) << ", 0.002\n";
+    }
+    for (auto& param : params_double) {
+        std::cout << param.name << ", float, " << param.value << ", " << param.min << ", " << param.max << ", " << std::max(0.5, (param.max - param.min) / 20.0) << ", 0.002\n";
     }
 }

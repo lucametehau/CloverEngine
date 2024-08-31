@@ -43,16 +43,26 @@ private:
     void quit();
     void eval();
     void go_perft(int depth);
-    void set_param_int(std::istringstream& iss, int& value);
+    void set_param_int(std::istringstream &iss, int &value);
+    void set_param_double(std::istringstream &iss, double &value);
 public:
     std::thread main_thread;
 };
 
-void UCI::set_param_int(std::istringstream& iss, int& value) {
+void UCI::set_param_int(std::istringstream &iss, int &value) {
     std::string valuestr;
     iss >> valuestr;
 
     int newValue;
+    iss >> newValue;
+    value = newValue;
+}
+
+void UCI::set_param_double(std::istringstream &iss, double &value) {
+    std::string valuestr;
+    iss >> valuestr;
+
+    double newValue;
     iss >> newValue;
     value = newValue;
 }
@@ -213,9 +223,15 @@ void UCI::uci_loop() {
                 info->chess960 = (chess960 == "true");
             }
             else {
-                for (auto& param : params) {
+                for (auto& param : params_int) {
                     if (name == param.name) {
                         set_param_int(iss, param.value);
+                        break;
+                    }
+                }
+                for (auto& param : params_double) {
+                    if (name == param.name) {
+                        set_param_double(iss, param.value);
                         break;
                     }
                 }
@@ -271,8 +287,10 @@ void UCI::uci() {
     std::cout << "option name SyzygyPath type string default <empty>" << std::endl;
     std::cout << "option name MultiPV type spin default 1 min 1 max 255" << std::endl;
     std::cout << "option name UCI_Chess960 type check default false" << std::endl;
-    for (auto& param : params)
+    for (auto& param : params_int)
         std::cout << "option name " << param.name << " type spin default " << param.value << " min " << param.min << " max " << param.max << std::endl;
+    for (auto& param : params_double)
+        std::cout << "option name " << param.name << " type string default " << param.value << " min " << param.min << " max " << param.max << std::endl;
     std::cout << "uciok" << std::endl;
 }
 
