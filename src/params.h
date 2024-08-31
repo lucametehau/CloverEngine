@@ -123,7 +123,7 @@ TUNE_PARAM_DOUBLE(TimeManagerNodesSearchedMaxPercentage, 1.81888, 1.400, 2.000);
 TUNE_PARAM_DOUBLE(TimeManagerNodesSearchedCoef, 1.140, 0.500, 2.000);
 
 TUNE_PARAM_DOUBLE(TimeManagerBestMoveMax, 1.217, 1.100, 1.500);
-TUNE_PARAM_DOUBLE(TimeManagerbestMoveStep, 0.640, 0.100, 1.000);
+TUNE_PARAM_DOUBLE(TimeManagerbestMoveStep, 0.064, 0.010, 0.100);
 
 TUNE_PARAM_DOUBLE(TimeManagerScoreMin, 0.470, 0.400, 0.900);
 TUNE_PARAM_DOUBLE(TimeManagerScoreMax, 1.610, 1.100, 2.000);
