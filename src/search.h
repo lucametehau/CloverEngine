@@ -624,7 +624,8 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
                 if constexpr(pvNode)
                     update_pv(ply, move);
                 if (alpha >= beta) {
-                    const int bonus = getHistoryBonus(depth + bad_static_eval + (cutNode && depth <= 3));
+                    const int bonus =  getHistoryBonus(depth + bad_static_eval + (cutNode && depth <= 3));
+                    const int malus = -getHistoryBonus(depth + bad_static_eval + (cutNode && depth <= 3) + allNode);
                     if (!board.is_noisy_move(bestMove)) {
                         stack->killer = bestMove;
                         if (nr_quiets || depth >= HistoryUpdateMinDepth)
@@ -633,7 +634,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
                         for (int i = 0; i < nr_quiets; i++) {
                             const Move move = stack->quiets[i];
                             histories.update_hist_quiet_move(move, board.piece_at(sq_from(move)), 
-                                                            threats.all_threats, turn, stack, -bonus);
+                                                            threats.all_threats, turn, stack, malus);
                         }
                     }
                     else {
@@ -643,7 +644,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
                     for (int i = 0; i < nr_noisies; i++) {
                         const Move move = stack->noisies[i];
                         histories.update_cap_hist_move(board.piece_at(sq_from(move)), sq_to(move), 
-                                                      board.get_captured_type(move), -bonus);
+                                                      board.get_captured_type(move), malus);
                     }
                     break;
                 }
