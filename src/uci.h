@@ -420,7 +420,7 @@ void UCI::bench(int depth) {
     for (auto& fen : benchPos) {
         thread_pool.set_fen_pool(fen);
         info->timeset = 0;
-        info->depth = (depth == -1 ? 12 : depth);
+        info->depth = (depth == -1 ? 14 : depth);
         info->startTime = getTime();
         info->nodes = -1;
         thread_pool.threads_data[0].start_search(info);
