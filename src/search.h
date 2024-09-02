@@ -635,7 +635,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
                         stack->killer = bestMove;
                         if (nr_quiets || depth >= HistoryUpdateMinDepth)
                             histories.update_hist_quiet_move(bestMove, board.piece_at(sq_from(bestMove)), 
-                                                            threats.all_threats, turn, stack, bonus);
+                                                            threats.all_threats, turn, stack, bonus * tried_count);
                         for (int i = 0; i < nr_quiets; i++) {
                             const auto [move, tried_count] = stack->quiets[i];
                             histories.update_hist_quiet_move(move, board.piece_at(sq_from(move)), 
@@ -644,7 +644,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
                     }
                     else {
                         histories.update_cap_hist_move(board.piece_at(sq_from(bestMove)), sq_to(bestMove), 
-                                                      board.get_captured_type(bestMove), bonus);
+                                                      board.get_captured_type(bestMove), bonus * tried_count);
                     }
                     for (int i = 0; i < nr_noisies; i++) {
                         const auto [move, tried_count] = stack->noisies[i];
