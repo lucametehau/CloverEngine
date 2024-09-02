@@ -639,7 +639,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
                         for (int i = 0; i < nr_quiets; i++) {
                             const auto [move, tried_count] = stack->quiets[i];
                             histories.update_hist_quiet_move(move, board.piece_at(sq_from(move)), 
-                                                            threats.all_threats, turn, stack, malus);
+                                                            threats.all_threats, turn, stack, malus * tried_count);
                         }
                     }
                     else {
@@ -649,7 +649,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
                     for (int i = 0; i < nr_noisies; i++) {
                         const auto [move, tried_count] = stack->noisies[i];
                         histories.update_cap_hist_move(board.piece_at(sq_from(move)), sq_to(move), 
-                                                      board.get_captured_type(move), malus);
+                                                      board.get_captured_type(move), malus * tried_count);
                     }
                     break;
                 }
