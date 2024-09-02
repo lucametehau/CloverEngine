@@ -39,15 +39,23 @@ public:
     }
 };
 
+class SearchMove {
+public:
+    Move move;
+    int tried_count;
+    SearchMove() : move(NULLMOVE), tried_count(0) {}
+    SearchMove(Move _move, int _tried_count) : move(_move), tried_count(_tried_count) {}
+};
+
 class StackEntry { /// info to keep in the stack
 public:
     StackEntry() : piece(NO_PIECE), move(0), killer(0), excluded(0), eval(0) {
-        quiets.fill(0);
-        noisies.fill(0);
+        quiets.fill(SearchMove());
+        noisies.fill(SearchMove());
     }
     uint16_t piece;
     Move move, killer, excluded;
-    std::array<Move, MAX_MOVES> quiets, noisies;
+    std::array<SearchMove, MAX_MOVES> quiets, noisies;
     int eval;
     MultiArray<History<16384>, 13, 64>* cont_hist;
 };

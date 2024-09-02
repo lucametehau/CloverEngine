@@ -564,7 +564,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
         int newDepth = depth + ex, R = 1;
 
         uint64_t initNodes = nodes;
-        int score = -INF;
+        int score = -INF, tried_count = 0;
 
         if (depth >= 2 && played > 1 + pvNode + rootNode) { /// first few moves we don't reduce
             if (isQuiet) {
@@ -591,19 +591,24 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
 
             R = std::clamp(R, 1, newDepth); /// clamp R
             score = -search<false, false>(-alpha - 1, -alpha, newDepth - R, true, stack + 1);
+            tried_count++;
 
             if (R > 1 && score > alpha) {
                 newDepth += (score > best + DeeperMargin) - (score < best + newDepth);
                 score = -search<false, false>(-alpha - 1, -alpha, newDepth - 1, !cutNode, stack + 1);
+                tried_count++;
             }
         }
         else if (!pvNode || played > 1) {
             score = -search<false, false>(-alpha - 1, -alpha, newDepth - 1, !cutNode, stack + 1);
+            tried_count++;
         }
 
         if constexpr (pvNode) {
-            if (played == 1 || score > alpha)
+            if (played == 1 || score > alpha) {
                 score = -search<false, true>(-beta, -alpha, newDepth - 1, false, stack + 1);
+                tried_count++;
+            }
         }
 
         board.undo_move(move);
@@ -630,21 +635,21 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
                         stack->killer = bestMove;
                         if (nr_quiets || depth >= HistoryUpdateMinDepth)
                             histories.update_hist_quiet_move(bestMove, board.piece_at(sq_from(bestMove)), 
-                                                            threats.all_threats, turn, stack, bonus);
+                                                            threats.all_threats, turn, stack, bonus * tried_count);
                         for (int i = 0; i < nr_quiets; i++) {
-                            const Move move = stack->quiets[i];
+                            const auto [move, tried_count] = stack->quiets[i];
                             histories.update_hist_quiet_move(move, board.piece_at(sq_from(move)), 
-                                                            threats.all_threats, turn, stack, malus);
+                                                            threats.all_threats, turn, stack, malus * tried_count);
                         }
                     }
                     else {
                         histories.update_cap_hist_move(board.piece_at(sq_from(bestMove)), sq_to(bestMove), 
-                                                      board.get_captured_type(bestMove), bonus);
+                                                      board.get_captured_type(bestMove), bonus * tried_count);
                     }
                     for (int i = 0; i < nr_noisies; i++) {
-                        const Move move = stack->noisies[i];
+                        const auto [move, tried_count] = stack->noisies[i];
                         histories.update_cap_hist_move(board.piece_at(sq_from(move)), sq_to(move), 
-                                                      board.get_captured_type(move), malus);
+                                                      board.get_captured_type(move), malus * tried_count);
                     }
                     break;
                 }
@@ -652,8 +657,8 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
         }
         
         if(move != bestMove) {
-            if (isQuiet) stack->quiets[nr_quiets++] = move;
-            else stack->noisies[nr_noisies++] = move;
+            if (isQuiet) stack->quiets[nr_quiets++] = SearchMove(move, tried_count);
+            else stack->noisies[nr_noisies++] = SearchMove(move, tried_count);
         }
     }
 
