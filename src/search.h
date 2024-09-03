@@ -630,7 +630,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
                     update_pv(ply, move);
                 if (alpha >= beta) {
                     const int bonus =  getHistoryBonus(depth + bad_static_eval + (cutNode && depth <= 3));
-                    const int malus = -getHistoryBonus(depth + bad_static_eval + (cutNode && depth <= 3) + allNode);
+                    const int malus = -getHistoryBonus(depth - bad_static_eval + (cutNode && depth <= 3) + allNode);
                     if (!board.is_noisy_move(bestMove)) {
                         stack->killer = bestMove;
                         if (nr_quiets || depth >= HistoryUpdateMinDepth)
