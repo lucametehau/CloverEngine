@@ -46,7 +46,7 @@ private:
 
     int threshold;
 
-    std::array<Move, MAX_MOVES> moves, badNoisy;
+    MoveList moves, badNoisy;
     std::array<int, MAX_MOVES> scores;
 
 public:
@@ -62,7 +62,7 @@ public:
         threats_r = threats.threats_pieces[ROOK] | threats_bn;
     }
 
-    void get_best_move(int offset, int nrMoves, std::array<Move, MAX_MOVES> &moves, std::array<int, MAX_MOVES> &scores) {
+    void get_best_move(int offset, int nrMoves, MoveList &moves, std::array<int, MAX_MOVES> &scores) {
         int ind = offset;
         for (int i = offset + 1; i < nrMoves; i++) {
             if (scores[ind] < scores[i])

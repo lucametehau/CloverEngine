@@ -39,16 +39,16 @@ public:
         histories.clear_history();
     }
 
-    void start_search(Info* info);
+    void start_search(Info &info);
 
-    inline void setTime(Info* _info) { info = _info; }
+    inline void setTime(Info &_info) { info = _info; }
 
 private:
     template <bool pvNode>
     int quiesce(int alpha, int beta, StackEntry* stack);
 
-    template <bool rootNode, bool pvNode>
-    int search(int alpha, int beta, int depth, bool cutNode, StackEntry* stack);
+    template <bool rootNode, bool pvNode, bool cutNode>
+    int search(int alpha, int beta, int depth, StackEntry* stack);
 
     void print_pv();
     void update_pv(int ply, int move);
@@ -61,9 +61,9 @@ private:
     std::array<uint64_t, 64 * 64> nodes_seached;
 
 public:
-    Info* info;
+    Info info;
 
-    std::array<Move, MAX_MOVES> best_move;
+    MoveList best_move;
     std::array<int, MAX_MOVES> scores, root_score;
     std::array<MeanValue, 100> values;
 

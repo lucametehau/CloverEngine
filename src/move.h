@@ -38,7 +38,7 @@ uint64_t getPinnedPieces(Board& board, bool turn) {
     return pinned;
 }
 
-inline void add_moves(std::array<Move, MAX_MOVES> &moves, int& nrMoves, int pos, uint64_t att) {
+inline void add_moves(MoveList &moves, int& nrMoves, int pos, uint64_t att) {
     while (att) moves[nrMoves++] = getMove(pos, sq_lsb(att), 0, NEUT);
 }
 
@@ -320,7 +320,7 @@ void Board::undo_null_move() {
     state = history[game_ply];
 }
 
-int gen_legal_moves(Board& board, std::array<Move, MAX_MOVES> &moves) {
+int gen_legal_moves(Board& board, MoveList &moves) {
     int nrMoves = 0;
     const int color = board.turn, enemy = color ^ 1;
     const int king = board.king(color), enemyKing = board.king(enemy);
@@ -554,7 +554,7 @@ int gen_legal_moves(Board& board, std::array<Move, MAX_MOVES> &moves) {
 
 /// noisy moves generator
 
-int gen_legal_noisy_moves(Board& board, std::array<Move, MAX_MOVES> &moves) {
+int gen_legal_noisy_moves(Board& board, MoveList &moves) {
     int nrMoves = 0;
     const int color = board.turn, enemy = color ^ 1;
     const int king = board.king(color), enemyKing = board.king(enemy);
@@ -723,7 +723,7 @@ int gen_legal_noisy_moves(Board& board, std::array<Move, MAX_MOVES> &moves) {
 }
 
 /// generate quiet moves
-int gen_legal_quiet_moves(Board& board, std::array<Move, MAX_MOVES> &moves) {
+int gen_legal_quiet_moves(Board& board, MoveList &moves) {
     int nrMoves = 0;
     const int color = board.turn, enemy = color ^ 1;
     const int king = board.king(color), enemyKing = board.king(enemy);
@@ -920,7 +920,7 @@ bool is_pseudo_legal(Board& board, Move move) {
 }
 
 bool is_legal_slow(Board& board, Move move) {
-    std::array<Move, MAX_MOVES> moves;
+    MoveList moves;
     int nrMoves = 0;
 
     nrMoves = gen_legal_moves(board, moves);
@@ -1011,7 +1011,7 @@ bool is_legal_dummy(Board& board, Move move) {
     return legal;
 }
 
-Move parse_move_string(Board& board, std::string moveStr, Info *info) {
+Move parse_move_string(Board& board, std::string moveStr, Info &info) {
     if (moveStr[1] > '8' || moveStr[1] < '1' || 
         moveStr[3] > '8' || moveStr[3] < '1' || 
         moveStr[0] > 'h' || moveStr[0] < 'a' || 
@@ -1019,7 +1019,7 @@ Move parse_move_string(Board& board, std::string moveStr, Info *info) {
         return NULLMOVE;
 
     int from = get_sq(moveStr[1] - '1', moveStr[0] - 'a');
-    if (!info->chess960 && board.piece_type_at(from) == KING) {
+    if (!info.chess960 && board.piece_type_at(from) == KING) {
         if (moveStr == "e1c1") moveStr = "e1a1";
         else if (moveStr == "e1g1") moveStr = "e1h1";
         else if (moveStr == "e8c8") moveStr = "e8a8";
@@ -1028,7 +1028,7 @@ Move parse_move_string(Board& board, std::string moveStr, Info *info) {
 
     int to = get_sq(moveStr[3] - '1', moveStr[2] - 'a');
 
-    std::array<Move, MAX_MOVES> moves;
+    MoveList moves;
     int nrMoves = gen_legal_moves(board, moves);
 
     for (int i = 0; i < nrMoves; i++) {

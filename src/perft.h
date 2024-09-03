@@ -19,7 +19,7 @@
 
 template <bool RootNode>
 uint64_t perft(Board& board, int depth) {
-    std::array<Move, MAX_MOVES> moves;
+    MoveList moves;
     int nrMoves = gen_legal_moves(board, moves);
 
     if (depth == 1) return nrMoves;

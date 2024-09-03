@@ -38,7 +38,7 @@ private:
     void uci();
     void ucinewgame(uint64_t ttSize);
     void is_ready();
-    void go(Info* info);
+    void go(Info &info);
     void stop();
     void quit();
     void eval();
@@ -75,7 +75,7 @@ void UCI::uci_loop() {
     TT = new HashTable();
 #endif
 
-    Info info[1];
+    Info info;
     init(info);
     thread_pool.create_pool(1);
     ucinewgame(ttSize);
@@ -101,7 +101,7 @@ void UCI::uci_loop() {
                         iss >> component;
                         fen += component + " ";
                     }
-                    thread_pool.set_fen_pool(fen, info->chess960);
+                    thread_pool.set_fen_pool(fen, info.chess960);
                 }
                 else if (type == "moves") {
                     std::string moveStr;
@@ -122,8 +122,8 @@ void UCI::uci_loop() {
             int time = -1, inc = 0;
             int64_t nodes = -1;
             bool turn = thread_pool.get_board().turn;
-            info->timeset = 0;
-            info->sanMode = 0;
+            info.timeset = 0;
+            info.sanMode = 0;
 
             std::string param;
 
@@ -135,17 +135,17 @@ void UCI::uci_loop() {
                 else if (param == "movetime") { iss >> movetime; }
                 else if (param == "depth") { iss >> depth; }
                 else if (param == "nodes") { iss >> nodes; }
-                else if (param == "san") { info->sanMode = true; }
+                else if (param == "san") { info.sanMode = true; }
             }
 
-            info->startTime = getTime();
-            info->depth = depth;
+            info.startTime = getTime();
+            info.depth = depth;
 
             if (movetime != -1) {
                 time = movetime;
-                info->timeset = 1;
-                info->goodTimeLim = info->hardTimeLim = time;
-                info->stopTime = info->startTime + info->goodTimeLim;
+                info.timeset = 1;
+                info.goodTimeLim = info.hardTimeLim = time;
+                info.stopTime = info.startTime + info.goodTimeLim;
             }
             else if (time != -1) {
                 const int MOVE_OVERHEAD = 100; // idk
@@ -154,15 +154,15 @@ void UCI::uci_loop() {
                 int goodTimeLim, hardTimeLim;
                 goodTimeLim = std::min<int>(incTime * TMCoef1, time * TMCoef2);
                 hardTimeLim = std::min<int>(goodTimeLim * TMCoef3, time * TMCoef4);
-                info->goodTimeLim = goodTimeLim;
-                info->hardTimeLim = hardTimeLim;
-                info->timeset = 1;
-                info->stopTime = info->startTime + goodTimeLim;
+                info.goodTimeLim = goodTimeLim;
+                info.hardTimeLim = hardTimeLim;
+                info.timeset = 1;
+                info.stopTime = info.startTime + goodTimeLim;
             }
 
-            info->nodes = nodes;
+            info.nodes = nodes;
             if (depth == -1)
-                info->depth = MAX_DEPTH;
+                info.depth = MAX_DEPTH;
 
             go(info);
         }
@@ -214,13 +214,13 @@ void UCI::uci_loop() {
             else if (name == "MultiPV") {
                 int multipv;
                 iss >> value >> multipv;
-                info->multipv = multipv;
+                info.multipv = multipv;
             }
             else if (name == "UCI_Chess960") {
                 std::string chess960;
                 iss >> value >> chess960;
 
-                info->chess960 = (chess960 == "true");
+                info.chess960 = (chess960 == "true");
             }
             else {
                 for (auto& param : params_int) {
@@ -304,13 +304,13 @@ void UCI::ucinewgame(uint64_t ttSize) {
 #endif
 }
 
-void UCI::go(Info* info) {
+void UCI::go(Info &info) {
 #ifndef GENERATE
     TT->age();
 #endif
     thread_pool.clear_stack_pool();
     thread_pool.clear_board_pool();
-    main_thread = std::thread(&ThreadPool::main_thread_handler, &thread_pool, info);
+    main_thread = std::thread(&ThreadPool::main_thread_handler, &thread_pool, std::ref(info));
 }
 
 void UCI::stop() {
@@ -402,7 +402,7 @@ std::string benchPos[] = {
 
 
 void UCI::bench(int depth) {
-    Info info[1];
+    Info info;
 
 #ifndef GENERATE
     TT = new HashTable();
@@ -419,10 +419,10 @@ void UCI::bench(int depth) {
     uint64_t totalNodes = 0;
     for (auto& fen : benchPos) {
         thread_pool.set_fen_pool(fen);
-        info->timeset = 0;
-        info->depth = (depth == -1 ? 14 : depth);
-        info->startTime = getTime();
-        info->nodes = -1;
+        info.timeset = 0;
+        info.depth = (depth == -1 ? 14 : depth);
+        info.startTime = getTime();
+        info.nodes = -1;
         thread_pool.threads_data[0].start_search(info);
         totalNodes += thread_pool.threads_data[0].nodes;
         ucinewgame(ttSize);

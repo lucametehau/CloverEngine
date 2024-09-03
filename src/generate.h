@@ -38,18 +38,18 @@ void generateFens(SearchData &thread_data, std::atomic<uint64_t>& sumFens, std::
     std::ofstream out(path);
     std::mt19937_64 gn((std::chrono::system_clock::now().time_since_epoch().count() + extraSeed) ^ 8257298672678ULL);
 
-    Info info[1];
+    Info info;
     int gameInd = 1;
     uint64_t totalFens = 0;
 
-    info->timeset = false;
-    info->depth = MAX_DEPTH;
-    info->startTime = getTime();
-    info->min_nodes = 5000;
-    info->max_nodes = (1 << 20);
-    info->nodes = -1;
+    info.timeset = false;
+    info.depth = MAX_DEPTH;
+    info.startTime = getTime();
+    info.min_nodes = 5000;
+    info.max_nodes = (1 << 20);
+    info.nodes = -1;
 
-    info->multipv = 1;
+    info.multipv = 1;
 
     std::mutex M;
 
@@ -90,7 +90,7 @@ void generateFens(SearchData &thread_data, std::atomic<uint64_t>& sumFens, std::
                 break;
             }
 
-            std::array<Move, MAX_MOVES> moves;
+            MoveList moves;
 
             int nrMoves = gen_legal_moves(thread_data.board, moves);
 
