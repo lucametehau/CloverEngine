@@ -21,11 +21,11 @@
 #include "move.h"
 #include "attacks.h"
 
-void init(Info* info) {
-    info->depth = MAX_DEPTH;
-    info->multipv = 1;
-    info->nodes = info->min_nodes = info->max_nodes = -1;
-    info->chess960 = false;
+void init(Info &info) {
+    info.depth = MAX_DEPTH;
+    info.multipv = 1;
+    info.nodes = info.min_nodes = info.max_nodes = -1;
+    info.chess960 = false;
 }
 
 void Board::set_fen(const std::string fen) {
@@ -295,7 +295,7 @@ bool Board::is_draw(int ply) {
     if (half_moves() < 100 || !checkers())
         return isMaterialDraw() || is_repetition(ply) || half_moves() >= 100;
     int nrmoves = 0;
-    std::array<Move, 256> moves;
+    MoveList moves;
     nrmoves = gen_legal_moves(*this, moves);
     return nrmoves > 0;
 }

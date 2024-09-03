@@ -117,10 +117,10 @@ public:
         return nodes;
     }
 
-    void main_thread_handler(Info *info) {
+    void main_thread_handler(Info &info) {
         assert(!threads_data.empty());
         for (std::size_t i = 1; i < threads_data.size(); i++)
-            threads.push_back(std::thread(&SearchData::start_search, &threads_data[i], info));
+            threads.push_back(std::thread(&SearchData::start_search, &threads_data[i], std::ref(info)));
         threads_data[0].start_search(info);
 
         pool_stop();
@@ -142,7 +142,7 @@ public:
         }
 
         if (printStats) {
-            std::cout << "bestmove " << move_to_string(best_move, info->chess960);
+            std::cout << "bestmove " << move_to_string(best_move, info.chess960);
             std::cout << std::endl;
         }
     }

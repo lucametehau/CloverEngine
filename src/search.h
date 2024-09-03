@@ -32,7 +32,7 @@ bool SearchData::check_for_stop() {
 
     if (flag_stopped) return 1;
 
-    if ((info->nodes != -1 && info->nodes <= nodes) || (info->max_nodes != -1 && nodes >= info->max_nodes)) {
+    if ((info.nodes != -1 && info.nodes <= nodes) || (info.max_nodes != -1 && nodes >= info.max_nodes)) {
         flag_stopped = true;
         return 1;
     }
@@ -40,7 +40,7 @@ bool SearchData::check_for_stop() {
     checkCount++;
     if (checkCount == (1 << 10)) {
         if constexpr (checkTime) {
-            if (info->timeset && getTime() > info->startTime + info->hardTimeLim) flag_stopped = true;
+            if (info.timeset && getTime() > info.startTime + info.hardTimeLim) flag_stopped = true;
         }
         checkCount = 0;
     }
@@ -127,7 +127,7 @@ std::string getSanString(Board& board, Move move) {
 }
 
 void SearchData::print_pv() {
-    if (info->sanMode) {    
+    if (info.sanMode) {    
         for (int i = 0; i < pv_table_len[0]; i++) {
             std::cout << getSanString(board, pv_table[0][i]) << " ";
             board.make_move(pv_table[0][i]);
@@ -136,7 +136,7 @@ void SearchData::print_pv() {
     }
     else {
         for (int i = 0; i < pv_table_len[0]; i++) {
-            std::cout << move_to_string(pv_table[0][i], info->chess960) << " ";
+            std::cout << move_to_string(pv_table[0][i], info.chess960) << " ";
         }
     }
 }
@@ -261,15 +261,15 @@ int SearchData::quiesce(int alpha, int beta, StackEntry* stack) {
 
     return best;
 }
-template <bool rootNode, bool pvNode>
-int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry* stack) {
+template <bool rootNode, bool pvNode, bool cutNode>
+int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
     const int ply = board.ply;
 
     if (check_for_stop<true>() || ply >= MAX_DEPTH) return evaluate(board);
 
     if (depth <= 0) return quiesce<pvNode>(alpha, beta, stack);
 
-    const bool allNode = !pvNode && !cutNode;
+    constexpr bool allNode = !pvNode && !cutNode;
     const bool nullSearch = (stack - 1)->move == NULLMOVE;
     const int alphaOrig = alpha;
     const uint64_t key = board.key(), pawn_key = board.pawn_key();
@@ -322,22 +322,13 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
     if constexpr (!rootNode) {
         const auto probe = probe_TB(board, depth);
         if (probe != TB_RESULT_FAILED) {
-            int score;
             tb_hits++;
-            switch (probe) {
-            case TB_WIN:
-                score = TB_WIN_SCORE - MAX_DEPTH - ply;
-                ttBound = LOWER;
-                break;
-            case TB_LOSS:
-                score = -(TB_WIN_SCORE - MAX_DEPTH - ply);
-                ttBound = UPPER;
-                break;
-            default:
-                score = 0;
-                ttBound = EXACT;
-                break;
-            }
+
+            const auto [score, ttBound] = [probe, ply]() -> std::pair<int, int> {
+                if (probe == TB_WIN) return {TB_WIN_SCORE - MAX_DEPTH - ply, LOWER};
+                if (probe == TB_LOSS) return {-TB_WIN_SCORE + MAX_DEPTH + ply, UPPER};
+                return {0, EXACT};
+            }();
 
             if (ttBound & (score >= beta ? LOWER : UPPER)) {
                 TT->save(entry, key, score, MAX_DEPTH, 0, ttBound, NULLMOVE, 0, was_pv);
@@ -350,7 +341,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
     Threats threats;
     get_threats(threats, board, turn);
     const bool enemy_has_no_threats = !threats.threatened_pieces;
-    int raw_eval{};
+    int raw_eval;
 
     if (in_check) { /// when in check, don't evaluate
         stack->eval = raw_eval = eval = INF;
@@ -371,15 +362,19 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
     }
 
     const int static_eval = stack->eval;
-    int eval_diff = 0;
-    if ((stack - 2)->eval != INF)
-        eval_diff = static_eval - (stack - 2)->eval;
-    else if ((stack - 4)->eval != INF)
-        eval_diff = static_eval - (stack - 4)->eval;
+    const int eval_diff = [stack, static_eval]() -> int {
+        if ((stack - 2)->eval != INF)
+            return static_eval - (stack - 2)->eval;
+        else if ((stack - 4)->eval != INF)
+            return static_eval - (stack - 4)->eval;
+        return 0;
+    }();
 
-    const int improving = (in_check || eval_diff == 0 ? 0 :
-        eval_diff > 0 ? 1 :
-        eval_diff < NegativeImprovingMargin ? -1 : 0);
+    const int improving = [in_check, eval_diff]() -> int {
+        if (in_check || eval_diff == 0) return 0;
+        if (eval_diff > 0) return 1;
+        return eval_diff < NegativeImprovingMargin ? -1 : 0;
+    }();
 
     (stack + 1)->killer = NULLMOVE;
 
@@ -411,7 +406,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
                 stack->cont_hist = &histories.cont_history[0][NO_PIECE][0];
 
                 board.make_null_move();
-                int score = -search<false, false>(-beta, -beta + 1, depth - R, !cutNode, stack + 1);
+                int score = -search<false, false, !cutNode>(-beta, -beta + 1, depth - R, stack + 1);
                 board.undo_null_move();
 
                 if (score >= beta) return abs(score) > MATE ? beta : score; /// don't trust mate scores
@@ -437,7 +432,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
                     board.make_move(move);
 
                     int score = -quiesce<false>(-probBeta, -probBeta + 1, stack + 1);
-                    if (score >= probBeta) score = -search<false, false>(-probBeta, -probBeta + 1, depth - ProbcutReduction, !cutNode, stack + 1);
+                    if (score >= probBeta) score = -search<false, false, !cutNode>(-probBeta, -probBeta + 1, depth - ProbcutReduction, stack + 1);
                     
                     board.undo_move(move);
 
@@ -534,7 +529,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
                 int rBeta = ttValue - SEMargin * depth / 64;
 
                 stack->excluded = move;
-                int score = search<false, false>(rBeta - 1, rBeta, (depth - 1) / 2, cutNode, stack);
+                int score = search<false, false, cutNode>(rBeta - 1, rBeta, (depth - 1) / 2, stack);
                 stack->excluded = NULLMOVE;
 
                 if (score < rBeta) ex = 1 + (!pvNode && rBeta - score > SEDoubleExtensionsMargin) + (!pvNode && !ttCapture && rBeta - score > SETripleExtensionsMargin);
@@ -556,8 +551,8 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
 
         if constexpr (rootNode) {
             /// current root move info
-            if (thread_id == 0 && printStats && getTime() > info->startTime + 2500 && !info->sanMode) {
-                std::cout << "info depth " << depth << " currmove " << move_to_string(move, info->chess960) << " currmovenumber " << played << std::endl;
+            if (thread_id == 0 && printStats && getTime() > info.startTime + 2500 && !info.sanMode) {
+                std::cout << "info depth " << depth << " currmove " << move_to_string(move, info.chess960) << " currmovenumber " << played << std::endl;
             }
         }
 
@@ -590,23 +585,23 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
             R += enemy_has_no_threats && !in_check && static_eval + LMRBadStaticEvalMargin <= alpha;
 
             R = std::clamp(R, 1, newDepth); /// clamp R
-            score = -search<false, false>(-alpha - 1, -alpha, newDepth - R, true, stack + 1);
+            score = -search<false, false, true>(-alpha - 1, -alpha, newDepth - R, stack + 1);
             tried_count++;
 
             if (R > 1 && score > alpha) {
                 newDepth += (score > best + DeeperMargin) - (score < best + newDepth);
-                score = -search<false, false>(-alpha - 1, -alpha, newDepth - 1, !cutNode, stack + 1);
+                score = -search<false, false, !cutNode>(-alpha - 1, -alpha, newDepth - 1, stack + 1);
                 tried_count++;
             }
         }
         else if (!pvNode || played > 1) {
-            score = -search<false, false>(-alpha - 1, -alpha, newDepth - 1, !cutNode, stack + 1);
+            score = -search<false, false, !cutNode>(-alpha - 1, -alpha, newDepth - 1, stack + 1);
             tried_count++;
         }
 
         if constexpr (pvNode) {
             if (played == 1 || score > alpha) {
-                score = -search<false, true>(-beta, -alpha, newDepth - 1, false, stack + 1);
+                score = -search<false, true, false>(-beta, -alpha, newDepth - 1, stack + 1);
                 tried_count++;
             }
         }
@@ -626,7 +621,7 @@ int SearchData::search(int alpha, int beta, int depth, bool cutNode, StackEntry*
                 }
                 bestMove = move;
                 alpha = score;
-                if constexpr(pvNode)
+                if constexpr (pvNode)
                     update_pv(ply, move);
                 if (alpha >= beta) {
                     const int bonus =  getHistoryBonus(depth + bad_static_eval + (cutNode && depth <= 3));
@@ -719,7 +714,7 @@ void SearchData::print_iteration_info(bool san_mode, int multipv, int score, int
     }
 }
 
-void SearchData::start_search(Info* _info) {
+void SearchData::start_search(Info &_info) {
     nodes = sel_depth = tb_hits = 0;
     t0 = getTime();
     flag_stopped = false;
@@ -730,7 +725,7 @@ void SearchData::start_search(Info* _info) {
     info = _info;
 
     int alpha, beta;
-    int limitDepth = (thread_id == 0 ? info->depth : MAX_DEPTH); /// when limited by depth, allow helper threads to pass the fixed depth
+    int limitDepth = (thread_id == 0 ? info.depth : MAX_DEPTH); /// when limited by depth, allow helper threads to pass the fixed depth
     int last_root_score = 0;
     Move last_best_move = NULLMOVE;
 
@@ -754,7 +749,7 @@ void SearchData::start_search(Info* _info) {
 
     for (tDepth = 1; tDepth <= limitDepth; tDepth++) {
         multipv_index = 0;
-        for (int i = 1; i <= info->multipv; i++) {
+        for (int i = 1; i <= info.multipv; i++) {
             multipv_index++;
             int window = AspirationWindosValue;
             if (tDepth >= AspirationWindowsDepth) {
@@ -770,12 +765,12 @@ void SearchData::start_search(Info* _info) {
             while (true) {
                 depth = std::max({ depth, 1, tDepth - 4 });
                 sel_depth = 0;
-                scores[i] = search<true, true>(alpha, beta, depth, false, stack);
+                scores[i] = search<true, true, false>(alpha, beta, depth, stack);
                 if (flag_stopped)
                     break;
 
                 if (thread_id == 0 && printStats && ((alpha < scores[i] && scores[i] < beta) || (i == 1 && getTime() > t0 + 3000))) {
-                    print_iteration_info(info->sanMode, i, scores[i], alpha, beta, 
+                    print_iteration_info(info.sanMode, i, scores[i], alpha, beta, 
                                         static_cast<uint64_t>(getTime()) - t0, depth, sel_depth, 
                                         thread_pool.get_total_nodes_pool(), thread_pool.get_total_tb_hits_pool());
                 }
@@ -810,7 +805,7 @@ void SearchData::start_search(Info* _info) {
                 nodesSearchedPercentage = TimeManagerNodesSearchedMaxPercentage - TimeManagerNodesSearchedCoef * nodesSearchedPercentage;
                 bestMoveStreak = TimeManagerBestMoveMax - TimeManagerbestMoveStep * std::min(10, best_move_cnt); /// adjust time based on how long the best move was the same
             }
-            info->stopTime = info->startTime + info->goodTimeLim * scoreChange * bestMoveStreak * nodesSearchedPercentage;
+            info.stopTime = info.startTime + info.goodTimeLim * scoreChange * bestMoveStreak * nodesSearchedPercentage;
             last_root_score = root_score[1];
             last_best_move = best_move[1];
         }
@@ -818,7 +813,7 @@ void SearchData::start_search(Info* _info) {
         if (flag_stopped)
             break;
 
-        if ((info->timeset && getTime() > info->stopTime) || tDepth == limitDepth || (info->min_nodes != -1 && nodes >= info->min_nodes)) {
+        if ((info.timeset && getTime() > info.stopTime) || tDepth == limitDepth || (info.min_nodes != -1 && nodes >= info.min_nodes)) {
             flag_stopped = true;
             break;
         }

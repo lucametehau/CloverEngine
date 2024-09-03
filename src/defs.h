@@ -63,8 +63,6 @@ void fill_multiarray(MultiArray<typename MultiArray_impl<T, sizes...>::type, siz
         fill_multiarray<T, sizes...>(array[i], value);
 }
 
-typedef uint16_t Move;
-
 class Threats {
 public:
     uint64_t threats_pieces[4];
@@ -113,14 +111,19 @@ enum {
     NONE = 0, UPPER, LOWER, EXACT
 };
 
+typedef uint16_t Move;
 constexpr Move NULLMOVE = 0;
+
 constexpr int HALFMOVES = 100;
 constexpr int INF = 32000;
 constexpr int VALUE_NONE = INF + 10;
 constexpr int MATE = 31000;
 constexpr int TB_WIN_SCORE = 22000;
 constexpr int MAX_DEPTH = 200;
+
 constexpr int MAX_MOVES = 256;
+typedef std::array<Move, MAX_MOVES> MoveList;
+
 constexpr uint64_t ALL = 18446744073709551615ULL;
 const std::string piece_char = "pnbrqkPNBRQK.";
 const std::string START_POS_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -167,7 +170,7 @@ private:
     int valuesCount;
 
 public:
-    void init(std::string _name) {
+    MeanValue(std::string _name = "") {
         name = _name;
         valuesSum = 0.0;
         valuesCount = 0;
