@@ -13,7 +13,7 @@ else
 endif
 
 
-WFLAGS = -Wall -g
+WFLAGS = -Wall -g -Wl,--stack,4194304
 RFLAGS = $(WFLAGS) -std=c++17 -O3 -funroll-loops
 LIBS =
 
