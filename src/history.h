@@ -49,7 +49,7 @@ public:
 
 class StackEntry { /// info to keep in the stack
 public:
-    StackEntry() : piece(NO_PIECE), move(0), killer(0), excluded(0), eval(0) {
+    StackEntry() : piece(NO_PIECE), move(0), killer(0), excluded(0), eval(0), all_threats(0) {
         quiets.fill(SearchMove());
         noisies.fill(SearchMove());
     }
@@ -58,6 +58,7 @@ public:
     std::array<SearchMove, MAX_MOVES> quiets, noisies;
     int eval;
     MultiArray<History<16384>, 13, 64>* cont_hist;
+    uint64_t all_threats;
 };
 
 class Histories {
@@ -124,7 +125,7 @@ public:
         get_hist(sq_from(move), sq_to(move), from_to(move), turn, threats).update(bonus);
     }
 
-    inline void update_hist_quiet_move(const Move move, const int piece, const uint64_t threats, const bool turn, StackEntry *&stack, const int16_t bonus) {
+    inline void update_hist_quiet_move(const Move move, const int piece, const uint64_t threats, const bool turn, StackEntry *stack, const int16_t bonus) {
         update_hist_move(move, threats, turn, bonus);
         update_cont_hist_move(piece, sq_to(move), stack, bonus);
     }

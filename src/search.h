@@ -404,6 +404,7 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
                 stack->move = NULLMOVE;
                 stack->piece = NO_PIECE;
                 stack->cont_hist = &histories.cont_history[0][NO_PIECE][0];
+                stack->all_threats = threats.all_threats;
 
                 board.make_null_move();
                 int score = -search<false, false, !cutNode>(-beta, -beta + 1, depth - R, stack + 1);
@@ -428,6 +429,7 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
                     stack->move = move;
                     stack->piece = board.piece_at(sq_from(move));
                     stack->cont_hist = &histories.cont_history[0][stack->piece][sq_to(move)];
+                    stack->all_threats = threats.all_threats;
 
                     board.make_move(move);
 
@@ -545,6 +547,7 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
         stack->move = move;
         stack->piece = piece;
         stack->cont_hist = &histories.cont_history[isQuiet][piece][to];
+        stack->all_threats = threats.all_threats;
 
         board.make_move(move);
         played++;
@@ -659,7 +662,7 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
 
     if (best <= alphaOrig && cutNode) {
         if (board.captured() == NO_PIECE && (stack - 1)->move != NULLMOVE) 
-            histories.update_cont_hist_move((stack - 1)->piece, sq_to((stack - 1)->move), stack - 1, getHistoryBonus(depth));
+            histories.update_hist_quiet_move((stack - 1)->move, (stack - 1)->piece, (stack - 1)->all_threats, 1 ^ turn, stack - 1, getHistoryBonus(depth));
     }
 
 
