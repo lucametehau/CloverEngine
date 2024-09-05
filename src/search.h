@@ -732,7 +732,6 @@ void SearchData::start_search(Info &_info) {
     scores.fill(0);
     best_move.fill(0);
     root_score.fill(0);
-    std::array<StackEntry, MAX_DEPTH + 15> search_stack;
     StackEntry* stack = search_stack.data() + 10;
 
     search_stack.fill(StackEntry());
