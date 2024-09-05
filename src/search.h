@@ -657,6 +657,11 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
         }
     }
 
+    if (best <= alphaOrig && cutNode) {
+        if (board.captured() == NO_PIECE && (stack - 1)->move != NULLMOVE) 
+            histories.update_cont_hist_move((stack - 1)->piece, sq_to((stack - 1)->move), stack - 1, getHistoryBonus(depth));
+    }
+
 
     if (!played) return in_check ? -INF + ply : 0;
 
