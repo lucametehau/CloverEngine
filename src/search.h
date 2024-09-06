@@ -238,7 +238,15 @@ int SearchData::quiesce(int alpha, int beta, StackEntry* stack) {
         stack->cont_hist = &histories.cont_history[!board.is_noisy_move(move)][stack->piece][sq_to(move)];
 
         board.make_move(move);
-        score = -quiesce<pvNode>(-beta, -alpha, stack + 1);
+        if (!pvNode || played > 1) {
+            score = -quiesce<false>(-alpha - 1, -alpha, stack + 1);
+        }
+
+        if constexpr (pvNode) {
+            if (played == 1 || score > alpha) {
+                score = -quiesce<pvNode>(-beta, -alpha, stack + 1);
+            }
+        }
         board.undo_move(move);
 
         if (flag_stopped) return best;
