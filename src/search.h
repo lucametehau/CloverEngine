@@ -541,7 +541,7 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
                 stack->excluded = NULLMOVE;
 
                 if (score < rBeta) ex = 1 + (!pvNode && rBeta - score > SEDoubleExtensionsMargin) + (!pvNode && !ttCapture && rBeta - score > SETripleExtensionsMargin);
-                else if (rBeta >= beta) return rBeta; // multicut
+                else if (score >= beta) return score; // multicut
                 else if (ttValue >= beta || ttValue <= alpha) ex = -1 - !pvNode;
             }
             else if (in_check) ex = 1;
