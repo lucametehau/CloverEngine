@@ -209,8 +209,9 @@ public:
 };
 
 bool see(Board& board, Move move, int threshold) {
-    int from = sq_from(move), to = sq_to(move), t = type(move), stm, nextVictim, score = -threshold;
-    uint64_t diag, orth, occ, att, myAtt;
+    int from = sq_from(move), to = sq_to(move), t = type(move), nextVictim, score = -threshold;
+    uint64_t diag, orth, occ, att, myAtt, b;
+    bool stm;
 
     nextVictim = (t != PROMOTION ? board.piece_type_at(from) : promoted(move) + KNIGHT);
 
@@ -249,45 +250,45 @@ bool see(Board& board, Move move, int threshold) {
         if (!myAtt)
             break;
 
-        if (myAtt & board.get_bb_piece(PAWN, stm)) {
-            occ ^= lsb(myAtt & board.get_bb_piece(PAWN, stm));
-            att |= genAttacksBishop(occ, to) & diag;
+        if ((b = (myAtt & board.get_bb_piece(PAWN, stm)))) {
             score = -score - 1 - seeVal[PAWN];
             stm ^= 1;
             if (score >= 0)
                 break;
+            occ ^= lsb(b);
+            att |= genAttacksBishop(occ, to) & diag;
         }
-        else if (myAtt & board.get_bb_piece(KNIGHT, stm)) {
-            occ ^= lsb(myAtt & board.get_bb_piece(KNIGHT, stm));
+        else if ((b = (myAtt & board.get_bb_piece(KNIGHT, stm)))) {
             score = -score - 1 - seeVal[KNIGHT];
             stm ^= 1;
             if (score >= 0)
                 break;
+            occ ^= lsb(b);
         }
-        else if (myAtt & board.get_bb_piece(BISHOP, stm)) {
-            occ ^= lsb(myAtt & board.get_bb_piece(BISHOP, stm));
-            att |= genAttacksBishop(occ, to) & diag;
+        else if ((b = (myAtt & board.get_bb_piece(BISHOP, stm)))) {
             score = -score - 1 - seeVal[BISHOP];
             stm ^= 1;
             if (score >= 0)
                 break;
+            occ ^= lsb(b);
+            att |= genAttacksBishop(occ, to) & diag;
         }
-        else if (myAtt & board.get_bb_piece(ROOK, stm)) {
-            occ ^= lsb(myAtt & board.get_bb_piece(ROOK, stm));
-            att |= genAttacksRook(occ, to) & orth;
+        else if ((b = (myAtt & board.get_bb_piece(ROOK, stm)))) {
             score = -score - 1 - seeVal[ROOK];
             stm ^= 1;
             if (score >= 0)
                 break;
-        }
-        else if (myAtt & board.get_bb_piece(QUEEN, stm)) {
-            occ ^= lsb(myAtt & board.get_bb_piece(QUEEN, stm));
-            att |= genAttacksBishop(occ, to) & diag;
+            occ ^= lsb(b);
             att |= genAttacksRook(occ, to) & orth;
+        }
+        else if ((b = (myAtt & board.get_bb_piece(QUEEN, stm)))) {
             score = -score - 1 - seeVal[QUEEN];
             stm ^= 1;
             if (score >= 0)
                 break;
+            occ ^= lsb(b);
+            att |= genAttacksBishop(occ, to) & diag;
+            att |= genAttacksRook(occ, to) & orth;
         }
         else {
             assert(myAtt & board.get_bb_piece(KING, stm));
