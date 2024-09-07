@@ -292,14 +292,8 @@ bool see(Board& board, Move move, int threshold) {
         }
         else {
             assert(myAtt & board.get_bb_piece(KING, stm));
-            occ ^= board.get_bb_piece(KING, stm);
-            stm ^= 1;
-            score = -score - 1 - seeVal[KING];
-            if (score >= 0) {
-                if (att & occ & board.get_bb_color(stm))
-                    stm ^= 1;
-                break;
-            }
+            if (att & board.get_bb_color(1 ^ stm)) stm ^= 1;
+            break;
         }
     }
 
