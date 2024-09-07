@@ -815,6 +815,11 @@ void SearchData::start_search(Info &_info) {
             info.stopTime = info.startTime + info.goodTimeLim * scoreChange * bestMoveStreak * nodesSearchedPercentage;
             last_root_score = root_score[1];
             last_best_move = best_move[1];
+
+            if (info.timeset && nodesSearchedPercentage >= 0.97 && 1.0 * (getTime() - info.startTime) / (info.stopTime - info.startTime) >= 0.6) {
+                flag_stopped = true;
+                break;
+            }
         }
 
         if (flag_stopped)
