@@ -209,25 +209,18 @@ public:
 };
 
 bool see(Board& board, Move move, int threshold) {
-    int from = sq_from(move), to = sq_to(move), t = type(move), nextVictim, score = -threshold;
+    int from = sq_from(move), to = sq_to(move), score = -threshold + 1;
     uint64_t diag, orth, occ, att, myAtt, b;
-    bool stm;
+    bool stm, result = 1;
 
-    nextVictim = (t != PROMOTION ? board.piece_type_at(from) : promoted(move) + KNIGHT);
+    score += seeVal[board.get_captured_type(move)];
 
-    score += seeVal[board.piece_type_at(to)];
-
-    if (t == PROMOTION)
-        score += seeVal[promoted(move) + KNIGHT] - seeVal[PAWN];
-    else if (t == ENPASSANT)
-        score = seeVal[PAWN];
-
-    if (score < 0)
+    if (score <= 0)
         return 0;
 
-    score -= seeVal[nextVictim];
+    score = seeVal[board.piece_type_at(from)] - score + 1;
 
-    if (score >= 0)
+    if (score <= 0)
         return 1;
 
     diag = board.diagonal_sliders(WHITE) | board.diagonal_sliders(BLACK);
@@ -236,55 +229,52 @@ bool see(Board& board, Move move, int threshold) {
     occ = board.get_bb_color(WHITE) | board.get_bb_color(BLACK);
     occ = (occ ^ (1ULL << from)) | (1ULL << to);
 
-    if (t == ENPASSANT)
-        occ ^= (1ULL << board.enpas());
+    if (type(move) == ENPASSANT) occ ^= (1ULL << board.enpas());
 
     att = board.get_attackers(WHITE, occ, to) | board.get_attackers(BLACK, occ, to);
 
-    stm = 1 ^ board.turn;
+    stm = board.turn;
 
     while (true) {
+        stm ^= 1;
         att &= occ;
         myAtt = att & board.get_bb_color(stm);
 
         if (!myAtt)
             break;
 
+        result ^= 1;
+
         if ((b = (myAtt & board.get_bb_piece(PAWN, stm)))) {
-            score = -score - 1 - seeVal[PAWN];
-            stm ^= 1;
-            if (score >= 0)
+            score = seeVal[PAWN] + 1 - score;
+            if (score <= 0)
                 break;
             occ ^= lsb(b);
             att |= genAttacksBishop(occ, to) & diag;
         }
         else if ((b = (myAtt & board.get_bb_piece(KNIGHT, stm)))) {
-            score = -score - 1 - seeVal[KNIGHT];
-            stm ^= 1;
-            if (score >= 0)
+            score = seeVal[KNIGHT] + 1 - score;
+            if (score <= 0)
                 break;
             occ ^= lsb(b);
         }
         else if ((b = (myAtt & board.get_bb_piece(BISHOP, stm)))) {
-            score = -score - 1 - seeVal[BISHOP];
-            stm ^= 1;
-            if (score >= 0)
+            score = seeVal[BISHOP] + 1 - score;
+            if (score <= 0)
                 break;
             occ ^= lsb(b);
             att |= genAttacksBishop(occ, to) & diag;
         }
         else if ((b = (myAtt & board.get_bb_piece(ROOK, stm)))) {
-            score = -score - 1 - seeVal[ROOK];
-            stm ^= 1;
-            if (score >= 0)
+            score = seeVal[ROOK] + 1 - score;
+            if (score <= 0)
                 break;
             occ ^= lsb(b);
             att |= genAttacksRook(occ, to) & orth;
         }
         else if ((b = (myAtt & board.get_bb_piece(QUEEN, stm)))) {
-            score = -score - 1 - seeVal[QUEEN];
-            stm ^= 1;
-            if (score >= 0)
+            score = seeVal[QUEEN] + 1 - score;
+            if (score <= 0)
                 break;
             occ ^= lsb(b);
             att |= genAttacksBishop(occ, to) & diag;
@@ -292,10 +282,10 @@ bool see(Board& board, Move move, int threshold) {
         }
         else {
             assert(myAtt & board.get_bb_piece(KING, stm));
-            if (att & board.get_bb_color(1 ^ stm)) stm ^= 1;
+            if (att & board.get_bb_color(1 ^ stm)) result ^= 1;
             break;
         }
     }
 
-    return board.turn != stm;
+    return result;
 }
