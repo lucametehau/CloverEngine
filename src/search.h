@@ -193,12 +193,12 @@ int SearchData::quiesce(int alpha, int beta, StackEntry* stack) {
     }
     else if (!ttHit) {
         raw_eval = evaluate(board);
-        stack->eval = best = eval = histories.get_corrected_eval(raw_eval, turn, board.pawn_key());
+        stack->eval = best = eval = histories.get_corrected_eval(raw_eval, turn, board.pawn_key(), board.mat_key(WHITE), board.mat_key(BLACK));
         futilityValue = best + QuiesceFutilityBias;
     }
     else { /// ttValue might be a better evaluation
         raw_eval = eval;
-        stack->eval = eval = histories.get_corrected_eval(raw_eval, turn, board.pawn_key());
+        stack->eval = eval = histories.get_corrected_eval(raw_eval, turn, board.pawn_key(), board.mat_key(WHITE), board.mat_key(BLACK));
         if (ttBound == EXACT || (ttBound == LOWER && ttValue > eval) || (ttBound == UPPER && ttValue < eval)) 
             best = ttValue;
         futilityValue = best + QuiesceFutilityBias;
@@ -280,7 +280,7 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
     constexpr bool allNode = !pvNode && !cutNode;
     const bool nullSearch = (stack - 1)->move == NULLMOVE;
     const int alphaOrig = alpha;
-    const uint64_t key = board.key(), pawn_key = board.pawn_key();
+    const uint64_t key = board.key(), pawn_key = board.pawn_key(), white_mat_key = board.mat_key(WHITE), black_mat_key = board.mat_key(BLACK);
     const bool turn = board.turn;
 
     uint16_t nr_quiets = 0;
@@ -358,14 +358,14 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
         if (stack->excluded) raw_eval = eval = stack->eval;
         else {
             raw_eval = evaluate(board);
-            stack->eval = eval = histories.get_corrected_eval(raw_eval, turn, pawn_key);
+            stack->eval = eval = histories.get_corrected_eval(raw_eval, turn, pawn_key, white_mat_key, black_mat_key);
             TT->save(entry, key, VALUE_NONE, 0, ply, 0, NULLMOVE, raw_eval, was_pv);
         }
     }
     else { /// ttValue might be a better evaluation
         if (stack->excluded) raw_eval = evaluate(board);
         else raw_eval = eval;
-        stack->eval = eval = histories.get_corrected_eval(raw_eval, turn, pawn_key);
+        stack->eval = eval = histories.get_corrected_eval(raw_eval, turn, pawn_key, white_mat_key, black_mat_key);
         if (ttBound == EXACT || (ttBound == LOWER && ttValue > eval) || (ttBound == UPPER && ttValue < eval)) eval = ttValue;
     }
 
@@ -673,7 +673,7 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
         ttBound = (best >= beta ? LOWER : (best > alphaOrig ? EXACT : UPPER));
         if ((ttBound == UPPER || !board.is_noisy_move(bestMove)) && !in_check && 
             !(ttBound == LOWER && best <= static_eval) && !(ttBound == UPPER && best >= static_eval))
-            histories.update_corr_hist(turn, pawn_key, depth, best - static_eval);
+            histories.update_corr_hist(turn, pawn_key, white_mat_key, black_mat_key, depth, best - static_eval);
         TT->save(entry, key, best, depth, ply, ttBound, bestMove, raw_eval, was_pv);
     }
 

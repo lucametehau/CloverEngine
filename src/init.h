@@ -30,7 +30,7 @@ void init(Info &info) {
 
 void Board::set_fen(const std::string fen) {
     int ind = 0;
-    key() = pawn_key() = 0;
+    key() = pawn_key() = mat_key(WHITE) = mat_key(BLACK) = 0;
     ply = game_ply = 0;
     captured() = NO_PIECE;
 
