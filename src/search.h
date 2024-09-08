@@ -522,7 +522,7 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
                         !see(board, move, -SEEPruningNoisyMargin * (depth + bad_static_eval) * (depth + bad_static_eval) - history / 256)) continue;
 
                     if (depth <= FPNoisyDepth && !in_check && 
-                        static_eval + FPBias + seeVal[board.get_captured_type(move)] + FPMargin * depth <= alpha) continue;
+                        static_eval + FPBias + seeVal[board.get_captured_type(move)] + FPMargin * depth + history / 256 <= alpha) continue;
                 }
             }
         }
