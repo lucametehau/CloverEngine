@@ -153,7 +153,7 @@ public:
         const int w = std::min(4 * (depth + 1) * (depth + 1), 1024);
         int& corr = get_corr_hist(turn, pawn_key);
         corr = (corr * (CorrHistScale - w) + delta * CorrHistDiv * w) / CorrHistScale;
-        corr = std::clamp(corr, -32 * CorrHistDiv, 32 * CorrHistDiv);
+        corr = std::clamp(corr, -48 * CorrHistDiv, 48 * CorrHistDiv);
     }
 
     inline const int get_corrected_eval(const int eval, const bool turn, const uint64_t pawn_key) const {
