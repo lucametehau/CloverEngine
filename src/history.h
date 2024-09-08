@@ -88,6 +88,7 @@ public:
         fill_multiarray<History<16384>, 12, 64, 7>(cap_hist, 0);
         fill_multiarray<History<16384>, 2, 13, 64, 13, 64>(cont_history, 0);
         fill_multiarray<CorrectionHistory, 2, CORR_HIST_SIZE>(corr_hist, CorrectionHistory());
+        fill_multiarray<CorrectionHistory, 2, 2, CORR_HIST_SIZE>(mat_corr_hist, CorrectionHistory());
     }
 
     Histories() { clear_history(); }
