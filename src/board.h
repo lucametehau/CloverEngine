@@ -31,7 +31,7 @@ public:
     uint8_t captured;
     uint16_t halfMoves, moveIndex;
     uint64_t checkers, pinnedPieces;
-    uint64_t key, pawn_key;
+    uint64_t key, pawn_key, mat_key[2];
 };
 
 class Board {
@@ -73,6 +73,8 @@ public:
     inline uint64_t& key() { return state.key; }
 
     inline uint64_t& pawn_key() { return state.pawn_key; }
+
+    inline uint64_t& mat_key(const bool color) { return state.mat_key[color]; }
 
     inline uint64_t& checkers() { return state.checkers; }
 
@@ -171,6 +173,7 @@ public:
         board[sq] = piece;
         key() ^= hashKey[piece][sq];
         if (piece_type(piece) == PAWN) pawn_key() ^= hashKey[piece][sq];
+        else mat_key(color_of(piece)) ^= hashKey[piece][sq];
 
         pieces[color_of(piece)] |= (1ULL << sq);
         bb[piece] |= (1ULL << sq);
