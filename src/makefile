@@ -1,6 +1,6 @@
 SRC = *.cpp 3rdparty/Fathom/src/tbprobe.c
-EXE = Clover.8.0.7
-EVALFILE = clover-7buckets-mse-0.95-1280-cosine-600.bin
+EXE = Clover.8.0.8
+EVALFILE = clover-7buckets-mpe-0.95-1280-550.bin
 
 ifeq ($(CXX),)
     CXX = g++
