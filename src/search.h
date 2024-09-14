@@ -569,7 +569,7 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
         uint64_t initNodes = nodes;
         int score = -INF, tried_count = 0;
 
-        if (depth >= 2 && played > 1 + pvNode + rootNode) { /// first few moves we don't reduce
+        if (depth >= 2 && played > 1 + rootNode) { /// first few moves we don't reduce
             if (isQuiet) {
                 R = lmr_red[std::min(63, depth)][std::min(63, played)];
                 R += !was_pv + (improving <= 0); /// not on pv or not improving
