@@ -135,6 +135,7 @@ public:
                 const bool turn = board.turn, enemy = 1 ^ turn;
                 const uint64_t allPieces = board.get_bb_color(WHITE) | board.get_bb_color(BLACK);
                 const uint64_t enemyKingRing = kingRingMask[board.king(enemy)];
+                const uint64_t pawn_key = board.pawn_key();
                 
                 int m = 0;
                 for (int i = 0; i < nrQuiets; i++) {
@@ -144,7 +145,7 @@ public:
 
                     moves[m] = move;
                     const int from = sq_from(move), to = sq_to(move), piece = board.piece_at(from), pt = piece_type(piece);
-                    int score = histories.get_history_movepick(move, piece, all_threats, turn, stack);
+                    int score = histories.get_history_movepick(move, piece, all_threats, pawn_key, turn, stack);
 
                     if (pt == PAWN) // pawn push, generally good?
                         score += QuietPawnPushBonus;

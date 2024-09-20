@@ -22,6 +22,9 @@
 constexpr int CORR_HIST_SIZE = (1 << 16);
 constexpr int CORR_HIST_MASK = CORR_HIST_SIZE - 1;
 
+constexpr int PAWN_HIST_SIZE = (1 << 8);
+constexpr int PAWN_HIST_MASK = PAWN_HIST_SIZE - 1;
+
 template <int16_t Divisor>
 class History {
 public:
@@ -75,6 +78,7 @@ public:
 class Histories {
 private:
     MultiArray<History<16384>, 2, 2, 2, 64 * 64> hist;
+    MultiArray<History<16384>, 12, 64, PAWN_HIST_SIZE> pawn_hist;
     MultiArray<History<16384>, 12, 64, 7> cap_hist;
     MultiArray<CorrectionHistory, 2, CORR_HIST_SIZE> corr_hist;
     MultiArray<CorrectionHistory, 2, 2, CORR_HIST_SIZE> mat_corr_hist;
@@ -85,6 +89,7 @@ public:
 public:
     void clear_history() {
         fill_multiarray<History<16384>, 2, 2, 2, 64 * 64>(hist, 0);
+        fill_multiarray<History<16384>, 12, 64, PAWN_HIST_SIZE>(pawn_hist, 0);
         fill_multiarray<History<16384>, 12, 64, 7>(cap_hist, 0);
         fill_multiarray<History<16384>, 2, 13, 64, 13, 64>(cont_history, 0);
         fill_multiarray<CorrectionHistory, 2, CORR_HIST_SIZE>(corr_hist, CorrectionHistory());
@@ -99,6 +104,14 @@ public:
 
     inline const History<16384> get_hist(const int from, const int to, const int from_to, const bool turn, const uint64_t threats) const {
         return hist[turn][!!(threats & (1ULL << from))][!!(threats & (1ULL << to))][from_to];
+    }
+
+    inline History<16384>& get_pawn_hist(const int piece, const int to, const uint64_t pawn_key) {
+        return pawn_hist[piece][to][pawn_key & PAWN_HIST_MASK];
+    }
+
+    inline const History<16384> get_pawn_hist(const int piece, const int to, const uint64_t pawn_key) const {
+        return pawn_hist[piece][to][pawn_key & PAWN_HIST_MASK];
     }
 
     inline History<16384>& get_cont_hist(const int piece, const int to, StackEntry *stack, const int delta) {
@@ -146,9 +159,15 @@ public:
         get_hist(sq_from(move), sq_to(move), from_to(move), turn, threats).update(bonus);
     }
 
-    inline void update_hist_quiet_move(const Move move, const int piece, const uint64_t threats, const bool turn, StackEntry *&stack, const int16_t bonus) {
+    inline void update_pawn_hist_move(const int piece, const int to, const uint64_t pawn_key, const int16_t bonus) {
+        get_pawn_hist(piece, to, pawn_key).update(bonus);
+    }
+
+    inline void update_hist_quiet_move(const Move move, const int piece, const uint64_t threats, const uint64_t pawn_key, const bool turn, StackEntry *&stack, const int16_t bonus) {
+        const int to = sq_to(move);
         update_hist_move(move, threats, turn, bonus);
-        update_cont_hist_move(piece, sq_to(move), stack, bonus);
+        update_cont_hist_move(piece, to, stack, bonus);
+        update_pawn_hist_move(piece, to, pawn_key, bonus);
     }
 
     inline const int get_history_search(const Move move, const int piece, const uint64_t threats, const bool turn, StackEntry *stack) const {
@@ -159,12 +178,13 @@ public:
              + get_cont_hist(piece, to, stack, 4);
     }
 
-    inline const int get_history_movepick(const Move move, const int piece, const uint64_t threats, const bool turn, StackEntry *stack) const {
+    inline const int get_history_movepick(const Move move, const int piece, const uint64_t threats, const uint64_t pawn_key, const bool turn, StackEntry *stack) const {
         const int to = sq_to(move);
         return QuietHistCoef  * get_hist(sq_from(move), to, from_to(move), turn, threats)
              + QuietContHist1 * get_cont_hist(piece, to, stack, 1)
              + QuietContHist2 * get_cont_hist(piece, to, stack, 2)
-             + QuietContHist4 * get_cont_hist(piece, to, stack, 4);
+             + QuietContHist4 * get_cont_hist(piece, to, stack, 4)
+             + PawnHistCoef   * get_pawn_hist(piece, to, pawn_key);
     }
 
     inline void update_cap_hist_move(const int piece, const int to, const int cap, const int16_t bonus) {
