@@ -44,14 +44,14 @@ inline void add_moves(MoveList &moves, int& nrMoves, int pos, uint64_t att) {
 
 void Board::make_move(const Move move) { /// assuming move is at least pseudo-legal
     int posFrom = sq_from(move), posTo = sq_to(move);
-    const int pieceFrom = piece_at(posFrom), pieceTo = piece_at(posTo);
+    const int pieceFrom = piece_at(posFrom), pieceTo = piece_at(posTo), pt = piece_type(pieceFrom);
 
     history[game_ply] = state;
     key() ^= (enpas() >= 0 ? enPasKey[enpas()] : 0);
 
     half_moves()++;
 
-    if (piece_type(pieceFrom) == PAWN)
+    if (pt == PAWN)
         half_moves() = 0;
 
     captured() = NO_PIECE;
@@ -63,8 +63,14 @@ void Board::make_move(const Move move) { /// assuming move is at least pseudo-le
         bb[pieceFrom] ^= (1ULL << posFrom) ^ (1ULL << posTo);
 
         key() ^= hashKey[pieceFrom][posFrom] ^ hashKey[pieceFrom][posTo];
-        if (piece_type(pieceFrom) == PAWN) pawn_key() ^= hashKey[pieceFrom][posFrom] ^ hashKey[pieceFrom][posTo];
-        else mat_key(turn) ^= hashKey[pieceFrom][posFrom] ^ hashKey[pieceFrom][posTo];
+        if (pt == PAWN) pawn_key() ^= hashKey[pieceFrom][posFrom] ^ hashKey[pieceFrom][posTo];
+        else {
+            mat_key(turn) ^= hashKey[pieceFrom][posFrom] ^ hashKey[pieceFrom][posTo];
+            if (pt <= BISHOP) minor_key() ^= hashKey[pieceFrom][posFrom] ^ hashKey[pieceFrom][posTo];
+            else if (pt <= QUEEN) major_key() ^= hashKey[pieceFrom][posFrom] ^ hashKey[pieceFrom][posTo];
+            else minor_key() ^= hashKey[pieceFrom][posFrom] ^ hashKey[pieceFrom][posTo], major_key() ^= hashKey[pieceFrom][posFrom] ^ hashKey[pieceFrom][posTo];
+        }
+
         /// moved a castle rook
         if (pieceFrom == WR)
             castle_rights() &= castleRightsDelta[WHITE][posFrom];
@@ -78,7 +84,11 @@ void Board::make_move(const Move move) { /// assuming move is at least pseudo-le
             bb[pieceTo] ^= (1ULL << posTo);
             key() ^= hashKey[pieceTo][posTo];
             if (piece_type(pieceTo) == PAWN) pawn_key() ^= hashKey[pieceTo][posTo];
-            else mat_key(turn) ^= hashKey[pieceTo][posTo];
+            else {
+                mat_key(turn) ^= hashKey[pieceTo][posTo];
+                if (piece_type(pieceTo) <= BISHOP) minor_key() ^= hashKey[pieceTo][posTo];
+                else major_key() ^= hashKey[pieceTo][posTo];
+            }
 
             /// special case: captured rook might have been a castle rook
             if (pieceTo == WR)
@@ -92,9 +102,10 @@ void Board::make_move(const Move move) { /// assuming move is at least pseudo-le
         captured() = pieceTo;
 
         /// double push
-        if (piece_type(pieceFrom) == PAWN && (posFrom ^ posTo) == 16) {
+        if (pt == PAWN && (posFrom ^ posTo) == 16) {
             if ((posTo % 8 && board[posTo - 1] == get_piece(PAWN, turn ^ 1)) || 
-                (posTo % 8 < 7 && board[posTo + 1] == get_piece(PAWN, turn ^ 1))) 
+                (posTo % 8 < 7 && board[posTo + 1] == get_piece(PAWN, turn ^ 1))
+            ) 
                 enpas() = sq_dir(turn, NORTH, posFrom), key() ^= enPasKey[enpas()];
         }
 
@@ -148,6 +159,10 @@ void Board::make_move(const Move move) { /// assuming move is at least pseudo-le
                  hashKey[rPiece][rFrom] ^ hashKey[rPiece][rTo];
         mat_key(turn) ^= hashKey[pieceFrom][posFrom] ^ hashKey[pieceFrom][posTo] ^
                          hashKey[rPiece][rFrom] ^ hashKey[rPiece][rTo];
+        minor_key() ^= hashKey[pieceFrom][posFrom] ^ hashKey[pieceFrom][posTo];
+        major_key() ^= hashKey[pieceFrom][posFrom] ^ hashKey[pieceFrom][posTo] ^
+                       hashKey[rPiece][rFrom] ^ hashKey[rPiece][rTo];
+
 
         board[posFrom] = board[rFrom] = NO_PIECE;
         board[posTo] = pieceFrom;
@@ -174,6 +189,9 @@ void Board::make_move(const Move move) { /// assuming move is at least pseudo-le
             pieces[1 ^ turn] ^= (1ULL << posTo);
             key() ^= hashKey[pieceTo][posTo];
             mat_key(turn) ^= hashKey[pieceTo][posTo];
+
+            if (piece_type(pieceTo) <= BISHOP) minor_key() ^= hashKey[pieceTo][posTo];
+            else major_key() ^= hashKey[pieceTo][posTo];
 
             /// special case: captured rook might have been a castle rook
             if (pieceTo == WR)

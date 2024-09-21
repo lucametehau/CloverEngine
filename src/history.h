@@ -22,6 +22,10 @@
 constexpr int CORR_HIST_SIZE = (1 << 16);
 constexpr int CORR_HIST_MASK = CORR_HIST_SIZE - 1;
 
+enum {
+    PAWN_CORR_HIST, MINOR_CORR_HIST, MAJOR_CORR_HIST, CORR_HIST_COUNT
+};
+
 template <int16_t Divisor>
 class History {
 public:
@@ -76,7 +80,7 @@ class Histories {
 private:
     MultiArray<History<16384>, 2, 2, 2, 64 * 64> hist;
     MultiArray<History<16384>, 12, 64, 7> cap_hist;
-    MultiArray<CorrectionHistory, 2, CORR_HIST_SIZE> corr_hist;
+    MultiArray<CorrectionHistory, CORR_HIST_COUNT, 2, CORR_HIST_SIZE> corr_hist;
     MultiArray<CorrectionHistory, 2, 2, CORR_HIST_SIZE> mat_corr_hist;
 
 public:
@@ -87,7 +91,7 @@ public:
         fill_multiarray<History<16384>, 2, 2, 2, 64 * 64>(hist, 0);
         fill_multiarray<History<16384>, 12, 64, 7>(cap_hist, 0);
         fill_multiarray<History<16384>, 2, 13, 64, 13, 64>(cont_history, 0);
-        fill_multiarray<CorrectionHistory, 2, CORR_HIST_SIZE>(corr_hist, CorrectionHistory());
+        fill_multiarray<CorrectionHistory, CORR_HIST_COUNT, 2, CORR_HIST_SIZE>(corr_hist, CorrectionHistory());
         fill_multiarray<CorrectionHistory, 2, 2, CORR_HIST_SIZE>(mat_corr_hist, CorrectionHistory());
     }
 
@@ -117,12 +121,12 @@ public:
         return cap_hist[piece][to][cap];
     }
 
-    inline CorrectionHistory& get_corr_hist(const bool turn, const uint64_t pawn_key) {
-        return corr_hist[turn][pawn_key & CORR_HIST_MASK];
+    inline CorrectionHistory& get_corr_hist(const int type, const bool turn, const uint64_t key) {
+        return corr_hist[type][turn][key & CORR_HIST_MASK];
     }
 
-    inline const CorrectionHistory get_corr_hist(const bool turn, const uint64_t pawn_key) const {
-        return corr_hist[turn][pawn_key & CORR_HIST_MASK];
+    inline const CorrectionHistory get_corr_hist(const int type, const bool turn, const uint64_t key) const {
+        return corr_hist[type][turn][key & CORR_HIST_MASK];
     }
 
     inline CorrectionHistory& get_mat_corr_hist(const bool turn, const bool side, const uint64_t mat_key) {
@@ -171,15 +175,29 @@ public:
         get_cap_hist(piece, to, cap).update(bonus);
     }
 
-    inline void update_corr_hist(const bool turn, const uint64_t pawn_key, const uint64_t white_mat_key, const uint64_t black_mat_key, const int depth, const int delta) {
+    inline void update_corr_hist(
+        const bool turn, const uint64_t pawn_key, 
+        const uint64_t white_mat_key, const uint64_t black_mat_key, 
+        const uint64_t minor_key, const uint64_t major_key, 
+        const int depth, const int delta
+    ) {
         const int w = std::min(4 * (depth + 1) * (depth + 1), 1024);
-        get_corr_hist(turn, pawn_key).update_corr_hist(w, delta);
+        get_corr_hist(PAWN_CORR_HIST, turn, pawn_key).update_corr_hist(w, delta);
+        get_corr_hist(MINOR_CORR_HIST, turn, minor_key).update_corr_hist(w, delta);
+        get_corr_hist(MAJOR_CORR_HIST, turn, major_key).update_corr_hist(w, delta);
         get_mat_corr_hist(turn, WHITE, white_mat_key).update_corr_hist(w, delta);
         get_mat_corr_hist(turn, BLACK, black_mat_key).update_corr_hist(w, delta);
     }
 
-    inline const int get_corrected_eval(const int eval, const bool turn, const uint64_t pawn_key, const uint64_t white_mat_key, const uint64_t black_mat_key) const {
-        return eval + (2 * get_corr_hist(turn, pawn_key) + 
+    inline const int get_corrected_eval(
+        const int eval, const bool turn, 
+        const uint64_t pawn_key, 
+        const uint64_t white_mat_key, const uint64_t black_mat_key,
+        const uint64_t minor_key, const uint64_t major_key
+    ) const {
+        return eval + (2 * get_corr_hist(PAWN_CORR_HIST, turn, pawn_key) + 
+                      get_corr_hist(MINOR_CORR_HIST, turn, minor_key) +
+                      get_corr_hist(MAJOR_CORR_HIST, turn, major_key) +
                       get_mat_corr_hist(turn, WHITE, white_mat_key) + 
                       get_mat_corr_hist(turn, BLACK, black_mat_key)) / (3 * CorrHistDiv);
     }

@@ -31,7 +31,7 @@ public:
     uint8_t captured;
     uint16_t halfMoves, moveIndex;
     uint64_t checkers, pinnedPieces;
-    uint64_t key, pawn_key, mat_key[2];
+    uint64_t key, pawn_key, mat_key[2], minor_key, major_key;
 };
 
 class Board {
@@ -75,6 +75,10 @@ public:
     inline uint64_t& pawn_key() { return state.pawn_key; }
 
     inline uint64_t& mat_key(const bool color) { return state.mat_key[color]; }
+
+    inline uint64_t& minor_key() { return state.minor_key; }
+
+    inline uint64_t& major_key() { return state.major_key; }
 
     inline uint64_t& checkers() { return state.checkers; }
 
@@ -170,10 +174,16 @@ public:
     }
 
     void place_piece_at_sq(int piece, int sq) {
+        const int pt = piece_type(piece);
         board[sq] = piece;
         key() ^= hashKey[piece][sq];
-        if (piece_type(piece) == PAWN) pawn_key() ^= hashKey[piece][sq];
-        else mat_key(color_of(piece)) ^= hashKey[piece][sq];
+        if (pt == PAWN) pawn_key() ^= hashKey[piece][sq];
+        else {
+            mat_key(color_of(piece)) ^= hashKey[piece][sq];
+            if (pt <= BISHOP) minor_key() ^= hashKey[piece][sq];
+            else if (pt <= QUEEN) major_key() ^= hashKey[piece][sq];
+            else minor_key() ^= hashKey[piece][sq], major_key() ^= hashKey[piece][sq];
+        }
 
         pieces[color_of(piece)] |= (1ULL << sq);
         bb[piece] |= (1ULL << sq);
