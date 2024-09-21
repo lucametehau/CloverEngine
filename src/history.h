@@ -22,7 +22,7 @@
 constexpr int CORR_HIST_SIZE = (1 << 16);
 constexpr int CORR_HIST_MASK = CORR_HIST_SIZE - 1;
 
-constexpr int PAWN_HIST_SIZE = (1 << 9);
+constexpr int PAWN_HIST_SIZE = (1 << 8);
 constexpr int PAWN_HIST_MASK = PAWN_HIST_SIZE - 1;
 
 template <int16_t Divisor>
