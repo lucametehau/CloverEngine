@@ -184,7 +184,7 @@ public:
         const int w = std::min(4 * (depth + 1) * (depth + 1), 1024);
         get_corr_hist(PAWN_CORR_HIST, turn, pawn_key).update_corr_hist(w, delta);
         get_corr_hist(MINOR_CORR_HIST, turn, minor_key).update_corr_hist(w, delta);
-        get_corr_hist(MAJOR_CORR_HIST, turn, major_key).update_corr_hist(w, delta);
+        //get_corr_hist(MAJOR_CORR_HIST, turn, major_key).update_corr_hist(w, delta);
         get_mat_corr_hist(turn, WHITE, white_mat_key).update_corr_hist(w, delta);
         get_mat_corr_hist(turn, BLACK, black_mat_key).update_corr_hist(w, delta);
     }
@@ -197,7 +197,7 @@ public:
     ) const {
         return eval + (2 * get_corr_hist(PAWN_CORR_HIST, turn, pawn_key) + 
                       get_corr_hist(MINOR_CORR_HIST, turn, minor_key) +
-                      get_corr_hist(MAJOR_CORR_HIST, turn, major_key) +
+                      //get_corr_hist(MAJOR_CORR_HIST, turn, major_key) +
                       get_mat_corr_hist(turn, WHITE, white_mat_key) + 
                       get_mat_corr_hist(turn, BLACK, black_mat_key)) / (3 * CorrHistDiv);
     }
