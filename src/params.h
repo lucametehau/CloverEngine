@@ -37,7 +37,7 @@ struct CreateParam {
     T value;
     CreateParam(std::string name, T _value, T min, T max) : value(_value) { 
         assert(min <= _value && _value <= max);
-        if constexpr (std::is_integral_v<T>) params_int.push_back({ name, _value, min, max });
+        if constexpr (std::is_integral_v<T>) params_int.push_back({ name, value, min, max });
         else params_double.push_back({ name, value, min, max }); 
     }
 
@@ -99,6 +99,7 @@ TUNE_PARAM(SEEPruningQuietDepth, 8, 5, 10);
 TUNE_PARAM(SEEPruningQuietMargin, 71, 60, 90);
 TUNE_PARAM(SEEPruningNoisyDepth, 8, 5, 10);
 TUNE_PARAM(SEEPruningNoisyMargin, 12, 5, 25);
+TUNE_PARAM(SEENoisyHistDiv, 256, 128, 512);
 TUNE_PARAM(FPNoisyDepth, 8, 5, 10);
 
 TUNE_PARAM(SEDepth, 6, 4, 8);
@@ -108,6 +109,7 @@ TUNE_PARAM(SETripleExtensionsMargin, 97, 50, 100);
 
 TUNE_PARAM(EvalDifferenceReductionMargin, 203, 100, 300);
 TUNE_PARAM(HistReductionDiv, 8048, 7000, 10000);
+TUNE_PARAM(CapHistReductionDiv, 4096, 2048, 8192);
 TUNE_PARAM(LMRBadStaticEvalMargin, 244, 150, 300);
 TUNE_PARAM(DeeperMargin, 80, 40, 80);
 
@@ -158,10 +160,16 @@ TUNE_PARAM(HistoryBonusMargin, 295, 250, 500);
 TUNE_PARAM(HistoryBonusBias, 322, 200, 600);
 TUNE_PARAM(HistoryBonusMax, 2463, 1800, 3000);
 TUNE_PARAM(HistoryUpdateMinDepth, 4, 2, 6);
+TUNE_PARAM(HistoryMalusMargin, 295, 250, 500);
+TUNE_PARAM(HistoryMalusBias, 322, 200, 600);
+TUNE_PARAM(HistoryMalusMax, 2463, 1800, 3000);
+
 
 // correction history constants
 TUNE_PARAM(CorrHistScale, 1024, 128, 1024);
 TUNE_PARAM(CorrHistDiv, 222, 128, 512);
+TUNE_PARAM(CorrHistCoef, 128, 110, 150);
+TUNE_PARAM(MatCorrHistCoef, 64, 50, 80);
 
 // universal constants
 TUNE_PARAM(SeeValPawn, 94, 80, 120);
@@ -175,6 +183,6 @@ void print_params_for_ob() {
         std::cout << param.name << ", int, " << param.value << ", " << param.min << ", " << param.max << ", " << std::max(0.5, (param.max - param.min) / 20.0) << ", 0.002\n";
     }
     for (auto& param : params_double) {
-        std::cout << param.name << ", float, " << param.value << ", " << param.min << ", " << param.max << ", " << std::max(0.5, (param.max - param.min) / 20.0) << ", 0.002\n";
+        std::cout << param.name << ", float, " << param.value << ", " << param.min << ", " << param.max << ", " << (param.max - param.min) / 20.0 << ", 0.002\n";
     }
 }

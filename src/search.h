@@ -519,7 +519,7 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
                 else {
                     history = histories.get_cap_hist(piece, to, board.get_captured_type(move));
                     if (depth <= SEEPruningNoisyDepth && !in_check && picker.trueStage > STAGE_GOOD_NOISY && 
-                        !see(board, move, -SEEPruningNoisyMargin * (depth + bad_static_eval) * (depth + bad_static_eval) - history / 256)) continue;
+                        !see(board, move, -SEEPruningNoisyMargin * (depth + bad_static_eval) * (depth + bad_static_eval) - history / SEENoisyHistDiv)) continue;
 
                     if (depth <= FPNoisyDepth && !in_check && 
                         static_eval + FPBias + seeVal[board.get_captured_type(move)] + FPMargin * depth <= alpha) continue;
@@ -584,7 +584,7 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
                 R = lmr_red[std::min(63, depth)][std::min(63, played)];
                 R += improving <= 0; /// not improving
                 R += enemy_has_no_threats && picker.trueStage == STAGE_BAD_NOISY; /// if the position is relatively quiet and the capture is "very losing"
-                R -= history / 4096;
+                R -= history / CapHistReductionDiv;
             }
 
             R += 2 * cutNode;
@@ -632,8 +632,8 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
                 if constexpr (pvNode)
                     update_pv(ply, move);
                 if (alpha >= beta) {
-                    const int bonus =  getHistoryBonus(depth + bad_static_eval + (cutNode && depth <= 3));
-                    const int malus = -getHistoryBonus(depth + bad_static_eval + (cutNode && depth <= 3) + allNode);
+                    const int bonus = getHistoryBonus(depth + bad_static_eval + (cutNode && depth <= 3));
+                    const int malus = getHistoryMalus(depth + bad_static_eval + (cutNode && depth <= 3) + allNode);
                     if (!board.is_noisy_move(bestMove)) {
                         stack->killer = bestMove;
                         if (nr_quiets || depth >= HistoryUpdateMinDepth)
