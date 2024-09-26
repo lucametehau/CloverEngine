@@ -381,11 +381,4 @@ inline void init_defs() {
             }
         }
     }
-
-    
-    for (int i = 1; i < 64; i++) { /// depth
-        for (int j = 1; j < 64; j++) { /// moves played 
-            lmr_red[i][j] = LMRQuietBias + log(i) * log(j) / LMRQuietDiv;
-        }
-    }
 }
