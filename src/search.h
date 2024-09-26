@@ -723,6 +723,13 @@ void SearchData::print_iteration_info(bool san_mode, int multipv, int score, int
 }
 
 void SearchData::start_search(Info &_info) {
+    if (thread_id == 0) {
+        for (int i = 1; i < 64; i++) { /// depth
+            for (int j = 1; j < 64; j++) { /// moves played 
+                lmr_red[i][j] = LMRQuietBias + log(i) * log(j) / LMRQuietDiv;
+            }
+        }
+    }
     nodes = sel_depth = tb_hits = 0;
     t0 = getTime();
     flag_stopped = false;
