@@ -179,12 +179,16 @@ public:
     }
 
     inline const int get_corrected_eval(const int eval, const bool turn, const uint64_t pawn_key, const uint64_t white_mat_key, const uint64_t black_mat_key) const {
-        return eval + (2 * get_corr_hist(turn, pawn_key) + 
-                      get_mat_corr_hist(turn, WHITE, white_mat_key) + 
-                      get_mat_corr_hist(turn, BLACK, black_mat_key)) / (3 * CorrHistDiv);
+        return eval + (CorrHistCoef   * get_corr_hist(turn, pawn_key) + 
+                      MatCorrHistCoef * get_mat_corr_hist(turn, WHITE, white_mat_key) + 
+                      MatCorrHistCoef * get_mat_corr_hist(turn, BLACK, black_mat_key)) / (192 * CorrHistDiv);
     }
 };
 
 int getHistoryBonus(int depth) {
     return std::min<int>(HistoryBonusMargin * depth - HistoryBonusBias, HistoryBonusMax);
+}
+
+int getHistoryMalus(int depth) {
+    return -std::min<int>(HistoryMalusMargin * depth - HistoryMalusBias, HistoryMalusMax);
 }

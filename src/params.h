@@ -37,7 +37,7 @@ struct CreateParam {
     T value;
     CreateParam(std::string name, T _value, T min, T max) : value(_value) { 
         assert(min <= _value && _value <= max);
-        if constexpr (std::is_integral_v<T>) params_int.push_back({ name, _value, min, max });
+        if constexpr (std::is_integral_v<T>) params_int.push_back({ name, value, min, max });
         else params_double.push_back({ name, value, min, max }); 
     }
 
@@ -83,7 +83,7 @@ TUNE_PARAM(IIRCutNodeReduction, 1, 1, 2);
 
 TUNE_PARAM(PVSSeeDepthCoef, 16, 10, 20);
 
-TUNE_PARAM(MoveloopHistDiv, 15061, 8192, 17000);
+TUNE_PARAM(MoveloopHistDiv, 14614, 8192, 17000);
 
 TUNE_PARAM(FPDepth, 10, 5, 10);
 TUNE_PARAM(FPBias, 96, 90, 120);
@@ -93,21 +93,23 @@ TUNE_PARAM(LMPDepth, 7, 5, 10);
 TUNE_PARAM(LMPBias, 1, -1, 5);
 
 TUNE_PARAM(HistoryPruningDepth, 2, 2, 5);
-TUNE_PARAM(HistoryPruningMargin, 4491, 2048, 6144);
+TUNE_PARAM(HistoryPruningMargin, 4522, 2048, 6144);
 
 TUNE_PARAM(SEEPruningQuietDepth, 8, 5, 10);
 TUNE_PARAM(SEEPruningQuietMargin, 71, 60, 90);
 TUNE_PARAM(SEEPruningNoisyDepth, 8, 5, 10);
 TUNE_PARAM(SEEPruningNoisyMargin, 12, 5, 25);
+TUNE_PARAM(SEENoisyHistDiv, 279, 128, 512);
 TUNE_PARAM(FPNoisyDepth, 8, 5, 10);
 
-TUNE_PARAM(SEDepth, 6, 4, 8);
-TUNE_PARAM(SEMargin, 49, 32, 64);
+TUNE_PARAM(SEDepth, 5, 4, 8);
+TUNE_PARAM(SEMargin, 47, 32, 64);
 TUNE_PARAM(SEDoubleExtensionsMargin, 11, 0, 16);
-TUNE_PARAM(SETripleExtensionsMargin, 97, 50, 100);
+TUNE_PARAM(SETripleExtensionsMargin, 99, 50, 100);
 
-TUNE_PARAM(EvalDifferenceReductionMargin, 203, 100, 300);
-TUNE_PARAM(HistReductionDiv, 8048, 7000, 10000);
+TUNE_PARAM(EvalDifferenceReductionMargin, 198, 100, 300);
+TUNE_PARAM(HistReductionDiv, 8316, 7000, 10000);
+TUNE_PARAM(CapHistReductionDiv, 4264, 2048, 8192);
 TUNE_PARAM(LMRBadStaticEvalMargin, 244, 150, 300);
 TUNE_PARAM(DeeperMargin, 80, 40, 80);
 
@@ -119,49 +121,55 @@ TUNE_PARAM(AspirationWindowExpandMargin, 31, 10, 100);
 TUNE_PARAM(AspirationWindowExpandBias, 0, 0, 10);
 
 TUNE_PARAM(TimeManagerMinDepth, 8, 5, 11);
-TUNE_PARAM_DOUBLE(TimeManagerNodesSearchedMaxPercentage, 1.81888, 1.400, 2.000);
-TUNE_PARAM_DOUBLE(TimeManagerNodesSearchedCoef, 1.140, 0.500, 2.000);
+TUNE_PARAM_DOUBLE(TimeManagerNodesSearchedMaxPercentage, 1.8270414693595722, 1.400, 2.000);
+TUNE_PARAM_DOUBLE(TimeManagerNodesSearchedCoef, 1.1739235823823335, 0.500, 2.000);
 
-TUNE_PARAM_DOUBLE(TimeManagerBestMoveMax, 1.217, 1.100, 1.500);
-TUNE_PARAM_DOUBLE(TimeManagerbestMoveStep, 0.064, 0.010, 0.100);
+TUNE_PARAM_DOUBLE(TimeManagerBestMoveMax, 1.2239324841351675, 1.100, 1.500);
+TUNE_PARAM_DOUBLE(TimeManagerbestMoveStep, 0.06887573257015857, 0.010, 0.100);
 
-TUNE_PARAM_DOUBLE(TimeManagerScoreMin, 0.470, 0.400, 0.900);
-TUNE_PARAM_DOUBLE(TimeManagerScoreMax, 1.610, 1.100, 2.000);
-TUNE_PARAM_DOUBLE(TimeManagerScoreBias, 1.120, 0.700, 1.500);
-TUNE_PARAM(TimeManagerScoreDiv, 111, 90, 150);
+TUNE_PARAM_DOUBLE(TimeManagerScoreMin, 0.47944111835948844, 0.400, 0.900);
+TUNE_PARAM_DOUBLE(TimeManagerScoreMax, 1.6139551444543634, 1.100, 2.000);
+TUNE_PARAM_DOUBLE(TimeManagerScoreBias, 1.0995010600199973, 0.700, 1.500);
+TUNE_PARAM(TimeManagerScoreDiv, 115, 90, 150);
 
-TUNE_PARAM_DOUBLE(TMCoef1, 0.050, 0.035, 0.075);
-TUNE_PARAM_DOUBLE(TMCoef2, 0.350, 0.250, 0.550);
-TUNE_PARAM_DOUBLE(TMCoef3, 5.500, 4.500, 6.500);
-TUNE_PARAM_DOUBLE(TMCoef4, 0.750, 0.650, 0.850);
+TUNE_PARAM_DOUBLE(TMCoef1, 0.052171460756161685, 0.035, 0.075);
+TUNE_PARAM_DOUBLE(TMCoef2, 0.3575439512748321, 0.250, 0.550);
+TUNE_PARAM_DOUBLE(TMCoef3, 5.4517580781361135, 4.500, 6.500);
+TUNE_PARAM_DOUBLE(TMCoef4, 0.7435082406528579, 0.650, 0.850);
 
 TUNE_PARAM_DOUBLE(LMRQuietBias, 1.17, 1.00, 1.25);
 TUNE_PARAM_DOUBLE(LMRQuietDiv, 2.59, 1.50, 2.70);
 
 // movepicker constants
 TUNE_PARAM(GoodNoisyValueCoef, 9, 1, 20);
-TUNE_PARAM(QuietHistCoef, 2, 1, 4);
+TUNE_PARAM(QuietHistCoef, 1, 1, 4);
 TUNE_PARAM(QuietContHist1, 2, 1, 2);
 TUNE_PARAM(QuietContHist2, 2, 1, 2);
-TUNE_PARAM(QuietContHist4, 2, 1, 2);
-TUNE_PARAM(QuietPawnAttackedCoef, 35, 20, 50);
+TUNE_PARAM(QuietContHist4, 1, 1, 2);
+TUNE_PARAM(QuietPawnAttackedCoef, 34, 20, 50);
 TUNE_PARAM(QuietPawnAttackedDodgeCoef, 35, 20, 50);
 TUNE_PARAM(QuietPawnPushBonus, 9022, 8000, 9500);
 TUNE_PARAM(QuietKingRingAttackBonus, 3471, 3000, 4000);
 
 // eval constants
-TUNE_PARAM(EvalScaleBias, 708, 600, 800);
+TUNE_PARAM(EvalScaleBias, 707, 600, 800);
 TUNE_PARAM(EvalShuffleCoef, 5, 1, 10);
 
 // history constants
-TUNE_PARAM(HistoryBonusMargin, 295, 250, 500);
-TUNE_PARAM(HistoryBonusBias, 322, 200, 600);
-TUNE_PARAM(HistoryBonusMax, 2463, 1800, 3000);
+TUNE_PARAM(HistoryBonusMargin, 271, 250, 500);
+TUNE_PARAM(HistoryBonusBias, 338, 200, 600);
+TUNE_PARAM(HistoryBonusMax, 2636, 1800, 3000);
 TUNE_PARAM(HistoryUpdateMinDepth, 4, 2, 6);
+TUNE_PARAM(HistoryMalusMargin, 303, 250, 500);
+TUNE_PARAM(HistoryMalusBias, 359, 200, 600);
+TUNE_PARAM(HistoryMalusMax, 2475, 1800, 3000);
+
 
 // correction history constants
 TUNE_PARAM(CorrHistScale, 1024, 128, 1024);
-TUNE_PARAM(CorrHistDiv, 222, 128, 512);
+TUNE_PARAM(CorrHistDiv, 207, 128, 512);
+TUNE_PARAM(CorrHistCoef, 128, 110, 150);
+TUNE_PARAM(MatCorrHistCoef, 66, 50, 80);
 
 // universal constants
 TUNE_PARAM(SeeValPawn, 94, 80, 120);
@@ -175,6 +183,6 @@ void print_params_for_ob() {
         std::cout << param.name << ", int, " << param.value << ", " << param.min << ", " << param.max << ", " << std::max(0.5, (param.max - param.min) / 20.0) << ", 0.002\n";
     }
     for (auto& param : params_double) {
-        std::cout << param.name << ", float, " << param.value << ", " << param.min << ", " << param.max << ", " << std::max(0.5, (param.max - param.min) / 20.0) << ", 0.002\n";
+        std::cout << param.name << ", float, " << param.value << ", " << param.min << ", " << param.max << ", " << (param.max - param.min) / 20.0 << ", 0.002\n";
     }
 }
