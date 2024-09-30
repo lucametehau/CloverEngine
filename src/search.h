@@ -193,12 +193,12 @@ int SearchData::quiesce(int alpha, int beta, StackEntry* stack) {
     }
     else if (!ttHit) {
         raw_eval = evaluate(board);
-        stack->eval = best = eval = histories.get_corrected_eval(raw_eval, turn, board.pawn_key(), board.mat_key(WHITE), board.mat_key(BLACK));
+        stack->eval = best = eval = histories.get_corrected_eval(raw_eval, turn, board.pawn_key(), board.mat_key(WHITE), board.mat_key(BLACK), stack);
         futilityValue = best + QuiesceFutilityBias;
     }
     else { /// ttValue might be a better evaluation
         raw_eval = eval;
-        stack->eval = eval = histories.get_corrected_eval(raw_eval, turn, board.pawn_key(), board.mat_key(WHITE), board.mat_key(BLACK));
+        stack->eval = eval = histories.get_corrected_eval(raw_eval, turn, board.pawn_key(), board.mat_key(WHITE), board.mat_key(BLACK), stack);
         if (ttBound == EXACT || (ttBound == LOWER && ttValue > eval) || (ttBound == UPPER && ttValue < eval)) 
             best = ttValue;
         futilityValue = best + QuiesceFutilityBias;
@@ -236,6 +236,7 @@ int SearchData::quiesce(int alpha, int beta, StackEntry* stack) {
         stack->move = move;
         stack->piece = board.piece_at(sq_from(move));
         stack->cont_hist = &histories.cont_history[!board.is_noisy_move(move)][stack->piece][sq_to(move)];
+        stack->cont_corr_hist = &histories.cont_corr_hist[stack->piece][sq_to(move)];
 
         board.make_move(move);
         if (!pvNode || played > 1) {
@@ -358,14 +359,14 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
         if (stack->excluded) raw_eval = eval = stack->eval;
         else {
             raw_eval = evaluate(board);
-            stack->eval = eval = histories.get_corrected_eval(raw_eval, turn, pawn_key, white_mat_key, black_mat_key);
+            stack->eval = eval = histories.get_corrected_eval(raw_eval, turn, pawn_key, white_mat_key, black_mat_key, stack);
             TT->save(entry, key, VALUE_NONE, 0, ply, 0, NULLMOVE, raw_eval, was_pv);
         }
     }
     else { /// ttValue might be a better evaluation
         if (stack->excluded) raw_eval = evaluate(board);
         else raw_eval = eval;
-        stack->eval = eval = histories.get_corrected_eval(raw_eval, turn, pawn_key, white_mat_key, black_mat_key);
+        stack->eval = eval = histories.get_corrected_eval(raw_eval, turn, pawn_key, white_mat_key, black_mat_key, stack);
         if (ttBound == EXACT || (ttBound == LOWER && ttValue > eval) || (ttBound == UPPER && ttValue < eval)) eval = ttValue;
     }
 
@@ -412,6 +413,7 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
                 stack->move = NULLMOVE;
                 stack->piece = NO_PIECE;
                 stack->cont_hist = &histories.cont_history[0][NO_PIECE][0];
+                stack->cont_corr_hist = &histories.cont_corr_hist[NO_PIECE][0];
 
                 board.make_null_move();
                 int score = -search<false, false, !cutNode>(-beta, -beta + 1, depth - R, stack + 1);
@@ -436,6 +438,7 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
                     stack->move = move;
                     stack->piece = board.piece_at(sq_from(move));
                     stack->cont_hist = &histories.cont_history[0][stack->piece][sq_to(move)];
+                    stack->cont_corr_hist = &histories.cont_corr_hist[stack->piece][sq_to(move)];
 
                     board.make_move(move);
 
@@ -553,6 +556,7 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
         stack->move = move;
         stack->piece = piece;
         stack->cont_hist = &histories.cont_history[isQuiet][piece][to];
+        stack->cont_corr_hist = &histories.cont_corr_hist[piece][to];
 
         board.make_move(move);
         played++;
@@ -673,7 +677,7 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
         ttBound = (best >= beta ? LOWER : (best > alphaOrig ? EXACT : UPPER));
         if ((ttBound == UPPER || !board.is_noisy_move(bestMove)) && !in_check && 
             !(ttBound == LOWER && best <= static_eval) && !(ttBound == UPPER && best >= static_eval))
-            histories.update_corr_hist(turn, pawn_key, white_mat_key, black_mat_key, depth, best - raw_eval);
+            histories.update_corr_hist(turn, pawn_key, white_mat_key, black_mat_key, depth, best - raw_eval, stack);
         TT->save(entry, key, best, depth, ply, ttBound, bestMove, raw_eval, was_pv);
     }
 
@@ -755,6 +759,7 @@ void SearchData::start_search(Info &_info) {
 
     for (int i = 1; i <= 10; i++) {
         (stack - i)->cont_hist = &histories.cont_history[0][NO_PIECE][0];
+        (stack - i)->cont_corr_hist = &histories.cont_corr_hist[NO_PIECE][0];
         (stack - i)->eval = INF;
         (stack - i)->move = NULLMOVE;
     }

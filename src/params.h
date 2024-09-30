@@ -169,6 +169,7 @@ TUNE_PARAM(HistoryMalusMax, 2475, 1800, 3000);
 TUNE_PARAM(CorrHistScale, 1024, 128, 1024);
 TUNE_PARAM(CorrHistDiv, 207, 128, 512);
 TUNE_PARAM(CorrHistCoef, 128, 110, 150);
+TUNE_PARAM(ContCorrHistCoef, 100, 80, 120);
 TUNE_PARAM(MatCorrHistCoef, 66, 50, 80);
 
 // universal constants

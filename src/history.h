@@ -70,6 +70,7 @@ public:
     std::array<SearchMove, MAX_MOVES> quiets, noisies;
     int eval;
     MultiArray<History<16384>, 13, 64>* cont_hist;
+    CorrectionHistory* cont_corr_hist;
 };
 
 class Histories {
@@ -81,6 +82,7 @@ private:
 
 public:
     MultiArray<History<16384>, 2, 13, 64, 13, 64> cont_history;
+    MultiArray<CorrectionHistory, 13, 64> cont_corr_hist;
 
 public:
     void clear_history() {
@@ -89,6 +91,7 @@ public:
         fill_multiarray<History<16384>, 2, 13, 64, 13, 64>(cont_history, 0);
         fill_multiarray<CorrectionHistory, 2, CORR_HIST_SIZE>(corr_hist, CorrectionHistory());
         fill_multiarray<CorrectionHistory, 2, 2, CORR_HIST_SIZE>(mat_corr_hist, CorrectionHistory());
+        fill_multiarray<CorrectionHistory, 13, 64>(cont_corr_hist, CorrectionHistory());
     }
 
     Histories() { clear_history(); }
@@ -133,6 +136,14 @@ public:
         return mat_corr_hist[turn][side][mat_key & CORR_HIST_MASK];
     }
 
+    inline CorrectionHistory& get_cont_corr_hist(StackEntry *stack, const int delta) {
+        return *(stack - delta)->cont_corr_hist;
+    }
+
+    inline const CorrectionHistory get_cont_corr_hist(StackEntry *stack, const int delta) const {
+        return *(stack - delta)->cont_corr_hist;
+    }
+
     inline void update_cont_hist_move(const int piece, const int to, StackEntry *stack, const int16_t bonus) {
         if ((stack - 1)->move)
             get_cont_hist(piece, to, stack, 1).update(bonus);
@@ -171,17 +182,29 @@ public:
         get_cap_hist(piece, to, cap).update(bonus);
     }
 
-    inline void update_corr_hist(const bool turn, const uint64_t pawn_key, const uint64_t white_mat_key, const uint64_t black_mat_key, const int depth, const int delta) {
+    inline void update_corr_hist(
+        const bool turn,
+        const uint64_t pawn_key, const uint64_t white_mat_key, const uint64_t black_mat_key, 
+        const int depth, const int delta,
+        StackEntry *stack
+    ) {
         const int w = std::min(4 * (depth + 1) * (depth + 1), 1024);
         get_corr_hist(turn, pawn_key).update_corr_hist(w, delta);
         get_mat_corr_hist(turn, WHITE, white_mat_key).update_corr_hist(w, delta);
         get_mat_corr_hist(turn, BLACK, black_mat_key).update_corr_hist(w, delta);
+        get_cont_corr_hist(stack, 1).update_corr_hist(w, delta);
     }
 
-    inline const int get_corrected_eval(const int eval, const bool turn, const uint64_t pawn_key, const uint64_t white_mat_key, const uint64_t black_mat_key) const {
-        return eval + (CorrHistCoef   * get_corr_hist(turn, pawn_key) + 
-                      MatCorrHistCoef * get_mat_corr_hist(turn, WHITE, white_mat_key) + 
-                      MatCorrHistCoef * get_mat_corr_hist(turn, BLACK, black_mat_key)) / (192 * CorrHistDiv);
+    inline const int get_corrected_eval(
+        const int eval, 
+        const bool turn, 
+        const uint64_t pawn_key, const uint64_t white_mat_key, const uint64_t black_mat_key,
+        StackEntry *stack
+    ) const {
+        return eval + (CorrHistCoef    * get_corr_hist(turn, pawn_key) + 
+                      MatCorrHistCoef  * get_mat_corr_hist(turn, WHITE, white_mat_key) + 
+                      MatCorrHistCoef  * get_mat_corr_hist(turn, BLACK, black_mat_key) +
+                      ContCorrHistCoef * get_cont_corr_hist(stack, 1)) / (192 * CorrHistDiv);
     }
 };
 
