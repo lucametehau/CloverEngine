@@ -638,21 +638,21 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
                         stack->killer = bestMove;
                         if (nr_quiets || depth >= HistoryUpdateMinDepth)
                             histories.update_hist_quiet_move(bestMove, board.piece_at(sq_from(bestMove)), 
-                                                            threats.all_threats, turn, stack, bonus * tried_count);
+                                                            threats.all_threats, turn, stack, bonus * (1 << (tried_count - 1)));
                         for (int i = 0; i < nr_quiets; i++) {
                             const auto [move, tried_count] = stack->quiets[i];
                             histories.update_hist_quiet_move(move, board.piece_at(sq_from(move)), 
-                                                            threats.all_threats, turn, stack, malus * tried_count);
+                                                            threats.all_threats, turn, stack, malus * (1 << (tried_count - 1)));
                         }
                     }
                     else {
                         histories.update_cap_hist_move(board.piece_at(sq_from(bestMove)), sq_to(bestMove), 
-                                                      board.get_captured_type(bestMove), bonus * tried_count);
+                                                      board.get_captured_type(bestMove), bonus * (1 << (tried_count - 1)));
                     }
                     for (int i = 0; i < nr_noisies; i++) {
                         const auto [move, tried_count] = stack->noisies[i];
                         histories.update_cap_hist_move(board.piece_at(sq_from(move)), sq_to(move), 
-                                                      board.get_captured_type(move), malus * tried_count);
+                                                      board.get_captured_type(move), malus * (1 << (tried_count - 1)));
                     }
                     break;
                 }
