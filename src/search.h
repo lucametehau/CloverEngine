@@ -540,7 +540,13 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
                 int score = search<false, false, cutNode>(rBeta - 1, rBeta, (depth - 1) / 2, stack);
                 stack->excluded = NULLMOVE;
 
-                if (score < rBeta) ex = 1 + (!pvNode && rBeta - score > SEDoubleExtensionsMargin) + (!pvNode && !ttCapture && rBeta - score > SETripleExtensionsMargin);
+                if (score < rBeta) {
+                    ex = 1;
+                    if (!pvNode && rBeta - score > SEDoubleExtensionsMargin) {
+                        ex += 1 + (!pvNode && !ttCapture && rBeta - score > SETripleExtensionsMargin);
+                        depth += depth <= 8;
+                    }
+                }
                 else if (rBeta >= beta) return rBeta; // multicut
                 else if (ttValue >= beta || ttValue <= alpha) ex = -1 - !pvNode;
             }
