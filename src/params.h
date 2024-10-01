@@ -146,6 +146,7 @@ TUNE_PARAM(QuietHistCoef, 1, 1, 4);
 TUNE_PARAM(QuietContHist1, 2, 1, 2);
 TUNE_PARAM(QuietContHist2, 2, 1, 2);
 TUNE_PARAM(QuietContHist4, 1, 1, 2);
+TUNE_PARAM(QuietContHist6, 1, 1, 2);
 TUNE_PARAM(QuietPawnAttackedCoef, 34, 20, 50);
 TUNE_PARAM(QuietPawnAttackedDodgeCoef, 35, 20, 50);
 TUNE_PARAM(QuietPawnPushBonus, 9022, 8000, 9500);

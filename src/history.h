@@ -140,6 +140,8 @@ public:
             get_cont_hist(piece, to, stack, 2).update(bonus);
         if ((stack - 4)->move)
             get_cont_hist(piece, to, stack, 4).update(bonus);
+        if ((stack - 6)->move)
+            get_cont_hist(piece, to, stack, 4).update(bonus);
     }
 
     inline void update_hist_move(const Move move, const uint64_t threats, const bool turn, const int16_t bonus) {
@@ -164,7 +166,8 @@ public:
         return QuietHistCoef  * get_hist(sq_from(move), to, from_to(move), turn, threats)
              + QuietContHist1 * get_cont_hist(piece, to, stack, 1)
              + QuietContHist2 * get_cont_hist(piece, to, stack, 2)
-             + QuietContHist4 * get_cont_hist(piece, to, stack, 4);
+             + QuietContHist4 * get_cont_hist(piece, to, stack, 4)
+             + QuietContHist6 * get_cont_hist(piece, to, stack, 6);
     }
 
     inline void update_cap_hist_move(const int piece, const int to, const int cap, const int16_t bonus) {
