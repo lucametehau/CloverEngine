@@ -111,7 +111,7 @@ public:
             trueStage = STAGE_GOOD_NOISY;
             while (index < nrNoisy) {
                 get_best_move(index, nrNoisy, moves, scores);
-                if (see(board, moves[index], std::min(-scores[index] / 32 + 200, threshold)))
+                if (see(board, moves[index], std::max(-scores[index] / 32 + 200, threshold)))
                     return moves[index++];
                 else {
                     badNoisy[nrBadNoisy++] = moves[index++];
