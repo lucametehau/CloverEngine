@@ -589,7 +589,7 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
 
             R += 2 * cutNode;
             R -= was_pv && ttDepth >= depth;
-            R += ttCapture;
+            R += ttCapture * (1 + (depth <= 8));
             R += enemy_has_no_threats && !in_check && static_eval + LMRBadStaticEvalMargin <= alpha;
 
             R = std::clamp(R, 1, newDepth); /// clamp R
