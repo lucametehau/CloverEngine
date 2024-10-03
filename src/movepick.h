@@ -96,7 +96,7 @@ public:
                 }
                 moves[m] = move;
 
-                const int piece = board.piece_at(sq_from(move));
+                const Piece piece = board.piece_at(sq_from(move));
                 const int to = sq_to(move), cap = board.get_captured_type(move);
                 int score = GoodNoisyValueCoef * seeVal[cap];
                 score += histories.get_cap_hist(piece, to, cap);
@@ -143,7 +143,8 @@ public:
                         continue;
 
                     moves[m] = move;
-                    const int from = sq_from(move), to = sq_to(move), piece = board.piece_at(from), pt = piece_type(piece);
+                    const int from = sq_from(move), to = sq_to(move);
+                    const Piece piece = board.piece_at(from), pt = piece_type(piece);
                     int score = histories.get_history_movepick(move, piece, all_threats, turn, stack);
 
                     if (pt == PAWN) // pawn push, generally good?

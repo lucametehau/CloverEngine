@@ -65,7 +65,7 @@ public:
         quiets.fill(SearchMove());
         noisies.fill(SearchMove());
     }
-    uint16_t piece;
+    Piece piece;
     Move move, killer, excluded;
     std::array<SearchMove, MAX_MOVES> quiets, noisies;
     int eval;
@@ -101,19 +101,19 @@ public:
         return hist[turn][!!(threats & (1ULL << from))][!!(threats & (1ULL << to))][from_to];
     }
 
-    inline History<16384>& get_cont_hist(const int piece, const int to, StackEntry *stack, const int delta) {
+    inline History<16384>& get_cont_hist(const Piece piece, const int to, StackEntry *stack, const int delta) {
         return (*(stack - delta)->cont_hist)[piece][to];
     }
 
-    inline const History<16384> get_cont_hist(const int piece, const int to, StackEntry *stack, const int delta) const {
+    inline const History<16384> get_cont_hist(const Piece piece, const int to, StackEntry *stack, const int delta) const {
         return (*(stack - delta)->cont_hist)[piece][to];
     }
 
-    inline History<16384>& get_cap_hist(const int piece, const int to, const int cap) {
+    inline History<16384>& get_cap_hist(const Piece piece, const int to, const int cap) {
         return cap_hist[piece][to][cap];
     }
 
-    inline const History<16384> get_cap_hist(const int piece, const int to, const int cap) const {
+    inline const History<16384> get_cap_hist(const Piece piece, const int to, const int cap) const {
         return cap_hist[piece][to][cap];
     }
 
@@ -133,7 +133,7 @@ public:
         return mat_corr_hist[turn][side][mat_key & CORR_HIST_MASK];
     }
 
-    inline void update_cont_hist_move(const int piece, const int to, StackEntry *stack, const int16_t bonus) {
+    inline void update_cont_hist_move(const Piece piece, const int to, StackEntry *stack, const int16_t bonus) {
         if ((stack - 1)->move)
             get_cont_hist(piece, to, stack, 1).update(bonus);
         if ((stack - 2)->move)
@@ -146,12 +146,12 @@ public:
         get_hist(sq_from(move), sq_to(move), from_to(move), turn, threats).update(bonus);
     }
 
-    inline void update_hist_quiet_move(const Move move, const int piece, const uint64_t threats, const bool turn, StackEntry *&stack, const int16_t bonus) {
+    inline void update_hist_quiet_move(const Move move, const Piece piece, const uint64_t threats, const bool turn, StackEntry *&stack, const int16_t bonus) {
         update_hist_move(move, threats, turn, bonus);
         update_cont_hist_move(piece, sq_to(move), stack, bonus);
     }
 
-    inline const int get_history_search(const Move move, const int piece, const uint64_t threats, const bool turn, StackEntry *stack) const {
+    inline const int get_history_search(const Move move, const Piece piece, const uint64_t threats, const bool turn, StackEntry *stack) const {
         const int to = sq_to(move);
         return get_hist(sq_from(move), to, from_to(move), turn, threats)
              + get_cont_hist(piece, to, stack, 1)
@@ -159,7 +159,7 @@ public:
              + get_cont_hist(piece, to, stack, 4);
     }
 
-    inline const int get_history_movepick(const Move move, const int piece, const uint64_t threats, const bool turn, StackEntry *stack) const {
+    inline const int get_history_movepick(const Move move, const Piece piece, const uint64_t threats, const bool turn, StackEntry *stack) const {
         const int to = sq_to(move);
         return QuietHistCoef  * get_hist(sq_from(move), to, from_to(move), turn, threats)
              + QuietContHist1 * get_cont_hist(piece, to, stack, 1)
@@ -167,7 +167,7 @@ public:
              + QuietContHist4 * get_cont_hist(piece, to, stack, 4);
     }
 
-    inline void update_cap_hist_move(const int piece, const int to, const int cap, const int16_t bonus) {
+    inline void update_cap_hist_move(const Piece piece, const int to, const int cap, const int16_t bonus) {
         get_cap_hist(piece, to, cap).update(bonus);
     }
 

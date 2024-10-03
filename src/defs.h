@@ -112,6 +112,7 @@ enum {
 };
 
 typedef uint16_t Move;
+typedef uint8_t Piece;
 constexpr Move NULLMOVE = 0;
 
 constexpr int HALFMOVES = 100;
@@ -216,11 +217,11 @@ inline int sq_lsb(uint64_t &b) {
     return sq;
 }
 
-inline int piece_type(int piece) {
+inline Piece piece_type(Piece piece) {
     return piece >= 6 ? piece - 6 : piece;
 }
 
-inline int16_t net_index(int piece, int sq, int kingSq, bool side) {
+inline int16_t net_index(Piece piece, int sq, int kingSq, bool side) {
     return 64 * 12 * kingIndTable[kingSq ^ (56 * !side)] + 64 * (piece + side * (piece >= 6 ? -6 : +6)) + (sq ^ (56 * !side) ^ (7 * ((kingSq >> 2) & 1))); // kingSq should be ^7, if kingSq&7 >= 4
 }
 
@@ -268,7 +269,7 @@ inline int get_piece(const int piece_type, const bool color) {
     return 6 * color + piece_type;
 }
 
-inline bool color_of(int piece) {
+inline bool color_of(Piece piece) {
     return piece >= 6;
 }
 
@@ -333,7 +334,7 @@ inline void init_defs() {
     cod['P'] = WP, cod['N'] = WN, cod['B'] = WB, cod['R'] = WR, cod['Q'] = WQ, cod['K'] = WK;
 
     /// zobrist keys
-    for (int i = BP; i <= WK; i++) {
+    for (Piece i = BP; i <= WK; i++) {
         for (int j = 0; j < 64; j++)
             hashKey[i][j] = rng(gen);
     }

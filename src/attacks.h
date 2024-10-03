@@ -262,7 +262,7 @@ inline uint64_t genAttacksKing(int sq) {
     return kingBBAttacks[sq];
 }
 
-inline uint64_t genAttacksSq(uint64_t blockers, int sq, int pieceType) {
+inline uint64_t genAttacksSq(uint64_t blockers, int sq, Piece pieceType) {
     switch (pieceType) {
     case KNIGHT:
         return genAttacksKnight(sq);
