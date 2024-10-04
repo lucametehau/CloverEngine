@@ -28,7 +28,7 @@ class HistoricalState {
 public:
     int8_t enPas;
     uint8_t castleRights;
-    uint8_t captured;
+    Piece captured;
     uint16_t halfMoves, moveIndex;
     uint64_t checkers, pinnedPieces;
     uint64_t key, pawn_key, mat_key[2];
@@ -88,21 +88,21 @@ public:
 
     inline uint8_t& castle_rights() { return state.castleRights; }
 
-    inline uint8_t& captured() { return state.captured; }
+    inline Piece& captured() { return state.captured; }
 
     inline uint64_t diagonal_sliders(const bool color) const { return bb[get_piece(BISHOP, color)] | bb[get_piece(QUEEN, color)]; }
 
     inline uint64_t orthogonal_sliders(const bool color) const { return bb[get_piece(ROOK, color)] | bb[get_piece(QUEEN, color)]; }
 
-    inline uint64_t get_bb_piece(const int piece, const bool color) const { return bb[get_piece(piece, color)]; }
+    inline uint64_t get_bb_piece(const Piece piece, const bool color) const { return bb[get_piece(piece, color)]; }
 
     inline uint64_t get_bb_color(const bool color) const { return pieces[color]; }
 
-    inline uint64_t get_bb_piece_type(const int piece_type) const { 
+    inline uint64_t get_bb_piece_type(const Piece piece_type) const { 
         return get_bb_piece(piece_type, WHITE) | get_bb_piece(piece_type, BLACK);
     }
 
-    inline uint64_t get_attackers(const int color, const uint64_t blockers, const int sq) const {
+    inline uint64_t get_attackers(const bool color, const uint64_t blockers, const Square sq) const {
         return (genAttacksPawn(1 ^ color, sq) & get_bb_piece(PAWN, color)) |
             (genAttacksKnight(sq) & get_bb_piece(KNIGHT, color)) | 
             (genAttacksBishop(blockers, sq) & diagonal_sliders(color)) |
@@ -110,20 +110,20 @@ public:
             (genAttacksKing(sq) & get_bb_piece(KING, color));
     }
 
-    inline uint64_t getOrthSliderAttackers(const int color, const uint64_t blockers, const int sq) const {
+    inline uint64_t getOrthSliderAttackers(const bool color, const uint64_t blockers, const Square sq) const {
         return genAttacksRook(blockers, sq) & orthogonal_sliders(color);
     }
-    inline uint64_t get_pawn_attacks(const int color) const {
+    inline uint64_t get_pawn_attacks(const bool color) const {
         const uint64_t b = get_bb_piece(PAWN, color);
         const int fileA = (color == WHITE ? 0 : 7), fileH = 7 - fileA;
         return shift(color, NORTHWEST, b & ~file_mask[fileA]) | shift(color, NORTHEAST, b & ~file_mask[fileH]);
     }
 
-    inline int piece_type_at(const int sq) const { return piece_type(board[sq]); }
+    inline Piece piece_type_at(const Square sq) const { return piece_type(board[sq]); }
 
-    inline int get_captured_type(const Move move) const { return type(move) == ENPASSANT ? PAWN : piece_type_at(sq_to(move)); }
+    inline Piece get_captured_type(const Move move) const { return type(move) == ENPASSANT ? PAWN : piece_type_at(sq_to(move)); }
 
-    inline int piece_at(const int sq) const { return board[sq]; }
+    inline int piece_at(const Square sq) const { return board[sq]; }
 
     inline int king(const bool color) const { return sq_single_bit(get_bb_piece(KING, color)); }
 
@@ -133,7 +133,7 @@ public:
         return (type(move) && type(move) != CASTLE) || is_capture(move); 
     }
 
-    inline bool is_attacked_by(const int color, const int sq) const { 
+    inline bool is_attacked_by(const bool color, const Square sq) const { 
         return get_attackers(color, get_bb_color(WHITE) | get_bb_color(BLACK), sq); 
     }
 
@@ -156,7 +156,7 @@ public:
         const std::array <int, 2> kingsSide = {
             king(BLACK), king(WHITE)
         };
-        for (int i = BP; i <= WK; i++) {
+        for (Piece i = BP; i <= WK; i++) {
             uint64_t b = bb[i];
             while (b) {
                 uint64_t b2 = lsb(b);
@@ -169,7 +169,7 @@ public:
         return ans;
     }
 
-    void place_piece_at_sq(int piece, int sq) {
+    void place_piece_at_sq(Piece piece, Square sq) {
         board[sq] = piece;
         key() ^= hashKey[piece][sq];
         if (piece_type(piece) == PAWN) pawn_key() ^= hashKey[piece][sq];
@@ -244,7 +244,8 @@ public:
     }
 
     inline uint64_t speculative_next_key(const Move move) {
-        const int from = sq_from(move), to = sq_to(move), piece = piece_at(from);
+        const int from = sq_from(move), to = sq_to(move);
+        const Piece piece = piece_at(from);
         return key() ^ hashKey[piece][from] ^ hashKey[piece][to] ^ (piece_at(to) != NO_PIECE ? hashKey[piece_at(to)][to] : 0) ^ 1;
     }
 

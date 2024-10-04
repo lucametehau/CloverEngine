@@ -35,14 +35,14 @@ void Board::set_fen(const std::string fen) {
     captured() = NO_PIECE;
 
     //checkers() = 0;
-    for (int i = 0; i < 12; i++)
+    for (Piece i = BP; i <= WK; i++)
         bb[i] = 0;
 
     pieces[BLACK] = pieces[WHITE] = 0;
     for (int i = 7; i >= 0; i--) {
         int j = 0;
         while (fen[ind] != '/' && fen[ind] != ' ') {
-            int sq = get_sq(i, j);
+            Square sq = get_sq(i, j);
             if (fen[ind] < '0' || '9' < fen[ind]) {
                 place_piece_at_sq(cod[fen[ind]], sq);
                 j++;
@@ -93,7 +93,7 @@ void Board::set_fen(const std::string fen) {
             ind++;
 
         int a = 64, b = 64;
-        for (int i = 0; i < 8; i++) {
+        for (Square i = 0; i < 8; i++) {
             if (piece_at(i) == WR) {
                 a = b;
                 b = i;
@@ -108,7 +108,7 @@ void Board::set_fen(const std::string fen) {
             }
         }
         a = 64, b = 64;
-        for (int i = 56; i < 64; i++) {
+        for (Square i = 56; i < 64; i++) {
             if (piece_at(i) == BR) {
                 b = a;
                 a = i;
@@ -173,7 +173,7 @@ void Board::set_frc_side(bool color, int idx) {
     place_piece_at_sq(get_piece(BISHOP, color), ind + 0 + (idx % 4) * 2);
     idx /= 4;
     int cnt = 0;
-    for (int i = ind; i < ind + 8; i++) {
+    for (Square i = ind; i < ind + 8; i++) {
         if (piece_at(i) == NO_PIECE) {
             if (idx % 6 == cnt) {
                 place_piece_at_sq(get_piece(QUEEN, color), i);
@@ -191,7 +191,7 @@ void Board::set_frc_side(bool color, int idx) {
         {3, 4},
     };
     cnt = 0;
-    for (int i = ind; i < ind + 8; i++) {
+    for (Square i = ind; i < ind + 8; i++) {
         if (piece_at(i) == NO_PIECE) {
             if (cnt == vals[idx][0] || cnt == vals[idx][1]) {
                 place_piece_at_sq(get_piece(KNIGHT, color), i);
@@ -200,7 +200,7 @@ void Board::set_frc_side(bool color, int idx) {
         }
     }
     cnt = 0;
-    for (int i = ind; i < ind + 8; i++) {
+    for (Square i = ind; i < ind + 8; i++) {
         if (piece_at(i) == NO_PIECE) {
             if (cnt == 0 || cnt == 2) {
                 place_piece_at_sq(get_piece(ROOK, color), i);
@@ -219,10 +219,10 @@ void Board::set_dfrc(int idx) {
 
     //checkers() = 0;
 
-    for (int i = 0; i < 12; i++)
+    for (Piece i = BP; i <= WK; i++)
         bb[i] = 0;
 
-    for (int i = 0; i < 64; i++)
+    for (Square i = 0; i < 64; i++)
         board[i] = NO_PIECE;
 
     pieces[BLACK] = pieces[WHITE] = 0;
@@ -242,7 +242,7 @@ void Board::set_dfrc(int idx) {
     castle_rights() = 15;
 
     int a = 64, b = 64;
-    for (int i = 0; i < 8; i++) {
+    for (Square i = 0; i < 8; i++) {
         if (piece_at(i) == WR) {
             a = b;
             b = i;
@@ -257,7 +257,7 @@ void Board::set_dfrc(int idx) {
         }
     }
     a = 64, b = 64;
-    for (int i = 56; i < 64; i++) {
+    for (Square i = 56; i < 64; i++) {
         if (piece_at(i) == BR) {
             b = a;
             a = i;

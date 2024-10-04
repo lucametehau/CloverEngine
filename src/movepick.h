@@ -96,8 +96,8 @@ public:
                 }
                 moves[m] = move;
 
-                const int piece = board.piece_at(sq_from(move));
-                const int to = sq_to(move), cap = board.get_captured_type(move);
+                const Piece piece = board.piece_at(sq_from(move)), cap = board.get_captured_type(move);
+                const Square to = sq_to(move);
                 int score = GoodNoisyValueCoef * seeVal[cap];
                 score += histories.get_cap_hist(piece, to, cap);
                 scores[m++] = score;
@@ -143,7 +143,8 @@ public:
                         continue;
 
                     moves[m] = move;
-                    const int from = sq_from(move), to = sq_to(move), piece = board.piece_at(from), pt = piece_type(piece);
+                    const Square from = sq_from(move), to = sq_to(move);
+                    const Piece piece = board.piece_at(from), pt = piece_type(piece);
                     int score = histories.get_history_movepick(move, piece, all_threats, turn, stack);
 
                     if (pt == PAWN) // pawn push, generally good?
@@ -209,7 +210,8 @@ public:
 };
 
 bool see(Board& board, Move move, int threshold) {
-    int from = sq_from(move), to = sq_to(move), score = -threshold + 1;
+    Square from = sq_from(move), to = sq_to(move);
+    int score = -threshold + 1;
     uint64_t diag, orth, occ, att, myAtt, b;
     bool stm, result = 1;
 

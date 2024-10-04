@@ -112,6 +112,9 @@ enum {
 };
 
 typedef uint16_t Move;
+typedef uint8_t Piece;
+typedef uint8_t Square;
+
 constexpr Move NULLMOVE = 0;
 
 constexpr int HALFMOVES = 100;
@@ -202,29 +205,29 @@ inline uint64_t lsb(uint64_t nr) {
     return nr & -nr;
 }
 
-inline int Sq(const uint64_t b) {
+inline Square Sq(const uint64_t b) {
     return 63 - __builtin_clzll(b);
 }
 
-inline int sq_single_bit(const uint64_t b) {
+inline Square sq_single_bit(const uint64_t b) {
     return __builtin_ctzll(b);
 }
 
-inline int sq_lsb(uint64_t &b) {
-    const int sq = sq_single_bit(b);
+inline Square sq_lsb(uint64_t &b) {
+    const Square sq = sq_single_bit(b);
     b &= b - 1;
     return sq;
 }
 
-inline int piece_type(int piece) {
+inline Piece piece_type(Piece piece) {
     return piece >= 6 ? piece - 6 : piece;
 }
 
-inline int16_t net_index(int piece, int sq, int kingSq, bool side) {
+inline int16_t net_index(Piece piece, Square sq, Square kingSq, bool side) {
     return 64 * 12 * kingIndTable[kingSq ^ (56 * !side)] + 64 * (piece + side * (piece >= 6 ? -6 : +6)) + (sq ^ (56 * !side) ^ (7 * ((kingSq >> 2) & 1))); // kingSq should be ^7, if kingSq&7 >= 4
 }
 
-inline bool recalc(int from, int to, bool side) {
+inline bool recalc(Square from, Square to, bool side) {
     return (from & 4) != (to & 4) || kingIndTable[from ^ (56 * !side)] != kingIndTable[to ^ (56 * !side)];
 }
 
@@ -232,15 +235,15 @@ inline uint32_t count(uint64_t b) {
     return __builtin_popcountll(b);
 }
 
-inline int get_sq(int rank, int file) {
+inline Square get_sq(int rank, int file) {
     return (rank << 3) | file;
 }
 
-inline int mirror(bool color, int sq) {
+inline Square mirror(bool color, Square sq) {
     return sq ^ (56 * !color);
 }
 
-inline int sq_dir(int color, int dir, int sq) {
+inline Square sq_dir(bool color, int dir, Square sq) {
     if (color == BLACK) {
         if (dir < 4)
             dir = (dir + 2) % 4;
@@ -264,11 +267,11 @@ inline uint64_t shift(int color, int dir, uint64_t mask) {
     return mask >> (-deltaPos[dir]);
 }
 
-inline int get_piece(const int piece_type, const bool color) {
+inline Piece get_piece(const Piece piece_type, const bool color) {
     return 6 * color + piece_type;
 }
 
-inline bool color_of(int piece) {
+inline bool color_of(Piece piece) {
     return piece >= 6;
 }
 
@@ -276,15 +279,15 @@ inline bool inside_board(int rank, int file) {
     return rank >= 0 && file >= 0 && rank <= 7 && file <= 7;
 }
 
-inline Move getMove(int from, int to, int prom, int type) {
+inline Move getMove(Square from, Square to, Piece prom, int type) {
     return from | (to << 6) | (prom << 12) | (type << 14);
 }
 
-inline int sq_from(Move move) {
+inline Square sq_from(Move move) {
     return move & 63;
 }
 
-inline int sq_to(Move move) {
+inline Square sq_to(Move move) {
     return (move & 4095) >> 6;
 }
 
@@ -296,11 +299,11 @@ inline int type(Move move) {
     return move >> 14;
 }
 
-inline int special_sqto(Move move) {
+inline Square special_sqto(Move move) {
     return type(move) != CASTLE ? sq_to(move) : 8 * (sq_from(move) / 8) + (sq_from(move) < sq_to(move) ? 6 : 2);
 }
 
-inline int promoted(Move move) {
+inline Piece promoted(Move move) {
     return (move & 16383) >> 12;
 }
 
@@ -333,8 +336,8 @@ inline void init_defs() {
     cod['P'] = WP, cod['N'] = WN, cod['B'] = WB, cod['R'] = WR, cod['Q'] = WQ, cod['K'] = WK;
 
     /// zobrist keys
-    for (int i = BP; i <= WK; i++) {
-        for (int j = 0; j < 64; j++)
+    for (Piece i = BP; i <= WK; i++) {
+        for (Square j = 0; j < 64; j++)
             hashKey[i][j] = rng(gen);
     }
 

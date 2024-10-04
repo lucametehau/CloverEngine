@@ -148,12 +148,12 @@ enum {
 };
 
 struct NetInput {
-    std::vector <short> ind[2];
+    std::vector<short> ind[2];
 };
 
 struct NetHist {
     uint16_t move;
-    uint8_t piece, cap;
+    Piece piece, cap;
     bool recalc;
     bool calc[2];
 };
@@ -404,53 +404,54 @@ public:
         }
     }
 
-    void process_move(uint16_t move, int pieceFrom, int captured, int king, bool side, int16_t* a, int16_t* b) {
-        int posFrom = sq_from(move), posTo = sq_to(move);
-        bool turn = color_of(pieceFrom);
+    void process_move(uint16_t move, Piece piece, Piece captured, Square king, bool side, int16_t* a, int16_t* b) {
+        Square from = sq_from(move), to = sq_to(move);
+        bool turn = color_of(piece);
         switch (type(move)) {
         case NEUT: {
             if (captured == NO_PIECE)
-                apply_sub_add(a, b, net_index(pieceFrom, posFrom, king, side), net_index(pieceFrom, posTo, king, side));
+                apply_sub_add(a, b, net_index(piece, from, king, side), net_index(piece, to, king, side));
             else
-                apply_sub_add_sub(a, b, net_index(pieceFrom, posFrom, king, side), net_index(pieceFrom, posTo, king, side), net_index(captured, posTo, king, side));
+                apply_sub_add_sub(a, b, net_index(piece, from, king, side), net_index(piece, to, king, side), net_index(captured, to, king, side));
         }
         break;
         case CASTLE: {
-            int rFrom = posTo, rTo, rPiece = get_piece(ROOK, turn);
-            if (posTo > posFrom) { // king side castle
-                posTo = mirror(turn, G1);
+            Square rFrom = to, rTo, rPiece = get_piece(ROOK, turn);
+            if (to > from) { // king side castle
+                to = mirror(turn, G1);
                 rTo = mirror(turn, F1);
             }
             else { // queen side castle
-                posTo = mirror(turn, C1);
+                to = mirror(turn, C1);
                 rTo = mirror(turn, D1);
             }
-            apply_sub_add_sub_add(a, b, net_index(pieceFrom, posFrom, king, side), net_index(pieceFrom, posTo, king, side), net_index(rPiece, rFrom, king, side), net_index(rPiece, rTo, king, side));
+            apply_sub_add_sub_add(a, b, net_index(piece, from, king, side), net_index(piece, to, king, side), net_index(rPiece, rFrom, king, side), net_index(rPiece, rTo, king, side));
         }
         break;
         case ENPASSANT: {
-            const int pos = sq_dir(turn, SOUTH, posTo), pieceCap = get_piece(PAWN, 1 ^ turn);
-            apply_sub_add_sub(a, b, net_index(pieceFrom, posFrom, king, side), net_index(pieceFrom, posTo, king, side), net_index(pieceCap, pos, king, side));
+            const Square pos = sq_dir(turn, SOUTH, to);
+            const Piece pieceCap = get_piece(PAWN, 1 ^ turn);
+            apply_sub_add_sub(a, b, net_index(piece, from, king, side), net_index(piece, to, king, side), net_index(pieceCap, pos, king, side));
         }
         break;
         default: {
             const int promPiece = get_piece(promoted(move) + KNIGHT, turn);
             if (captured == NO_PIECE)
-                apply_sub_add(a, b, net_index(pieceFrom, posFrom, king, side), net_index(promPiece, posTo, king, side));
+                apply_sub_add(a, b, net_index(piece, from, king, side), net_index(promPiece, to, king, side));
             else
-                apply_sub_add_sub(a, b, net_index(pieceFrom, posFrom, king, side), net_index(promPiece, posTo, king, side), net_index(captured, posTo, king, side));
+                apply_sub_add_sub(a, b, net_index(piece, from, king, side), net_index(promPiece, to, king, side), net_index(captured, to, king, side));
         }
         break;
         }
     }
 
-    inline void process_historic_update(const int index, const int king_sq, const bool side) {
+    inline void process_historic_update(const int index, const Square king_sq, const bool side) {
         hist[index].calc[side] = 1;
         process_move(hist[index].move, hist[index].piece, hist[index].cap, king_sq, side,
             &output_history[index][side * SIDE_NEURONS], &output_history[index - 1][side * SIDE_NEURONS]);
     }
 
-    inline void add_move_to_history(uint16_t move, uint8_t piece, uint8_t captured) {
+    inline void add_move_to_history(uint16_t move, Piece piece, Piece captured) {
         hist[hist_size] = { move, piece, captured, piece_type(piece) == KING && recalc(sq_from(move), special_sqto(move), color_of(piece)), { 0, 0 } };
         hist_size++;
     }
