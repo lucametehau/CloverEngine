@@ -102,7 +102,7 @@ public:
         return get_bb_piece(piece_type, WHITE) | get_bb_piece(piece_type, BLACK);
     }
 
-    inline uint64_t get_attackers(const int color, const uint64_t blockers, const int sq) const {
+    inline uint64_t get_attackers(const bool color, const uint64_t blockers, const Square sq) const {
         return (genAttacksPawn(1 ^ color, sq) & get_bb_piece(PAWN, color)) |
             (genAttacksKnight(sq) & get_bb_piece(KNIGHT, color)) | 
             (genAttacksBishop(blockers, sq) & diagonal_sliders(color)) |
@@ -110,20 +110,20 @@ public:
             (genAttacksKing(sq) & get_bb_piece(KING, color));
     }
 
-    inline uint64_t getOrthSliderAttackers(const int color, const uint64_t blockers, const int sq) const {
+    inline uint64_t getOrthSliderAttackers(const bool color, const uint64_t blockers, const Square sq) const {
         return genAttacksRook(blockers, sq) & orthogonal_sliders(color);
     }
-    inline uint64_t get_pawn_attacks(const int color) const {
+    inline uint64_t get_pawn_attacks(const bool color) const {
         const uint64_t b = get_bb_piece(PAWN, color);
         const int fileA = (color == WHITE ? 0 : 7), fileH = 7 - fileA;
         return shift(color, NORTHWEST, b & ~file_mask[fileA]) | shift(color, NORTHEAST, b & ~file_mask[fileH]);
     }
 
-    inline Piece piece_type_at(const int sq) const { return piece_type(board[sq]); }
+    inline Piece piece_type_at(const Square sq) const { return piece_type(board[sq]); }
 
     inline Piece get_captured_type(const Move move) const { return type(move) == ENPASSANT ? PAWN : piece_type_at(sq_to(move)); }
 
-    inline int piece_at(const int sq) const { return board[sq]; }
+    inline int piece_at(const Square sq) const { return board[sq]; }
 
     inline int king(const bool color) const { return sq_single_bit(get_bb_piece(KING, color)); }
 
@@ -133,7 +133,7 @@ public:
         return (type(move) && type(move) != CASTLE) || is_capture(move); 
     }
 
-    inline bool is_attacked_by(const int color, const int sq) const { 
+    inline bool is_attacked_by(const bool color, const Square sq) const { 
         return get_attackers(color, get_bb_color(WHITE) | get_bb_color(BLACK), sq); 
     }
 
@@ -169,7 +169,7 @@ public:
         return ans;
     }
 
-    void place_piece_at_sq(Piece piece, int sq) {
+    void place_piece_at_sq(Piece piece, Square sq) {
         board[sq] = piece;
         key() ^= hashKey[piece][sq];
         if (piece_type(piece) == PAWN) pawn_key() ^= hashKey[piece][sq];

@@ -28,7 +28,7 @@ MultiArray<uint64_t, 64, 8> raysMask;
 std::array<uint64_t, 64> knightBBAttacks, kingBBAttacks;
 std::array<uint64_t, 64> kingRingMask, kingSquareMask, pawnShieldMask;
 
-inline uint64_t genAttacksBishopSlow(uint64_t blockers, int sq) {
+inline uint64_t genAttacksBishopSlow(uint64_t blockers, Square sq) {
     uint64_t attacks = 0;
 
     attacks |= raysMask[sq][NORTHWEST];
@@ -54,7 +54,7 @@ inline uint64_t genAttacksBishopSlow(uint64_t blockers, int sq) {
     return attacks;
 }
 
-inline uint64_t genAttacksRookSlow(uint64_t blockers, int sq) {
+inline uint64_t genAttacksRookSlow(uint64_t blockers, Square sq) {
     uint64_t attacks = 0;
 
     attacks |= raysMask[sq][NORTH];
@@ -93,7 +93,7 @@ inline uint64_t getBlocker(uint64_t mask, int ind) {
 }
 
 inline void initKnightAndKingAttacks() {
-    for (int i = 0; i < 64; i++) {
+    for (Square i = 0; i < 64; i++) {
         int rank = i / 8, file = i % 8;
         for (int j = 0; j < 8; j++) {
             int rankTo = rank + knightDir[j].first, fileTo = file + knightDir[j].second;
@@ -109,7 +109,7 @@ inline void initKnightAndKingAttacks() {
 
     /// king area masks
 
-    for (int i = 0; i < 64; i++) {
+    for (Square i = 0; i < 64; i++) {
         int rank = i / 8, file = i % 8, sq = 0; /// board.king(color)
         if (rank < 1)
             sq = 1 * 8;
@@ -137,7 +137,7 @@ inline void initKnightAndKingAttacks() {
 }
 
 inline void initPawnAttacks() {
-    for (int i = 0; i < 64; i++) {
+    for (Square i = 0; i < 64; i++) {
         int file = i % 8;
         if (file > 0) {
             if (i + 7 < 64)
@@ -157,7 +157,8 @@ inline void initPawnAttacks() {
 inline void initRays() {
     for (int rank = 0; rank < 8; rank++) {
         for (int file = 0; file < 8; file++) {
-            int r, f, sq = get_sq(rank, file);
+            int r, f;
+            Square sq = get_sq(rank, file);
             r = rank, f = file;
             while (r > 0)
                 r--, raysMask[sq][SOUTH] |= (1ULL << get_sq(r, f));
@@ -190,7 +191,7 @@ inline void initRays() {
 
 inline void initRookMagic() {
     //uint64_t edge = (file_mask[0] | file_mask[7] | rank_mask[0] | rank_mask[7]);
-    for (int sq = 0; sq < 64; sq++) {
+    for (Square sq = 0; sq < 64; sq++) {
         rookAttacksMask[sq] = 0;
         rookAttacksMask[sq] |= raysMask[sq][NORTH] & ~rank_mask[7];
         rookAttacksMask[sq] |= raysMask[sq][SOUTH] & ~rank_mask[0];
@@ -209,7 +210,7 @@ inline void initRookMagic() {
 
 inline void initBishopMagic() {
     uint64_t edge = (file_mask[0] | file_mask[7] | rank_mask[0] | rank_mask[7]);
-    for (int sq = 0; sq < 64; sq++) {
+    for (Square sq = 0; sq < 64; sq++) {
         bishopAttacksMask[sq] = (raysMask[sq][NORTHWEST] | raysMask[sq][SOUTHWEST] | raysMask[sq][NORTHEAST] | raysMask[sq][SOUTHEAST]) & (~edge);
         for (int blockerInd = 0; blockerInd < (1 << bishopIndexBits[sq]); blockerInd++) {
             uint64_t blockers = getBlocker(bishopAttacksMask[sq], blockerInd);
@@ -230,15 +231,15 @@ inline void init_attacks() {
     initRookMagic();
 }
 
-inline uint64_t genAttacksPawn(int color, int sq) {
+inline uint64_t genAttacksPawn(bool color, Square sq) {
     return pawnAttacksMask[color][sq];
 }
 
-inline uint64_t genAttacksKnight(int sq) {
+inline uint64_t genAttacksKnight(Square sq) {
     return knightBBAttacks[sq];
 }
 
-inline uint64_t genAttacksBishop(uint64_t blockers, int sq) {
+inline uint64_t genAttacksBishop(uint64_t blockers, Square sq) {
 #ifndef PEXT_GOOD
     return bishopTable[sq][((blockers & bishopAttacksMask[sq]) * bishopMagics[sq]) >> (64 - bishopIndexBits[sq])];
 #else
@@ -246,7 +247,7 @@ inline uint64_t genAttacksBishop(uint64_t blockers, int sq) {
 #endif
 }
 
-inline uint64_t genAttacksRook(uint64_t blockers, int sq) {
+inline uint64_t genAttacksRook(uint64_t blockers, Square sq) {
 #ifndef  PEXT_GOOD
     return rookTable[sq][((blockers & rookAttacksMask[sq]) * rookMagics[sq]) >> (64 - rookIndexBits[sq])];
 #else
@@ -254,15 +255,15 @@ inline uint64_t genAttacksRook(uint64_t blockers, int sq) {
 #endif
 }
 
-inline uint64_t genAttacksQueen(uint64_t blockers, int sq) {
+inline uint64_t genAttacksQueen(uint64_t blockers, Square sq) {
     return genAttacksBishop(blockers, sq) | genAttacksRook(blockers, sq);
 }
 
-inline uint64_t genAttacksKing(int sq) {
+inline uint64_t genAttacksKing(Square sq) {
     return kingBBAttacks[sq];
 }
 
-inline uint64_t genAttacksSq(uint64_t blockers, int sq, Piece pieceType) {
+inline uint64_t genAttacksSq(uint64_t blockers, Square sq, Piece pieceType) {
     switch (pieceType) {
     case KNIGHT:
         return genAttacksKnight(sq);

@@ -484,7 +484,7 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
             continue;
 
         const bool isQuiet = !board.is_noisy_move(move);
-        const int from = sq_from(move), to = sq_to(move);
+        const Square from = sq_from(move), to = sq_to(move);
         const Piece piece = board.piece_at(from);
         int history = 0;
 
