@@ -72,7 +72,9 @@ public:
         std::swap(moves[ind], moves[offset]);
     }
 
-    Move get_next_move(Histories &histories, StackEntry* stack, Board &board, bool skip, bool noisyPicker) {
+    Move get_next_move(Histories &histories, StackEntry* stack, MoveFraction *mean_fraction_searched_nodes, 
+        Board &board, bool skip, bool noisyPicker
+    ) {
         switch (stage) {
         case STAGE_TTMOVE:
             trueStage = STAGE_TTMOVE;
@@ -100,6 +102,7 @@ public:
                 const Square to = sq_to(move);
                 int score = GoodNoisyValueCoef * seeVal[cap];
                 score += histories.get_cap_hist(piece, to, cap);
+                score += mean_fraction_searched_nodes ? mean_fraction_searched_nodes[from_to(move)].get_movepicker_score() : 0;
                 scores[m++] = score;
             }
 
@@ -119,7 +122,7 @@ public:
             }
             if (skip) { /// no need to go through quiets
                 stage = STAGE_PRE_BAD_NOISY;
-                return get_next_move(histories, stack, board, skip, noisyPicker);
+                return get_next_move(histories, stack, mean_fraction_searched_nodes, board, skip, noisyPicker);
             }
             stage++;
         case STAGE_KILLER:
@@ -146,6 +149,8 @@ public:
                     const Square from = sq_from(move), to = sq_to(move);
                     const Piece piece = board.piece_at(from), pt = piece_type(piece);
                     int score = histories.get_history_movepick(move, piece, all_threats, turn, stack);
+
+                    score += mean_fraction_searched_nodes ? mean_fraction_searched_nodes[from_to(move)].get_movepicker_score() : 0;
 
                     if (pt == PAWN) // pawn push, generally good?
                         score += QuietPawnPushBonus;

@@ -179,14 +179,16 @@ public:
         valuesCount = 0;
     }
 
-    void upd(double value) {
+    inline void update(double value) {
         valuesSum += value;
         valuesCount++;
     }
 
-    void print_mean() {
+    inline void print_mean() {
         std::cout << name << " has the mean value " << valuesSum / valuesCount << "\n";//(" << valuesCount << " calls)\n";
     }
+
+    inline double get_mean() const { return valuesSum / valuesCount; }
 };
 
 const auto t_init = std::chrono::steady_clock::now();

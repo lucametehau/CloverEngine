@@ -217,7 +217,7 @@ int SearchData::quiesce(int alpha, int beta, StackEntry* stack) {
     Move move;
     int played = 0;
 
-    while ((move = noisyPicker.get_next_move(histories, stack, board, !in_check, true))) {
+    while ((move = noisyPicker.get_next_move(histories, stack, nullptr, board, !in_check, true))) {
         // futility pruning
         played++;
         if (played == 4) break;
@@ -429,7 +429,7 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
                     threats);
 
                 Move move;
-                while ((move = picker.get_next_move(histories, stack, board, true, true)) != NULLMOVE) {
+                while ((move = picker.get_next_move(histories, stack, nullptr, board, true, true)) != NULLMOVE) {
                     if (move == stack->excluded)
                         continue;
 
@@ -468,8 +468,9 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
 
     Move move;
     const bool ttCapture = ttMove && board.is_noisy_move(ttMove);
+    uint64_t total_nodes = 0;
 
-    while ((move = picker.get_next_move(histories, stack, board, skip, false)) != NULLMOVE) {
+    while ((move = picker.get_next_move(histories, stack, ply <= 4 ? &mean_fraction_searched_nodes[ply][0] : nullptr, board, skip, false)) != NULLMOVE) {
         if constexpr (rootNode) {
             bool searched = false;
             for (int i = 1; i < multipv_index; i++) {
@@ -567,7 +568,7 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
 
         int newDepth = depth + ex, R = 1;
 
-        uint64_t initNodes = nodes;
+        uint64_t init_nodes = nodes;
         int score = -INF, tried_count = 0;
 
         if (depth >= 2 && played > 1 + pvNode + rootNode) { /// first few moves we don't reduce
@@ -616,7 +617,10 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
         }
 
         board.undo_move(move);
-        nodes_seached[from_to(move)] += nodes - initNodes;
+
+        const uint64_t nodes_searched_move = nodes - init_nodes;
+        nodes_seached[from_to(move)] = nodes_searched_move;
+        total_nodes += nodes_searched_move;
 
         if (flag_stopped) /// stop search
             return best;
@@ -641,7 +645,7 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
                             histories.update_hist_quiet_move(bestMove, board.piece_at(sq_from(bestMove)), 
                                                             threats.all_threats, turn, stack, bonus * tried_count);
                         for (int i = 0; i < nr_quiets; i++) {
-                            const auto [move, tried_count] = stack->quiets[i];
+                            const auto [move, tried_count, _] = stack->quiets[i];
                             histories.update_hist_quiet_move(move, board.piece_at(sq_from(move)), 
                                                             threats.all_threats, turn, stack, malus * tried_count);
                         }
@@ -651,7 +655,7 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
                                                       board.get_captured_type(bestMove), bonus * tried_count);
                     }
                     for (int i = 0; i < nr_noisies; i++) {
-                        const auto [move, tried_count] = stack->noisies[i];
+                        const auto [move, tried_count, _] = stack->noisies[i];
                         histories.update_cap_hist_move(board.piece_at(sq_from(move)), sq_to(move), 
                                                       board.get_captured_type(move), malus * tried_count);
                     }
@@ -661,8 +665,19 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
         }
         
         if(move != bestMove) {
-            if (isQuiet) stack->quiets[nr_quiets++] = SearchMove(move, tried_count);
-            else stack->noisies[nr_noisies++] = SearchMove(move, tried_count);
+            if (isQuiet) stack->quiets[nr_quiets++] = SearchMove(move, tried_count, nodes_searched_move);
+            else stack->noisies[nr_noisies++] = SearchMove(move, tried_count, nodes_searched_move);
+        }
+    }
+
+    if (total_nodes && ply <= 4) {
+        for (int i = 0; i < nr_quiets; i++) {
+            const auto [move, _, nodes_seached] = stack->quiets[i];
+            mean_fraction_searched_nodes[ply][from_to(move)].update(nodes_seached, total_nodes);
+        }
+        for (int i = 0; i < nr_noisies; i++) {
+            const auto [move, _, nodes_seached] = stack->noisies[i];
+            mean_fraction_searched_nodes[ply][from_to(move)].update(nodes_seached, total_nodes);
         }
     }
 

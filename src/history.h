@@ -51,12 +51,31 @@ public:
     inline operator int() const { return corr; }
 };
 
+class MoveFraction {
+private:
+    uint64_t nodes, total_nodes;
+
+public:
+    MoveFraction() : nodes(0), total_nodes(0) {}
+
+    void update(uint64_t delta_nodes, uint64_t delta_total_nodes) { nodes += delta_nodes; total_nodes += delta_total_nodes; }
+
+    inline float get_fraction() { return total_nodes == 0 ? 0.5 : 1.0 * nodes / total_nodes; }
+
+    inline int get_movepicker_score() {
+        const float fraction = get_fraction();
+        assert(0.0 <= fraction && fraction <= 1.0);
+        return -10000 + 20000 * fraction;
+    }
+};
+
 class SearchMove {
 public:
     Move move;
     int tried_count;
-    SearchMove() : move(NULLMOVE), tried_count(0) {}
-    SearchMove(Move _move, int _tried_count) : move(_move), tried_count(_tried_count) {}
+    uint64_t nodes_searched;
+    SearchMove() : move(NULLMOVE), tried_count(0), nodes_searched(0) {}
+    SearchMove(Move _move, int _tried_count, uint64_t _nodes_searched) : move(_move), tried_count(_tried_count), nodes_searched(_nodes_searched) {}
 };
 
 class StackEntry { /// info to keep in the stack

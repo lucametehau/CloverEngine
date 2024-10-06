@@ -33,6 +33,7 @@ public:
         pv_table_len.fill(0);
         nodes_seached.fill(0);
         fill_multiarray<Move, MAX_DEPTH + 5, 2 * MAX_DEPTH + 5>(pv_table, 0);
+        fill_multiarray<MoveFraction, 5, 64 * 64>(mean_fraction_searched_nodes, MoveFraction());
     }
 
     inline void clear_history() {
@@ -71,6 +72,7 @@ private:
     std::array<int, MAX_DEPTH + 5> pv_table_len;
     MultiArray<Move, MAX_DEPTH + 5, 2 * MAX_DEPTH + 5> pv_table;
     std::array<StackEntry, MAX_DEPTH + 15> search_stack;
+    MultiArray<MoveFraction, 5, 64 * 64> mean_fraction_searched_nodes;
     
     Histories histories;
 
