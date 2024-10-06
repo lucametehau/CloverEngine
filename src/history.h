@@ -63,7 +63,7 @@ public:
 
     void update(uint64_t delta_nodes, uint64_t delta_total_nodes) { nodes += delta_nodes; total_nodes += delta_total_nodes; }
 
-    inline float get_fraction() { return total_nodes == 0 ? 0.5 : 1.0 * nodes / total_nodes; }
+    inline float get_fraction() { return total_nodes == 0 ? 0.0 : 1.0 * nodes / total_nodes; }
 
     inline int get_movepicker_score() {
         const float fraction = get_fraction();
