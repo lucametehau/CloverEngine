@@ -16,6 +16,7 @@
 */
 #pragma once
 #include <vector>
+#include <cmath>
 #include "board.h"
 #include "defs.h"
 
@@ -51,6 +52,8 @@ public:
     inline operator int() const { return corr; }
 };
 
+const float PI = acos(-1);
+
 class MoveFraction {
 private:
     uint64_t nodes, total_nodes;
@@ -65,7 +68,7 @@ public:
     inline int get_movepicker_score() {
         const float fraction = get_fraction();
         assert(0.0 <= fraction && fraction <= 1.0);
-        return -10000 + 20000 * fraction;
+        return 16384 * sin(fraction * PI / 2);
     }
 };
 
