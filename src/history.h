@@ -52,27 +52,6 @@ public:
     inline operator int() const { return corr; }
 };
 
-const float PI = acos(-1);
-
-class MoveFraction {
-private:
-    int64_t nodes, total_nodes;
-
-public:
-    MoveFraction() : nodes(0), total_nodes(0) {}
-
-    void update(int64_t delta_nodes, int64_t delta_total_nodes) { nodes += delta_nodes; total_nodes += delta_total_nodes; }
-
-    inline float get_fraction() { return total_nodes == 0 ? 0.0 : 1.0 * nodes / total_nodes; }
-
-    inline int get_movepicker_score() {
-        const float fraction = get_fraction();
-        //const float weird_scale = 1.0 / (1.0 + exp(-total_nodes));
-        assert(0.0 <= fraction && fraction <= 1.0);
-        return 16384 * sin(fraction * PI / 2);
-    }
-};
-
 class SearchMove {
 public:
     Move move;

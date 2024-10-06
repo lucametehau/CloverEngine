@@ -18,6 +18,7 @@
 #include "board.h"
 #include "tt.h"
 #include "history.h"
+#include "move_fraction.h"
 
 #ifndef TUNE_FLAG
 constexpr int seeVal[] = { SeeValPawn, SeeValKnight, SeeValBishop, SeeValRook, SeeValQueen, 20000, 0 };
@@ -32,8 +33,8 @@ public:
     inline void clear_stack() {
         pv_table_len.fill(0);
         nodes_seached.fill(0);
+        move_fractions.fill(MoveFractionTable());
         fill_multiarray<Move, MAX_DEPTH + 5, 2 * MAX_DEPTH + 5>(pv_table, 0);
-        fill_multiarray<MoveFraction, 5, 64 * 64>(mean_fraction_searched_nodes, MoveFraction());
     }
 
     inline void clear_history() {
@@ -72,7 +73,7 @@ private:
     std::array<int, MAX_DEPTH + 5> pv_table_len;
     MultiArray<Move, MAX_DEPTH + 5, 2 * MAX_DEPTH + 5> pv_table;
     std::array<StackEntry, MAX_DEPTH + 15> search_stack;
-    MultiArray<MoveFraction, 5, 64 * 64> mean_fraction_searched_nodes;
+    std::array<MoveFractionTable, 5> move_fractions;
     
     Histories histories;
 

@@ -469,8 +469,9 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
     Move move;
     const bool ttCapture = ttMove && board.is_noisy_move(ttMove);
     uint64_t total_nodes = 0;
+    MoveFractionEntry *move_fraction_entry = ply <= MOVE_FRACTION_PLIES ? move_fractions[ply].get_entry(key) : nullptr;
 
-    while ((move = picker.get_next_move(histories, stack, ply <= 2 ? &mean_fraction_searched_nodes[ply][0] : nullptr, board, skip, false)) != NULLMOVE) {
+    while ((move = picker.get_next_move(histories, stack, move_fraction_entry, board, skip, false)) != NULLMOVE) {
         if constexpr (rootNode) {
             bool searched = false;
             for (int i = 1; i < multipv_index; i++) {
@@ -670,14 +671,25 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
         }
     }
 
-    if (total_nodes && ply <= 2) {
+    if (total_nodes && ply <= MOVE_FRACTION_PLIES) {
+        MoveList moves;
+        int nr_moves = 0;
+        for (int i = 0; i < nr_quiets; i++) {
+            const auto [move, _, __] = stack->quiets[i];
+            moves[nr_moves++] = move;
+        }
+        for (int i = 0; i < nr_noisies; i++) {
+            const auto [move, _, __] = stack->noisies[i];
+            moves[nr_moves++] = move;
+        }
+        move_fractions[ply].update_entry(move_fraction_entry, key, moves, nr_moves);
         for (int i = 0; i < nr_quiets; i++) {
             const auto [move, _, nodes_seached] = stack->quiets[i];
-            mean_fraction_searched_nodes[ply][from_to(move)].update(nodes_seached, total_nodes);
+            move_fraction_entry->update_fraction(move, nodes_seached, total_nodes);
         }
         for (int i = 0; i < nr_noisies; i++) {
             const auto [move, _, nodes_seached] = stack->noisies[i];
-            mean_fraction_searched_nodes[ply][from_to(move)].update(nodes_seached, total_nodes);
+            move_fraction_entry->update_fraction(move, nodes_seached, total_nodes);
         }
     }
 
