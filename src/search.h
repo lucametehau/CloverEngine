@@ -470,7 +470,7 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
     const bool ttCapture = ttMove && board.is_noisy_move(ttMove);
     uint64_t total_nodes = 0;
 
-    while ((move = picker.get_next_move(histories, stack, ply <= 4 ? &mean_fraction_searched_nodes[ply][0] : nullptr, board, skip, false)) != NULLMOVE) {
+    while ((move = picker.get_next_move(histories, stack, ply <= 3 ? &mean_fraction_searched_nodes[ply][0] : nullptr, board, skip, false)) != NULLMOVE) {
         if constexpr (rootNode) {
             bool searched = false;
             for (int i = 1; i < multipv_index; i++) {
@@ -670,7 +670,7 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
         }
     }
 
-    if (total_nodes && ply <= 4) {
+    if (total_nodes && ply <= 3) {
         for (int i = 0; i < nr_quiets; i++) {
             const auto [move, _, nodes_seached] = stack->quiets[i];
             mean_fraction_searched_nodes[ply][from_to(move)].update(nodes_seached, total_nodes);

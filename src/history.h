@@ -67,9 +67,9 @@ public:
 
     inline int get_movepicker_score() {
         const float fraction = get_fraction();
-        const float weird_scale = 1.0 / (1.0 + exp(-total_nodes));
+        //const float weird_scale = 1.0 / (1.0 + exp(-total_nodes));
         assert(0.0 <= fraction && fraction <= 1.0);
-        return 16384 * sin(fraction * weird_scale * PI / 2);
+        return 16384 * sin(fraction * PI / 2);
     }
 };
 
