@@ -34,6 +34,11 @@ public:
         for (int i = 0; i < nr_moves; i++) fractions[i] = MoveFraction();
     }
 
+    void init(uint64_t _key, MoveList &_moves, int _nr_moves) {
+        key = _key, moves = _moves, nr_moves = _nr_moves;
+        for (int i = 0; i < nr_moves; i++) fractions[i] = MoveFraction();
+    }
+
     inline float get_fraction(Move move) {
         if (key == 0) return 0.0;
         for (int i = 0; i < nr_moves; i++) {
@@ -60,6 +65,11 @@ public:
         //std::cout << "Getting a score of " << 16384 * sin(fraction * PI / 2) << "\n";
         return 16384 * sin(fraction * PI / 2);
     }
+
+    void print() {
+        for (int i = 0; i < nr_moves; i++)
+            std::cout << move_to_string(moves[i], false) << " " << 100.0 * fractions[i].get_fraction() << "\n";
+    }
 };
 
 class MoveFractionTable {
@@ -78,8 +88,9 @@ public:
     }
 
     void update_entry(MoveFractionEntry* entry, uint64_t key, MoveList& moves, int nr_moves) {
-        entry->key = key;
-        entry->moves = moves;
-        entry->nr_moves = nr_moves;
+        if (entry->key != key) {
+            entry->init(key, moves, nr_moves);
+            //std::cout << entry->key << " " << key << " initing\n";
+        }
     }
 };
