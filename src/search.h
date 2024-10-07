@@ -671,7 +671,7 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
         }
     }
 
-    if (total_nodes && ply <= MOVE_FRACTION_PLIES && total_nodes >= 1000) {
+    if (total_nodes && ply <= MOVE_FRACTION_PLIES && total_nodes >= 10000) {
         MoveList moves;
         int nr_moves = 0;
         for (int i = 0; i < nr_quiets; i++) {
