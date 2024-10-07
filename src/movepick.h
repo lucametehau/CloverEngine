@@ -102,7 +102,6 @@ public:
                 const Square to = sq_to(move);
                 int score = GoodNoisyValueCoef * seeVal[cap];
                 score += histories.get_cap_hist(piece, to, cap);
-                score += move_fraction_entry ? move_fraction_entry->get_movepicker_score(move) : 0;
                 scores[m++] = score;
             }
 

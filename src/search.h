@@ -791,7 +791,6 @@ void SearchData::start_search(Info &_info) {
     completed_depth = 0;
 
     for (tDepth = 1; tDepth <= limitDepth; tDepth++) {
-        //move_fractions[0].get_entry(board.key())->print();
         multipv_index = 0;
         for (int i = 1; i <= info.multipv; i++) {
             multipv_index++;
