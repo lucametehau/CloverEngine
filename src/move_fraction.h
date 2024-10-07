@@ -34,6 +34,8 @@ public:
         for (int i = 0; i < nr_moves; i++) fractions[i] = MoveFraction();
     }
 
+    void init() { key = 0, nr_moves = 0; }
+
     void init(uint64_t _key, MoveList &_moves, int _nr_moves) {
         key = _key, moves = _moves, nr_moves = _nr_moves;
         for (int i = 0; i < nr_moves; i++) fractions[i] = MoveFraction();
@@ -83,7 +85,10 @@ public:
     }
 
     MoveFractionEntry* get_entry(uint64_t key) {
-        return &entries[key & TABLE_MASK];
+        MoveFractionEntry* entry = &entries[key & TABLE_MASK];
+        if (entry->key == key) return entry;
+        entry->init();
+        return entry;
     }
 
     void update_entry(MoveFractionEntry* entry, uint64_t key, MoveList& moves, int nr_moves) {
