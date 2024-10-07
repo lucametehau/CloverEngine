@@ -283,8 +283,7 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
     const uint64_t key = board.key(), pawn_key = board.pawn_key(), white_mat_key = board.mat_key(WHITE), black_mat_key = board.mat_key(BLACK);
     const bool turn = board.turn;
 
-    uint16_t nr_quiets = 0;
-    uint16_t nr_noisies = 0;
+    uint16_t nr_quiets = 0, nr_noisies = 0, nr_all_moves = 0;
     int played = 0, skip = 0;
     int best = -INF;
     Move bestMove = NULLMOVE;
@@ -622,6 +621,11 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
         const uint64_t nodes_searched_move = nodes - init_nodes;
         nodes_seached[from_to(move)] = nodes_searched_move;
 
+        if (move_fraction_entry) {
+            stack->all_moves[nr_all_moves++] = SearchMove(move, tried_count, nodes_searched_move);
+            total_nodes += nodes_searched_move;
+        }
+
         if (flag_stopped) /// stop search
             return best;
 
@@ -665,28 +669,20 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
         }
         
         if(move != bestMove) {
-            if (isQuiet) stack->quiets[nr_quiets++] = SearchMove(move, tried_count, nodes_searched_move);
-            else stack->noisies[nr_noisies++] = SearchMove(move, tried_count, nodes_searched_move);
-            total_nodes += nodes_searched_move;
+            if (isQuiet) stack->quiets[nr_quiets++] = SearchMove(move, tried_count, 0);
+            else stack->noisies[nr_noisies++] = SearchMove(move, tried_count, 0);
         }
     }
 
-    if (total_nodes && ply <= MOVE_FRACTION_PLIES && total_nodes >= 10000) {
+    if (move_fraction_entry && total_nodes >= 10000) {
         MoveList moves;
         int nr_moves = gen_legal_moves(board, moves);
         move_fractions[ply].update_entry(move_fraction_entry, key, moves, nr_moves);
         for (int i = 0; i < nr_moves; i++) {
             Move move = moves[i];
             bool found_move = false;
-            for (int j = 0; j < nr_quiets && !found_move; j++) {
-                const auto [move2, _, nodes_seached] = stack->quiets[j];
-                if (move == move2) {
-                    move_fraction_entry->update_fraction(move, nodes_seached, total_nodes);
-                    found_move = true;
-                }
-            }
-            for (int j = 0; j < nr_noisies && !found_move; j++) {
-                const auto [move2, _, nodes_seached] = stack->noisies[j];
+            for (int j = 0; j < nr_all_moves && !found_move; j++) {
+                const auto [move2, _, nodes_seached] = stack->all_moves[j];
                 if (move == move2) {
                     move_fraction_entry->update_fraction(move, nodes_seached, total_nodes);
                     found_move = true;
@@ -795,6 +791,7 @@ void SearchData::start_search(Info &_info) {
     completed_depth = 0;
 
     for (tDepth = 1; tDepth <= limitDepth; tDepth++) {
+        //move_fractions[0].get_entry(board.key())->print();
         multipv_index = 0;
         for (int i = 1; i <= info.multipv; i++) {
             multipv_index++;
