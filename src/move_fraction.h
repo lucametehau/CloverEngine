@@ -16,7 +16,7 @@ public:
 
     void update(int64_t delta_nodes, int64_t delta_total_nodes) { nodes += delta_nodes; total_nodes += delta_total_nodes; }
 
-    inline float get_fraction() const { return total_nodes == 0 ? 0.0 : 1.0 * nodes / total_nodes; }
+    inline float get_fraction() const { return total_nodes == 0 ? 0.0 : 1.0 * nodes / total_nodes / (1.0 + exp(-total_nodes)); }
 };
 
 class MoveFractionEntry {
@@ -60,10 +60,9 @@ public:
 
     inline int get_movepicker_score(Move move) {
         const float fraction = get_fraction(move);
-        //const float weird_scale = 1.0 / (1.0 + exp(-total_nodes));
         assert(0.0 <= fraction && fraction <= 1.0);
         //std::cout << "Getting a score of " << 16384 * sin(fraction * PI / 2) << "\n";
-        return 16384 * sin(fraction * PI / 2);
+        return 16384 * fraction;
     }
 
     void print() {
