@@ -32,7 +32,7 @@ public:
 
     inline void clear_stack() {
         pv_table_len.fill(0);
-        nodes_seached.fill(0);
+        nodes_searched.fill(0);
         move_fractions.fill(MoveFractionTable());
         fill_multiarray<Move, MAX_DEPTH + 5, 2 * MAX_DEPTH + 5>(pv_table, 0);
     }
@@ -60,7 +60,7 @@ private:
     template <bool checkTime>
     bool check_for_stop();
 
-    std::array<uint64_t, 64 * 64> nodes_seached;
+    std::array<uint64_t, 64 * 64> nodes_searched;
 
 public:
     Info info;

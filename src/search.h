@@ -619,7 +619,7 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
         board.undo_move(move);
 
         const uint64_t nodes_searched_move = nodes - init_nodes;
-        nodes_seached[from_to(move)] = nodes_searched_move;
+        nodes_searched[from_to(move)] += nodes_searched_move;
 
         if (move_fraction_entry) {
             stack->all_moves[nr_all_moves++] = SearchMove(move, tried_count, nodes_searched_move);
@@ -682,9 +682,9 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
             Move move = moves[i];
             bool found_move = false;
             for (int j = 0; j < nr_all_moves && !found_move; j++) {
-                const auto [move2, _, nodes_seached] = stack->all_moves[j];
+                const auto [move2, _, nodes_searched] = stack->all_moves[j];
                 if (move == move2) {
-                    move_fraction_entry->update_fraction(move, nodes_seached, total_nodes);
+                    move_fraction_entry->update_fraction(move, nodes_searched, total_nodes);
                     found_move = true;
                 }
             }
@@ -844,7 +844,7 @@ void SearchData::start_search(Info &_info) {
                 scoreChange = std::clamp<double>(TimeManagerScoreBias + 1.0 * (last_root_score - root_score[1]) / TimeManagerScoreDiv, TimeManagerScoreMin, TimeManagerScoreMax); /// adjust time based on score change
                 best_move_cnt = (best_move[1] == last_best_move ? best_move_cnt + 1 : 1);
                 /// adjust time based on how many nodes from the total searched nodes were used for the best move
-                nodesSearchedPercentage = 1.0 * nodes_seached[from_to(best_move[1])] / nodes;
+                nodesSearchedPercentage = 1.0 * nodes_searched[from_to(best_move[1])] / nodes;
                 nodesSearchedPercentage = TimeManagerNodesSearchedMaxPercentage - TimeManagerNodesSearchedCoef * nodesSearchedPercentage;
                 bestMoveStreak = TimeManagerBestMoveMax - TimeManagerbestMoveStep * std::min(10, best_move_cnt); /// adjust time based on how long the best move was the same
             }
