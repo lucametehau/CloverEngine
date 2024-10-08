@@ -14,9 +14,11 @@ private:
 public:
     MoveFraction() : nodes(0), total_nodes(0) {}
 
-    void update(int64_t delta_nodes, int64_t delta_total_nodes) { nodes += delta_nodes; total_nodes += delta_total_nodes; }
+    inline void update(int64_t delta_nodes, int64_t delta_total_nodes) { nodes += delta_nodes; total_nodes += delta_total_nodes; }
 
     inline float get_fraction() const { return total_nodes == 0 ? 0.0 : 1.0 * nodes / total_nodes / (1.0 + exp(-total_nodes)); }
+
+    inline void decay() { total_nodes /= 2; }
 };
 
 class MoveFractionEntry {
@@ -60,6 +62,10 @@ public:
         }
     }
 
+    void decay() {
+        for (int i = 0; i < nr_moves; i++) fractions[i].decay();
+    }
+
     inline int get_movepicker_score(Move move) {
         const float fraction = get_fraction(move);
         assert(0.0 <= fraction && fraction <= 1.0);
@@ -96,5 +102,9 @@ public:
             entry->init(key, moves, nr_moves);
             //std::cout << entry->key << " " << key << " initing\n";
         }
+    }
+
+    void decay() {
+        for (auto &entry : entries) entry.decay();
     }
 };

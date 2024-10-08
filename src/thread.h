@@ -33,7 +33,7 @@ public:
     inline void clear_stack() {
         pv_table_len.fill(0);
         nodes_searched.fill(0);
-        move_fractions.fill(MoveFractionTable());
+        for (auto &table : move_fractions) table.decay();
         fill_multiarray<Move, MAX_DEPTH + 5, 2 * MAX_DEPTH + 5>(pv_table, 0);
     }
 
