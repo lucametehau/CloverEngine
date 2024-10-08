@@ -33,7 +33,7 @@ public:
     inline void clear_stack() {
         pv_table_len.fill(0);
         nodes_searched.fill(0);
-        for (auto &table : move_fractions) table.decay();
+        move_fractions.decay();
         fill_multiarray<Move, MAX_DEPTH + 5, 2 * MAX_DEPTH + 5>(pv_table, 0);
     }
 
@@ -73,7 +73,7 @@ private:
     std::array<int, MAX_DEPTH + 5> pv_table_len;
     MultiArray<Move, MAX_DEPTH + 5, 2 * MAX_DEPTH + 5> pv_table;
     std::array<StackEntry, MAX_DEPTH + 15> search_stack;
-    std::array<MoveFractionTable, 5> move_fractions;
+    MoveFractionTable move_fractions;
     
     Histories histories;
 

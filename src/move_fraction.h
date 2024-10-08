@@ -18,7 +18,7 @@ public:
 
     inline float get_fraction() const { return total_nodes == 0 ? 0.0 : 1.0 * nodes / total_nodes / (1.0 + exp(-total_nodes)); }
 
-    inline void decay() { total_nodes /= 2; }
+    inline void decay() { nodes /= 2; }
 };
 
 class MoveFractionEntry {
@@ -27,19 +27,20 @@ public:
     MoveList moves;
     std::array<MoveFraction, 256> fractions;
     int nr_moves;
+    int generation;
 
 public:
-    MoveFractionEntry() : key(0), nr_moves(0) {}
+    MoveFractionEntry() : key(0), nr_moves(0), generation(0) {}
 
     MoveFractionEntry(uint64_t _key, MoveList &_moves, int _nr_moves) {
         key = _key, moves = _moves, nr_moves = _nr_moves;
         for (int i = 0; i < nr_moves; i++) fractions[i] = MoveFraction();
     }
 
-    void init() { key = 0, nr_moves = 0; }
+    void init() { key = 0, nr_moves = 0; generation = 0; }
 
-    void init(uint64_t _key, MoveList &_moves, int _nr_moves) {
-        key = _key, moves = _moves, nr_moves = _nr_moves;
+    void init(uint64_t _key, MoveList &_moves, int _nr_moves, int _generation) {
+        key = _key, moves = _moves, nr_moves = _nr_moves, generation = _generation;
         for (int i = 0; i < nr_moves; i++) fractions[i] = MoveFraction();
     }
 
@@ -52,11 +53,9 @@ public:
     }
 
     void update_fraction(Move move, uint64_t nodes, uint64_t total_nodes) {
-        //std::cout << move_to_string(move, false) << " " << nodes << " " << total_nodes << "\n";
         for (int i = 0; i < nr_moves; i++) {
             if (moves[i] == move) {
                 fractions[i].update(nodes, total_nodes);
-                //std::cout << "Fraction found! " << fractions[i].get_fraction() << "\n";
                 break;
             }
         }
@@ -69,7 +68,6 @@ public:
     inline int get_movepicker_score(Move move) {
         const float fraction = get_fraction(move);
         assert(0.0 <= fraction && fraction <= 1.0);
-        //std::cout << "Getting a score of " << 16384 * sin(fraction * PI / 2) << "\n";
         return 16384 * sin(fraction * PI / 2);
     }
 
@@ -81,30 +79,34 @@ public:
 
 class MoveFractionTable {
 private:
-    static constexpr int TABLE_SIZE = (1 << 8);
+    static constexpr int TABLE_SIZE = (1 << 10);
     static constexpr int TABLE_MASK = TABLE_SIZE - 1;
     std::array<MoveFractionEntry, TABLE_SIZE> entries;
 
+    int generation;
+
 public:
     MoveFractionTable() {
+        generation = 0;
         entries.fill(MoveFractionEntry());
     }
 
     MoveFractionEntry* get_entry(uint64_t key) {
         MoveFractionEntry* entry = &entries[key & TABLE_MASK];
         if (entry->key == key) return entry;
+
+        if (generation <= entry->generation) return nullptr;
+        
         entry->init();
         return entry;
     }
 
     void update_entry(MoveFractionEntry* entry, uint64_t key, MoveList& moves, int nr_moves) {
-        if (entry->key != key) {
-            entry->init(key, moves, nr_moves);
-            //std::cout << entry->key << " " << key << " initing\n";
-        }
+        if (entry->key != key) entry->init(key, moves, nr_moves, generation);
     }
 
     void decay() {
+        generation++;
         for (auto &entry : entries) entry.decay();
     }
 };

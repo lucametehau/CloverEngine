@@ -468,7 +468,7 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
     Move move;
     const bool ttCapture = ttMove && board.is_noisy_move(ttMove);
     uint64_t total_nodes = 0;
-    MoveFractionEntry *move_fraction_entry = ply <= MOVE_FRACTION_PLIES ? move_fractions[ply].get_entry(key) : nullptr;
+    MoveFractionEntry *move_fraction_entry = ply <= MOVE_FRACTION_PLIES ? move_fractions.get_entry(key) : nullptr;
 
     while ((move = picker.get_next_move(histories, stack, move_fraction_entry, board, skip, false)) != NULLMOVE) {
         if constexpr (rootNode) {
@@ -677,7 +677,7 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
     if (move_fraction_entry && total_nodes >= 10000) {
         MoveList moves;
         int nr_moves = gen_legal_moves(board, moves);
-        move_fractions[ply].update_entry(move_fraction_entry, key, moves, nr_moves);
+        move_fractions.update_entry(move_fraction_entry, key, moves, nr_moves);
         for (int i = 0; i < nr_moves; i++) {
             Move move = moves[i];
             bool found_move = false;
