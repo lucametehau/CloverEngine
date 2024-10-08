@@ -64,7 +64,7 @@ public:
         const float fraction = get_fraction(move);
         assert(0.0 <= fraction && fraction <= 1.0);
         //std::cout << "Getting a score of " << 16384 * sin(fraction * PI / 2) << "\n";
-        return 16384 * fraction;
+        return 0;
     }
 
     void print() {
