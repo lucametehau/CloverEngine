@@ -75,7 +75,7 @@ public:
 
 class MoveFractionTable {
 private:
-    static constexpr int TABLE_SIZE = (1 << 7);
+    static constexpr int TABLE_SIZE = (1 << 8);
     static constexpr int TABLE_MASK = TABLE_SIZE - 1;
     std::array<MoveFractionEntry, TABLE_SIZE> entries;
 
