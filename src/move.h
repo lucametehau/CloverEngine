@@ -418,7 +418,7 @@ int gen_legal_moves(Board& board, MoveList &moves) {
                 Square kingTo = mirror(color, C1), rook = board.rookSq[color][0], rookTo = mirror(color, D1);
                 if (!(attacked & (between_mask[king][kingTo] | Bitboard(kingTo))) &&
                     (!((all ^ Bitboard(rook)) & (between_mask[king][kingTo] | Bitboard(kingTo))) || king == kingTo) &&
-                    (!((all ^ Bitboard(king)) & (between_mask[rook][rookTo] | Bitboard(kingTo))) || rook == rookTo) &&
+                    (!((all ^ Bitboard(king)) & (between_mask[rook][rookTo] | Bitboard(rookTo))) || rook == rookTo) &&
                     !board.get_attackers(enemy, all ^ Bitboard(rook), king)) {
                     moves[nrMoves++] = getMove(king, rook, 0, CASTLE);
                 }
@@ -428,7 +428,7 @@ int gen_legal_moves(Board& board, MoveList &moves) {
                 Square kingTo = mirror(color, G1), rook = board.rookSq[color][1], rookTo = mirror(color, F1);
                 if (!(attacked & (between_mask[king][kingTo] | Bitboard(kingTo))) &&
                     (!((all ^ Bitboard(rook)) & (between_mask[king][kingTo] | Bitboard(kingTo))) || king == kingTo) &&
-                    (!((all ^ Bitboard(king)) & (between_mask[rook][rookTo] | Bitboard(kingTo))) || rook == rookTo) &&
+                    (!((all ^ Bitboard(king)) & (between_mask[rook][rookTo] | Bitboard(rookTo))) || rook == rookTo) &&
                     !board.get_attackers(enemy, all ^ Bitboard(rook), king)) {
                     moves[nrMoves++] = getMove(king, rook, 0, CASTLE);
                 }
@@ -896,11 +896,11 @@ bool is_pseudo_legal(Board& board, Move move) {
     const Bitboard own = board.get_bb_color(color), enemy = board.get_bb_color(1 ^ color);
     const Bitboard occ = own | enemy;
 
-    if (!(own & Bitboard(from))) return 0;
+    if (!own.has_square(from)) return 0;
 
     if (t == CASTLE) return 1;
 
-    if (own & Bitboard(to)) return 0;
+    if (own.has_square(to)) return 0;
 
     if (pt == PAWN) {
         Bitboard att = pawnAttacksMask[color][from];
@@ -994,10 +994,9 @@ bool is_legal(Board& board, Move move) {
     if (board.piece_type_at(from) == KING)
         return !board.get_attackers(enemy, all ^ Bitboard(from), to);
 
-    bool notInCheck = !(board.pinned_pieces().has_square(from) || 
+    bool notInCheck = !board.pinned_pieces().has_square(from) || 
                        between_mask[king][to].has_square(from) || 
-                       between_mask[king][from].has_square(to));
-
+                       between_mask[king][from].has_square(to);
     if (!notInCheck) return 0;
 
     if (!board.checkers()) return 1;

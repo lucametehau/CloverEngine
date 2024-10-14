@@ -248,10 +248,6 @@ inline uint64_t mul_hi(const uint64_t a, const uint64_t b) {
     return (static_cast<uint128_t>(a) * static_cast<uint128_t>(b)) >> 64;
 }
 
-inline Square sq_single_bit(const uint64_t b) {
-    return __builtin_ctzll(b);
-}
-
 inline Piece piece_type(Piece piece) {
     return piece >= 6 ? piece - 6 : piece;
 }
@@ -280,7 +276,6 @@ inline Square sq_dir(bool color, int dir, Square sq) {
             dir = 11 - dir;
     }
     return sq + deltaPos[dir];
-
 }
 
 inline Bitboard shift(int color, int dir, Bitboard bb) {

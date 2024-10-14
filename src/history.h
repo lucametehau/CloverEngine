@@ -94,11 +94,11 @@ public:
     Histories() { clear_history(); }
 
     inline History<16384>& get_hist(const Square from, const Square to, const int from_to, const bool turn, const Bitboard threats) {
-        return hist[turn][threats.has_square(from)][threats.has_square(to)][from_to];
+        return hist[turn][!threats.has_square(from)][!threats.has_square(to)][from_to];
     }
 
     inline const History<16384> get_hist(const Square from, const Square to, const int from_to, const bool turn, const Bitboard threats) const {
-        return hist[turn][threats.has_square(from)][threats.has_square(to)][from_to];
+        return hist[turn][!threats.has_square(from)][!threats.has_square(to)][from_to];
     }
 
     inline History<16384>& get_cont_hist(const Piece piece, const Square to, StackEntry *stack, const int delta) {
@@ -142,7 +142,7 @@ public:
             get_cont_hist(piece, to, stack, 4).update(bonus);
     }
 
-    inline void update_hist_move(const Move move, const uint64_t threats, const bool turn, const int16_t bonus) {
+    inline void update_hist_move(const Move move, const Bitboard threats, const bool turn, const int16_t bonus) {
         get_hist(sq_from(move), sq_to(move), from_to(move), turn, threats).update(bonus);
     }
 

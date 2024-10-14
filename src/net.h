@@ -165,7 +165,6 @@ struct KingBucketState {
 
 class Network {
 public:
-
     Network() {
         hist_size = 0;
         for (auto c : { BLACK, WHITE }) {

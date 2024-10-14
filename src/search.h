@@ -272,7 +272,7 @@ int SearchData::quiesce(int alpha, int beta, StackEntry* stack) {
 template <bool rootNode, bool pvNode, bool cutNode>
 int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
     const int ply = board.ply;
-
+    
     if (check_for_stop<true>() || ply >= MAX_DEPTH) return evaluate(board);
 
     if (depth <= 0) return quiesce<pvNode>(alpha, beta, stack);

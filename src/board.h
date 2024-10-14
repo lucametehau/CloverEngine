@@ -123,9 +123,9 @@ public:
 
     inline Piece get_captured_type(const Move move) const { return type(move) == ENPASSANT ? PAWN : piece_type_at(sq_to(move)); }
 
-    inline int piece_at(const Square sq) const { return board[sq]; }
+    inline Piece piece_at(const Square sq) const { return board[sq]; }
 
-    inline int king(const bool color) const { return sq_single_bit(get_bb_piece(KING, color)); }
+    inline Square king(const bool color) const { return get_bb_piece(KING, color).get_lsb_square(); }
 
     inline bool is_capture(const Move move) const { return type(move) != CASTLE && piece_at(sq_to(move)) != NO_PIECE; }
 
