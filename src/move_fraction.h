@@ -16,7 +16,7 @@ public:
 
     inline void update(int64_t delta_nodes, int64_t delta_total_nodes) { nodes += delta_nodes; total_nodes += delta_total_nodes; }
 
-    inline float get_fraction() const { return total_nodes == 0 ? 0.0 : 1.0 * nodes / total_nodes / (1.0 + exp(-total_nodes / 10000.0)); }
+    inline float get_fraction() const { return total_nodes == 0 ? 0.0 : 1.0 * nodes / total_nodes; }
 
     inline void decay() { nodes /= 2; }
 };
