@@ -36,9 +36,9 @@ void Board::set_fen(const std::string fen) {
 
     //checkers() = 0;
     for (Piece i = BP; i <= WK; i++)
-        bb[i] = 0;
+        bb[i] = Bitboard();
 
-    pieces[BLACK] = pieces[WHITE] = 0;
+    pieces[BLACK] = pieces[WHITE] = Bitboard();
     for (int i = 7; i >= 0; i--) {
         int j = 0;
         while (fen[ind] != '/' && fen[ind] != ' ') {
@@ -217,15 +217,13 @@ void Board::set_dfrc(int idx) {
     ply = game_ply = 0;
     captured() = NO_PIECE;
 
-    //checkers() = 0;
-
     for (Piece i = BP; i <= WK; i++)
-        bb[i] = 0;
+        bb[i] = Bitboard();
 
     for (Square i = 0; i < 64; i++)
         board[i] = NO_PIECE;
 
-    pieces[BLACK] = pieces[WHITE] = 0;
+    pieces[BLACK] = pieces[WHITE] = Bitboard();
 
     int idxw = idx / 960, idxb = idx % 960;
     set_frc_side(WHITE, idxw);

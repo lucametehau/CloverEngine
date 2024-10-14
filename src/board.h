@@ -30,7 +30,7 @@ public:
     uint8_t castleRights;
     Piece captured;
     uint16_t halfMoves, moveIndex;
-    uint64_t checkers, pinnedPieces;
+    Bitboard checkers, pinnedPieces;
     uint64_t key, pawn_key, mat_key[2];
 };
 
@@ -47,8 +47,8 @@ public:
 
     uint16_t ply, game_ply;
 
-    std::array<uint64_t, 12> bb;
-    std::array<uint64_t, 2> pieces;
+    std::array<Bitboard, 12> bb;
+    std::array<Bitboard, 2> pieces;
 
     Network NN;
 
@@ -76,9 +76,9 @@ public:
 
     inline uint64_t& mat_key(const bool color) { return state.mat_key[color]; }
 
-    inline uint64_t& checkers() { return state.checkers; }
+    inline Bitboard& checkers() { return state.checkers; }
 
-    inline uint64_t& pinned_pieces() { return state.pinnedPieces; }
+    inline Bitboard& pinned_pieces() { return state.pinnedPieces; }
 
     inline int8_t& enpas() { return state.enPas; }
 
@@ -90,19 +90,19 @@ public:
 
     inline Piece& captured() { return state.captured; }
 
-    inline uint64_t diagonal_sliders(const bool color) const { return bb[get_piece(BISHOP, color)] | bb[get_piece(QUEEN, color)]; }
+    inline Bitboard diagonal_sliders(const bool color) const { return bb[get_piece(BISHOP, color)] | bb[get_piece(QUEEN, color)]; }
 
-    inline uint64_t orthogonal_sliders(const bool color) const { return bb[get_piece(ROOK, color)] | bb[get_piece(QUEEN, color)]; }
+    inline Bitboard orthogonal_sliders(const bool color) const { return bb[get_piece(ROOK, color)] | bb[get_piece(QUEEN, color)]; }
 
-    inline uint64_t get_bb_piece(const Piece piece, const bool color) const { return bb[get_piece(piece, color)]; }
+    inline Bitboard get_bb_piece(const Piece piece, const bool color) const { return bb[get_piece(piece, color)]; }
 
-    inline uint64_t get_bb_color(const bool color) const { return pieces[color]; }
+    inline Bitboard get_bb_color(const bool color) const { return pieces[color]; }
 
-    inline uint64_t get_bb_piece_type(const Piece piece_type) const { 
+    inline Bitboard get_bb_piece_type(const Piece piece_type) const { 
         return get_bb_piece(piece_type, WHITE) | get_bb_piece(piece_type, BLACK);
     }
 
-    inline uint64_t get_attackers(const bool color, const uint64_t blockers, const Square sq) const {
+    inline Bitboard get_attackers(const bool color, const Bitboard blockers, const Square sq) const {
         return (genAttacksPawn(1 ^ color, sq) & get_bb_piece(PAWN, color)) |
             (genAttacksKnight(sq) & get_bb_piece(KNIGHT, color)) | 
             (genAttacksBishop(blockers, sq) & diagonal_sliders(color)) |
@@ -110,11 +110,11 @@ public:
             (genAttacksKing(sq) & get_bb_piece(KING, color));
     }
 
-    inline uint64_t getOrthSliderAttackers(const bool color, const uint64_t blockers, const Square sq) const {
+    inline Bitboard getOrthSliderAttackers(const bool color, const Bitboard blockers, const Square sq) const {
         return genAttacksRook(blockers, sq) & orthogonal_sliders(color);
     }
-    inline uint64_t get_pawn_attacks(const bool color) const {
-        const uint64_t b = get_bb_piece(PAWN, color);
+    inline Bitboard get_pawn_attacks(const bool color) const {
+        const Bitboard b = get_bb_piece(PAWN, color);
         const int fileA = (color == WHITE ? 0 : 7), fileH = 7 - fileA;
         return shift(color, NORTHWEST, b & ~file_mask[fileA]) | shift(color, NORTHEAST, b & ~file_mask[fileH]);
     }
@@ -123,9 +123,9 @@ public:
 
     inline Piece get_captured_type(const Move move) const { return type(move) == ENPASSANT ? PAWN : piece_type_at(sq_to(move)); }
 
-    inline int piece_at(const Square sq) const { return board[sq]; }
+    inline Piece piece_at(const Square sq) const { return board[sq]; }
 
-    inline int king(const bool color) const { return sq_single_bit(get_bb_piece(KING, color)); }
+    inline Square king(const bool color) const { return get_bb_piece(KING, color).get_lsb_square(); }
 
     inline bool is_capture(const Move move) const { return type(move) != CASTLE && piece_at(sq_to(move)) != NO_PIECE; }
 
@@ -157,12 +157,11 @@ public:
             king(BLACK), king(WHITE)
         };
         for (Piece i = BP; i <= WK; i++) {
-            uint64_t b = bb[i];
+            Bitboard b = bb[i];
             while (b) {
-                uint64_t b2 = lsb(b);
-                ans.ind[WHITE].push_back(net_index(i, Sq(b2), kingsSide[WHITE], WHITE));
-                ans.ind[BLACK].push_back(net_index(i, Sq(b2), kingsSide[BLACK], BLACK));
-                b ^= b2;
+                ans.ind[WHITE].push_back(net_index(i, b.get_lsb_square(), kingsSide[WHITE], WHITE));
+                ans.ind[BLACK].push_back(net_index(i, b.get_lsb_square(), kingsSide[BLACK], BLACK));
+                b ^= b.lsb();
             }
         }
 
@@ -251,9 +250,9 @@ public:
 
     inline bool isMaterialDraw() const {
         /// KvK, KBvK, KNvK, KNNvK
-        const int num = count(get_bb_color(WHITE) | get_bb_color(BLACK));
+        const int num = (get_bb_color(WHITE) | get_bb_color(BLACK)).count();
         return (num == 2 || (num == 3 && (get_bb_piece_type(BISHOP) || get_bb_piece_type(KNIGHT))) ||
-            (num == 4 && (count(bb[WN]) == 2 || count(bb[BN]) == 2)));
+            (num == 4 && (bb[WN].count() == 2 || bb[BN].count() == 2)));
     }
     
     bool is_repetition(const int ply) {

@@ -93,12 +93,12 @@ public:
 
     Histories() { clear_history(); }
 
-    inline History<16384>& get_hist(const Square from, const Square to, const int from_to, const bool turn, const uint64_t threats) {
-        return hist[turn][!!(threats & (1ULL << from))][!!(threats & (1ULL << to))][from_to];
+    inline History<16384>& get_hist(const Square from, const Square to, const int from_to, const bool turn, const Bitboard threats) {
+        return hist[turn][!threats.has_square(from)][!threats.has_square(to)][from_to];
     }
 
-    inline const History<16384> get_hist(const Square from, const Square to, const int from_to, const bool turn, const uint64_t threats) const {
-        return hist[turn][!!(threats & (1ULL << from))][!!(threats & (1ULL << to))][from_to];
+    inline const History<16384> get_hist(const Square from, const Square to, const int from_to, const bool turn, const Bitboard threats) const {
+        return hist[turn][!threats.has_square(from)][!threats.has_square(to)][from_to];
     }
 
     inline History<16384>& get_cont_hist(const Piece piece, const Square to, StackEntry *stack, const int delta) {
@@ -142,16 +142,16 @@ public:
             get_cont_hist(piece, to, stack, 4).update(bonus);
     }
 
-    inline void update_hist_move(const Move move, const uint64_t threats, const bool turn, const int16_t bonus) {
+    inline void update_hist_move(const Move move, const Bitboard threats, const bool turn, const int16_t bonus) {
         get_hist(sq_from(move), sq_to(move), from_to(move), turn, threats).update(bonus);
     }
 
-    inline void update_hist_quiet_move(const Move move, const Piece piece, const uint64_t threats, const bool turn, StackEntry *&stack, const int16_t bonus) {
+    inline void update_hist_quiet_move(const Move move, const Piece piece, const Bitboard threats, const bool turn, StackEntry *&stack, const int16_t bonus) {
         update_hist_move(move, threats, turn, bonus);
         update_cont_hist_move(piece, sq_to(move), stack, bonus);
     }
 
-    inline const int get_history_search(const Move move, const Piece piece, const uint64_t threats, const bool turn, StackEntry *stack) const {
+    inline const int get_history_search(const Move move, const Piece piece, const Bitboard threats, const bool turn, StackEntry *stack) const {
         const int to = sq_to(move);
         return get_hist(sq_from(move), to, from_to(move), turn, threats)
              + get_cont_hist(piece, to, stack, 1)
@@ -159,7 +159,7 @@ public:
              + get_cont_hist(piece, to, stack, 4);
     }
 
-    inline const int get_history_movepick(const Move move, const Piece piece, const uint64_t threats, const bool turn, StackEntry *stack) const {
+    inline const int get_history_movepick(const Move move, const Piece piece, const Bitboard threats, const bool turn, StackEntry *stack) const {
         const Square to = sq_to(move);
         return QuietHistCoef  * get_hist(sq_from(move), to, from_to(move), turn, threats)
              + QuietContHist1 * get_cont_hist(piece, to, stack, 1)

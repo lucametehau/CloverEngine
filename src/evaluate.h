@@ -23,11 +23,11 @@
 
 inline int scale(Board& board) {
     return EvalScaleBias +
-        (count(board.get_bb_piece_type(PAWN)) * seeVal[PAWN] + 
-        count(board.get_bb_piece_type(KNIGHT)) * seeVal[KNIGHT] +
-        count(board.get_bb_piece_type(BISHOP)) * seeVal[BISHOP] +
-        count(board.get_bb_piece_type(ROOK)) * seeVal[ROOK] +
-        count(board.get_bb_piece_type(QUEEN)) * seeVal[QUEEN]) / 32 - 
+        (board.get_bb_piece_type(PAWN).count() * seeVal[PAWN] + 
+        board.get_bb_piece_type(KNIGHT).count() * seeVal[KNIGHT] +
+        board.get_bb_piece_type(BISHOP).count() * seeVal[BISHOP] +
+        board.get_bb_piece_type(ROOK).count() * seeVal[ROOK] +
+        board.get_bb_piece_type(QUEEN).count() * seeVal[QUEEN]) / 32 - 
         board.half_moves() * EvalShuffleCoef;
 }
 
@@ -51,14 +51,14 @@ void Board::bring_up_to_date() {
                 KingBucketState* state = &NN.cached_states[side][get_king_bucket_cache(king_sq, side)];
                 NN.clear_updates();
                 for (int i = BP; i <= WK; i++) {
-                    uint64_t prev = state->bb[i];
-                    uint64_t curr = bb[i];
+                    Bitboard prev = state->bb[i];
+                    Bitboard curr = bb[i];
 
-                    uint64_t b = curr & ~prev; // additions
-                    while (b) NN.add_input(net_index(i, sq_lsb(b), king_sq, side));
+                    Bitboard b = curr & ~prev; // additions
+                    while (b) NN.add_input(net_index(i, b.get_square_pop(), king_sq, side));
 
                     b = prev & ~curr; // removals
-                    while (b) NN.remove_input(net_index(i, sq_lsb(b), king_sq, side));
+                    while (b) NN.remove_input(net_index(i, b.get_square_pop(), king_sq, side));
 
                     state->bb[i] = bb[i];
                 }

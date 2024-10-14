@@ -63,14 +63,64 @@ void fill_multiarray(MultiArray<typename MultiArray_impl<T, sizes...>::type, siz
         fill_multiarray<T, sizes...>(array[i], value);
 }
 
+typedef uint16_t Move;
+typedef uint8_t Piece;
+typedef uint8_t Square;
+
+class Bitboard {
+private:
+    uint64_t bb;
+
+public:
+    Bitboard(uint64_t _bb = 0) : bb(_bb) {}
+    Bitboard(Square sq) : bb(1ULL << sq) {}
+
+    inline bool has_square(Square sq) const { return (bb >> sq) & 1; }
+
+    inline Square get_msb_square() const { return 63 - __builtin_clzll(bb); }
+
+    inline Square get_lsb_square() const { return __builtin_ctzll(bb); }
+
+    inline operator uint64_t() const { return bb; } 
+
+    inline Bitboard lsb() const { return bb & -bb; }
+
+    inline Square get_square_pop() {
+        const Square sq = get_lsb_square();
+        bb &= bb - 1;
+        return sq;
+    }
+
+    inline int count() const { return __builtin_popcountll(bb); }
+
+    Bitboard operator | (const Bitboard &other) const { return bb | other.bb; }
+    Bitboard operator & (const Bitboard &other) const { return bb & other.bb; }
+    Bitboard operator ^ (const Bitboard &other) const { return bb ^ other.bb; }
+    Bitboard operator << (const int8_t shift) const { return bb << shift; }
+    Bitboard operator >> (const int8_t shift) const { return bb >> shift; }
+    Bitboard operator ~ () const { return ~bb; }
+
+    Bitboard& operator |= (const Bitboard &other) { bb |= other.bb; return *this; }
+    Bitboard& operator &= (const Bitboard &other) { bb &= other.bb; return *this; }
+    Bitboard& operator ^= (const Bitboard &other) { bb ^= other.bb; return *this; }
+
+    void print() {
+        Bitboard copy = bb;
+        while (copy) {
+            std::cout << copy.get_square_pop() << " ";
+        }
+        std::cout << " mask\n";
+    }
+};
+
 class Threats {
 public:
-    uint64_t threats_pieces[4];
-    uint64_t all_threats;
-    uint64_t threatened_pieces;
+    Bitboard threats_pieces[4];
+    Bitboard all_threats;
+    Bitboard threatened_pieces;
 
     Threats() {
-        for(int i = 0; i < 4; i++) threats_pieces[i] = 0;
+        for(int i = 0; i < 4; i++) threats_pieces[i] = Bitboard(0ULL);
     }
 };
 
@@ -111,10 +161,6 @@ enum {
     NONE = 0, UPPER, LOWER, EXACT
 };
 
-typedef uint16_t Move;
-typedef uint8_t Piece;
-typedef uint8_t Square;
-
 constexpr Move NULLMOVE = 0;
 
 constexpr int HALFMOVES = 100;
@@ -136,13 +182,14 @@ MultiArray<uint64_t, 12, 64> hashKey;
 MultiArray<uint64_t, 2, 2> castleKey;
 std::array<uint64_t, 64> enPasKey;
 std::array<uint64_t, 16> castleKeyModifier;
-constexpr std::array<uint64_t, 8> file_mask = {
+
+const std::array<Bitboard, 8> file_mask = {
     72340172838076673ull, 144680345676153346ull, 289360691352306692ull, 578721382704613384ull, 1157442765409226768ull, 2314885530818453536ull, 4629771061636907072ull, 9259542123273814144ull
 };
-constexpr std::array<uint64_t, 8> rank_mask = {
+const std::array<Bitboard, 8> rank_mask = {
     255ull, 65280ull, 16711680ull, 4278190080ull, 1095216660480ull, 280375465082880ull, 71776119061217280ull, 18374686479671623680ull
 };
-MultiArray<uint64_t, 64, 64> between_mask, line_mask;
+MultiArray<Bitboard, 64, 64> between_mask, line_mask;
 
 MultiArray<int, 64, 64> lmr_red;
 
@@ -153,7 +200,7 @@ constexpr std::pair<int, int> kingDir[8] = { {-1, 0}, {0, 1}, {1, 0}, {0, -1}, {
 constexpr std::pair<int, int> pawnCapDirWhite[2] = { {1, -1}, {1, 1} };
 constexpr std::pair<int, int> pawnCapDirBlack[2] = { {-1, -1}, {-1, 1} };
 
-std::array<int, 8> deltaPos; /// how does my position change when moving in direction D
+std::array<int8_t, 8> deltaPos; /// how does my position change when moving in direction D
 
 constexpr std::array<int, 64> kingIndTable = {
     0, 1, 2, 3, 3, 2, 1, 0,
@@ -201,24 +248,6 @@ inline uint64_t mul_hi(const uint64_t a, const uint64_t b) {
     return (static_cast<uint128_t>(a) * static_cast<uint128_t>(b)) >> 64;
 }
 
-inline uint64_t lsb(uint64_t nr) {
-    return nr & -nr;
-}
-
-inline Square Sq(const uint64_t b) {
-    return 63 - __builtin_clzll(b);
-}
-
-inline Square sq_single_bit(const uint64_t b) {
-    return __builtin_ctzll(b);
-}
-
-inline Square sq_lsb(uint64_t &b) {
-    const Square sq = sq_single_bit(b);
-    b &= b - 1;
-    return sq;
-}
-
 inline Piece piece_type(Piece piece) {
     return piece >= 6 ? piece - 6 : piece;
 }
@@ -229,10 +258,6 @@ inline int16_t net_index(Piece piece, Square sq, Square kingSq, bool side) {
 
 inline bool recalc(Square from, Square to, bool side) {
     return (from & 4) != (to & 4) || kingIndTable[from ^ (56 * !side)] != kingIndTable[to ^ (56 * !side)];
-}
-
-inline uint32_t count(uint64_t b) {
-    return __builtin_popcountll(b);
 }
 
 inline Square get_sq(int rank, int file) {
@@ -251,10 +276,9 @@ inline Square sq_dir(bool color, int dir, Square sq) {
             dir = 11 - dir;
     }
     return sq + deltaPos[dir];
-
 }
 
-inline uint64_t shift(int color, int dir, uint64_t mask) {
+inline Bitboard shift(int color, int dir, Bitboard bb) {
     if (color == BLACK) {
         if (dir < 4)
             dir = (dir + 2) % 4;
@@ -262,9 +286,9 @@ inline uint64_t shift(int color, int dir, uint64_t mask) {
             dir = 11 - dir;
     }
     if (deltaPos[dir] > 0)
-        return mask << deltaPos[dir];
+        return bb << deltaPos[dir];
 
-    return mask >> (-deltaPos[dir]);
+    return bb >> static_cast<int8_t>(-deltaPos[dir]);
 }
 
 inline Piece get_piece(const Piece piece_type, const bool color) {
@@ -319,13 +343,6 @@ inline std::string move_to_string(Move move, bool chess960) {
     return ans;
 }
 
-inline void printBB(uint64_t mask) {
-    while (mask) {
-        std::cout << sq_lsb(mask) << " ";
-    }
-    std::cout << " mask\n";
-}
-
 inline void init_defs() {
     deltaPos[NORTH] = 8, deltaPos[SOUTH] = -8;
     deltaPos[WEST] = -1, deltaPos[EAST] = 1;
@@ -360,14 +377,14 @@ inline void init_defs() {
         for (int rank = 0; rank < 8; rank++) {
             for (int i = 0; i < 8; i++) {
                 int r = rank, f = file;
-                uint64_t mask = 0;
+                Bitboard mask;
                 while (true) {
                     r += kingDir[i].first, f += kingDir[i].second;
                     if (!inside_board(r, f))
                         break;
                     between_mask[get_sq(rank, file)][get_sq(r, f)] = mask;
                     int x = r, y = f, d = (i < 4 ? (i + 2) % 4 : 11 - i);
-                    uint64_t mask2 = 0;
+                    Bitboard mask2;
                     while (inside_board(x, y)) {
                         mask2 |= (1ULL << get_sq(x, y));
                         x += kingDir[i].first, y += kingDir[i].second;
