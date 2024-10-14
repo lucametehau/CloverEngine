@@ -160,7 +160,7 @@ struct NetHist {
 
 struct KingBucketState {
     alignas(ALIGN) int16_t output[SIDE_NEURONS];
-    uint64_t bb[12]{};
+    std::array<Bitboard, 12> bb;
 };
 
 class Network {
@@ -171,7 +171,7 @@ public:
         for (auto c : { BLACK, WHITE }) {
             for (int i = 0; i < 2 * KING_BUCKETS; i++) {
                 memcpy(cached_states[c][i].output, inputBiases, sizeof(inputBiases));
-                memset(cached_states[c][i].bb, 0, sizeof(cached_states[c][i].bb));
+                cached_states[c][i].bb.fill(Bitboard());
             }
         }
     }

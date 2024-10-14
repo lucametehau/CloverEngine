@@ -50,7 +50,7 @@ bool SearchData::check_for_stop() {
 
 uint32_t probe_TB(Board& board, int depth) {
     if (TB_LARGEST && depth >= 2 && !board.half_moves()) {
-        if (count(board.get_bb_color(WHITE) | board.get_bb_color(BLACK)) <= TB_LARGEST)
+        if (static_cast<uint32_t>((board.get_bb_color(WHITE) | board.get_bb_color(BLACK)).count()) <= TB_LARGEST)
             return tb_probe_wdl(board.get_bb_color(WHITE), board.get_bb_color(BLACK),
                 board.get_bb_piece_type(KING), board.get_bb_piece_type(QUEEN), board.get_bb_piece_type(ROOK),
                 board.get_bb_piece_type(BISHOP), board.get_bb_piece_type(KNIGHT), board.get_bb_piece_type(PAWN),
@@ -61,17 +61,17 @@ uint32_t probe_TB(Board& board, int depth) {
 
 void get_threats(Threats& threats, Board& board, const bool us) {
     const bool enemy = 1 ^ us;
-    uint64_t our_pieces = board.get_bb_color(us) ^ board.get_bb_piece(PAWN, us);
-    uint64_t att = getPawnAttacks(enemy, board.get_bb_piece(PAWN, enemy)), threatened_pieces = att & our_pieces;
-    uint64_t pieces, att_mask;
-    const uint64_t all = board.get_bb_color(WHITE) | board.get_bb_color(BLACK);
+    Bitboard our_pieces = board.get_bb_color(us) ^ board.get_bb_piece(PAWN, us);
+    Bitboard att = getPawnAttacks(enemy, board.get_bb_piece(PAWN, enemy)), threatened_pieces = att & our_pieces;
+    Bitboard pieces, att_mask;
+    const Bitboard all = board.get_bb_color(WHITE) | board.get_bb_color(BLACK);
 
     threats.threats_pieces[PAWN] = att;
     our_pieces ^= board.get_bb_piece(KNIGHT, us) | board.get_bb_piece(BISHOP, us);
 
     pieces = board.get_bb_piece(KNIGHT, enemy);
     while (pieces) {
-        att_mask = genAttacksKnight(sq_lsb(pieces));
+        att_mask = genAttacksKnight(pieces.get_square_pop());
         att |= att_mask;
         threats.threats_pieces[KNIGHT] |= att_mask;
         threatened_pieces |= att & our_pieces;
@@ -79,7 +79,7 @@ void get_threats(Threats& threats, Board& board, const bool us) {
 
     pieces = board.get_bb_piece(BISHOP, enemy);
     while (pieces) {
-        att_mask = genAttacksBishop(all, sq_lsb(pieces));
+        att_mask = genAttacksBishop(all, pieces.get_square_pop());
         att |= att_mask;
         threats.threats_pieces[BISHOP] |= att_mask;
         threatened_pieces |= att & our_pieces;
@@ -89,7 +89,7 @@ void get_threats(Threats& threats, Board& board, const bool us) {
 
     pieces = board.get_bb_piece(ROOK, enemy);
     while (pieces) {
-        att_mask = genAttacksRook(all, sq_lsb(pieces));
+        att_mask = genAttacksRook(all, pieces.get_square_pop());
         att |= att_mask;
         threats.threats_pieces[ROOK] |= att_mask;
         threatened_pieces |= att & our_pieces;
@@ -97,7 +97,7 @@ void get_threats(Threats& threats, Board& board, const bool us) {
 
     pieces = board.get_bb_piece(QUEEN, enemy);
     while (pieces) {
-        att |= genAttacksQueen(all, sq_lsb(pieces));
+        att |= genAttacksQueen(all, pieces.get_square_pop());
     }
 
     att |= genAttacksKing(board.king(enemy));

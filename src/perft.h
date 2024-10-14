@@ -22,7 +22,7 @@ uint64_t perft(Board& board, int depth) {
     MoveList moves;
     int nrMoves = gen_legal_moves(board, moves);
 
-    if (depth == 1) return nrMoves;
+    if (depth == 0) return 1;
 
     uint64_t nodes = 0;
 

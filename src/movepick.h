@@ -42,7 +42,7 @@ private:
     int nrNoisy, nrQuiets, nrBadNoisy;
     int index;
 
-    uint64_t all_threats, threats_p, threats_bn, threats_r;
+    Bitboard all_threats, threats_p, threats_bn, threats_r;
 
     int threshold;
 
@@ -133,8 +133,8 @@ public:
             if (!skip) {
                 nrQuiets = gen_legal_quiet_moves(board, moves);
                 const bool turn = board.turn, enemy = 1 ^ turn;
-                const uint64_t allPieces = board.get_bb_color(WHITE) | board.get_bb_color(BLACK);
-                const uint64_t enemyKingRing = kingRingMask[board.king(enemy)];
+                const Bitboard allPieces = board.get_bb_color(WHITE) | board.get_bb_color(BLACK);
+                const Bitboard enemyKingRing = kingRingMask[board.king(enemy)];
                 
                 int m = 0;
                 for (int i = 0; i < nrQuiets; i++) {
@@ -151,21 +151,21 @@ public:
                         score += QuietPawnPushBonus;
 
                     if (pt != KING && pt != PAWN) {
-                        score += QuietKingRingAttackBonus * count(genAttacksSq(allPieces, to, pt) & enemyKingRing);
+                        score += QuietKingRingAttackBonus * (genAttacksSq(allPieces, to, pt) & enemyKingRing).count();
                         
-                        if(threats_p & (1ULL << to))
+                        if (threats_p.has_square(to))
                             score -= QuietPawnAttackedCoef * seeVal[pt];
-                        else if(pt >= ROOK && (threats_bn & (1ULL << to)))
+                        else if (pt >= ROOK && threats_bn.has_square(to))
                             score -= 16384;
-                        else if(pt == QUEEN && (threats_r & (1ULL << to)))
+                        else if (pt == QUEEN && threats_r.has_square(to))
                             score -= 16384;
 
-                        if(threats_p & (1ULL << from))
+                        if (threats_p.has_square(from))
                             score += QuietPawnAttackedDodgeCoef * seeVal[pt];
-                        else if(pt >= ROOK && (threats_bn & (1ULL << from)))
+                        else if (pt >= ROOK && threats_bn.has_square(from))
                             score += 16384;
-                        else if(pt == QUEEN && (threats_r & (1ULL << from)))
-                            score += 16384;   
+                        else if (pt == QUEEN && threats_r.has_square(from))
+                            score += 16384;
                     }
 
                     scores[m++] = score;
@@ -212,7 +212,7 @@ public:
 bool see(Board& board, Move move, int threshold) {
     Square from = sq_from(move), to = sq_to(move);
     int score = -threshold + 1;
-    uint64_t diag, orth, occ, att, myAtt, b;
+    Bitboard diag, orth, occ, att, myAtt, b;
     bool stm, result = 1;
 
     score += seeVal[board.get_captured_type(move)];
@@ -229,7 +229,7 @@ bool see(Board& board, Move move, int threshold) {
     orth = board.orthogonal_sliders(WHITE) | board.orthogonal_sliders(BLACK);
 
     occ = board.get_bb_color(WHITE) | board.get_bb_color(BLACK);
-    occ = (occ ^ (1ULL << from)) | (1ULL << to);
+    occ = (occ ^ Bitboard(from)) | Bitboard(to);
 
     if (type(move) == ENPASSANT) occ ^= (1ULL << board.enpas());
 
@@ -251,34 +251,34 @@ bool see(Board& board, Move move, int threshold) {
             score = seeVal[PAWN] + 1 - score;
             if (score <= 0)
                 break;
-            occ ^= lsb(b);
+            occ ^= b.lsb();
             att |= genAttacksBishop(occ, to) & diag;
         }
         else if ((b = (myAtt & board.get_bb_piece(KNIGHT, stm)))) {
             score = seeVal[KNIGHT] + 1 - score;
             if (score <= 0)
                 break;
-            occ ^= lsb(b);
+            occ ^= b.lsb();
         }
         else if ((b = (myAtt & board.get_bb_piece(BISHOP, stm)))) {
             score = seeVal[BISHOP] + 1 - score;
             if (score <= 0)
                 break;
-            occ ^= lsb(b);
+            occ ^= b.lsb();
             att |= genAttacksBishop(occ, to) & diag;
         }
         else if ((b = (myAtt & board.get_bb_piece(ROOK, stm)))) {
             score = seeVal[ROOK] + 1 - score;
             if (score <= 0)
                 break;
-            occ ^= lsb(b);
+            occ ^= b.lsb();
             att |= genAttacksRook(occ, to) & orth;
         }
         else if ((b = (myAtt & board.get_bb_piece(QUEEN, stm)))) {
             score = seeVal[QUEEN] + 1 - score;
             if (score <= 0)
                 break;
-            occ ^= lsb(b);
+            occ ^= b.lsb();
             att |= genAttacksBishop(occ, to) & diag;
             att |= genAttacksRook(occ, to) & orth;
         }
