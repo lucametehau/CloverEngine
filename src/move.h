@@ -30,9 +30,8 @@ Bitboard getPinnedPieces(Board& board, bool turn) {
     mask = (genAttacksRook(them, king) & enemyOrthSliders) | (genAttacksBishop(them, king) & enemyDiagSliders);
 
     while (mask) {
-        uint64_t b2 = us & between_mask[mask.get_square_pop()][king];
-        if (!(b2 & (b2 - 1)))
-            pinned ^= b2;
+        Bitboard b2 = us & between_mask[mask.get_square_pop()][king];
+        if (b2.count() == 1) pinned ^= b2;
     }
 
     return pinned;
@@ -985,7 +984,7 @@ bool is_legal(Board& board, Move move) {
 
     if (type(move) == ENPASSANT) {
         const Square cap = sq_dir(us, SOUTH, to);
-        const uint64_t all_no_move = all ^ Bitboard(from) ^ Bitboard(to) ^ Bitboard(cap);
+        const Bitboard all_no_move = all ^ Bitboard(from) ^ Bitboard(to) ^ Bitboard(cap);
 
         return !(genAttacksBishop(all_no_move, king) & board.diagonal_sliders(enemy)) && 
                !(genAttacksRook(all_no_move, king) & board.orthogonal_sliders(enemy));
