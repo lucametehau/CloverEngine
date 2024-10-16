@@ -72,7 +72,7 @@ private:
     uint64_t bb;
 
 public:
-    Bitboard(uint64_t _bb = 0) : bb(_bb) {}
+    Bitboard(unsigned long long _bb = 0) : bb(_bb) {}
     Bitboard(Square sq) : bb(1ULL << sq) {}
 
     inline bool has_square(Square sq) const { return (bb >> sq) & 1; }
