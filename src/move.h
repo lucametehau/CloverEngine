@@ -30,9 +30,8 @@ Bitboard getPinnedPieces(Board& board, bool turn) {
     mask = (genAttacksRook(them, king) & enemyOrthSliders) | (genAttacksBishop(them, king) & enemyDiagSliders);
 
     while (mask) {
-        uint64_t b2 = us & between_mask[mask.get_square_pop()][king];
-        if (!(b2 & (b2 - 1)))
-            pinned ^= b2;
+        Bitboard b2 = us & between_mask[mask.get_square_pop()][king];
+        if (b2.count() == 1) pinned ^= b2;
     }
 
     return pinned;
@@ -222,15 +221,15 @@ void Board::undo_move(const Move move) {
 
     switch (type(move)) {
     case NEUT:
-        pieces[turn] ^= (1ULL << from) ^ (1ULL << to);
-        bb[piece] ^= (1ULL << from) ^ (1ULL << to);
+        pieces[turn] ^= Bitboard(from) ^ Bitboard(to);
+        bb[piece] ^= Bitboard(from) ^ Bitboard(to);
 
         board[from] = piece;
         board[to] = piece_cap;
 
         if (piece_cap != NO_PIECE) {
-            pieces[1 ^ turn] ^= (1ULL << to);
-            bb[piece_cap] ^= (1ULL << to);
+            pieces[1 ^ turn] ^= Bitboard(to);
+            bb[piece_cap] ^= Bitboard(to);
         }
         break;
     case CASTLE:
@@ -251,9 +250,9 @@ void Board::undo_move(const Move move) {
             rTo = mirror(turn, D1);
         }
 
-        pieces[turn] ^= (1ULL << from) ^ (1ULL << to) ^ (1ULL << rFrom) ^ (1ULL << rTo);
-        bb[piece] ^= (1ULL << from) ^ (1ULL << to);
-        bb[rPiece] ^= (1ULL << rFrom) ^ (1ULL << rTo);
+        pieces[turn] ^= Bitboard(from) ^ Bitboard(to) ^ Bitboard(rFrom) ^ Bitboard(rTo);
+        bb[piece] ^= Bitboard(from) ^ Bitboard(to);
+        bb[rPiece] ^= Bitboard(rFrom) ^ Bitboard(rTo);
 
         board[to] = board[rTo] = NO_PIECE;
         board[from] = piece;
@@ -262,15 +261,15 @@ void Board::undo_move(const Move move) {
     break;
     case ENPASSANT:
     {
-        int pos = sq_dir(turn, SOUTH, to);
+        Square pos = sq_dir(turn, SOUTH, to);
 
         piece_cap = get_piece(PAWN, 1 ^ turn);
 
-        pieces[turn] ^= (1ULL << from) ^ (1ULL << to);
-        bb[piece] ^= (1ULL << from) ^ (1ULL << to);
+        pieces[turn] ^= Bitboard(from) ^ Bitboard(to);
+        bb[piece] ^= Bitboard(from) ^ Bitboard(to);
 
-        pieces[1 ^ turn] ^= (1ULL << pos);
-        bb[piece_cap] ^= (1ULL << pos);
+        pieces[1 ^ turn] ^= Bitboard(pos);
+        bb[piece_cap] ^= Bitboard(pos);
 
         board[to] = NO_PIECE;
         board[from] = piece;
@@ -283,16 +282,16 @@ void Board::undo_move(const Move move) {
 
         piece = get_piece(PAWN, turn);
 
-        pieces[turn] ^= (1ULL << from) ^ (1ULL << to);
-        bb[piece] ^= (1ULL << from);
-        bb[prom_piece] ^= (1ULL << to);
+        pieces[turn] ^= Bitboard(from) ^ Bitboard(to);
+        bb[piece] ^= Bitboard(from);
+        bb[prom_piece] ^= Bitboard(to);
 
         board[to] = piece_cap;
         board[from] = piece;
 
         if (piece_cap != NO_PIECE) {
-            pieces[1 ^ turn] ^= (1ULL << to);
-            bb[piece_cap] ^= (1ULL << to);
+            pieces[1 ^ turn] ^= Bitboard(to);
+            bb[piece_cap] ^= Bitboard(to);
         }
     }
     break;
@@ -475,7 +474,7 @@ int gen_legal_moves(Board& board, MoveList &moves) {
                     moves[nrMoves++] = getMove(sq, sq2, 0, NEUT);
 
                     /// double pawn push
-                    b3 = (1ULL << (sq_dir(color, NORTH, sq2))) & emptySq & line_mask[king][sq];
+                    b3 = Bitboard(sq_dir(color, NORTH, sq2)) & emptySq & line_mask[king][sq];
                     if (b3 && sq2 / 8 == rank3) {
                         moves[nrMoves++] = getMove(sq, b3.get_lsb_square(), 0, NEUT);
                     }
@@ -829,7 +828,7 @@ int gen_legal_quiet_moves(Board& board, MoveList &moves) {
             Square sq = b1.get_square_pop();
             if (sq / 8 != rank7) {
                 /// single pawn push
-                b2 = (1ULL << sq_dir(color, NORTH, sq)) & emptySq & line_mask[king][sq];
+                b2 = Bitboard(sq_dir(color, NORTH, sq)) & emptySq & line_mask[king][sq];
                 if (b2) {
                     const Square sq2 = b2.get_lsb_square();
                     moves[nrMoves++] = getMove(sq, sq2, 0, NEUT);
@@ -985,7 +984,7 @@ bool is_legal(Board& board, Move move) {
 
     if (type(move) == ENPASSANT) {
         const Square cap = sq_dir(us, SOUTH, to);
-        const uint64_t all_no_move = all ^ Bitboard(from) ^ Bitboard(to) ^ Bitboard(cap);
+        const Bitboard all_no_move = all ^ Bitboard(from) ^ Bitboard(to) ^ Bitboard(cap);
 
         return !(genAttacksBishop(all_no_move, king) & board.diagonal_sliders(enemy)) && 
                !(genAttacksRook(all_no_move, king) & board.orthogonal_sliders(enemy));

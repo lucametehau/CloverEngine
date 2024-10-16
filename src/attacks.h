@@ -193,7 +193,7 @@ inline void initRookMagic() {
         rookAttacksMask[sq] |= raysMask[sq][EAST] & ~file_mask[7];
         rookAttacksMask[sq] |= raysMask[sq][WEST] & ~file_mask[0];
         for (int blockerInd = 0; blockerInd < (1 << rookIndexBits[sq]); blockerInd++) {
-            uint64_t blockers = get_blockers(rookAttacksMask[sq], blockerInd);
+            Bitboard blockers = get_blockers(rookAttacksMask[sq], blockerInd);
 #ifndef PEXT_GOOD
             rookTable[sq][(blockers * rookMagics[sq]) >> (64 - rookIndexBits[sq])] = genAttacksRookSlow(blockers, sq);
 #else
@@ -208,7 +208,7 @@ inline void initBishopMagic() {
     for (Square sq = 0; sq < 64; sq++) {
         bishopAttacksMask[sq] = (raysMask[sq][NORTHWEST] | raysMask[sq][SOUTHWEST] | raysMask[sq][NORTHEAST] | raysMask[sq][SOUTHEAST]) & (~edge);
         for (int blockerInd = 0; blockerInd < (1 << bishopIndexBits[sq]); blockerInd++) {
-            uint64_t blockers = get_blockers(bishopAttacksMask[sq], blockerInd);
+            Bitboard blockers = get_blockers(bishopAttacksMask[sq], blockerInd);
 #ifndef PEXT_GOOD
             bishopTable[sq][(blockers * bishopMagics[sq]) >> (64 - bishopIndexBits[sq])] = genAttacksBishopSlow(blockers, sq);
 #else

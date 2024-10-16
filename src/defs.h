@@ -69,10 +69,10 @@ typedef uint8_t Square;
 
 class Bitboard {
 private:
-    uint64_t bb;
+    unsigned long long bb;
 
 public:
-    Bitboard(uint64_t _bb = 0) : bb(_bb) {}
+    Bitboard(unsigned long long _bb = 0) : bb(_bb) {}
     Bitboard(Square sq) : bb(1ULL << sq) {}
 
     inline bool has_square(Square sq) const { return (bb >> sq) & 1; }
@@ -81,7 +81,7 @@ public:
 
     inline Square get_lsb_square() const { return __builtin_ctzll(bb); }
 
-    inline operator uint64_t() const { return bb; } 
+    inline operator unsigned long long() const { return bb; } 
 
     inline Bitboard lsb() const { return bb & -bb; }
 
