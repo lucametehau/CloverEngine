@@ -77,7 +77,7 @@ void Board::make_move(const Move move) { /// assuming move is at least pseudo-le
             bb[piece_cap] ^= (1ULL << to);
             key() ^= hashKey[piece_cap][to];
             if (piece_type(piece_cap) == PAWN) pawn_key() ^= hashKey[piece_cap][to];
-            else mat_key(turn) ^= hashKey[piece_cap][to];
+            else mat_key(1 ^ turn) ^= hashKey[piece_cap][to];
 
             /// special case: captured rook might have been a castle rook
             if (piece_cap == WR)
@@ -174,7 +174,7 @@ void Board::make_move(const Move move) { /// assuming move is at least pseudo-le
             bb[piece_cap] ^= (1ULL << to);
             pieces[1 ^ turn] ^= (1ULL << to);
             key() ^= hashKey[piece_cap][to];
-            mat_key(turn) ^= hashKey[piece_cap][to];
+            mat_key(1 ^ turn) ^= hashKey[piece_cap][to];
 
             /// special case: captured rook might have been a castle rook
             if (piece_cap == WR)
