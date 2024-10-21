@@ -54,7 +54,7 @@ uint32_t probe_TB(Board& board, int depth) {
             return tb_probe_wdl(board.get_bb_color(WHITE), board.get_bb_color(BLACK),
                 board.get_bb_piece_type(KING), board.get_bb_piece_type(QUEEN), board.get_bb_piece_type(ROOK),
                 board.get_bb_piece_type(BISHOP), board.get_bb_piece_type(KNIGHT), board.get_bb_piece_type(PAWN),
-                0, 0, (board.enpas() == -1 ? 0 : board.enpas()), board.turn);
+                0, 0, (board.enpas() == NO_EP ? 0 : board.enpas()), board.turn);
     }
     return TB_RESULT_FAILED;
 }
@@ -238,14 +238,10 @@ int SearchData::quiesce(int alpha, int beta, StackEntry* stack) {
         stack->cont_hist = &histories.cont_history[!board.is_noisy_move(move)][stack->piece][sq_to(move)];
 
         board.make_move(move);
-        if (!pvNode || played > 1) {
-            score = -quiesce<false>(-alpha - 1, -alpha, stack + 1);
-        }
+        if (!pvNode || played > 1) score = -quiesce<false>(-alpha - 1, -alpha, stack + 1);
 
         if constexpr (pvNode) {
-            if (played == 1 || score > alpha) {
-                score = -quiesce<pvNode>(-beta, -alpha, stack + 1);
-            }
+            if (played == 1 || score > alpha) score = -quiesce<pvNode>(-beta, -alpha, stack + 1);
         }
         board.undo_move(move);
 
@@ -269,6 +265,7 @@ int SearchData::quiesce(int alpha, int beta, StackEntry* stack) {
 
     return best;
 }
+
 template <bool rootNode, bool pvNode, bool cutNode>
 int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
     const int ply = board.ply;
@@ -519,8 +516,11 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
                 }
                 else {
                     history = histories.get_cap_hist(piece, to, board.get_captured_type(move));
+                    auto noisy_see_pruning_margin = [&](int depth, int history) {
+                        return -SEEPruningNoisyMargin * depth * depth - history / SEENoisyHistDiv;
+                    };
                     if (depth <= SEEPruningNoisyDepth && !in_check && picker.trueStage > STAGE_GOOD_NOISY && 
-                        !see(board, move, -SEEPruningNoisyMargin * (depth + bad_static_eval) * (depth + bad_static_eval) - history / SEENoisyHistDiv)) continue;
+                        !see(board, move, noisy_see_pruning_margin(depth + bad_static_eval, history))) continue;
 
                     if (depth <= FPNoisyDepth && !in_check && 
                         static_eval + FPBias + seeVal[board.get_captured_type(move)] + FPMargin * depth <= alpha) continue;
@@ -673,7 +673,7 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
     if (!stack->excluded) {
         ttBound = (best >= beta ? LOWER : (best > alphaOrig ? EXACT : UPPER));
         if ((ttBound == UPPER || !board.is_noisy_move(bestMove)) && !in_check && 
-            !(ttBound == LOWER && best <= static_eval) && !(ttBound == UPPER && best >= static_eval))
+            !(ttBound == LOWER && best <= raw_eval) && !(ttBound == UPPER && best >= raw_eval))
             histories.update_corr_hist(turn, pawn_key, white_mat_key, black_mat_key, depth, best - raw_eval);
         TT->save(entry, key, best, depth, ply, ttBound, bestMove, raw_eval, was_pv);
     }

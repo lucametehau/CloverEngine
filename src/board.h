@@ -26,7 +26,7 @@ using namespace attacks;
 
 class HistoricalState {
 public:
-    int8_t enPas;
+    Square enPas;
     uint8_t castleRights;
     Piece captured;
     uint16_t halfMoves, moveIndex;
@@ -52,9 +52,7 @@ public:
 
     Network NN;
 
-    Board() {
-        set_fen(START_POS_FEN);
-    }
+    Board() { set_fen(START_POS_FEN); }
 
     void clear() {
         ply = 0;
@@ -80,7 +78,7 @@ public:
 
     inline Bitboard& pinned_pieces() { return state.pinnedPieces; }
 
-    inline int8_t& enpas() { return state.enPas; }
+    inline Square& enpas() { return state.enPas; }
 
     inline uint16_t& half_moves() { return state.halfMoves; }
 
@@ -217,7 +215,7 @@ public:
         if (!castle_rights())
             fen += "-";
         fen += " ";
-        if (enpas() >= 0) {
+        if (enpas() != NO_EP) {
             fen += char('a' + enpas() % 8);
             fen += char('1' + enpas() / 8);
         }
