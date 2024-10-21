@@ -180,8 +180,8 @@ public:
 
     inline const int get_corrected_eval(const int eval, const bool turn, const uint64_t pawn_key, const uint64_t white_mat_key, const uint64_t black_mat_key) const {
         return eval + (128 * get_corr_hist(turn, pawn_key) + 
-                      64 * get_mat_corr_hist(turn, WHITE, white_mat_key) + 
-                      64 * get_mat_corr_hist(turn, BLACK, black_mat_key)) / (192 * CorrHistDiv);
+                      100 * get_mat_corr_hist(turn, WHITE, white_mat_key) + 
+                      100 * get_mat_corr_hist(turn, BLACK, black_mat_key)) / (192 * CorrHistDiv);
     }
 };
 
