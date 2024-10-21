@@ -78,7 +78,7 @@ public:
 
     inline Bitboard& pinned_pieces() { return state.pinnedPieces; }
 
-    inline Square& enpas() { return state.enPas; }
+    inline Square& enpas() { assert(state.enPas <= NO_EP); return state.enPas; }
 
     inline uint16_t& half_moves() { return state.halfMoves; }
 

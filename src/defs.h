@@ -74,7 +74,10 @@ private:
 public:
     Bitboard(unsigned long long _bb = 0) : bb(_bb) {}
     Bitboard(Square sq) : bb(1ULL << sq) {
-        assert(sq < 64);
+        if(sq >= 64) {
+            std::cout << sq << "\n";
+            exit(0);
+        }
     }
 
     inline bool has_square(Square sq) const { return (bb >> sq) & 1; }

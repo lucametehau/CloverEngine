@@ -673,7 +673,7 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
     if (!stack->excluded) {
         ttBound = (best >= beta ? LOWER : (best > alphaOrig ? EXACT : UPPER));
         if ((ttBound == UPPER || !board.is_noisy_move(bestMove)) && !in_check && 
-            !(ttBound == LOWER && best <= raw_eval) && !(ttBound == UPPER && best >= raw_eval))
+            !(ttBound == LOWER && best <= static_eval) && !(ttBound == UPPER && best >= static_eval))
             histories.update_corr_hist(turn, pawn_key, white_mat_key, black_mat_key, depth, best - raw_eval);
         TT->save(entry, key, best, depth, ply, ttBound, bestMove, raw_eval, was_pv);
     }
