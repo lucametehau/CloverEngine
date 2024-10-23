@@ -67,23 +67,31 @@ typedef uint16_t Move;
 typedef uint8_t Piece;
 typedef uint8_t Square;
 
+enum Squares : Square {
+    A1, B1, C1, D1, E1, F1, G1, H1,
+    A2, B2, C2, D2, E2, F2, G2, H2,
+    A3, B3, C3, D3, E3, F3, G3, H3,
+    A4, B4, C4, D4, E4, F4, G4, H4,
+    A5, B5, C5, D5, E5, F5, G5, H5,
+    A6, B6, C6, D6, E6, F6, G6, H6,
+    A7, B7, C7, D7, E7, F7, G7, H7,
+    A8, B8, C8, D8, E8, F8, G8, H8,
+    NO_EP
+};
+
 class Bitboard {
 private:
     unsigned long long bb;
 
 public:
     Bitboard(unsigned long long _bb = 0) : bb(_bb) {}
-    Bitboard(Square sq) : bb(1ULL << sq) { assert(sq < 64); }
+    Bitboard(Square sq) : bb(1ULL << sq) { assert(sq < NO_EP); }
 
     inline bool has_square(Square sq) const { return (bb >> sq) & 1; }
-
     inline Square get_msb_square() const { return 63 - __builtin_clzll(bb); }
-
     inline Square get_lsb_square() const { return __builtin_ctzll(bb); }
-
-    inline operator unsigned long long() const { return bb; } 
-
     inline Bitboard lsb() const { return bb & -bb; }
+    inline operator unsigned long long() const { return bb; } 
 
     inline Square get_square_pop() {
         const Square sq = get_lsb_square();
@@ -124,23 +132,11 @@ public:
     }
 };
 
-enum {
-    A1, B1, C1, D1, E1, F1, G1, H1,
-    A2, B2, C2, D2, E2, F2, G2, H2,
-    A3, B3, C3, D3, E3, F3, G3, H3,
-    A4, B4, C4, D4, E4, F4, G4, H4,
-    A5, B5, C5, D5, E5, F5, G5, H5,
-    A6, B6, C6, D6, E6, F6, G6, H6,
-    A7, B7, C7, D7, E7, F7, G7, H7,
-    A8, B8, C8, D8, E8, F8, G8, H8,
-    NO_EP
-};
-
-enum {
+enum PieceTypes : Piece {
     PAWN = 0, KNIGHT, BISHOP, ROOK, QUEEN, KING, NO_PIECE_TYPE
 };
 
-enum {
+enum Pieces : Piece {
     BP = 0, BN, BB, BR, BQ, BK,
     WP = 6, WN, WB, WR, WQ, WK,
     NO_PIECE
@@ -151,11 +147,20 @@ enum {
 };
 
 enum {
-    NEUT = 0, PROMOTION, CASTLE, ENPASSANT
+    NO_TYPE = 0, PROMOTION, CASTLE, ENPASSANT
 };
 
 enum {
-    NORTH = 0, EAST, SOUTH, WEST, NORTHEAST, NORTHWEST, SOUTHEAST, SOUTHWEST
+    NORTH = 8, SOUTH = -8, EAST = 1, WEST = -1, 
+    NORTHEAST = 9, NORTHWEST = 7, 
+    SOUTHEAST = -7, SOUTHWEST = -9
+};
+
+
+enum {
+    NORTH_ID = 0, SOUTH_ID, WEST_ID, EAST_ID, 
+    NORTHWEST_ID, NORTHEAST_ID, 
+    SOUTHWEST_ID, SOUTHEAST_ID
 };
 
 enum {
@@ -200,8 +205,6 @@ constexpr std::pair<int, int> bishopDir[4] = { {-1, 1}, {-1, -1}, {1, -1}, {1, 1
 constexpr std::pair<int, int> kingDir[8] = { {-1, 0}, {0, 1}, {1, 0}, {0, -1}, {1, 1}, {1, -1}, {-1, 1}, {-1, -1} };
 constexpr std::pair<int, int> pawnCapDirWhite[2] = { {1, -1}, {1, 1} };
 constexpr std::pair<int, int> pawnCapDirBlack[2] = { {-1, -1}, {-1, 1} };
-
-std::array<int8_t, 8> deltaPos; /// how does my position change when moving in direction D
 
 constexpr std::array<int, 64> kingIndTable = {
     0, 1, 2, 3, 3, 2, 1, 0,
@@ -249,10 +252,6 @@ inline uint64_t mul_hi(const uint64_t a, const uint64_t b) {
     return (static_cast<uint128_t>(a) * static_cast<uint128_t>(b)) >> 64;
 }
 
-inline Piece piece_type(Piece piece) {
-    return piece >= 6 ? piece - 6 : piece;
-}
-
 inline int16_t net_index(Piece piece, Square sq, Square kingSq, bool side) {
     return 64 * 12 * kingIndTable[kingSq ^ (56 * !side)] + 64 * (piece + side * (piece >= 6 ? -6 : +6)) + (sq ^ (56 * !side) ^ (7 * ((kingSq >> 2) & 1))); // kingSq should be ^7, if kingSq&7 >= 4
 }
@@ -261,95 +260,49 @@ inline bool recalc(Square from, Square to, bool side) {
     return (from & 4) != (to & 4) || kingIndTable[from ^ (56 * !side)] != kingIndTable[to ^ (56 * !side)];
 }
 
-inline Square get_sq(int rank, int file) {
-    return (rank << 3) | file;
+inline Square get_sq(int rank, int file) { return (rank << 3) | file; }
+inline Square mirror(bool color, Square sq) { return sq ^ (56 * !color); }
+
+template<int direction>
+inline Square shift_square(bool color, Square sq) { return color == BLACK ? sq - direction : sq + direction; }
+
+template<int direction>
+inline Bitboard shift_mask(int color, Bitboard bb) {
+    if (color == BLACK) return direction > 0 ? bb >> direction : bb << -direction;
+    return direction > 0 ? bb << direction : bb >> -direction;
 }
 
-inline Square mirror(bool color, Square sq) {
-    return sq ^ (56 * !color);
-}
-
-inline Square sq_dir(bool color, int dir, Square sq) {
-    if (color == BLACK) {
-        if (dir < 4)
-            dir = (dir + 2) % 4;
-        else
-            dir = 11 - dir;
-    }
-    return sq + deltaPos[dir];
-}
-
-inline Bitboard shift(int color, int dir, Bitboard bb) {
-    if (color == BLACK) {
-        if (dir < 4)
-            dir = (dir + 2) % 4;
-        else
-            dir = 11 - dir;
-    }
-    if (deltaPos[dir] > 0)
-        return bb << deltaPos[dir];
-
-    return bb >> static_cast<int8_t>(-deltaPos[dir]);
-}
-
-inline Piece get_piece(const Piece piece_type, const bool color) {
-    return 6 * color + piece_type;
-}
-
-inline bool color_of(Piece piece) {
-    return piece >= 6;
-}
+inline Piece piece_type(Piece piece) { return piece >= 6 ? piece - 6 : piece; }
+inline Piece get_piece(const Piece piece_type, const bool color) { return 6 * color + piece_type; }
+inline bool color_of(Piece piece) { return piece >= 6; }
 
 inline bool inside_board(int rank, int file) {
     return rank >= 0 && file >= 0 && rank <= 7 && file <= 7;
 }
 
-inline Move getMove(Square from, Square to, Piece prom, int type) {
-    return from | (to << 6) | (prom << 12) | (type << 14);
-}
-
-inline Square sq_from(Move move) {
-    return move & 63;
-}
-
-inline Square sq_to(Move move) {
-    return (move & 4095) >> 6;
-}
-
-inline int from_to(Move move) {
-    return move & 4095;
-}
-
-inline int type(Move move) {
-    return move >> 14;
-}
-
+inline Move getMove(Square from, Square to, Piece prom, int type) { return from | (to << 6) | (prom << 12) | (type << 14); }
+inline Square sq_from(Move move) { return move & 63; }
+inline Square sq_to(Move move) { return (move & 4095) >> 6; }
+inline int from_to(Move move) { return move & 4095; }
+inline int type(Move move) { return move >> 14; }
+inline Piece promoted(Move move) { return (move & 16383) >> 12; }
 inline Square special_sqto(Move move) {
     return type(move) != CASTLE ? sq_to(move) : 8 * (sq_from(move) / 8) + (sq_from(move) < sq_to(move) ? 6 : 2);
 }
 
-inline Piece promoted(Move move) {
-    return (move & 16383) >> 12;
-}
-
-inline std::string move_to_string(Move move, bool chess960) {
-    int sq1 = sq_from(move), sq2 = (!chess960 ? special_sqto(move) : sq_to(move));
+inline std::string move_to_string(Move move, bool chess960 = false) {
+    int sq1 = sq_from(move), sq2 = !chess960 ? special_sqto(move) : sq_to(move);
     std::string ans;
     ans += char((sq1 & 7) + 'a');
     ans += char((sq1 >> 3) + '1');
     ans += char((sq2 & 7) + 'a');
     ans += char((sq2 >> 3) + '1');
     if (type(move) == PROMOTION)
-        ans += piece_char[((move & 16383) >> 12) + BN];
+        ans += piece_char[promoted(move) + BN];
     return ans;
 }
 
 inline void init_defs() {
-    deltaPos[NORTH] = 8, deltaPos[SOUTH] = -8;
-    deltaPos[WEST] = -1, deltaPos[EAST] = 1;
-    deltaPos[NORTHWEST] = 7, deltaPos[NORTHEAST] = 9;
-    deltaPos[SOUTHWEST] = -9, deltaPos[SOUTHEAST] = -7;
-
     cod['p'] = BP, cod['n'] = BN, cod['b'] = BB, cod['r'] = BR, cod['q'] = BQ, cod['k'] = BK;
     cod['P'] = WP, cod['N'] = WN, cod['B'] = WB, cod['R'] = WR, cod['Q'] = WQ, cod['K'] = WK;
 
@@ -387,17 +340,17 @@ inline void init_defs() {
                     int x = r, y = f, d = (i < 4 ? (i + 2) % 4 : 11 - i);
                     Bitboard mask2;
                     while (inside_board(x, y)) {
-                        mask2 |= (1ULL << get_sq(x, y));
+                        mask2 |= Bitboard(get_sq(x, y));
                         x += kingDir[i].first, y += kingDir[i].second;
                     }
                     x = rank, y = file;
                     while (inside_board(x, y)) {
-                        mask2 |= (1ULL << get_sq(x, y));
+                        mask2 |= Bitboard(get_sq(x, y));
                         x += kingDir[d].first, y += kingDir[d].second;
                     }
                     line_mask[get_sq(rank, file)][get_sq(r, f)] = mask | mask2;
 
-                    mask |= (1ULL << get_sq(r, f));
+                    mask |= Bitboard(get_sq(r, f));
                 }
             }
         }

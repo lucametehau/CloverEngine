@@ -38,7 +38,7 @@ Bitboard getPinnedPieces(Board& board, bool turn) {
 }
 
 inline void add_moves(MoveList &moves, int& nrMoves, Square pos, Bitboard att) {
-    while (att) moves[nrMoves++] = getMove(pos, att.get_square_pop(), 0, NEUT);
+    while (att) moves[nrMoves++] = getMove(pos, att.get_square_pop(), 0, NO_TYPE);
 }
 
 void Board::make_move(const Move move) { /// assuming move is at least pseudo-legal
@@ -57,7 +57,7 @@ void Board::make_move(const Move move) { /// assuming move is at least pseudo-le
     enpas() = NO_EP;
 
     switch (type(move)) {
-    case NEUT:
+    case NO_TYPE:
         pieces[turn] ^= (1ULL << from) ^ (1ULL << to);
         bb[piece] ^= (1ULL << from) ^ (1ULL << to);
 
@@ -94,7 +94,7 @@ void Board::make_move(const Move move) { /// assuming move is at least pseudo-le
         if (piece_type(piece) == PAWN && (from ^ to) == 16) {
             if ((to % 8 && board[to - 1] == get_piece(PAWN, turn ^ 1)) || 
                 (to % 8 < 7 && board[to + 1] == get_piece(PAWN, turn ^ 1))) 
-                enpas() = sq_dir(turn, NORTH, from), key() ^= enPasKey[enpas()];
+                enpas() = shift_square<NORTH>(turn, from), key() ^= enPasKey[enpas()];
         }
 
         /// moved the king
@@ -108,7 +108,7 @@ void Board::make_move(const Move move) { /// assuming move is at least pseudo-le
         break;
     case ENPASSANT:
     {
-        const Square pos = sq_dir(turn, SOUTH, to);
+        const Square pos = shift_square<SOUTH>(turn, to);
         piece_cap = get_piece(PAWN, 1 ^ turn);
         half_moves() = 0;
         pieces[turn] ^= (1ULL << from) ^ (1ULL << to);
@@ -220,7 +220,7 @@ void Board::undo_move(const Move move) {
     Piece piece = piece_at(to);
 
     switch (type(move)) {
-    case NEUT:
+    case NO_TYPE:
         pieces[turn] ^= Bitboard(from) ^ Bitboard(to);
         bb[piece] ^= Bitboard(from) ^ Bitboard(to);
 
@@ -261,7 +261,7 @@ void Board::undo_move(const Move move) {
     break;
     case ENPASSANT:
     {
-        Square pos = sq_dir(turn, SOUTH, to);
+        Square pos = shift_square<SOUTH>(turn, to);
 
         piece_cap = get_piece(PAWN, 1 ^ turn);
 
@@ -364,7 +364,7 @@ int gen_legal_moves(Board& board, MoveList &moves) {
         switch (board.piece_type_at(sq)) {
         case PAWN:
             /// make en passant to cancel the check
-            if (board.enpas() != NO_EP && board.checkers() == Bitboard(sq_dir(enemy, NORTH, board.enpas()))) {
+            if (board.enpas() != NO_EP && board.checkers() == Bitboard(shift_square<NORTH>(enemy, board.enpas()))) {
                 mask = pawnAttacksMask[enemy][board.enpas()] & notPinned & board.get_bb_piece(PAWN, color);
                 while (mask) moves[nrMoves++] = getMove(mask.get_square_pop(), board.enpas(), 0, ENPASSANT);
             }
@@ -381,7 +381,7 @@ int gen_legal_moves(Board& board, MoveList &moves) {
         quietMask = ~all;
 
         if (board.enpas() != NO_EP) {
-            Square ep = board.enpas(), sq2 = sq_dir(color, SOUTH, ep);
+            Square ep = board.enpas(), sq2 = shift_square<SOUTH>(color, ep);
             b2 = pawnAttacksMask[enemy][ep] & board.get_bb_piece(PAWN, color);
             b1 = b2 & notPinned;
             while (b1) {
@@ -466,15 +466,15 @@ int gen_legal_moves(Board& board, MoveList &moves) {
                 add_moves(moves, nrMoves, sq, b2);
 
                 /// single pawn push
-                b2 = Bitboard(sq_dir(color, NORTH, sq)) & emptySq & line_mask[king][sq];
+                b2 = Bitboard(shift_square<NORTH>(color, sq)) & emptySq & line_mask[king][sq];
                 if (b2) {
                     const Square sq2 = b2.get_lsb_square();
-                    moves[nrMoves++] = getMove(sq, sq2, 0, NEUT);
+                    moves[nrMoves++] = getMove(sq, sq2, 0, NO_TYPE);
 
                     /// double pawn push
-                    b3 = Bitboard(sq_dir(color, NORTH, sq2)) & emptySq & line_mask[king][sq];
+                    b3 = Bitboard(shift_square<NORTH>(color, sq2)) & emptySq & line_mask[king][sq];
                     if (b3 && sq2 / 8 == rank3) {
-                        moves[nrMoves++] = getMove(sq, b3.get_lsb_square(), 0, NEUT);
+                        moves[nrMoves++] = getMove(sq, b3.get_lsb_square(), 0, NO_TYPE);
                     }
                 }
             }
@@ -506,52 +506,52 @@ int gen_legal_moves(Board& board, MoveList &moves) {
     int fileA = (color == WHITE ? 0 : 7), fileH = 7 - fileA;
     b1 = board.get_bb_piece(PAWN, color) & notPinned & ~rank_mask[rank7];
 
-    b2 = shift(color, NORTH, b1) & ~all; /// single push
-    b3 = shift(color, NORTH, b2 & rank_mask[rank3]) & quietMask; /// double push
+    b2 = shift_mask<NORTH>(color, b1) & ~all; /// single push
+    b3 = shift_mask<NORTH>(color, b2 & rank_mask[rank3]) & quietMask; /// double push
     b2 &= quietMask;
 
     while (b2) {
         Square sq = b2.get_square_pop();
-        moves[nrMoves++] = getMove(sq_dir(color, SOUTH, sq), sq, 0, NEUT);
+        moves[nrMoves++] = getMove(shift_square<SOUTH>(color, sq), sq, 0, NO_TYPE);
     }
     while (b3) {
-        Square sq = b3.get_square_pop(), sq2 = sq_dir(color, SOUTH, sq);
-        moves[nrMoves++] = getMove(sq_dir(color, SOUTH, sq2), sq, 0, NEUT);
+        Square sq = b3.get_square_pop(), sq2 = shift_square<SOUTH>(color, sq);
+        moves[nrMoves++] = getMove(shift_square<SOUTH>(color, sq2), sq, 0, NO_TYPE);
     }
 
-    b2 = shift(color, NORTHWEST, b1 & ~file_mask[fileA]) & capMask;
-    b3 = shift(color, NORTHEAST, b1 & ~file_mask[fileH]) & capMask;
+    b2 = shift_mask<NORTHWEST>(color, b1 & ~file_mask[fileA]) & capMask;
+    b3 = shift_mask<NORTHEAST>(color, b1 & ~file_mask[fileH]) & capMask;
     /// captures
 
     while (b2) {
         Square sq = b2.get_square_pop();
-        moves[nrMoves++] = getMove(sq_dir(color, SOUTHEAST, sq), sq, 0, NEUT);
+        moves[nrMoves++] = getMove(shift_square<SOUTHEAST>(color, sq), sq, 0, NO_TYPE);
     }
     while (b3) {
         Square sq = b3.get_square_pop();
-        moves[nrMoves++] = getMove(sq_dir(color, SOUTHWEST, sq), sq, 0, NEUT);
+        moves[nrMoves++] = getMove(shift_square<SOUTHWEST>(color, sq), sq, 0, NO_TYPE);
     }
 
     b1 = board.get_bb_piece(PAWN, color) & notPinned & rank_mask[rank7];
     if (b1) {
         /// quiet promotions
-        b2 = shift(color, NORTH, b1) & quietMask;
+        b2 = shift_mask<NORTH>(color, b1) & quietMask;
         while (b2) {
             Square sq = b2.get_square_pop();
-            for (int i = 0; i < 4; i++) moves[nrMoves++] = getMove(sq_dir(color, SOUTH, sq), sq, i, PROMOTION);
+            for (int i = 0; i < 4; i++) moves[nrMoves++] = getMove(shift_square<SOUTH>(color, sq), sq, i, PROMOTION);
         }
 
         /// capture promotions
 
-        b2 = shift(color, NORTHWEST, b1 & ~file_mask[fileA]) & capMask;
-        b3 = shift(color, NORTHEAST, b1 & ~file_mask[fileH]) & capMask;
+        b2 = shift_mask<NORTHWEST>(color, b1 & ~file_mask[fileA]) & capMask;
+        b3 = shift_mask<NORTHEAST>(color, b1 & ~file_mask[fileH]) & capMask;
         while (b2) {
             Square sq = b2.get_square_pop();
-            for (int i = 0; i < 4; i++) moves[nrMoves++] = getMove(sq_dir(color, SOUTHEAST, sq), sq, i, PROMOTION);
+            for (int i = 0; i < 4; i++) moves[nrMoves++] = getMove(shift_square<SOUTHEAST>(color, sq), sq, i, PROMOTION);
         }
         while (b3) {
             Square sq = b3.get_square_pop();
-            for (int i = 0; i < 4; i++) moves[nrMoves++] = getMove(sq_dir(color, SOUTHWEST, sq), sq, i, PROMOTION);
+            for (int i = 0; i < 4; i++) moves[nrMoves++] = getMove(shift_square<SOUTHWEST>(color, sq), sq, i, PROMOTION);
         }
     }
 
@@ -599,7 +599,7 @@ int gen_legal_noisy_moves(Board& board, MoveList &moves) {
         switch (board.piece_type_at(sq)) {
         case PAWN:
             /// make en passant to cancel the check
-            if (board.enpas() != NO_EP && board.checkers() == Bitboard(sq_dir(enemy, NORTH, board.enpas()))) {
+            if (board.enpas() != NO_EP && board.checkers() == Bitboard(shift_square<NORTH>(enemy, board.enpas()))) {
                 mask = pawnAttacksMask[enemy][board.enpas()] & notPinned & board.get_bb_piece(PAWN, color);
                 while (mask) moves[nrMoves++] = getMove(mask.get_square_pop(), board.enpas(), 0, ENPASSANT);
             }
@@ -616,7 +616,7 @@ int gen_legal_noisy_moves(Board& board, MoveList &moves) {
         quietMask = ~all;
 
         if (board.enpas() != NO_EP) {
-            Square ep = board.enpas(), sq2 = sq_dir(color, SOUTH, ep);
+            Square ep = board.enpas(), sq2 = shift_square<SOUTH>(color, ep);
             b2 = pawnAttacksMask[enemy][ep] & board.get_bb_piece(PAWN, color);
             b1 = b2 & notPinned;
             while (b1) {
@@ -689,38 +689,38 @@ int gen_legal_noisy_moves(Board& board, MoveList &moves) {
     int fileA = (color == WHITE ? 0 : 7), fileH = 7 - fileA;
     b1 = board.get_bb_piece(PAWN, color) & notPinned & ~rank_mask[rank7];
 
-    b2 = shift(color, NORTHWEST, b1 & ~file_mask[fileA]) & capMask;
-    b3 = shift(color, NORTHEAST, b1 & ~file_mask[fileH]) & capMask;
+    b2 = shift_mask<NORTHWEST>(color, b1 & ~file_mask[fileA]) & capMask;
+    b3 = shift_mask<NORTHEAST>(color, b1 & ~file_mask[fileH]) & capMask;
     /// captures
 
     while (b2) {
         Square sq = b2.get_square_pop();
-        moves[nrMoves++] = getMove(sq_dir(color, SOUTHEAST, sq), sq, 0, NEUT);
+        moves[nrMoves++] = getMove(shift_square<SOUTHEAST>(color, sq), sq, 0, NO_TYPE);
     }
     while (b3) {
         Square sq = b3.get_square_pop();
-        moves[nrMoves++] = getMove(sq_dir(color, SOUTHWEST, sq), sq, 0, NEUT);
+        moves[nrMoves++] = getMove(shift_square<SOUTHWEST>(color, sq), sq, 0, NO_TYPE);
     }
 
     b1 = board.get_bb_piece(PAWN, color) & notPinned & rank_mask[rank7];
     if (b1) {
         /// quiet promotions
-        b2 = shift(color, NORTH, b1) & quietMask;
+        b2 = shift_mask<NORTH>(color, b1) & quietMask;
         while (b2) {
             Square sq = b2.get_square_pop();
-            for (int i = 0; i < 4; i++) moves[nrMoves++] = getMove(sq_dir(color, SOUTH, sq), sq, i, PROMOTION);
+            for (int i = 0; i < 4; i++) moves[nrMoves++] = getMove(shift_square<SOUTH>(color, sq), sq, i, PROMOTION);
         }
 
         /// capture promotions
-        b2 = shift(color, NORTHWEST, b1 & ~file_mask[fileA]) & capMask;
-        b3 = shift(color, NORTHEAST, b1 & ~file_mask[fileH]) & capMask;
+        b2 = shift_mask<NORTHWEST>(color, b1 & ~file_mask[fileA]) & capMask;
+        b3 = shift_mask<NORTHEAST>(color, b1 & ~file_mask[fileH]) & capMask;
         while (b2) {
             Square sq = b2.get_square_pop();
-            for (int i = 0; i < 4; i++) moves[nrMoves++] = getMove(sq_dir(color, SOUTHEAST, sq), sq, i, PROMOTION);
+            for (int i = 0; i < 4; i++) moves[nrMoves++] = getMove(shift_square<SOUTHEAST>(color, sq), sq, i, PROMOTION);
         }
         while (b3) {
             Square sq = b3.get_square_pop();
-            for (int i = 0; i < 4; i++) moves[nrMoves++] = getMove(sq_dir(color, SOUTHWEST, sq), sq, i, PROMOTION);
+            for (int i = 0; i < 4; i++) moves[nrMoves++] = getMove(shift_square<SOUTHWEST>(color, sq), sq, i, PROMOTION);
         }
     }
 
@@ -824,14 +824,14 @@ int gen_legal_quiet_moves(Board& board, MoveList &moves) {
             Square sq = b1.get_square_pop();
             if (sq / 8 != rank7) {
                 /// single pawn push
-                b2 = Bitboard(sq_dir(color, NORTH, sq)) & emptySq & line_mask[king][sq];
+                b2 = Bitboard(shift_square<NORTH>(color, sq)) & emptySq & line_mask[king][sq];
                 if (b2) {
                     const Square sq2 = b2.get_lsb_square();
-                    moves[nrMoves++] = getMove(sq, sq2, 0, NEUT);
+                    moves[nrMoves++] = getMove(sq, sq2, 0, NO_TYPE);
 
                     /// double pawn push
-                    b3 = Bitboard(sq_dir(color, NORTH, sq2)) & emptySq & line_mask[king][sq];
-                    if (b3 && sq2 / 8 == rank3) moves[nrMoves++] = getMove(sq, b3.get_lsb_square(), 0, NEUT);
+                    b3 = Bitboard(shift_square<NORTH>(color, sq2)) & emptySq & line_mask[king][sq];
+                    if (b3 && sq2 / 8 == rank3) moves[nrMoves++] = getMove(sq, b3.get_lsb_square(), 0, NO_TYPE);
                 }
 
             }
@@ -859,17 +859,17 @@ int gen_legal_quiet_moves(Board& board, MoveList &moves) {
 
     b1 = board.get_bb_piece(PAWN, color) & notPinned & ~rank_mask[rank7];
 
-    b2 = shift(color, NORTH, b1) & ~all; /// single push
-    b3 = shift(color, NORTH, b2 & rank_mask[rank3]) & quietMask; /// double push
+    b2 = shift_mask<NORTH>(color, b1) & ~all; /// single push
+    b3 = shift_mask<NORTH>(color, b2 & rank_mask[rank3]) & quietMask; /// double push
     b2 &= quietMask;
 
     while (b2) {
         Square sq = b2.get_square_pop();
-        moves[nrMoves++] = getMove(sq_dir(color, SOUTH, sq), sq, 0, NEUT);
+        moves[nrMoves++] = getMove(shift_square<SOUTH>(color, sq), sq, 0, NO_TYPE);
     }
     while (b3) {
-        Square sq = b3.get_square_pop(), sq2 = sq_dir(color, SOUTH, sq);
-        moves[nrMoves++] = getMove(sq_dir(color, SOUTH, sq2), sq, 0, NEUT);
+        Square sq = b3.get_square_pop(), sq2 = shift_square<SOUTH>(color, sq);
+        moves[nrMoves++] = getMove(shift_square<SOUTH>(color, sq2), sq, 0, NO_TYPE);
     }
 
     return nrMoves;
@@ -903,7 +903,7 @@ bool is_pseudo_legal(Board& board, Move move) {
         /// enpassant
         if (t == ENPASSANT) return to == board.enpas() && att.has_square(to);
 
-        Bitboard push = shift(color, NORTH, Bitboard(from)) & ~occ;
+        Bitboard push = shift_mask<NORTH>(color, Bitboard(from)) & ~occ;
         const int rank_to = to / 8;
 
         /// promotion
@@ -911,12 +911,12 @@ bool is_pseudo_legal(Board& board, Move move) {
 
         /// add double push to mask
         if (from / 8 == 1 || from / 8 == 6)
-            push |= shift(color, NORTH, push) & ~occ;
+            push |= shift_mask<NORTH>(color, push) & ~occ;
 
-        return (rank_to != 0 && rank_to != 7) && t == NEUT && ((att & enemy) | push).has_square(to);
+        return (rank_to != 0 && rank_to != 7) && t == NO_TYPE && ((att & enemy) | push).has_square(to);
     }
 
-    if (t != NEUT)
+    if (t != NO_TYPE)
         return 0;
 
     /// check for normal moves
@@ -979,7 +979,7 @@ bool is_legal(Board& board, Move move) {
     }
 
     if (type(move) == ENPASSANT) {
-        const Square cap = sq_dir(us, SOUTH, to);
+        const Square cap = shift_square<SOUTH>(us, to);
         const Bitboard all_no_move = all ^ Bitboard(from) ^ Bitboard(to) ^ Bitboard(cap);
 
         return !(genAttacksBishop(all_no_move, king) & board.diagonal_sliders(enemy)) && 

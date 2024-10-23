@@ -114,7 +114,7 @@ public:
     inline Bitboard get_pawn_attacks(const bool color) const {
         const Bitboard b = get_bb_piece(PAWN, color);
         const int fileA = (color == WHITE ? 0 : 7), fileH = 7 - fileA;
-        return shift(color, NORTHWEST, b & ~file_mask[fileA]) | shift(color, NORTHEAST, b & ~file_mask[fileH]);
+        return shift_mask<NORTHWEST>(color, b & ~file_mask[fileA]) | shift_mask<NORTHEAST>(color, b & ~file_mask[fileH]);
     }
 
     inline Piece piece_type_at(const Square sq) const { return piece_type(board[sq]); }

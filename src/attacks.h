@@ -20,6 +20,7 @@
 #include "defs.h"
 
 namespace attacks {
+
 std::array<Bitboard, 64> rookAttacksMask, bishopAttacksMask;
 MultiArray<Bitboard, 2, 64> pawnAttacksMask;
 MultiArray<Bitboard, 64, 4096> rookTable;
@@ -31,25 +32,25 @@ std::array<Bitboard, 64> kingRingMask, kingSquareMask, pawnShieldMask;
 inline Bitboard genAttacksBishopSlow(Bitboard blockers, Square sq) {
     Bitboard attacks;
 
-    attacks |= raysMask[sq][NORTHWEST];
-    if (raysMask[sq][NORTHWEST] & blockers) {
-        Square sq2 = (raysMask[sq][NORTHWEST] & blockers).get_lsb_square();
-        attacks &= ~raysMask[sq2][NORTHWEST];
+    attacks |= raysMask[sq][NORTHWEST_ID];
+    if (raysMask[sq][NORTHWEST_ID] & blockers) {
+        Square sq2 = (raysMask[sq][NORTHWEST_ID] & blockers).get_lsb_square();
+        attacks &= ~raysMask[sq2][NORTHWEST_ID];
     }
-    attacks |= raysMask[sq][NORTHEAST];
-    if (raysMask[sq][NORTHEAST] & blockers) {
-        Square sq2 = (raysMask[sq][NORTHEAST] & blockers).get_lsb_square();
-        attacks &= ~raysMask[sq2][NORTHEAST];
+    attacks |= raysMask[sq][NORTHEAST_ID];
+    if (raysMask[sq][NORTHEAST_ID] & blockers) {
+        Square sq2 = (raysMask[sq][NORTHEAST_ID] & blockers).get_lsb_square();
+        attacks &= ~raysMask[sq2][NORTHEAST_ID];
     }
-    attacks |= raysMask[sq][SOUTHWEST];
-    if (raysMask[sq][SOUTHWEST] & blockers) {
-        Square sq2 = (raysMask[sq][SOUTHWEST] & blockers).get_msb_square(); // sq
-        attacks &= ~raysMask[sq2][SOUTHWEST];
+    attacks |= raysMask[sq][SOUTHWEST_ID];
+    if (raysMask[sq][SOUTHWEST_ID] & blockers) {
+        Square sq2 = (raysMask[sq][SOUTHWEST_ID] & blockers).get_msb_square(); // sq
+        attacks &= ~raysMask[sq2][SOUTHWEST_ID];
     }
-    attacks |= raysMask[sq][SOUTHEAST];
-    if (raysMask[sq][SOUTHEAST] & blockers) {
-        Square sq2 = (raysMask[sq][SOUTHEAST] & blockers).get_msb_square(); // sq
-        attacks &= ~raysMask[sq2][SOUTHEAST];
+    attacks |= raysMask[sq][SOUTHEAST_ID];
+    if (raysMask[sq][SOUTHEAST_ID] & blockers) {
+        Square sq2 = (raysMask[sq][SOUTHEAST_ID] & blockers).get_msb_square(); // sq
+        attacks &= ~raysMask[sq2][SOUTHEAST_ID];
     }
     return attacks;
 }
@@ -57,25 +58,25 @@ inline Bitboard genAttacksBishopSlow(Bitboard blockers, Square sq) {
 inline Bitboard genAttacksRookSlow(Bitboard blockers, Square sq) {
     Bitboard attacks;
 
-    attacks |= raysMask[sq][NORTH];
-    if (raysMask[sq][NORTH] & blockers) {
-        Square sq2 = (raysMask[sq][NORTH] & blockers).get_lsb_square();
-        attacks &= ~raysMask[sq2][NORTH];
+    attacks |= raysMask[sq][NORTH_ID];
+    if (raysMask[sq][NORTH_ID] & blockers) {
+        Square sq2 = (raysMask[sq][NORTH_ID] & blockers).get_lsb_square();
+        attacks &= ~raysMask[sq2][NORTH_ID];
     }
-    attacks |= raysMask[sq][SOUTH];
-    if (raysMask[sq][SOUTH] & blockers) {
-        Square sq2 = (raysMask[sq][SOUTH] & blockers).get_msb_square(); // sq
-        attacks &= ~raysMask[sq2][SOUTH];
+    attacks |= raysMask[sq][SOUTH_ID];
+    if (raysMask[sq][SOUTH_ID] & blockers) {
+        Square sq2 = (raysMask[sq][SOUTH_ID] & blockers).get_msb_square(); // sq
+        attacks &= ~raysMask[sq2][SOUTH_ID];
     }
-    attacks |= raysMask[sq][WEST];
-    if (raysMask[sq][WEST] & blockers) {
-        Square sq2 = (raysMask[sq][WEST] & blockers).get_msb_square(); // sq
-        attacks &= ~raysMask[sq2][WEST];
+    attacks |= raysMask[sq][WEST_ID];
+    if (raysMask[sq][WEST_ID] & blockers) {
+        Square sq2 = (raysMask[sq][WEST_ID] & blockers).get_msb_square(); // sq
+        attacks &= ~raysMask[sq2][WEST_ID];
     }
-    attacks |= raysMask[sq][EAST];
-    if (raysMask[sq][EAST] & blockers) {
-        Square sq2 = (raysMask[sq][EAST] & blockers).get_lsb_square();
-        attacks &= ~raysMask[sq2][EAST];
+    attacks |= raysMask[sq][EAST_ID];
+    if (raysMask[sq][EAST_ID] & blockers) {
+        Square sq2 = (raysMask[sq][EAST_ID] & blockers).get_lsb_square();
+        attacks &= ~raysMask[sq2][EAST_ID];
     }
     return attacks;
 }
@@ -83,9 +84,9 @@ inline Bitboard genAttacksRookSlow(Bitboard blockers, Square sq) {
 inline Bitboard get_blockers(Bitboard mask, int ind) {
     int nr = mask.count();
     Bitboard blockers;
-    for (int i = 0; i < nr; i++) {
+    for (Square i = 0; i < nr; i++) {
         Bitboard lsb = mask.lsb();
-        if (ind & (1ULL << i)) blockers |= lsb;
+        if (ind & Bitboard(i)) blockers |= lsb;
         mask ^= lsb;
     }
     return blockers;
@@ -97,19 +98,20 @@ inline void initKnightAndKingAttacks() {
         for (int j = 0; j < 8; j++) {
             int rankTo = rank + knightDir[j].first, fileTo = file + knightDir[j].second;
             if (inside_board(rankTo, fileTo))
-                knightBBAttacks[i] |= (1ULL << get_sq(rankTo, fileTo));
+                knightBBAttacks[i] |= Bitboard(get_sq(rankTo, fileTo));
         }
         for (int j = 0; j < 8; j++) {
             int rankTo = rank + kingDir[j].first, fileTo = file + kingDir[j].second;
             if (inside_board(rankTo, fileTo))
-                kingBBAttacks[i] |= (1ULL << get_sq(rankTo, fileTo));
+                kingBBAttacks[i] |= Bitboard(get_sq(rankTo, fileTo));
         }
     }
 
     /// king area masks
 
     for (Square i = 0; i < 64; i++) {
-        int rank = i / 8, file = i % 8, sq = 0; /// board.king(color)
+        int rank = i / 8, file = i % 8;
+        Square sq = 0; /// board.king(color)
         if (rank < 1)
             sq = 1 * 8;
         else if (rank > 6)
@@ -123,13 +125,13 @@ inline void initKnightAndKingAttacks() {
         else
             sq += file;
 
-        kingRingMask[i] = (1ULL << sq) | kingBBAttacks[sq];
-        kingSquareMask[i] = (1ULL << i) | kingBBAttacks[i];
+        kingRingMask[i] = Bitboard(sq) | kingBBAttacks[sq];
+        kingSquareMask[i] = Bitboard(i) | kingBBAttacks[i];
 
         if (rank <= 1)
-            pawnShieldMask[i] = shift(WHITE, NORTH, kingSquareMask[i]);
+            pawnShieldMask[i] = shift_mask<NORTH>(WHITE, kingSquareMask[i]);
         else if (rank >= 6)
-            pawnShieldMask[i] = shift(WHITE, SOUTH, kingSquareMask[i]);
+            pawnShieldMask[i] = shift_mask<SOUTH>(WHITE, kingSquareMask[i]);
     }
 }
 
@@ -158,29 +160,29 @@ inline void initRays() {
             Square sq = get_sq(rank, file);
             r = rank, f = file;
             while (r > 0)
-                r--, raysMask[sq][SOUTH] |= (1ULL << get_sq(r, f));
+                r--, raysMask[sq][SOUTH_ID] |= Bitboard(get_sq(r, f));
             r = rank, f = file;
             while (r < 7)
-                r++, raysMask[sq][NORTH] |= (1ULL << get_sq(r, f));
+                r++, raysMask[sq][NORTH_ID] |= Bitboard(get_sq(r, f));
             r = rank, f = file;
             while (f > 0)
-                f--, raysMask[sq][WEST] |= (1ULL << get_sq(r, f));
+                f--, raysMask[sq][WEST_ID] |= Bitboard(get_sq(r, f));
             r = rank, f = file;
             while (f < 7)
-                f++, raysMask[sq][EAST] |= (1ULL << get_sq(r, f));
+                f++, raysMask[sq][EAST_ID] |= Bitboard(get_sq(r, f));
 
             r = rank, f = file;
             while (r > 0 && f > 0)
-                r--, f--, raysMask[sq][SOUTHWEST] |= (1ULL << get_sq(r, f));
+                r--, f--, raysMask[sq][SOUTHWEST_ID] |= Bitboard(get_sq(r, f));
             r = rank, f = file;
             while (r < 7 && f > 0)
-                r++, f--, raysMask[sq][NORTHWEST] |= (1ULL << get_sq(r, f));
+                r++, f--, raysMask[sq][NORTHWEST_ID] |= Bitboard(get_sq(r, f));
             r = rank, f = file;
             while (r > 0 && f < 7)
-                r--, f++, raysMask[sq][SOUTHEAST] |= (1ULL << get_sq(r, f));
+                r--, f++, raysMask[sq][SOUTHEAST_ID] |= Bitboard(get_sq(r, f));
             r = rank, f = file;
             while (r < 7 && f < 7)
-                r++, f++, raysMask[sq][NORTHEAST] |= (1ULL << get_sq(r, f));
+                r++, f++, raysMask[sq][NORTHEAST_ID] |= Bitboard(get_sq(r, f));
 
         }
     }
@@ -188,10 +190,10 @@ inline void initRays() {
 
 inline void initRookMagic() {
     for (Square sq = 0; sq < 64; sq++) {
-        rookAttacksMask[sq] |= raysMask[sq][NORTH] & ~rank_mask[7];
-        rookAttacksMask[sq] |= raysMask[sq][SOUTH] & ~rank_mask[0];
-        rookAttacksMask[sq] |= raysMask[sq][EAST] & ~file_mask[7];
-        rookAttacksMask[sq] |= raysMask[sq][WEST] & ~file_mask[0];
+        rookAttacksMask[sq] |= raysMask[sq][NORTH_ID] & ~rank_mask[7];
+        rookAttacksMask[sq] |= raysMask[sq][SOUTH_ID] & ~rank_mask[0];
+        rookAttacksMask[sq] |= raysMask[sq][EAST_ID] & ~file_mask[7];
+        rookAttacksMask[sq] |= raysMask[sq][WEST_ID] & ~file_mask[0];
         for (int blockerInd = 0; blockerInd < (1 << rookIndexBits[sq]); blockerInd++) {
             Bitboard blockers = get_blockers(rookAttacksMask[sq], blockerInd);
 #ifndef PEXT_GOOD
@@ -206,7 +208,9 @@ inline void initRookMagic() {
 inline void initBishopMagic() {
     Bitboard edge = (file_mask[0] | file_mask[7] | rank_mask[0] | rank_mask[7]);
     for (Square sq = 0; sq < 64; sq++) {
-        bishopAttacksMask[sq] = (raysMask[sq][NORTHWEST] | raysMask[sq][SOUTHWEST] | raysMask[sq][NORTHEAST] | raysMask[sq][SOUTHEAST]) & (~edge);
+        bishopAttacksMask[sq] = (
+            raysMask[sq][NORTHWEST_ID] | raysMask[sq][SOUTHWEST_ID] | raysMask[sq][NORTHEAST_ID] | raysMask[sq][SOUTHEAST_ID]
+        ) & (~edge);
         for (int blockerInd = 0; blockerInd < (1 << bishopIndexBits[sq]); blockerInd++) {
             Bitboard blockers = get_blockers(bishopAttacksMask[sq], blockerInd);
 #ifndef PEXT_GOOD
@@ -276,7 +280,7 @@ inline Bitboard genAttacksSq(Bitboard blockers, Square sq, Piece pieceType) {
 /// same as the below one, only difference is that b is known
 inline Bitboard getPawnAttacks(int color, Bitboard b) {
     int fileA = (color == WHITE ? 0 : 7), fileH = 7 - fileA;
-    return shift(color, NORTHWEST, b & ~file_mask[fileA]) | shift(color, NORTHEAST, b & ~file_mask[fileH]);
+    return shift_mask<NORTHWEST>(color, b & ~file_mask[fileA]) | shift_mask<NORTHEAST>(color, b & ~file_mask[fileH]);
 }
 };
 
