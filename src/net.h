@@ -407,7 +407,7 @@ public:
         Square from = sq_from(move), to = sq_to(move);
         bool turn = color_of(piece);
         switch (type(move)) {
-        case NEUT: {
+        case NO_TYPE: {
             if (captured == NO_PIECE)
                 apply_sub_add(a, b, net_index(piece, from, king, side), net_index(piece, to, king, side));
             else
@@ -428,7 +428,7 @@ public:
         }
         break;
         case ENPASSANT: {
-            const Square pos = sq_dir(turn, SOUTH, to);
+            const Square pos = shift_square<SOUTH>(turn, to);
             const Piece pieceCap = get_piece(PAWN, 1 ^ turn);
             apply_sub_add_sub(a, b, net_index(piece, from, king, side), net_index(piece, to, king, side), net_index(pieceCap, pos, king, side));
         }

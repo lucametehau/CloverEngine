@@ -144,7 +144,7 @@ void Board::set_fen(const std::string fen) {
         key() ^= enPasKey[enpas()];
     }
     else {
-        enpas() = -1;
+        enpas() = NO_EP;
         ind += 2;
     }
 
@@ -279,7 +279,7 @@ void Board::set_dfrc(int idx) {
     if (rookSq[WHITE][1] != 64)
         castleRightsDelta[WHITE][rookSq[WHITE][1]] = 7, castleRightsDelta[WHITE][king(WHITE)] = 3;
 
-    enpas() = -1;
+    enpas() = NO_EP;
     half_moves() = 0;
     move_index() = 1;
     checkers() = get_attackers(1 ^ turn, pieces[WHITE] | pieces[BLACK], king(turn));

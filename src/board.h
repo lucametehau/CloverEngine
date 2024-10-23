@@ -26,7 +26,7 @@ using namespace attacks;
 
 class HistoricalState {
 public:
-    int8_t enPas;
+    Square enPas;
     uint8_t castleRights;
     Piece captured;
     uint16_t halfMoves, moveIndex;
@@ -52,9 +52,7 @@ public:
 
     Network NN;
 
-    Board() {
-        set_fen(START_POS_FEN);
-    }
+    Board() { set_fen(START_POS_FEN); }
 
     void clear() {
         ply = 0;
@@ -80,7 +78,7 @@ public:
 
     inline Bitboard& pinned_pieces() { return state.pinnedPieces; }
 
-    inline int8_t& enpas() { return state.enPas; }
+    inline Square& enpas() { assert(state.enPas <= NO_EP); return state.enPas; }
 
     inline uint16_t& half_moves() { return state.halfMoves; }
 
@@ -116,7 +114,7 @@ public:
     inline Bitboard get_pawn_attacks(const bool color) const {
         const Bitboard b = get_bb_piece(PAWN, color);
         const int fileA = (color == WHITE ? 0 : 7), fileH = 7 - fileA;
-        return shift(color, NORTHWEST, b & ~file_mask[fileA]) | shift(color, NORTHEAST, b & ~file_mask[fileH]);
+        return shift_mask<NORTHWEST>(color, b & ~file_mask[fileA]) | shift_mask<NORTHEAST>(color, b & ~file_mask[fileH]);
     }
 
     inline Piece piece_type_at(const Square sq) const { return piece_type(board[sq]); }
@@ -153,7 +151,7 @@ public:
 
     NetInput to_netinput() const {
         NetInput ans;
-        const std::array <int, 2> kingsSide = {
+        const std::array<Square, 2> kingsSide = {
             king(BLACK), king(WHITE)
         };
         for (Piece i = BP; i <= WK; i++) {
@@ -217,7 +215,7 @@ public:
         if (!castle_rights())
             fen += "-";
         fen += " ";
-        if (enpas() >= 0) {
+        if (enpas() != NO_EP) {
             fen += char('a' + enpas() % 8);
             fen += char('1' + enpas() / 8);
         }
