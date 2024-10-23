@@ -74,7 +74,6 @@ public:
     }
 
     Move get_next_move(Histories &histories, StackEntry* stack, Board &board, bool skip, bool noisyPicker) {
-        assert(board.turn == color);
         switch (stage) {
         case STAGE_TTMOVE:
             trueStage = STAGE_TTMOVE;

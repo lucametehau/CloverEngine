@@ -417,12 +417,14 @@ public:
         case CASTLE: {
             Square rFrom = to, rTo, rPiece = get_piece(ROOK, turn);
             if (to > from) { // king side castle
-                to = mirror(turn, G1);
-                rTo = mirror(turn, F1);
+                rFrom = to;
+                if (turn == WHITE) to = G1, rTo = F1;
+                else to = G8, rTo = F8;
             }
             else { // queen side castle
-                to = mirror(turn, C1);
-                rTo = mirror(turn, D1);
+                rFrom = to;
+                if (turn == WHITE) to = C1, rTo = D1;
+                else to = C8, rTo = D8;
             }
             apply_sub_add_sub_add(a, b, net_index(piece, from, king, side), net_index(piece, to, king, side), net_index(rPiece, rFrom, king, side), net_index(rPiece, rTo, king, side));
         }

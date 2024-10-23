@@ -119,6 +119,8 @@ public:
         return shift_mask<NORTHWEST, color>(b & ~file_mask[fileA]) | shift_mask<NORTHEAST, color>(b & ~file_mask[fileH]);
     }
 
+    inline Bitboard get_pinned_pieces();
+
     inline Piece piece_type_at(const Square sq) const { return piece_type(board[sq]); }
 
     inline Piece get_captured_type(const Move move) const { return type(move) == ENPASSANT ? PAWN : piece_type_at(sq_to(move)); }

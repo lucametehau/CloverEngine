@@ -160,7 +160,7 @@ void Board::set_fen(const std::string fen) {
     NetInput input = to_netinput();
 
     checkers() = get_attackers(1 ^ turn, pieces[WHITE] | pieces[BLACK], king(turn));
-    pinned_pieces() = getPinnedPieces(*this, turn);
+    pinned_pieces() = get_pinned_pieces();
 
     NN.calc(input, turn);
 }
@@ -283,7 +283,7 @@ void Board::set_dfrc(int idx) {
     half_moves() = 0;
     move_index() = 1;
     checkers() = get_attackers(1 ^ turn, pieces[WHITE] | pieces[BLACK], king(turn));
-    pinned_pieces() = getPinnedPieces(*this, turn);
+    pinned_pieces() = get_pinned_pieces();
 
     NetInput input = to_netinput();
     NN.calc(input, turn);

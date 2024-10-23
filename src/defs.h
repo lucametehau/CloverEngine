@@ -262,7 +262,9 @@ inline bool recalc(Square from, Square to, Color side) {
 }
 
 inline Square get_sq(int rank, int file) { return (rank << 3) | file; }
-inline Square mirror(bool color, Square sq) { return sq ^ (56 * !color); }
+
+template<Color color>
+inline Square mirror(Square sq) { return sq ^ (56 * !color); }
 
 template<int direction, Color color>
 inline Square shift_square(Square sq) { return color == BLACK ? sq - direction : sq + direction; }

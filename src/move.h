@@ -20,17 +20,16 @@
 #include "attacks.h"
 #include "evaluate.h"
 
-Bitboard getPinnedPieces(Board& board, bool turn) {
-    const bool stm = board.turn, enemy = stm ^ 1;
-    const Square king = board.king(stm);
-    Bitboard mask, us = board.pieces[stm], them = board.pieces[enemy];
+Bitboard Board::get_pinned_pieces() {
+    const bool stm = turn, enemy = stm ^ 1;
+    const Square king_sq = king(stm);
+    Bitboard mask, us = pieces[stm], them = pieces[enemy];
     Bitboard pinned; /// squares attacked by enemy / pinned pieces
-    Bitboard enemyOrthSliders = board.orthogonal_sliders(enemy), enemyDiagSliders = board.diagonal_sliders(enemy);
+    Bitboard enemyOrthSliders = orthogonal_sliders(enemy), enemyDiagSliders = diagonal_sliders(enemy);
 
-    mask = (genAttacksRook(them, king) & enemyOrthSliders) | (genAttacksBishop(them, king) & enemyDiagSliders);
-
+    mask = (genAttacksRook(them, king_sq) & enemyOrthSliders) | (genAttacksBishop(them, king_sq) & enemyDiagSliders);
     while (mask) {
-        Bitboard b2 = us & between_mask[mask.get_square_pop()][king];
+        Bitboard b2 = us & between_mask[mask.get_square_pop()][king_sq];
         if (b2.count() == 1) pinned ^= b2;
     }
 
@@ -132,13 +131,13 @@ void Board::make_move(const Move move) { /// assuming move is at least pseudo-le
 
         if (to > from) { // king side castle
             rFrom = to;
-            to = mirror(turn, G1);
-            rTo = mirror(turn, F1);
+            if (turn == WHITE) to = G1, rTo = F1;
+            else to = G8, rTo = F8;
         }
         else { // queen side castle
             rFrom = to;
-            to = mirror(turn, C1);
-            rTo = mirror(turn, D1);
+            if (turn == WHITE) to = C1, rTo = D1;
+            else to = C8, rTo = D8;
         }
 
         pieces[turn] ^= (1ULL << from) ^ (1ULL << to) ^ (1ULL << rFrom) ^ (1ULL << rTo);
@@ -205,7 +204,7 @@ void Board::make_move(const Move move) { /// assuming move is at least pseudo-le
     key() ^= 1;
     if (turn == WHITE) move_index()++;
 
-    pinned_pieces() = getPinnedPieces(*this, turn);
+    pinned_pieces() = get_pinned_pieces();
 }
 
 void Board::undo_move(const Move move) {
@@ -241,13 +240,13 @@ void Board::undo_move(const Move move) {
 
         if (to > from) { // king side castle
             rFrom = to;
-            to = mirror(turn, G1);
-            rTo = mirror(turn, F1);
+            if (turn == WHITE) to = G1, rTo = F1;
+            else to = G8, rTo = F8;
         }
         else { // queen side castle
             rFrom = to;
-            to = mirror(turn, C1);
-            rTo = mirror(turn, D1);
+            if (turn == WHITE) to = C1, rTo = D1;
+            else to = C8, rTo = D8;
         }
 
         pieces[turn] ^= Bitboard(from) ^ Bitboard(to) ^ Bitboard(rFrom) ^ Bitboard(rTo);
@@ -312,7 +311,7 @@ void Board::make_null_move() {
     enpas() = NO_EP;
     turn ^= 1;
     key() ^= 1;
-    pinned_pieces() = getPinnedPieces(*this, turn);
+    pinned_pieces() = get_pinned_pieces();
     ply++;
     game_ply++;
     half_moves()++;
@@ -413,7 +412,7 @@ int gen_legal_moves(Board& board, MoveList &moves) {
         }
         else {
             if ((board.castle_rights() >> (2 * color)) & 1) {
-                Square kingTo = mirror(color, C1), rook = board.rookSq[color][0], rookTo = mirror(color, D1);
+                Square kingTo = mirror<color>(C1), rook = board.rookSq[color][0], rookTo = mirror<color>(D1);
                 if (!(attacked & (between_mask[king][kingTo] | Bitboard(kingTo))) &&
                     (!((all ^ Bitboard(rook)) & (between_mask[king][kingTo] | Bitboard(kingTo))) || king == kingTo) &&
                     (!((all ^ Bitboard(king)) & (between_mask[rook][rookTo] | Bitboard(rookTo))) || rook == rookTo) &&
@@ -423,7 +422,7 @@ int gen_legal_moves(Board& board, MoveList &moves) {
             }
             /// castle king side
             if ((board.castle_rights() >> (2 * color + 1)) & 1) {
-                Square kingTo = mirror(color, G1), rook = board.rookSq[color][1], rookTo = mirror(color, F1);
+                Square kingTo = mirror<color>(G1), rook = board.rookSq[color][1], rookTo = mirror<color>(F1);
                 if (!(attacked & (between_mask[king][kingTo] | Bitboard(kingTo))) &&
                     (!((all ^ Bitboard(rook)) & (between_mask[king][kingTo] | Bitboard(kingTo))) || king == kingTo) &&
                     (!((all ^ Bitboard(king)) & (between_mask[rook][rookTo] | Bitboard(rookTo))) || rook == rookTo) &&
@@ -503,8 +502,8 @@ int gen_legal_moves(Board& board, MoveList &moves) {
         add_moves(moves, nrMoves, sq, genAttacksRook(all, sq) & mobMask);
     }
 
-    int rank7 = (color == WHITE ? 6 : 1), rank3 = (color == WHITE ? 2 : 5);
-    int fileA = (color == WHITE ? 0 : 7), fileH = 7 - fileA;
+    constexpr int rank7 = (color == WHITE ? 6 : 1), rank3 = (color == WHITE ? 2 : 5);
+    constexpr int fileA = (color == WHITE ? 0 : 7), fileH = 7 - fileA;
     b1 = board.get_bb_piece(PAWN, color) & notPinned & ~rank_mask[rank7];
 
     b2 = shift_mask<NORTH, color>(b1) & ~all; /// single push
@@ -735,7 +734,7 @@ int gen_legal_quiet_moves(Board& board, MoveList &moves) {
     int nrMoves = 0;
     constexpr bool enemy = color ^ 1;
     const Square king = board.king(color), enemyKing = board.king(enemy);
-    const int rank7 = (color == WHITE ? 6 : 1), rank3 = (color == WHITE ? 2 : 5);
+    constexpr int rank7 = (color == WHITE ? 6 : 1), rank3 = (color == WHITE ? 2 : 5);
     Bitboard pieces, mask, us = board.get_bb_color(color), them = board.get_bb_color(enemy);
     Bitboard b1, b2, b3;
     Bitboard attacked, pinned = board.pinned_pieces(); /// squares attacked by enemy / pinned pieces
@@ -789,7 +788,7 @@ int gen_legal_quiet_moves(Board& board, MoveList &moves) {
         else {
             /// castle queen side
             if ((board.castle_rights() >> (2 * color)) & 1) {
-                Square kingTo = mirror(color, C1), rook = board.rookSq[color][0], rookTo = mirror(color, D1);
+                Square kingTo = mirror<color>(C1), rook = board.rookSq[color][0], rookTo = mirror<color>(D1);
                 if (!(attacked & (between_mask[king][kingTo] | Bitboard(kingTo))) &&
                     (!((all ^ Bitboard(rook)) & (between_mask[king][kingTo] | Bitboard(kingTo))) || king == kingTo) &&
                     (!((all ^ Bitboard(king)) & (between_mask[rook][rookTo] | Bitboard(rookTo))) || rook == rookTo) &&
@@ -799,7 +798,7 @@ int gen_legal_quiet_moves(Board& board, MoveList &moves) {
             }
             /// castle king side
             if ((board.castle_rights() >> (2 * color + 1)) & 1) {
-                Square kingTo = mirror(color, G1), rook = board.rookSq[color][1], rookTo = mirror(color, F1);
+                Square kingTo = mirror<color>(G1), rook = board.rookSq[color][1], rookTo = mirror<color>(F1);
                 if (!(attacked & (between_mask[king][kingTo] | Bitboard(kingTo))) &&
                     (!((all ^ Bitboard(rook)) & (between_mask[king][kingTo] | Bitboard(kingTo))) || king == kingTo) &&
                     (!((all ^ Bitboard(king)) & (between_mask[rook][rookTo] | Bitboard(rookTo))) || rook == rookTo) &&
@@ -959,8 +958,8 @@ bool is_legal(Board& board, Move move) {
         bool side = (to > from); /// queen side or king side
 
         if (board.castle_rights() & (1 << (2 * color + side))) { /// can i castle
-            const Square rFrom = to, rTo = mirror(color, (side ? F1 : D1));
-            to = mirror(color, (side ? G1 : C1));
+            const Square rFrom = to, rTo = mirror<color>(side ? F1 : D1);
+            to = mirror<color>(side ? G1 : C1);
             Bitboard mask = between_mask[from][to] | Bitboard(to);
             
             while (mask) {
