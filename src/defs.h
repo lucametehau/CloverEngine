@@ -66,6 +66,7 @@ void fill_multiarray(MultiArray<typename MultiArray_impl<T, sizes...>::type, siz
 typedef uint16_t Move;
 typedef uint8_t Piece;
 typedef uint8_t Square;
+typedef bool Color;
 
 enum Squares : Square {
     A1, B1, C1, D1, E1, F1, G1, H1,
@@ -142,7 +143,7 @@ enum Pieces : Piece {
     NO_PIECE
 };
 
-enum {
+enum Colors : Color {
     BLACK = 0, WHITE
 };
 
@@ -252,28 +253,28 @@ inline uint64_t mul_hi(const uint64_t a, const uint64_t b) {
     return (static_cast<uint128_t>(a) * static_cast<uint128_t>(b)) >> 64;
 }
 
-inline int16_t net_index(Piece piece, Square sq, Square kingSq, bool side) {
+inline int16_t net_index(Piece piece, Square sq, Square kingSq, Color side) {
     return 64 * 12 * kingIndTable[kingSq ^ (56 * !side)] + 64 * (piece + side * (piece >= 6 ? -6 : +6)) + (sq ^ (56 * !side) ^ (7 * ((kingSq >> 2) & 1))); // kingSq should be ^7, if kingSq&7 >= 4
 }
 
-inline bool recalc(Square from, Square to, bool side) {
+inline bool recalc(Square from, Square to, Color side) {
     return (from & 4) != (to & 4) || kingIndTable[from ^ (56 * !side)] != kingIndTable[to ^ (56 * !side)];
 }
 
 inline Square get_sq(int rank, int file) { return (rank << 3) | file; }
 inline Square mirror(bool color, Square sq) { return sq ^ (56 * !color); }
 
-template<int direction>
-inline Square shift_square(bool color, Square sq) { return color == BLACK ? sq - direction : sq + direction; }
+template<int direction, Color color>
+inline Square shift_square(Square sq) { return color == BLACK ? sq - direction : sq + direction; }
 
-template<int direction>
-inline Bitboard shift_mask(int color, Bitboard bb) {
+template<int direction, Color color>
+inline Bitboard shift_mask(Bitboard bb) {
     if (color == BLACK) return direction > 0 ? bb >> direction : bb << -direction;
     return direction > 0 ? bb << direction : bb >> -direction;
 }
 
 inline Piece piece_type(Piece piece) { return piece >= 6 ? piece - 6 : piece; }
-inline Piece get_piece(const Piece piece_type, const bool color) { return 6 * color + piece_type; }
+inline Piece get_piece(const Piece piece_type, const Color color) { return 6 * color + piece_type; }
 inline bool color_of(Piece piece) { return piece >= 6; }
 
 inline bool inside_board(int rank, int file) {

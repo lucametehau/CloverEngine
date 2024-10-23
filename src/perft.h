@@ -20,7 +20,10 @@
 template <bool RootNode>
 uint64_t perft(Board& board, int depth) {
     MoveList moves;
-    int nrMoves = gen_legal_moves(board, moves);
+    int nrMoves = 0;
+    if (board.turn == WHITE) nrMoves = gen_legal_moves<WHITE>(board, moves);
+    else nrMoves = gen_legal_moves<BLACK>(board, moves);
+    
     if (depth == 1) return nrMoves;
 
     uint64_t nodes = 0;

@@ -129,9 +129,9 @@ inline void initKnightAndKingAttacks() {
         kingSquareMask[i] = Bitboard(i) | kingBBAttacks[i];
 
         if (rank <= 1)
-            pawnShieldMask[i] = shift_mask<NORTH>(WHITE, kingSquareMask[i]);
+            pawnShieldMask[i] = shift_mask<NORTH, WHITE>(kingSquareMask[i]);
         else if (rank >= 6)
-            pawnShieldMask[i] = shift_mask<SOUTH>(WHITE, kingSquareMask[i]);
+            pawnShieldMask[i] = shift_mask<SOUTH, WHITE>(kingSquareMask[i]);
     }
 }
 
@@ -278,9 +278,10 @@ inline Bitboard genAttacksSq(Bitboard blockers, Square sq, Piece pieceType) {
 }
 
 /// same as the below one, only difference is that b is known
-inline Bitboard getPawnAttacks(int color, Bitboard b) {
+template<Color color>
+inline Bitboard getPawnAttacks(Bitboard b) {
     int fileA = (color == WHITE ? 0 : 7), fileH = 7 - fileA;
-    return shift_mask<NORTHWEST>(color, b & ~file_mask[fileA]) | shift_mask<NORTHEAST>(color, b & ~file_mask[fileH]);
+    return shift_mask<NORTHWEST, color>(b & ~file_mask[fileA]) | shift_mask<NORTHEAST, color>(b & ~file_mask[fileH]);
 }
 };
 

@@ -44,10 +44,10 @@ public:
     inline void setTime(Info &_info) { info = _info; }
 
 private:
-    template <bool pvNode>
+    template <bool pvNode, Color color>
     int quiesce(int alpha, int beta, StackEntry* stack);
 
-    template <bool rootNode, bool pvNode, bool cutNode>
+    template <bool rootNode, bool pvNode, bool cutNode, Color color>
     int search(int alpha, int beta, int depth, StackEntry* stack);
 
     void print_pv();

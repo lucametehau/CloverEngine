@@ -59,15 +59,17 @@ uint32_t probe_TB(Board& board, int depth) {
     return TB_RESULT_FAILED;
 }
 
-void get_threats(Threats& threats, Board& board, const bool us) {
-    const bool enemy = 1 ^ us;
-    Bitboard our_pieces = board.get_bb_color(us) ^ board.get_bb_piece(PAWN, us);
-    Bitboard att = getPawnAttacks(enemy, board.get_bb_piece(PAWN, enemy)), threatened_pieces = att & our_pieces;
+template<Color color>
+void get_threats(Threats& threats, Board& board) {
+    constexpr bool enemy = 1 ^ color;
+    Bitboard our_pieces = board.get_bb_color(color) ^ board.get_bb_piece(PAWN, color);
+    Bitboard att = board.get_pawn_attacks<enemy>();
+    Bitboard threatened_pieces = att & our_pieces;
     Bitboard pieces, att_mask;
     const Bitboard all = board.get_bb_color(WHITE) | board.get_bb_color(BLACK);
 
     threats.threats_pieces[PAWN] = att;
-    our_pieces ^= board.get_bb_piece(KNIGHT, us) | board.get_bb_piece(BISHOP, us);
+    our_pieces ^= board.get_bb_piece(KNIGHT, color) | board.get_bb_piece(BISHOP, color);
 
     pieces = board.get_bb_piece(KNIGHT, enemy);
     while (pieces) {
@@ -85,7 +87,7 @@ void get_threats(Threats& threats, Board& board, const bool us) {
         threatened_pieces |= att & our_pieces;
     }
 
-    our_pieces ^= board.get_bb_piece(ROOK, us);
+    our_pieces ^= board.get_bb_piece(ROOK, color);
 
     pieces = board.get_bb_piece(ROOK, enemy);
     while (pieces) {
@@ -147,7 +149,7 @@ void SearchData::update_pv(int ply, int move) {
     pv_table_len[ply] = 1 + pv_table_len[ply + 1];
 }
 
-template <bool pvNode>
+template <bool pvNode, Color turn>
 int SearchData::quiesce(int alpha, int beta, StackEntry* stack) {
     const int ply = board.ply;
     if (ply >= MAX_DEPTH) return evaluate(board);
@@ -159,7 +161,6 @@ int SearchData::quiesce(int alpha, int beta, StackEntry* stack) {
     if (check_for_stop<false>()) return evaluate(board);
 
     const uint64_t key = board.key();
-    const bool turn = board.turn;
     int score = INF, best = -INF, alphaOrig = alpha;
     int ttBound = NONE;
     Move bestMove = NULLMOVE, ttMove = NULLMOVE;
@@ -184,7 +185,7 @@ int SearchData::quiesce(int alpha, int beta, StackEntry* stack) {
 
     const bool in_check = board.checkers() != 0;
     Threats threats;
-    if (in_check) get_threats(threats, board, turn);
+    if (in_check) get_threats<turn>(threats, board);
     int futilityValue;
 
     if (in_check) {
@@ -212,7 +213,7 @@ int SearchData::quiesce(int alpha, int beta, StackEntry* stack) {
 
     alpha = std::max(alpha, best);
 
-    Movepick noisyPicker(!in_check && see(board, ttMove, 0) ? ttMove : NULLMOVE, NULLMOVE, 0, threats);
+    Movepick<turn> noisyPicker(!in_check && see(board, ttMove, 0) ? ttMove : NULLMOVE, NULLMOVE, 0, threats);
 
     Move move;
     int played = 0;
@@ -238,10 +239,10 @@ int SearchData::quiesce(int alpha, int beta, StackEntry* stack) {
         stack->cont_hist = &histories.cont_history[!board.is_noisy_move(move)][stack->piece][sq_to(move)];
 
         board.make_move(move);
-        if (!pvNode || played > 1) score = -quiesce<false>(-alpha - 1, -alpha, stack + 1);
+        if (!pvNode || played > 1) score = -quiesce<false, turn ^ 1>(-alpha - 1, -alpha, stack + 1);
 
         if constexpr (pvNode) {
-            if (played == 1 || score > alpha) score = -quiesce<pvNode>(-beta, -alpha, stack + 1);
+            if (played == 1 || score > alpha) score = -quiesce<pvNode, turn ^ 1>(-beta, -alpha, stack + 1);
         }
         board.undo_move(move);
 
@@ -266,19 +267,18 @@ int SearchData::quiesce(int alpha, int beta, StackEntry* stack) {
     return best;
 }
 
-template <bool rootNode, bool pvNode, bool cutNode>
+template <bool rootNode, bool pvNode, bool cutNode, Color turn>
 int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
     const int ply = board.ply;
     
     if (check_for_stop<true>() || ply >= MAX_DEPTH) return evaluate(board);
 
-    if (depth <= 0) return quiesce<pvNode>(alpha, beta, stack);
+    if (depth <= 0) return quiesce<pvNode, turn>(alpha, beta, stack);
 
     constexpr bool allNode = !pvNode && !cutNode;
     const bool nullSearch = (stack - 1)->move == NULLMOVE;
     const int alphaOrig = alpha;
     const uint64_t key = board.key(), pawn_key = board.pawn_key(), white_mat_key = board.mat_key(WHITE), black_mat_key = board.mat_key(BLACK);
-    const bool turn = board.turn;
 
     uint16_t nr_quiets = 0;
     uint16_t nr_noisies = 0;
@@ -344,7 +344,7 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
 
     const bool in_check = (board.checkers() != 0);
     Threats threats;
-    get_threats(threats, board, turn);
+    get_threats<turn>(threats, board);
     const bool enemy_has_no_threats = !threats.threatened_pieces;
     int raw_eval;
 
@@ -392,7 +392,7 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
         if (!in_check) {
             // razoring
             if (depth <= RazoringDepth && eval + RazoringMargin * depth <= alpha) {
-                int value = quiesce<false>(alpha, alpha + 1, stack);
+                int value = quiesce<false, turn>(alpha, alpha + 1, stack);
                 if (value <= alpha) return value;
             }
 
@@ -411,7 +411,7 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
                 stack->cont_hist = &histories.cont_history[0][NO_PIECE][0];
 
                 board.make_null_move();
-                int score = -search<false, false, !cutNode>(-beta, -beta + 1, depth - R, stack + 1);
+                int score = -search<false, false, !cutNode, turn ^ 1>(-beta, -beta + 1, depth - R, stack + 1);
                 board.undo_null_move();
 
                 if (score >= beta) return abs(score) > MATE ? beta : score; /// don't trust mate scores
@@ -420,7 +420,7 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
             // probcut
             int probBeta = beta + ProbcutMargin;
             if (depth >= ProbcutDepth && abs(beta) < MATE && !(ttHit && ttDepth >= depth - 3 && ttValue < probBeta)) {
-                Movepick picker((ttMove && board.is_noisy_move(ttMove) && see(board, ttMove, probBeta - static_eval) ? ttMove : NULLMOVE),
+                Movepick<turn> picker((ttMove && board.is_noisy_move(ttMove) && see(board, ttMove, probBeta - static_eval) ? ttMove : NULLMOVE),
                     NULLMOVE,
                     probBeta - static_eval,
                     threats);
@@ -436,8 +436,8 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
 
                     board.make_move(move);
 
-                    int score = -quiesce<false>(-probBeta, -probBeta + 1, stack + 1);
-                    if (score >= probBeta) score = -search<false, false, !cutNode>(-probBeta, -probBeta + 1, depth - ProbcutReduction, stack + 1);
+                    int score = -quiesce<false, turn ^ 1>(-probBeta, -probBeta + 1, stack + 1);
+                    if (score >= probBeta) score = -search<false, false, !cutNode, turn ^ 1>(-probBeta, -probBeta + 1, depth - ProbcutReduction, stack + 1);
                     
                     board.undo_move(move);
 
@@ -458,7 +458,7 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
 #endif
     const bool bad_static_eval = (static_eval <= alpha);
 
-    Movepick picker(ttMove,
+    Movepick<turn> picker(ttMove,
         stack->killer,
         -see_depth_coef * depth,
         threats);
@@ -538,7 +538,7 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
                 int rBeta = ttValue - SEMargin * depth / 64;
 
                 stack->excluded = move;
-                int score = search<false, false, cutNode>(rBeta - 1, rBeta, (depth - 1) / 2, stack);
+                int score = search<false, false, cutNode, turn>(rBeta - 1, rBeta, (depth - 1) / 2, stack);
                 stack->excluded = NULLMOVE;
 
                 if (score < rBeta) ex = 1 + (!pvNode && rBeta - score > SEDoubleExtensionsMargin) + (!pvNode && !ttCapture && rBeta - score > SETripleExtensionsMargin);
@@ -594,23 +594,23 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
             R += enemy_has_no_threats && !in_check && static_eval + LMRBadStaticEvalMargin <= alpha;
 
             R = std::clamp(R, 1, newDepth); /// clamp R
-            score = -search<false, false, true>(-alpha - 1, -alpha, newDepth - R, stack + 1);
+            score = -search<false, false, true, turn ^ 1>(-alpha - 1, -alpha, newDepth - R, stack + 1);
             tried_count++;
 
             if (R > 1 && score > alpha) {
                 newDepth += (score > best + DeeperMargin) - (score < best + newDepth);
-                score = -search<false, false, !cutNode>(-alpha - 1, -alpha, newDepth - 1, stack + 1);
+                score = -search<false, false, !cutNode, turn ^ 1>(-alpha - 1, -alpha, newDepth - 1, stack + 1);
                 tried_count++;
             }
         }
         else if (!pvNode || played > 1) {
-            score = -search<false, false, !cutNode>(-alpha - 1, -alpha, newDepth - 1, stack + 1);
+            score = -search<false, false, !cutNode, turn ^ 1>(-alpha - 1, -alpha, newDepth - 1, stack + 1);
             tried_count++;
         }
 
         if constexpr (pvNode) {
             if (played == 1 || score > alpha) {
-                score = -search<false, true, false>(-beta, -alpha, newDepth - 1, stack + 1);
+                score = -search<false, true, false, turn ^ 1>(-beta, -alpha, newDepth - 1, stack + 1);
                 tried_count++;
             }
         }
@@ -780,7 +780,8 @@ void SearchData::start_search(Info &_info) {
             while (true) {
                 depth = std::max({ depth, 1, tDepth - 4 });
                 sel_depth = 0;
-                scores[i] = search<true, true, false>(alpha, beta, depth, stack);
+                if (board.turn == WHITE) scores[i] = search<true, true, false, WHITE>(alpha, beta, depth, stack);
+                else scores[i] = search<true, true, false, BLACK>(alpha, beta, depth, stack);
                 if (flag_stopped)
                     break;
 

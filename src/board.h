@@ -111,10 +111,12 @@ public:
     inline Bitboard getOrthSliderAttackers(const bool color, const Bitboard blockers, const Square sq) const {
         return genAttacksRook(blockers, sq) & orthogonal_sliders(color);
     }
-    inline Bitboard get_pawn_attacks(const bool color) const {
+
+    template<Color color>
+    inline Bitboard get_pawn_attacks() const {
         const Bitboard b = get_bb_piece(PAWN, color);
         const int fileA = (color == WHITE ? 0 : 7), fileH = 7 - fileA;
-        return shift_mask<NORTHWEST>(color, b & ~file_mask[fileA]) | shift_mask<NORTHEAST>(color, b & ~file_mask[fileH]);
+        return shift_mask<NORTHWEST, color>(b & ~file_mask[fileA]) | shift_mask<NORTHEAST, color>(b & ~file_mask[fileH]);
     }
 
     inline Piece piece_type_at(const Square sq) const { return piece_type(board[sq]); }

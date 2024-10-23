@@ -33,6 +33,7 @@ enum {
 
 bool see(Board& board, Move move, int threshold);
 
+template<Color color>
 class Movepick {
 public:
     int stage, trueStage;
@@ -73,17 +74,18 @@ public:
     }
 
     Move get_next_move(Histories &histories, StackEntry* stack, Board &board, bool skip, bool noisyPicker) {
+        assert(board.turn == color);
         switch (stage) {
         case STAGE_TTMOVE:
             trueStage = STAGE_TTMOVE;
             stage++;
 
-            if (ttMove && is_legal(board, ttMove)) {
+            if (ttMove && is_legal<color>(board, ttMove)) {
                 return ttMove;
             }
         case STAGE_GEN_NOISY:
         {
-            nrNoisy = gen_legal_noisy_moves(board, moves);
+            nrNoisy = gen_legal_noisy_moves<color>(board, moves);
             int m = 0;
             for (int i = 0; i < nrNoisy; i++) {
                 const Move move = moves[i];
@@ -126,13 +128,14 @@ public:
             trueStage = STAGE_KILLER;
             stage++;
 
-            if (!skip && killer && is_legal(board, killer))
+            if (!skip && killer && is_legal<color>(board, killer))
                 return killer;
         case STAGE_GEN_QUIETS:
         {
             if (!skip) {
-                nrQuiets = gen_legal_quiet_moves(board, moves);
-                const bool turn = board.turn, enemy = 1 ^ turn;
+                nrQuiets = gen_legal_quiet_moves<color>(board, moves);
+                
+                constexpr bool enemy = 1 ^ color;
                 const Bitboard allPieces = board.get_bb_color(WHITE) | board.get_bb_color(BLACK);
                 const Bitboard enemyKingRing = kingRingMask[board.king(enemy)];
                 
@@ -145,7 +148,7 @@ public:
                     moves[m] = move;
                     const Square from = sq_from(move), to = sq_to(move);
                     const Piece piece = board.piece_at(from), pt = piece_type(piece);
-                    int score = histories.get_history_movepick(move, piece, all_threats, turn, stack);
+                    int score = histories.get_history_movepick(move, piece, all_threats, color, stack);
 
                     if (pt == PAWN) // pawn push, generally good?
                         score += QuietPawnPushBonus;

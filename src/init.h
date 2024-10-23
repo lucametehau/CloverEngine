@@ -292,8 +292,6 @@ void Board::set_dfrc(int idx) {
 bool Board::is_draw(int ply) {
     if (half_moves() < 100 || !checkers())
         return isMaterialDraw() || is_repetition(ply) || half_moves() >= 100;
-    int nrmoves = 0;
     MoveList moves;
-    nrmoves = gen_legal_moves(*this, moves);
-    return nrmoves > 0;
+    return turn == WHITE ? gen_legal_moves<WHITE>(*this, moves) : gen_legal_moves<BLACK>(*this, moves);
 }

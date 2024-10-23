@@ -179,7 +179,10 @@ void UCI::uci_loop() {
             std::string moveStr;
             iss >> moveStr;
             Move move = parse_move_string(thread_pool.get_board(), moveStr, info);
-            std::cout << is_legal(thread_pool.get_board(), move) << " " << is_legal_slow(thread_pool.get_board(), move) << "\n";
+            if (thread_pool.get_board().turn == WHITE)
+                std::cout << is_legal<WHITE>(thread_pool.get_board(), move) << " " << is_legal_slow(thread_pool.get_board(), move) << "\n";
+            else
+                std::cout << is_legal<BLACK>(thread_pool.get_board(), move) << " " << is_legal_slow(thread_pool.get_board(), move) << "\n";
         }
         else if (cmd == "printparams") {
 #ifdef TUNE_FLAG

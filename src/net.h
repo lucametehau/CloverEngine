@@ -428,7 +428,7 @@ public:
         }
         break;
         case ENPASSANT: {
-            const Square pos = shift_square<SOUTH>(turn, to);
+            const Square pos = turn == WHITE ? shift_square<SOUTH, WHITE>(to) : shift_square<SOUTH, BLACK>(to);
             const Piece pieceCap = get_piece(PAWN, 1 ^ turn);
             apply_sub_add_sub(a, b, net_index(piece, from, king, side), net_index(piece, to, king, side), net_index(pieceCap, pos, king, side));
         }
