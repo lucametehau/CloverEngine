@@ -73,12 +73,7 @@ private:
 
 public:
     Bitboard(unsigned long long _bb = 0) : bb(_bb) {}
-    Bitboard(Square sq) : bb(1ULL << sq) {
-        if(sq >= 64) {
-            std::cout << sq << "\n";
-            exit(0);
-        }
-    }
+    Bitboard(Square sq) : bb(1ULL << sq) { assert(sq < 64); }
 
     inline bool has_square(Square sq) const { return (bb >> sq) & 1; }
 
@@ -112,7 +107,7 @@ public:
     void print() {
         Bitboard copy = bb;
         while (copy) {
-            std::cout << copy.get_square_pop() << " ";
+            std::cout << int(copy.get_square_pop()) << " ";
         }
         std::cout << " mask\n";
     }

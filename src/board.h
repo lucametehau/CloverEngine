@@ -151,7 +151,7 @@ public:
 
     NetInput to_netinput() const {
         NetInput ans;
-        const std::array <int, 2> kingsSide = {
+        const std::array<Square, 2> kingsSide = {
             king(BLACK), king(WHITE)
         };
         for (Piece i = BP; i <= WK; i++) {

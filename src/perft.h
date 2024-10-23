@@ -19,9 +19,20 @@
 
 template <bool RootNode>
 uint64_t perft(Board& board, int depth) {
-    MoveList moves;
+    MoveList moves, quiets, noisies;
     int nrMoves = gen_legal_moves(board, moves);
-
+    int nrQuiets = gen_legal_quiet_moves(board, quiets);
+    int nrNoisies = gen_legal_noisy_moves(board, noisies);
+    if (nrQuiets + nrNoisies != nrMoves) {
+        board.print();
+        for (int i = 0; i < nrQuiets; i++) std::cout << move_to_string(quiets[i], false) << " ";
+        std::cout << "\n";
+        for (int i = 0; i < nrNoisies; i++) std::cout << move_to_string(noisies[i], false) << " ";
+        std::cout << "\n";
+        for (int i = 0; i < nrMoves; i++) std::cout << move_to_string(moves[i], false) << " ";
+        std::cout << "\n";
+        exit(0);
+    }
     if (depth == 1) return nrMoves;
 
     uint64_t nodes = 0;
