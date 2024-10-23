@@ -387,7 +387,7 @@ int gen_legal_moves(Board& board, MoveList &moves) {
             while (b1) {
                 b = b1.lsb();
                 Square sq = b.get_lsb_square();
-                if (!(genAttacksRook(all ^ b ^ Bitboard(sq2), king) & enemyOrthSliders)) {
+                if (!(genAttacksRook(all ^ b ^ Bitboard(sq2) ^ Bitboard(ep), king) & enemyOrthSliders)) {
                     moves[nrMoves++] =  getMove(sq, ep, 0, ENPASSANT);
                 }
                 b1 ^= b;
@@ -622,7 +622,7 @@ int gen_legal_noisy_moves(Board& board, MoveList &moves) {
             while (b1) {
                 b = b1.lsb();
                 Square sq = b.get_lsb_square();
-                if (!(genAttacksRook(all ^ b ^ Bitboard(sq2), king) & enemyOrthSliders)) {
+                if (!(genAttacksRook(all ^ b ^ Bitboard(sq2) ^ Bitboard(ep), king) & enemyOrthSliders)) {
                     moves[nrMoves++] = getMove(sq, ep, 0, ENPASSANT);
                 }
                 b1 ^= b;
