@@ -364,9 +364,11 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
     }
     else { /// ttValue might be a better evaluation
         if (stack->excluded) raw_eval = evaluate(board);
-        else raw_eval = eval;
+        else {
+            raw_eval = eval;
+            if constexpr (pvNode) board.bring_up_to_date();
+        }
         stack->eval = eval = histories.get_corrected_eval(raw_eval, turn, pawn_key, white_mat_key, black_mat_key);
-        if constexpr (pvNode) board.bring_up_to_date();
         if (ttBound == EXACT || (ttBound == LOWER && ttValue > eval) || (ttBound == UPPER && ttValue < eval)) eval = ttValue;
     }
 
