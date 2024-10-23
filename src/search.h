@@ -352,7 +352,10 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
         stack->eval = raw_eval = eval = INF;
     }
     else if (!ttHit) { /// if we are in a singular search, we already know the evaluation
-        if (stack->excluded) raw_eval = eval = stack->eval;
+        if (stack->excluded) {
+            raw_eval = eval = stack->eval;
+            board.bring_up_to_date();
+        }
         else {
             raw_eval = evaluate(board);
             stack->eval = eval = histories.get_corrected_eval(raw_eval, turn, pawn_key, white_mat_key, black_mat_key);
@@ -363,6 +366,7 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
         if (stack->excluded) raw_eval = evaluate(board);
         else raw_eval = eval;
         stack->eval = eval = histories.get_corrected_eval(raw_eval, turn, pawn_key, white_mat_key, black_mat_key);
+        if constexpr (pvNode) board.bring_up_to_date();
         if (ttBound == EXACT || (ttBound == LOWER && ttValue > eval) || (ttBound == UPPER && ttValue < eval)) eval = ttValue;
     }
 
