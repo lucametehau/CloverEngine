@@ -483,7 +483,10 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
         const bool isQuiet = !board.is_noisy_move(move);
         const Square from = sq_from(move), to = sq_to(move);
         const Piece piece = board.piece_at(from);
-        int history = 0;
+        int history = isQuiet ? histories.get_history_search(move, piece, threats.all_threats, turn, stack) : 
+                                static_cast<int>(histories.get_cap_hist(piece, to, board.get_captured_type(move)));
+
+        stack->history = history;
 
         /// quiet move pruning
 
@@ -494,8 +497,6 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
 #endif
             if (best > -MATE && board.has_non_pawn_material(turn)) {
                 if (isQuiet) {
-                    history = histories.get_history_search(move, piece, threats.all_threats, turn, stack);
-                    
                     /// approximately the new depth for the next search
                     int newDepth = std::max(0, depth - lmr_red[std::min(63, depth)][std::min(63, played)] + improving + history / MoveloopHistDiv);
 
@@ -515,7 +516,6 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
                         !see(board, move, -SEEPruningQuietMargin * newDepth)) continue;
                 }
                 else {
-                    history = histories.get_cap_hist(piece, to, board.get_captured_type(move));
                     auto noisy_see_pruning_margin = [&](int depth, int history) {
                         return -SEEPruningNoisyMargin * depth * depth - history / SEENoisyHistDiv;
                     };

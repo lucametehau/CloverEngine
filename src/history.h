@@ -61,14 +61,14 @@ public:
 
 class StackEntry { /// info to keep in the stack
 public:
-    StackEntry() : piece(NO_PIECE), move(0), killer(0), excluded(0), eval(0) {
+    StackEntry() : piece(NO_PIECE), move(NULLMOVE), killer(NULLMOVE), excluded(NULLMOVE), eval(0), history(0) {
         quiets.fill(SearchMove());
         noisies.fill(SearchMove());
     }
     Piece piece;
     Move move, killer, excluded;
     std::array<SearchMove, MAX_MOVES> quiets, noisies;
-    int eval;
+    int eval, history;
     MultiArray<History<16384>, 13, 64>* cont_hist;
 };
 
