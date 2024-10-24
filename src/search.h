@@ -396,9 +396,13 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
                 if (value <= alpha) return value;
             }
 
+            auto snmp_margin = [&](int depth, bool improving, int history) {
+                return (SNMPMargin - SNMPImproving * improving) * depth + history / 256;
+            };
+
             /// static null move pruning (don't prune when having a mate line, again stability)
             if (depth <= SNMPDepth && eval > beta && 
-                eval - (SNMPMargin - SNMPImproving * improving) * (depth - enemy_has_no_threats) > beta && eval < MATE) return (beta > -MATE ? (eval + beta) / 2 : eval);
+                eval - snmp_margin(depth - enemy_has_no_threats, improving, (stack - 1)->history) > beta && eval < MATE) return (beta > -MATE ? (eval + beta) / 2 : eval);
 
             /// null move pruning (when last move wasn't null, we still have non pawn material, we have a good position)
             if (!nullSearch && !stack->excluded && enemy_has_no_threats &&
