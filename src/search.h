@@ -464,7 +464,8 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
         threats);
 
     Move move;
-    const bool ttCapture = ttMove && board.is_noisy_move(ttMove);
+    const bool is_ttmove_noisy = ttMove && board.is_noisy_move(ttMove);
+    bool bad_ttmove = false;
 
     while ((move = picker.get_next_move(histories, stack, board, skip, false)) != NULLMOVE) {
         if constexpr (rootNode) {
@@ -541,9 +542,9 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
                 int score = search<false, false, cutNode>(rBeta - 1, rBeta, (depth - 1) / 2, stack);
                 stack->excluded = NULLMOVE;
 
-                if (score < rBeta) ex = 1 + (!pvNode && rBeta - score > SEDoubleExtensionsMargin) + (!pvNode && !ttCapture && rBeta - score > SETripleExtensionsMargin);
+                if (score < rBeta) ex = 1 + (!pvNode && rBeta - score > SEDoubleExtensionsMargin) + (!pvNode && !is_ttmove_noisy && rBeta - score > SETripleExtensionsMargin);
                 else if (rBeta >= beta) return rBeta; // multicut
-                else if (ttValue >= beta || ttValue <= alpha) ex = -1 - !pvNode;
+                else if (ttValue >= beta || ttValue <= alpha) ex = -1 - !pvNode, bad_ttmove = true;
             }
             else if (in_check) ex = 1;
         }
@@ -590,7 +591,7 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
 
             R += 2 * cutNode;
             R -= was_pv && ttDepth >= depth;
-            R += ttCapture;
+            R += is_ttmove_noisy + bad_ttmove;
             R += enemy_has_no_threats && !in_check && static_eval + LMRBadStaticEvalMargin <= alpha;
 
             R = std::clamp(R, 1, newDepth); /// clamp R
