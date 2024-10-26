@@ -21,123 +21,218 @@
 #include <cassert>
 #include <thread>
 #include <mutex>
+#include <queue>
+#include <functional>
+#include <condition_variable>
+#include <atomic>
 
 bool printStats = true; // true by default
 
-// not a thread pool, but i couldnt come up with a better name
+class SearchThread {
+public:
+    SearchData thread_data;
+    std::atomic<bool> stop{false};
+
+    SearchThread(int id) { 
+        thread_data.thread_id = id;
+        thread_data.flag_stopped = false;
+    }
+
+    SearchThread(const SearchThread&) = delete;
+    SearchThread& operator = (const SearchThread&) = delete;
+
+    SearchThread(SearchThread&& other) noexcept : thread_data(std::move(other.thread_data)), stop(other.stop.load()) {}
+    SearchThread& operator = (SearchThread&& other) {
+        if (this != &other) {
+            thread_data = std::move(other.thread_data);
+            stop = other.stop.load();
+        }
+        return *this;
+    }
+
+    void stop_thread() { stop = true; thread_data.flag_stopped = true; thread_data.nodes = 0; thread_data.tb_hits = 0; }
+    void unstop_thread() { stop = false; thread_data.flag_stopped = false; }
+    void search(Info &info) {
+        unstop_thread();
+        thread_data.start_search(info);
+    }
+
+    inline void clear_stack() { thread_data.clear_stack(); }
+    inline void clear_history() { thread_data.clear_history(); }
+
+    inline void set_fen(std::string fen, bool chess960 = false) {
+        thread_data.board.chess960 = chess960;
+        thread_data.board.set_fen(fen);
+    }
+
+    inline void set_dfrc(int idx) {
+        thread_data.board.chess960 = (idx > 0);
+        thread_data.board.set_dfrc(idx);
+    }
+
+    inline void make_move(Move move) { thread_data.board.make_move(move); }
+    inline void clear_board() { thread_data.board.clear(); }
+
+    inline uint64_t get_nodes() const { return thread_data.nodes; }
+    inline uint64_t get_tbhits() const { return thread_data.tb_hits; } 
+};
+
 class ThreadPool {
 public:
-    std::vector<SearchData> threads_data;
+    std::vector<SearchThread> search_threads;
 
 private:
     std::mutex threads_mutex;
+    std::condition_variable cv;
     std::vector<std::thread> threads;
+    std::queue<std::function<void()>> job_queue;
+    std::atomic<bool> destroy_pool{false}; // used to kill the pool
 
 public:
-    ThreadPool() { threads.clear(); threads_data.clear(); }
+    ThreadPool(const std::size_t thread_count = 1) { create_pool(thread_count); }
 
-    inline void join_threads() {
+    ~ThreadPool() { delete_pool(); }
+
+    void delete_pool() {
+        //std::cerr << "Deleting pool\n";
+        {
+            std::lock_guard<std::mutex> lock(threads_mutex);
+            destroy_pool = true;
+        }
+        cv.notify_all();
         for (auto &thread : threads) {
-            if(thread.joinable())
-                thread.join();
+            if (thread.joinable()) thread.join();
         }
-    }
-
-    inline void delete_pool() {
-        join_threads();
         threads.clear();
-        threads_data.clear();
+        search_threads.clear();
     }
 
-    inline void create_pool(const int thread_count) {
-        delete_pool(); // delete previous existing pool
-        for (int i = 0; i < thread_count; i++) {
-            threads_data.emplace_back();
-            threads_data[i].thread_id = i;
-            threads_data[i].flag_stopped = false;
+    void create_pool(const std::size_t thread_count) {
+        delete_pool();
+        //std::cerr << "Creating pool with " << thread_count << " threads\n";
+        destroy_pool = false;
+
+        for (std::size_t i = 0; i < thread_count; i++) {
+            search_threads.emplace_back(i);
+            threads.emplace_back(&ThreadPool::thread_loop, this);
         }
+
+        //std::cerr << "We now have " << threads.size() << " threads\n";
+    }
+
+    void thread_loop() {
+        while (true) {
+            std::function<void()> task;
+            {
+                std::unique_lock<std::mutex> lock(threads_mutex);
+                cv.wait(lock, [&] { return !job_queue.empty() || destroy_pool; });
+
+                if (job_queue.empty() && destroy_pool) return;
+
+                task = std::move(job_queue.front()); // better than copy ig?
+                job_queue.pop();
+            }
+            task();
+        }
+    }
+
+    void queue_task(std::function<void()> task) {
+        {
+            std::lock_guard<std::mutex> lock(threads_mutex);
+            job_queue.push(task);
+        }
+        cv.notify_one();
     }
 
     inline void pool_stop() {
-        for (auto &thread_data : threads_data)
-            thread_data.flag_stopped = true;
+        //std::cerr << "Stopping pool\n";
+        for (auto &search_thread : search_threads) search_thread.stop_thread();
+        cv.notify_all();
     }
 
-    inline void clear_stack_pool() {
-        for (auto &thread_data : threads_data)
-            thread_data.clear_stack();
-    }
-
-    inline void clear_history_pool() {
-        for (auto &thread_data : threads_data)
-            thread_data.clear_history();
-    }
-
-    inline void set_fen_pool(std::string fen, bool chess960 = false) {
-        for (auto &thread_data : threads_data) {
-            thread_data.board.chess960 = chess960;
-            thread_data.board.set_fen(fen);
-        }
-    }
-
-    inline void set_dfrc_pool(int idx) {
-        for (auto &thread_data : threads_data) {
-            thread_data.board.chess960 = (idx > 0);
-            thread_data.board.set_dfrc(idx);
-        }
-    }
-
-    inline void make_move_pool(Move move) {
-        for (auto &thread_data : threads_data)
-            thread_data.board.make_move(move);
-    }
-
-    inline void clear_board_pool() {
-        for (auto &thread_data : threads_data)
-            thread_data.board.clear();
-    }
-
-    Board& get_board() {
-        return threads_data[0].board;
-    }
+    Board& get_board() { assert(!search_threads.empty()); return search_threads[0].thread_data.board; }
 
     uint64_t get_total_nodes_pool() {
         std::lock_guard <std::mutex> lock(threads_mutex);
         uint64_t nodes = 0;
-        for (auto &thread_data : threads_data)
-            nodes += thread_data.nodes;
+        for (auto &search_thread : search_threads) nodes += search_thread.get_nodes();
         return nodes;
     }
 
     uint64_t get_total_tb_hits_pool() {
         std::lock_guard <std::mutex> lock(threads_mutex);
-        uint64_t nodes = 0;
-        for (auto &thread_data : threads_data)
-            nodes += thread_data.tb_hits;
-        return nodes;
+        uint64_t tbhits = 0;
+        for (auto &search_thread : search_threads) tbhits += search_thread.get_tbhits();
+        return tbhits;
+    }
+
+    inline void clear_stack() {
+        //std::cerr << "Clearing stack pool\n";
+        assert(!search_threads.empty());
+        for (std::size_t i = 0; i < search_threads.size(); i++) {
+            queue_task([i, this]() { search_threads[i].clear_stack(); });
+        }
+    }
+
+    inline void clear_history() {
+        //std::cerr << "Clearing history pool\n";
+        assert(!search_threads.empty());
+        for (std::size_t i = 0; i < search_threads.size(); i++) {
+            queue_task([i, this]() { search_threads[i].clear_history(); });
+        }
+    }
+
+    inline void set_fen(std::string fen, bool chess960 = false) {
+        //std::cerr << "Setting fen " << fen << " pool\n";
+        assert(!search_threads.empty());
+        for (std::size_t i = 0; i < search_threads.size(); i++) {
+            queue_task([fen, chess960, i, this]() { search_threads[i].set_fen(fen, chess960); });
+        }
+    }
+
+    inline void set_dfrc(int idx) {
+        //std::cerr << "Setting DFRC " << idx << " pool\n";
+        assert(!search_threads.empty());
+        for (std::size_t i = 0; i < search_threads.size(); i++) {
+            queue_task([idx, i, this]() { search_threads[i].set_dfrc(idx); });
+        }
+    }
+
+    inline void make_move(Move move) {
+        assert(!search_threads.empty());
+        for (std::size_t i = 0; i < search_threads.size(); i++) {
+            queue_task([move, i, this]() { search_threads[i].make_move(move); });
+        }
+    }
+
+    inline void clear_board() {
+        assert(!search_threads.empty());
+        for (std::size_t i = 0; i < search_threads.size(); i++) {
+            queue_task([i, this]() { search_threads[i].clear_board(); });
+        }
     }
 
     void main_thread_handler(Info &info) {
-        assert(!threads_data.empty());
-        for (std::size_t i = 1; i < threads_data.size(); i++)
-            threads.push_back(std::thread(&SearchData::start_search, &threads_data[i], std::ref(info)));
-        threads_data[0].start_search(info);
+        assert(!search_threads.empty());
+        destroy_pool = false;
+        for (std::size_t i = 1; i < search_threads.size(); i++) {
+            queue_task([i, &info, this]() { search_threads[i].search(info); });
+        }
+        search_threads[0].search(info);
 
         pool_stop();
-        join_threads();
-        threads.clear();
 
         int best_score = 0;
         Move best_move = NULLMOVE;
         
-        int bestDepth = threads_data[0].completed_depth;
-        best_score = threads_data[0].root_score[1];
-        best_move = threads_data[0].best_move[1];
-        for (std::size_t i = 1; i < threads_data.size(); i++) {
-            if (threads_data[i].root_score[1] > best_score && threads_data[i].completed_depth >= bestDepth) {
-                best_score = threads_data[i].root_score[1];
-                best_move = threads_data[i].best_move[1];
-                bestDepth = threads_data[i].completed_depth;
+        int bestDepth = search_threads[0].thread_data.completed_depth;
+        best_score = search_threads[0].thread_data.root_score[1];
+        best_move = search_threads[0].thread_data.best_move[1];
+        for (std::size_t i = 1; i < search_threads.size(); i++) {
+            if (search_threads[i].thread_data.root_score[1] > best_score && search_threads[i].thread_data.completed_depth >= bestDepth) {
+                best_score = search_threads[i].thread_data.root_score[1];
+                best_move = search_threads[i].thread_data.best_move[1];
+                bestDepth = search_threads[i].thread_data.completed_depth;
             }
         }
 

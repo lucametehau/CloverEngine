@@ -92,7 +92,7 @@ void UCI::uci_loop() {
             std::string type;
             while (iss >> type) {
                 if (type == "startpos") {
-                    thread_pool.set_fen_pool(START_POS_FEN);
+                    thread_pool.set_fen(START_POS_FEN);
                 }
                 else if (type == "fen") {
                     std::string fen;
@@ -101,12 +101,12 @@ void UCI::uci_loop() {
                         iss >> component;
                         fen += component + " ";
                     }
-                    thread_pool.set_fen_pool(fen, info.chess960);
+                    thread_pool.set_fen(fen, info.chess960);
                 }
                 else if (type == "moves") {
                     std::string moveStr;
                     while (iss >> moveStr) {
-                        thread_pool.make_move_pool(parse_move_string(thread_pool.get_board(), moveStr, info));
+                        thread_pool.make_move(parse_move_string(thread_pool.get_board(), moveStr, info));
                     }
                 }
             }
@@ -197,7 +197,7 @@ void UCI::uci_loop() {
             if (name == "Hash") {
                 iss >> value >> ttSize;
 #ifndef GENERATE
-                TT->initTable(ttSize * MB, thread_pool.threads_data.size());
+                TT->initTable(ttSize * MB, thread_pool.search_threads.size());
 #endif
             }
             else if (name == "Threads") {
@@ -295,12 +295,12 @@ void UCI::uci() {
 }
 
 void UCI::ucinewgame(uint64_t ttSize) {
-    thread_pool.set_fen_pool(START_POS_FEN);
-    thread_pool.clear_history_pool();
-    thread_pool.clear_stack_pool();
+    thread_pool.set_fen(START_POS_FEN);
+    thread_pool.clear_history();
+    thread_pool.clear_stack();
 #ifndef GENERATE
     TT->resetAge();
-    TT->initTable(ttSize * MB, thread_pool.threads_data.size());
+    TT->initTable(ttSize * MB, thread_pool.search_threads.size());
 #endif
 }
 
@@ -308,8 +308,8 @@ void UCI::go(Info &info) {
 #ifndef GENERATE
     TT->age();
 #endif
-    thread_pool.clear_stack_pool();
-    thread_pool.clear_board_pool();
+    thread_pool.clear_stack();
+    thread_pool.clear_board();
     main_thread = std::thread(&ThreadPool::main_thread_handler, &thread_pool, std::ref(info));
 }
 
@@ -320,13 +320,12 @@ void UCI::stop() {
 void UCI::quit() {
     stop();
     thread_pool.delete_pool();
-    if(main_thread.joinable())
-        main_thread.join();
+    if (main_thread.joinable()) main_thread.join();
     exit(0);
 }
 
 void UCI::eval() {
-    std::cout << evaluate(thread_pool.threads_data[0].board) << std::endl;
+    std::cout << evaluate(thread_pool.get_board()) << std::endl;
 }
 
 void UCI::is_ready() {
@@ -335,7 +334,7 @@ void UCI::is_ready() {
 
 void UCI::go_perft(int depth) {
     long double t1 = getTime();
-    uint64_t nodes = perft<true>(thread_pool.threads_data[0].board, depth);
+    uint64_t nodes = perft<true>(thread_pool.get_board(), depth);
     long double t2 = getTime();
     long double t = (t2 - t1) / 1000.0;
     uint64_t nps = nodes / t;
@@ -418,13 +417,13 @@ void UCI::bench(int depth) {
     uint64_t start = getTime();
     uint64_t totalNodes = 0;
     for (auto& fen : benchPos) {
-        thread_pool.set_fen_pool(fen);
+        thread_pool.set_fen(fen);
         info.timeset = 0;
         info.depth = (depth == -1 ? 14 : depth);
         info.startTime = getTime();
         info.nodes = -1;
-        thread_pool.threads_data[0].start_search(info);
-        totalNodes += thread_pool.threads_data[0].nodes;
+        thread_pool.search_threads[0].thread_data.start_search(info);
+        totalNodes += thread_pool.get_total_nodes_pool();
         ucinewgame(ttSize);
     }
 

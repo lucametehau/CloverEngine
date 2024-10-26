@@ -28,7 +28,7 @@
 
 template <bool checkTime>
 bool SearchData::check_for_stop() {
-    if (thread_id) return 0;
+    if (!main_thread()) return 0;
 
     if (flag_stopped) return 1;
 
@@ -560,7 +560,7 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
 
         if constexpr (rootNode) {
             /// current root move info
-            if (thread_id == 0 && printStats && getTime() > info.startTime + 2500 && !info.sanMode) {
+            if (main_thread() && printStats && getTime() > info.startTime + 2500 && !info.sanMode) {
                 std::cout << "info depth " << depth << " currmove " << move_to_string(move, info.chess960) << " currmovenumber " << played << std::endl;
             }
         }
@@ -724,7 +724,7 @@ void SearchData::print_iteration_info(bool san_mode, int multipv, int score, int
 }
 
 void SearchData::start_search(Info &_info) {
-    if (thread_id == 0) {
+    if (main_thread()) {
         for (int i = 1; i < 64; i++) { /// depth
             for (int j = 1; j < 64; j++) { /// moves played 
                 lmr_red[i][j] = LMRQuietBias + log(i) * log(j) / LMRQuietDiv;
@@ -741,7 +741,7 @@ void SearchData::start_search(Info &_info) {
     info = _info;
 
     int alpha, beta;
-    int limitDepth = (thread_id == 0 ? info.depth : MAX_DEPTH); /// when limited by depth, allow helper threads to pass the fixed depth
+    int limitDepth = main_thread() ? info.depth : MAX_DEPTH; // when limited by depth, allow helper threads to pass the fixed depth
     int last_root_score = 0;
     Move last_best_move = NULLMOVE;
 
@@ -784,7 +784,7 @@ void SearchData::start_search(Info &_info) {
                 if (flag_stopped)
                     break;
 
-                if (thread_id == 0 && printStats && ((alpha < scores[i] && scores[i] < beta) || (i == 1 && getTime() > t0 + 3000))) {
+                if (main_thread() && printStats && ((alpha < scores[i] && scores[i] < beta) || (i == 1 && getTime() > t0 + 3000))) {
                     print_iteration_info(info.sanMode, i, scores[i], alpha, beta, 
                                         static_cast<uint64_t>(getTime()) - t0, depth, sel_depth, 
                                         thread_pool.get_total_nodes_pool(), thread_pool.get_total_tb_hits_pool());
@@ -810,7 +810,7 @@ void SearchData::start_search(Info &_info) {
             }
         }
 
-        if (thread_id == 0 && !flag_stopped) {
+        if (main_thread() && !flag_stopped) {
             double scoreChange = 1.0, bestMoveStreak = 1.0, nodesSearchedPercentage = 1.0;
             if (tDepth >= TimeManagerMinDepth) {
                 scoreChange = std::clamp<double>(TimeManagerScoreBias + 1.0 * (last_root_score - root_score[1]) / TimeManagerScoreDiv, TimeManagerScoreMin, TimeManagerScoreMax); /// adjust time based on score change

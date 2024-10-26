@@ -44,6 +44,8 @@ public:
     inline void setTime(Info &_info) { info = _info; }
 
 private:
+    inline bool main_thread() { return thread_id == 0; }
+
     template <bool pvNode>
     int quiesce(int alpha, int beta, StackEntry* stack);
 
