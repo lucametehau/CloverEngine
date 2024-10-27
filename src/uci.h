@@ -339,7 +339,7 @@ void UCI::eval() {
 }
 
 void UCI::is_ready() {
-    std::cout << "readyok" << std::endl;
+    thread_pool.isready();
 }
 
 void UCI::go_perft(int depth) {

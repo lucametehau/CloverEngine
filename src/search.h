@@ -269,6 +269,13 @@ int SearchThread::quiesce(int alpha, int beta, StackEntry* stack) {
 template <bool rootNode, bool pvNode, bool cutNode>
 int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
     const int ply = board.ply;
+
+    if (rootNode) {
+        std::mutex lol;
+        lol.lock();
+        std::cout << thread_id << " " << alpha << " " << beta << " " << depth << " " << nodes << " " << ply << "\n";
+        lol.unlock();
+    }
     
     if (check_for_stop<true>() || ply >= MAX_DEPTH) return evaluate(board);
 
@@ -723,7 +730,9 @@ void SearchThread::print_iteration_info(bool san_mode, int multipv, int score, i
     }
 }
 
-void SearchThread::start_search(Info &_info) {
+void SearchThread::start_search(Info _info) {
+
+#ifdef TUNE_FLAG
     if (main_thread()) {
         for (int i = 1; i < 64; i++) { /// depth
             for (int j = 1; j < 64; j++) { /// moves played 
@@ -731,6 +740,7 @@ void SearchThread::start_search(Info &_info) {
             }
         }
     }
+#endif
     nodes = sel_depth = tb_hits = 0;
     t0 = getTime();
     flag_stopped = false;
@@ -752,7 +762,7 @@ void SearchThread::start_search(Info &_info) {
 
     search_stack.fill(StackEntry());
 
-    rootEval = (!board.checkers() ? evaluate(board) : INF);
+    rootEval = !board.checkers() ? evaluate(board) : INF;
 
     for (int i = 1; i <= 10; i++) {
         (stack - i)->cont_hist = &histories.cont_history[0][NO_PIECE][0];
@@ -781,8 +791,10 @@ void SearchThread::start_search(Info &_info) {
                 depth = std::max({ depth, 1, tDepth - 4 });
                 sel_depth = 0;
                 scores[i] = search<true, true, false>(alpha, beta, depth, stack);
-                if (flag_stopped)
+                if (flag_stopped) {
+                    std::cout << thread_id << "0\n";
                     break;
+                }
 
                 if (main_thread() && printStats && ((alpha < scores[i] && scores[i] < beta) || (i == 1 && getTime() > t0 + 3000))) {
                     print_iteration_info(info.sanMode, i, scores[i], alpha, beta, 
@@ -825,11 +837,21 @@ void SearchThread::start_search(Info &_info) {
             last_best_move = best_move[1];
         }
 
-        if (flag_stopped)
+        if (flag_stopped) {
+            
+            std::cout << thread_id << "1\n";
             break;
-
-        if ((info.timeset && getTime() > info.stopTime) || tDepth == limitDepth || (info.min_nodes != -1 && nodes >= info.min_nodes)) {
+        }
+        
+        if (tDepth == limitDepth) {
+            std::cout << thread_id << "2\n";
             flag_stopped = true;
+            break;
+        }
+
+        if (main_thread() && ((info.timeset && getTime() > info.stopTime) || (info.min_nodes != -1 && nodes >= info.min_nodes))) {
+            flag_stopped = true;
+            std::cout << thread_id << "3\n";
             break;
         }
     }

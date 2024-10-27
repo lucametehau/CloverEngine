@@ -19,6 +19,9 @@
 #include "tt.h"
 #include "history.h"
 #include <mutex>
+#include <thread>
+#include <chrono>
+#include <atomic>
 
 #ifndef TUNE_FLAG
 constexpr int seeVal[] = { SeeValPawn, SeeValKnight, SeeValBishop, SeeValRook, SeeValQueen, 20000, 0 };
@@ -29,6 +32,47 @@ int seeVal[] = { SeeValPawn, SeeValKnight, SeeValBishop, SeeValRook, SeeValQueen
 class SearchThread {
 public:
     SearchThread() {}
+
+    SearchThread(SearchThread&& other) noexcept
+        : info(std::move(other.info)), best_move(std::move(other.best_move)),
+        scores(std::move(other.scores)), root_score(std::move(other.root_score)),
+        values(std::move(other.values)), pv_table_len(std::move(other.pv_table_len)),
+        pv_table(std::move(other.pv_table)), search_stack(std::move(other.search_stack)),
+        histories(std::move(other.histories)), t0(other.t0), checkCount(other.checkCount),
+        best_move_cnt(other.best_move_cnt), multipv_index(other.multipv_index),
+        tDepth(other.tDepth), sel_depth(other.sel_depth), rootEval(other.rootEval),
+        tb_hits(other.tb_hits), nodes(other.nodes), completed_depth(other.completed_depth),
+        thread_id(other.thread_id), board(std::move(other.board)), flag_stopped(other.flag_stopped.load()) 
+    {}
+
+    SearchThread& operator=(SearchThread&& other) noexcept {
+        if (this != &other) {
+            info = std::move(other.info);
+            best_move = std::move(other.best_move);
+            scores = std::move(other.scores);
+            root_score = std::move(other.root_score);
+            values = std::move(other.values);
+            pv_table_len = std::move(other.pv_table_len);
+            pv_table = std::move(other.pv_table);
+            search_stack = std::move(other.search_stack);
+            histories = std::move(other.histories);
+            t0 = other.t0;
+            checkCount = other.checkCount;
+            best_move_cnt = other.best_move_cnt;
+            multipv_index = other.multipv_index;
+            tDepth = other.tDepth;
+            sel_depth = other.sel_depth;
+            rootEval = other.rootEval;
+            tb_hits = other.tb_hits;
+            nodes = other.nodes;
+            completed_depth = other.completed_depth;
+            thread_id = other.thread_id;
+            board = std::move(other.board);
+            flag_stopped = other.flag_stopped.load();
+            // Optionally reset 'other' fields as needed
+        }
+        return *this;
+    }
 
     inline void clear_stack() {
         pv_table_len.fill(0);
@@ -45,14 +89,12 @@ public:
     inline void setTime(Info &_info) { info = _info; }
 
     void stop_thread() { flag_stopped = true; nodes = 0; tb_hits = 0; }
-    void unstop_thread() { flag_stopped = false; }
-    void search(Info &info) {
+    void search(Info info) {
         {
             std::mutex lol;
             std::lock_guard<std::mutex> lock(lol);
-            std::cout << "Starting thread " << thread_id << " with info " << info.goodTimeLim << ", " << info.hardTimeLim << std::endl;
+            std::cout << "Starting thread " << thread_id << " with " << flag_stopped << std::endl;
         }
-        unstop_thread();
         start_search(info);
     }
 
@@ -66,7 +108,10 @@ public:
         board.set_dfrc(idx);
     }
 
-    inline void make_move(Move move) { board.make_move(move); }
+    inline void make_move(Move move) {
+        using namespace std::chrono_literals;
+        //std::this_thread::sleep_for(1000ms); 
+        board.make_move(move); }
     inline void clear_board() { board.clear(); }
 
 private:
@@ -119,7 +164,7 @@ public:
     int thread_id;
     Board board;
 
-    volatile bool flag_stopped;
+    std::atomic<bool> flag_stopped;
 
 #ifdef GENERATE
     HashTable* TT;
