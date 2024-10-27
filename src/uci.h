@@ -422,7 +422,7 @@ void UCI::bench(int depth) {
         info.depth = (depth == -1 ? 14 : depth);
         info.startTime = getTime();
         info.nodes = -1;
-        thread_pool.search_threads[0].thread_data.start_search(info);
+        thread_pool.search_threads[0].start_search(info);
         totalNodes += thread_pool.get_total_nodes_pool();
         ucinewgame(ttSize);
     }

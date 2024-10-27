@@ -25,9 +25,14 @@ constexpr int seeVal[] = { SeeValPawn, SeeValKnight, SeeValBishop, SeeValRook, S
 int seeVal[] = { SeeValPawn, SeeValKnight, SeeValBishop, SeeValRook, SeeValQueen, 20000, 0 };
 #endif
 
-class SearchData {
+class SearchThread {
 public:
-    SearchData() {}
+    SearchThread() {}
+
+    SearchThread(int id) {
+        thread_id = id;
+        flag_stopped = false;
+    }
 
     inline void clear_stack() {
         pv_table_len.fill(0);
@@ -42,6 +47,26 @@ public:
     void start_search(Info &info);
 
     inline void setTime(Info &_info) { info = _info; }
+
+    void stop_thread() { flag_stopped = true; nodes = 0; tb_hits = 0; }
+    void unstop_thread() { flag_stopped = false; }
+    void search(Info &info) {
+        unstop_thread();
+        start_search(info);
+    }
+
+    inline void set_fen(std::string fen, bool chess960 = false) {
+        board.chess960 = chess960;
+        board.set_fen(fen);
+    }
+
+    inline void set_dfrc(int idx) {
+        board.chess960 = (idx > 0);
+        board.set_dfrc(idx);
+    }
+
+    inline void make_move(Move move) { board.make_move(move); }
+    inline void clear_board() { board.clear(); }
 
 private:
     inline bool main_thread() { return thread_id == 0; }

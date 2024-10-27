@@ -27,7 +27,7 @@
 #include <iomanip>
 
 template <bool checkTime>
-bool SearchData::check_for_stop() {
+bool SearchThread::check_for_stop() {
     if (!main_thread()) return 0;
 
     if (flag_stopped) return 1;
@@ -126,7 +126,7 @@ std::string getSanString(Board& board, Move move) {
     return san;
 }
 
-void SearchData::print_pv() {
+void SearchThread::print_pv() {
     if (info.sanMode) {    
         for (int i = 0; i < pv_table_len[0]; i++) {
             std::cout << getSanString(board, pv_table[0][i]) << " ";
@@ -141,14 +141,14 @@ void SearchData::print_pv() {
     }
 }
 
-void SearchData::update_pv(int ply, int move) {
+void SearchThread::update_pv(int ply, int move) {
     pv_table[ply][0] = move;
     for (int i = 0; i < pv_table_len[ply + 1]; i++) pv_table[ply][i + 1] = pv_table[ply + 1][i];
     pv_table_len[ply] = 1 + pv_table_len[ply + 1];
 }
 
 template <bool pvNode>
-int SearchData::quiesce(int alpha, int beta, StackEntry* stack) {
+int SearchThread::quiesce(int alpha, int beta, StackEntry* stack) {
     const int ply = board.ply;
     if (ply >= MAX_DEPTH) return evaluate(board);
 
@@ -267,7 +267,7 @@ int SearchData::quiesce(int alpha, int beta, StackEntry* stack) {
 }
 
 template <bool rootNode, bool pvNode, bool cutNode>
-int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
+int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
     const int ply = board.ply;
     
     if (check_for_stop<true>() || ply >= MAX_DEPTH) return evaluate(board);
@@ -681,7 +681,7 @@ int SearchData::search(int alpha, int beta, int depth, StackEntry* stack) {
     return best;
 }
 
-void SearchData::print_iteration_info(bool san_mode, int multipv, int score, int alpha, int beta, uint64_t t, int depth, int sel_depth, uint64_t total_nodes, uint64_t total_tb_hits) {
+void SearchThread::print_iteration_info(bool san_mode, int multipv, int score, int alpha, int beta, uint64_t t, int depth, int sel_depth, uint64_t total_nodes, uint64_t total_tb_hits) {
     if (!san_mode) {
         std::cout << "info multipv " << multipv << " score ";
 
@@ -723,7 +723,7 @@ void SearchData::print_iteration_info(bool san_mode, int multipv, int score, int
     }
 }
 
-void SearchData::start_search(Info &_info) {
+void SearchThread::start_search(Info &_info) {
     if (main_thread()) {
         for (int i = 1; i < 64; i++) { /// depth
             for (int j = 1; j < 64; j++) { /// moves played 
