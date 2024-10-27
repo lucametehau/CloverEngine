@@ -36,7 +36,7 @@ private:
     std::mutex threads_mutex;
     std::condition_variable cv;
     std::vector<std::thread> threads;
-    std::queue<std::function<void()>> job_queue;
+    std::queue<std::pair<std::function<void()>, std::string>> job_queue;
     std::atomic<bool> destroy_pool{false}; // used to kill the pool
 
 public:
@@ -82,17 +82,18 @@ public:
 
                 if (job_queue.empty() && destroy_pool) return;
 
-                task = std::move(job_queue.front()); // better than copy ig?
+                task = std::move(job_queue.front().first); // better than copy ig?
+                std::cout << job_queue.front().second << " is being processed\n";
                 job_queue.pop();
             }
             task();
         }
     }
 
-    void queue_task(std::function<void()> task) {
+    void queue_task(std::function<void()> task, std::string name = "") {
         {
             std::lock_guard<std::mutex> lock(threads_mutex);
-            job_queue.push(task);
+            job_queue.push(make_pair(task, name));
         }
         cv.notify_one();
     }
@@ -122,7 +123,7 @@ public:
         assert(!search_threads.empty());
         search_threads[0].clear_stack();
         for (std::size_t i = 1; i < search_threads.size(); i++) {
-            queue_task([i, this]() { search_threads[i].clear_stack(); });
+            queue_task([i, this]() { search_threads[i].clear_stack(); }, "clear_stack");
         }
     }
 
@@ -131,7 +132,7 @@ public:
         assert(!search_threads.empty());
         search_threads[0].clear_history();
         for (std::size_t i = 1; i < search_threads.size(); i++) {
-            queue_task([i, this]() { search_threads[i].clear_history(); });
+            queue_task([i, this]() { search_threads[i].clear_history(); }, "clear_history");
         }
     }
 
@@ -140,7 +141,7 @@ public:
         assert(!search_threads.empty());
         search_threads[0].set_fen(fen, chess960);
         for (std::size_t i = 1; i < search_threads.size(); i++) {
-            queue_task([fen, chess960, i, this]() { search_threads[i].set_fen(fen, chess960); });
+            queue_task([fen, chess960, i, this]() { search_threads[i].set_fen(fen, chess960); }, "set_fen");
         }
     }
 
@@ -149,7 +150,7 @@ public:
         assert(!search_threads.empty());
         search_threads[0].set_dfrc(idx);
         for (std::size_t i = 1; i < search_threads.size(); i++) {
-            queue_task([idx, i, this]() { search_threads[i].set_dfrc(idx); });
+            queue_task([idx, i, this]() { search_threads[i].set_dfrc(idx); }, "set_dfrc");
         }
     }
 
@@ -157,7 +158,7 @@ public:
         assert(!search_threads.empty());
         search_threads[0].make_move(move);
         for (std::size_t i = 1; i < search_threads.size(); i++) {
-            queue_task([move, i, this]() { search_threads[i].make_move(move); });
+            queue_task([move, i, this]() { search_threads[i].make_move(move); }, "make_move");
         }
     }
 
@@ -165,7 +166,7 @@ public:
         assert(!search_threads.empty());
         search_threads[0].clear_board();
         for (std::size_t i = 1; i < search_threads.size(); i++) {
-            queue_task([i, this]() { search_threads[i].clear_board(); });
+            queue_task([i, this]() { search_threads[i].clear_board(); }, "clear_board");
         }
     }
 
@@ -173,7 +174,7 @@ public:
         assert(!search_threads.empty());
         destroy_pool = false;
         for (std::size_t i = 1; i < search_threads.size(); i++) {
-            queue_task([i, &info, this]() { search_threads[i].search(info); });
+            queue_task([i, &info, this]() { search_threads[i].search(info); }, "start_search");
         }
         search_threads[0].search(info);
 

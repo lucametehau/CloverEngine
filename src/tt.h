@@ -115,7 +115,7 @@ void HashTable::initTable(uint64_t size, int nr_threads) {
         buckets = size;
     }
 
-    table = (Bucket*)malloc(buckets * sizeof(Bucket));
+    table = new Bucket[buckets];
 
     std::vector <std::thread> threads(nr_threads);
     uint64_t start = 0;

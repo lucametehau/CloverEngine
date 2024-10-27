@@ -18,6 +18,7 @@
 #include "board.h"
 #include "tt.h"
 #include "history.h"
+#include <mutex>
 
 #ifndef TUNE_FLAG
 constexpr int seeVal[] = { SeeValPawn, SeeValKnight, SeeValBishop, SeeValRook, SeeValQueen, 20000, 0 };
@@ -46,6 +47,11 @@ public:
     void stop_thread() { flag_stopped = true; nodes = 0; tb_hits = 0; }
     void unstop_thread() { flag_stopped = false; }
     void search(Info &info) {
+        {
+            std::mutex lol;
+            std::lock_guard<std::mutex> lock(lol);
+            std::cout << "Starting thread " << thread_id << " with info " << info.goodTimeLim << ", " << info.hardTimeLim << std::endl;
+        }
         unstop_thread();
         start_search(info);
     }
