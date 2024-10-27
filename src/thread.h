@@ -46,6 +46,7 @@ public:
     {}
 
     SearchThread& operator=(SearchThread&& other) noexcept {
+        std::cout << "fucking thread move\n";
         if (this != &other) {
             info = std::move(other.info);
             best_move = std::move(other.best_move);
