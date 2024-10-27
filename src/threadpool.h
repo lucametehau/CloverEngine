@@ -120,7 +120,8 @@ public:
     inline void clear_stack() {
         //std::cerr << "Clearing stack pool\n";
         assert(!search_threads.empty());
-        for (std::size_t i = 0; i < search_threads.size(); i++) {
+        search_threads[0].clear_stack();
+        for (std::size_t i = 1; i < search_threads.size(); i++) {
             queue_task([i, this]() { search_threads[i].clear_stack(); });
         }
     }
@@ -128,7 +129,8 @@ public:
     inline void clear_history() {
         //std::cerr << "Clearing history pool\n";
         assert(!search_threads.empty());
-        for (std::size_t i = 0; i < search_threads.size(); i++) {
+        search_threads[0].clear_history();
+        for (std::size_t i = 1; i < search_threads.size(); i++) {
             queue_task([i, this]() { search_threads[i].clear_history(); });
         }
     }
@@ -136,7 +138,8 @@ public:
     inline void set_fen(std::string fen, bool chess960 = false) {
         //std::cerr << "Setting fen " << fen << " pool\n";
         assert(!search_threads.empty());
-        for (std::size_t i = 0; i < search_threads.size(); i++) {
+        search_threads[0].set_fen(fen, chess960);
+        for (std::size_t i = 1; i < search_threads.size(); i++) {
             queue_task([fen, chess960, i, this]() { search_threads[i].set_fen(fen, chess960); });
         }
     }
@@ -144,21 +147,24 @@ public:
     inline void set_dfrc(int idx) {
         //std::cerr << "Setting DFRC " << idx << " pool\n";
         assert(!search_threads.empty());
-        for (std::size_t i = 0; i < search_threads.size(); i++) {
+        search_threads[0].set_dfrc(idx);
+        for (std::size_t i = 1; i < search_threads.size(); i++) {
             queue_task([idx, i, this]() { search_threads[i].set_dfrc(idx); });
         }
     }
 
     inline void make_move(Move move) {
         assert(!search_threads.empty());
-        for (std::size_t i = 0; i < search_threads.size(); i++) {
+        search_threads[0].make_move(move);
+        for (std::size_t i = 1; i < search_threads.size(); i++) {
             queue_task([move, i, this]() { search_threads[i].make_move(move); });
         }
     }
 
     inline void clear_board() {
         assert(!search_threads.empty());
-        for (std::size_t i = 0; i < search_threads.size(); i++) {
+        search_threads[0].clear_board();
+        for (std::size_t i = 1; i < search_threads.size(); i++) {
             queue_task([i, this]() { search_threads[i].clear_board(); });
         }
     }
