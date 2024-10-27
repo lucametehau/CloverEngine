@@ -84,7 +84,7 @@ public:
         histories.clear_history();
     }
 
-    void start_search(Info &info);
+    void start_search(Info info);
 
     inline void setTime(Info &_info) { info = _info; }
 
