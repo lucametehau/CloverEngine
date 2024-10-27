@@ -25,14 +25,9 @@ constexpr int seeVal[] = { SeeValPawn, SeeValKnight, SeeValBishop, SeeValRook, S
 int seeVal[] = { SeeValPawn, SeeValKnight, SeeValBishop, SeeValRook, SeeValQueen, 20000, 0 };
 #endif
 
-class alignas(ALIGN) SearchThread {
+class SearchThread {
 public:
     SearchThread() {}
-
-    SearchThread(int id) {
-        thread_id = id;
-        flag_stopped = false;
-    }
 
     inline void clear_stack() {
         pv_table_len.fill(0);

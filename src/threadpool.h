@@ -64,7 +64,9 @@ public:
         destroy_pool = false;
 
         for (std::size_t i = 0; i < thread_count; i++) {
-            search_threads.emplace_back(i);
+            auto &search_thread = search_threads.emplace_back();
+            search_thread.thread_id = i;
+            search_thread.flag_stopped = false;
             threads.emplace_back(&ThreadPool::thread_loop, this);
         }
 
