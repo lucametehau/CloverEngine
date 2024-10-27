@@ -103,8 +103,6 @@ public:
         cv.notify_all();
     }
 
-    Board& get_board() { assert(!search_threads.empty()); return search_threads[0].board; }
-
     uint64_t get_total_nodes_pool() {
         std::lock_guard <std::mutex> lock(threads_mutex);
         uint64_t nodes = 0;
