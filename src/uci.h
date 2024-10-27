@@ -47,6 +47,7 @@ private:
     void set_param_double(std::istringstream &iss, double &value);
 public:
     std::thread main_thread;
+    //ThreadPool thread_pool;
 };
 
 void UCI::set_param_int(std::istringstream &iss, int &value) {

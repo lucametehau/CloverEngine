@@ -40,7 +40,7 @@ private:
     std::atomic<bool> destroy_pool{false}; // used to kill the pool
 
 public:
-    ThreadPool(const std::size_t thread_count = 1) { create_pool(thread_count); }
+    ThreadPool(const std::size_t thread_count = 0) { create_pool(thread_count); }
 
     ~ThreadPool() { delete_pool(); }
 
