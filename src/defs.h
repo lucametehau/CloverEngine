@@ -266,10 +266,10 @@ inline Square mirror(bool color, Square sq) { return sq ^ (56 * !color); }
 template<int direction>
 inline Square shift_square(bool color, Square sq) { return color == BLACK ? sq - direction : sq + direction; }
 
-template<int direction>
+template<int8_t direction>
 inline Bitboard shift_mask(int color, Bitboard bb) {
-    if (color == BLACK) return direction > 0 ? bb >> direction : bb << -direction;
-    return direction > 0 ? bb << direction : bb >> -direction;
+    if (color == BLACK) return direction > 0 ? bb >> direction : bb << static_cast<int8_t>(-direction);
+    return direction > 0 ? bb << direction : bb >> static_cast<int8_t>(-direction);
 }
 
 inline Piece piece_type(Piece piece) { return piece >= 6 ? piece - 6 : piece; }
