@@ -25,7 +25,7 @@ constexpr int seeVal[] = { SeeValPawn, SeeValKnight, SeeValBishop, SeeValRook, S
 int seeVal[] = { SeeValPawn, SeeValKnight, SeeValBishop, SeeValRook, SeeValQueen, 20000, 0 };
 #endif
 
-class SearchThread {
+class alignas(ALIGN) SearchThread {
 public:
     SearchThread() {}
 
