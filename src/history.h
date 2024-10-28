@@ -78,6 +78,7 @@ private:
     MultiArray<History<16384>, 12, 64, 7> cap_hist;
     MultiArray<CorrectionHistory, 2, CORR_HIST_SIZE> corr_hist;
     MultiArray<CorrectionHistory, 2, 2, CORR_HIST_SIZE> mat_corr_hist;
+    MultiArray<CorrectionHistory, 12, 64, 12, 64> cont_corr_hist;
 
 public:
     MultiArray<History<16384>, 2, 13, 64, 13, 64> cont_history;
@@ -89,6 +90,7 @@ public:
         fill_multiarray<History<16384>, 2, 13, 64, 13, 64>(cont_history, 0);
         fill_multiarray<CorrectionHistory, 2, CORR_HIST_SIZE>(corr_hist, CorrectionHistory());
         fill_multiarray<CorrectionHistory, 2, 2, CORR_HIST_SIZE>(mat_corr_hist, CorrectionHistory());
+        fill_multiarray<CorrectionHistory, 12, 64, 12, 64>(cont_corr_hist, CorrectionHistory());
     }
 
     Histories() { clear_history(); }
@@ -133,7 +135,15 @@ public:
         return mat_corr_hist[turn][side][mat_key & CORR_HIST_MASK];
     }
 
-    inline void update_cont_hist_move(const Piece piece, const Square to, StackEntry *stack, const int16_t bonus) {
+    inline CorrectionHistory& get_cont_corr_hist(StackEntry* stack) {
+        return cont_corr_hist[stack->piece][sq_to(stack->move)][(stack - 1)->piece][sq_to((stack - 1)->move)];
+    }
+
+    inline const CorrectionHistory get_cont_corr_hist(const StackEntry* stack) const {
+        return cont_corr_hist[stack->piece][sq_to(stack->move)][(stack - 1)->piece][sq_to((stack - 1)->move)];
+    }
+
+    inline void update_cont_hist_move(const Piece piece, const Square to, StackEntry* stack, const int16_t bonus) {
         if ((stack - 1)->move)
             get_cont_hist(piece, to, stack, 1).update(bonus);
         if ((stack - 2)->move)
@@ -146,12 +156,12 @@ public:
         get_hist(sq_from(move), sq_to(move), from_to(move), turn, threats).update(bonus);
     }
 
-    inline void update_hist_quiet_move(const Move move, const Piece piece, const Bitboard threats, const bool turn, StackEntry *&stack, const int16_t bonus) {
+    inline void update_hist_quiet_move(const Move move, const Piece piece, const Bitboard threats, const bool turn, StackEntry* stack, const int16_t bonus) {
         update_hist_move(move, threats, turn, bonus);
         update_cont_hist_move(piece, sq_to(move), stack, bonus);
     }
 
-    inline const int get_history_search(const Move move, const Piece piece, const Bitboard threats, const bool turn, StackEntry *stack) const {
+    inline const int get_history_search(const Move move, const Piece piece, const Bitboard threats, const bool turn, StackEntry* stack) const {
         const int to = sq_to(move);
         return get_hist(sq_from(move), to, from_to(move), turn, threats)
              + get_cont_hist(piece, to, stack, 1)
@@ -159,7 +169,7 @@ public:
              + get_cont_hist(piece, to, stack, 4);
     }
 
-    inline const int get_history_movepick(const Move move, const Piece piece, const Bitboard threats, const bool turn, StackEntry *stack) const {
+    inline const int get_history_movepick(const Move move, const Piece piece, const Bitboard threats, const bool turn, StackEntry* stack) const {
         const Square to = sq_to(move);
         return QuietHistCoef  * get_hist(sq_from(move), to, from_to(move), turn, threats)
              + QuietContHist1 * get_cont_hist(piece, to, stack, 1)
@@ -171,17 +181,20 @@ public:
         get_cap_hist(piece, to, cap).update(bonus);
     }
 
-    inline void update_corr_hist(const bool turn, const uint64_t pawn_key, const uint64_t white_mat_key, const uint64_t black_mat_key, const int depth, const int delta) {
+    inline void update_corr_hist(const bool turn, const uint64_t pawn_key, const uint64_t white_mat_key, const uint64_t black_mat_key, StackEntry* stack, const int depth, const int delta) {
         const int w = std::min(4 * (depth + 1) * (depth + 1), 1024);
         get_corr_hist(turn, pawn_key).update_corr_hist(w, delta);
         get_mat_corr_hist(turn, WHITE, white_mat_key).update_corr_hist(w, delta);
         get_mat_corr_hist(turn, BLACK, black_mat_key).update_corr_hist(w, delta);
+        if ((stack - 1)->move) get_cont_corr_hist(stack).update_corr_hist(w, delta);
     }
 
-    inline const int get_corrected_eval(const int eval, const bool turn, const uint64_t pawn_key, const uint64_t white_mat_key, const uint64_t black_mat_key) const {
-        return eval + (128 * get_corr_hist(turn, pawn_key) + 
-                      100 * get_mat_corr_hist(turn, WHITE, white_mat_key) + 
-                      100 * get_mat_corr_hist(turn, BLACK, black_mat_key)) / (192 * CorrHistDiv);
+    inline const int get_corrected_eval(const int eval, const bool turn, const uint64_t pawn_key, const uint64_t white_mat_key, const uint64_t black_mat_key, const StackEntry* stack) const {
+        int correction = 128 * get_corr_hist(turn, pawn_key) + 
+                         100 * get_mat_corr_hist(turn, WHITE, white_mat_key) + 
+                         100 * get_mat_corr_hist(turn, BLACK, black_mat_key);
+        if ((stack - 1)->move) correction += 64 * get_cont_corr_hist(stack);
+        return eval + correction / (192 * CorrHistDiv);
     }
 };
 
