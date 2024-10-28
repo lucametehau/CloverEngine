@@ -15,7 +15,6 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #pragma once
-#include <vector>
 #include <algorithm>
 #include <iostream>
 #include "defs.h"
@@ -78,7 +77,7 @@ public:
 
     inline Bitboard& pinned_pieces() { return state.pinnedPieces; }
 
-    inline Square& enpas() { assert(state.enPas <= NO_EP); return state.enPas; }
+    inline Square& enpas() { return state.enPas; }
 
     inline uint16_t& half_moves() { return state.halfMoves; }
 
@@ -275,11 +274,10 @@ public:
     int64_t startTime, stopTime;
     int64_t goodTimeLim, hardTimeLim;
     int depth, multipv;
-    int timeset;
     int movestogo;
     int64_t min_nodes, max_nodes, nodes;
 
+    bool timeset;
     bool sanMode;
-
     bool chess960;
 };

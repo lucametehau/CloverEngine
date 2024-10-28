@@ -247,11 +247,6 @@ inline int64_t getTime() {
     return std::chrono::duration_cast<std::chrono::milliseconds>(t - t_init).count();
 }
 
-inline uint64_t mul_hi(const uint64_t a, const uint64_t b) {
-    using uint128_t = unsigned __int128;
-    return (static_cast<uint128_t>(a) * static_cast<uint128_t>(b)) >> 64;
-}
-
 inline int16_t net_index(Piece piece, Square sq, Square kingSq, bool side) {
     return 64 * 12 * kingIndTable[kingSq ^ (56 * !side)] + 64 * (piece + side * (piece >= 6 ? -6 : +6)) + (sq ^ (56 * !side) ^ (7 * ((kingSq >> 2) & 1))); // kingSq should be ^7, if kingSq&7 >= 4
 }
@@ -266,10 +261,10 @@ inline Square mirror(bool color, Square sq) { return sq ^ (56 * !color); }
 template<int direction>
 inline Square shift_square(bool color, Square sq) { return color == BLACK ? sq - direction : sq + direction; }
 
-template<int direction>
+template<int8_t direction>
 inline Bitboard shift_mask(int color, Bitboard bb) {
-    if (color == BLACK) return direction > 0 ? bb >> direction : bb << -direction;
-    return direction > 0 ? bb << direction : bb >> -direction;
+    if (color == BLACK) return direction > 0 ? bb >> direction : bb << static_cast<int8_t>(-direction);
+    return direction > 0 ? bb << direction : bb >> static_cast<int8_t>(-direction);
 }
 
 inline Piece piece_type(Piece piece) { return piece >= 6 ? piece - 6 : piece; }
@@ -355,4 +350,12 @@ inline void init_defs() {
             }
         }
     }
+
+#ifndef TUNE_FLAG
+    for (int i = 1; i < 64; i++) { /// depth
+        for (int j = 1; j < 64; j++) { /// moves played 
+            lmr_red[i][j] = LMRQuietBias + log(i) * log(j) / LMRQuietDiv;
+        }
+    }
+#endif
 }

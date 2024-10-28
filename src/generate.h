@@ -34,7 +34,7 @@ struct FenData {
     std::string fen;
 };
 
-void generateFens(SearchData &thread_data, std::atomic<uint64_t>& sumFens, std::atomic<uint64_t> &sumGames, uint64_t nrFens, std::string path, uint64_t seed, uint64_t extraSeed) {
+void generateFens(SearchThread &thread_data, std::atomic<uint64_t>& sumFens, std::atomic<uint64_t> &sumGames, uint64_t nrFens, std::string path, uint64_t seed, uint64_t extraSeed) {
     std::ofstream out(path);
     std::mt19937_64 gn((std::chrono::system_clock::now().time_since_epoch().count() + extraSeed) ^ 8257298672678ULL);
 

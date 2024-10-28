@@ -211,24 +211,18 @@ public:
 
         for (int n = 0; n < SIDE_NEURONS; n++) {
             sum = inputBiases[n];
-
             for (auto& prevN : input.ind[WHITE]) {
                 sum += inputWeights[prevN * SIDE_NEURONS + n];
             }
-
             assert(-32768 <= sum && sum <= 32767);
-
             output_history[0][SIDE_NEURONS + n] = sum;
 
             sum = inputBiases[n];
-
             for (auto& prevN : input.ind[BLACK]) {
                 sum += inputWeights[prevN * SIDE_NEURONS + n];
             }
-
-            output_history[0][n] = sum;
-
             assert(-32768 <= sum && sum <= 32767);
+            output_history[0][n] = sum;
         }
 
         hist_size = 1;
@@ -242,32 +236,23 @@ public:
     }
 
     int32_t getOutput(NetInput& input, bool stm) { /// feed forward
-        int32_t sum;
         int16_t va[2][SIDE_NEURONS];
 
         for (int n = 0; n < SIDE_NEURONS; n++) {
-            sum = inputBiases[n];
-
+            int32_t sum = inputBiases[n];
             for (auto& prevN : input.ind[WHITE]) {
                 sum += inputWeights[prevN * SIDE_NEURONS + n];
             }
-
             assert(-32768 <= sum && sum <= 32767);
-
             va[WHITE][n] = sum;
 
             sum = inputBiases[n];
-
             for (auto& prevN : input.ind[BLACK]) {
                 sum += inputWeights[prevN * SIDE_NEURONS + n];
             }
-
-            va[BLACK][n] = sum;
-
             assert(-32768 <= sum && sum <= 32767);
+            va[BLACK][n] = sum;
         }
-
-        sum = 0;
 
         reg_type_s acc{}, acc2{};
 
@@ -288,9 +273,7 @@ public:
 
         acc = reg_add32(acc, acc2);
 
-        sum += get_sum(acc);
-
-        return (sum / Q_IN + outputBias) * 225 / (Q_IN * Q_HIDDEN);
+        return (get_sum(acc) / Q_IN + outputBias) * 225 / (Q_IN * Q_HIDDEN);
     }
 
     void apply_updates(int16_t* output, int16_t* input) {
