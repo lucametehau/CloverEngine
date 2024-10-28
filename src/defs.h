@@ -247,11 +247,6 @@ inline int64_t getTime() {
     return std::chrono::duration_cast<std::chrono::milliseconds>(t - t_init).count();
 }
 
-inline uint64_t mul_hi(const uint64_t a, const uint64_t b) {
-    using uint128_t = unsigned __int128;
-    return (static_cast<uint128_t>(a) * static_cast<uint128_t>(b)) >> 64;
-}
-
 inline int16_t net_index(Piece piece, Square sq, Square kingSq, bool side) {
     return 64 * 12 * kingIndTable[kingSq ^ (56 * !side)] + 64 * (piece + side * (piece >= 6 ? -6 : +6)) + (sq ^ (56 * !side) ^ (7 * ((kingSq >> 2) & 1))); // kingSq should be ^7, if kingSq&7 >= 4
 }

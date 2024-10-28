@@ -32,7 +32,7 @@ uint64_t perft(Board& board, int depth) {
         nodes += x;
         board.undo_move(move);
         if constexpr (RootNode)
-            std::cout << move_to_string(move, false) << " " << x << "\n";
+            std::cout << move_to_string(move, false) << ": " << x << "\n";
     }
     return nodes;
 }

@@ -303,7 +303,7 @@ void UCI::ucinewgame(uint64_t ttSize) {
     thread_pool.set_fen(START_POS_FEN);
     thread_pool.clear_history();
 #ifndef GENERATE
-    TT->resetAge();
+    TT->reset_age();
     TT->initTable(ttSize * MB, thread_pool.threads.size());
 #endif
 }

@@ -56,12 +56,12 @@ private:
     
     Histories histories;
 
-    int64_t t0;
-    int checkCount;
+    int64_t start_time;
+    int time_check_count;
     int best_move_cnt;
-    int multipv_index;
+    int multipv;
     int tDepth, sel_depth;
-    int rootEval;
+    int root_eval;
 
 public:
     uint64_t tb_hits;
@@ -75,7 +75,7 @@ public:
     std::mutex mutex;
     std::thread thread;
     std::condition_variable cv;
-    std::atomic<ThreadState> state{IDLE};
+    std::atomic<ThreadState> state{ThreadStates::IDLE};
 
 #ifdef GENERATE
     HashTable* TT;
@@ -85,36 +85,36 @@ public:
     SearchThread() {}
 
     SearchThread(ThreadPool* thread_pool, int thread_id) : thread_pool(thread_pool), thread_id(thread_id) {
-        state = IDLE;
+        state = ThreadStates::IDLE;
         thread = std::thread(&SearchThread::main_loop, this);
     }
 
 public:
     inline bool main_thread() { return thread_id == 0; }
-    inline bool must_stop() { return state & (STOP | EXIT); }
+    inline bool must_stop() { return state & (ThreadStates::STOP | ThreadStates::EXIT); }
 
     void wait_for_finish() {
         std::unique_lock<std::mutex> lock(mutex);
-        cv.wait(lock, [&] { return !(state & SEARCH); });
+        cv.wait(lock, [&] { return !(state & ThreadStates::SEARCH); });
     }
 
     void start_search();
 
     void main_loop() {
-        while (!(state & EXIT)) {
+        while (!(state & ThreadStates::EXIT)) {
             std::unique_lock<std::mutex> lock(mutex);
-            cv.wait(lock, [&] { return state & SEARCH; });
+            cv.wait(lock, [&] { return state & ThreadStates::SEARCH; });
                 
-            if (state & EXIT) return;
+            if (state & ThreadStates::EXIT) return;
 
             start_search();
-            state ^= SEARCH;
+            state &= ~ThreadStates::SEARCH;
             cv.notify_all();
         }
     }
 
     void exit() {
-        state = EXIT | SEARCH | STOP;
+        state = ThreadStates::EXIT | ThreadStates::SEARCH | ThreadStates::STOP;
         cv.notify_all();
         if (thread.joinable()) thread.join();
     }
@@ -179,7 +179,7 @@ public:
     }
 
     void stop() {
-        for (auto &thread : threads) thread->state |= STOP;
+        for (auto &thread : threads) thread->state |= ThreadStates::STOP;
     }
     void exit() {
         for (auto &thread : threads) thread->exit();
@@ -222,9 +222,9 @@ public:
         stop();
         wait_for_finish();
         for (auto &thread : threads) {
-            if (thread->state & STOP) thread->state ^= STOP;
+            thread->state &= ~ThreadStates::STOP;
             std::lock_guard<std::mutex> lock(thread->mutex);
-            thread->state |= SEARCH;
+            thread->state |= ThreadStates::SEARCH;
         }
         for (auto &thread : threads) {
             thread->cv.notify_all();

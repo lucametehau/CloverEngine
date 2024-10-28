@@ -18,16 +18,15 @@
 #include "defs.h"
 #include <thread>
 
-const int MB = (1 << 20);
-const int BUCKET = 3;
+constexpr int MB = (1 << 20);
+constexpr int BUCKET = 3;
 
 struct Entry {
     uint16_t hash;
     uint16_t about;
     int16_t score;
     int16_t eval;
-    uint16_t move;
-    inline void refresh(int gen) { about = (about & 1023u) | (gen << 10u); }
+    Move move;
 
     inline int value(int ply) const {
         if (score != VALUE_NONE) {
@@ -38,12 +37,10 @@ struct Entry {
     }
 
     inline int bound() const { return about & 3; }
-
     inline int depth() const { return (about >> 2) & 127; }
-
     inline bool was_pv() const { return (about >> 9) & 1; }
-
     inline int generation() const { return (about >> 10); }
+    inline void refresh(int gen) { about = (about & 1023u) | (gen << 10u); }
 };
 
 struct Bucket {
@@ -72,13 +69,13 @@ public:
 
     HashTable(const HashTable&) = delete;
 
-    inline void prefetch(uint64_t hash);
+    inline void prefetch(const uint64_t hash);
 
-    Entry* probe(uint64_t hash, bool &ttHit);
+    Entry* probe(const uint64_t hash, bool &ttHit);
 
     void save(Entry* entry, uint64_t hash, int score, int depth, int ply, int bound, uint16_t move, int eval, bool was_pv);
 
-    inline void resetAge();
+    inline void reset_age();
 
     inline void age();
 
@@ -131,14 +128,19 @@ void HashTable::initTable(uint64_t size, int nr_threads) {
     }
 }
 
-void HashTable::prefetch(uint64_t hash) {
-    uint64_t ind = mul_hi(hash, buckets);
+inline uint64_t mul_hi(const uint64_t a, const uint64_t b) {
+    using uint128_t = unsigned __int128;
+    return (static_cast<uint128_t>(a) * static_cast<uint128_t>(b)) >> 64;
+}
+
+void HashTable::prefetch(const uint64_t hash) {
+    const uint64_t ind = mul_hi(hash, buckets);
     Bucket* bucket = table + ind;
     __builtin_prefetch(bucket);
 }
 
-Entry* HashTable::probe(uint64_t hash, bool &ttHit) {
-    uint64_t ind = mul_hi(hash, buckets);
+Entry* HashTable::probe(const uint64_t hash, bool &ttHit) {
+    const uint64_t ind = mul_hi(hash, buckets);
     Entry* bucket = table[ind].entries.data();
     const uint16_t hash16 = static_cast<uint16_t>(hash);
 
@@ -179,7 +181,7 @@ void HashTable::save(Entry* entry, uint64_t hash, int score, int depth, int ply,
     }
 }
 
-void HashTable::resetAge() {
+void HashTable::reset_age() {
     generation = 1;
 
     for (uint64_t i = 0; i < buckets; i++)
