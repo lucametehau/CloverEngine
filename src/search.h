@@ -30,22 +30,22 @@ template <bool checkTime>
 bool SearchThread::check_for_stop() {
     if (!main_thread()) return 0;
 
-    if (flag_stopped) return 1;
+    if (must_stop()) return 1;
 
     if ((info.nodes != -1 && info.nodes <= nodes) || (info.max_nodes != -1 && nodes >= info.max_nodes)) {
-        flag_stopped = true;
+        state |= STOP;
         return 1;
     }
 
     checkCount++;
     if (checkCount == (1 << 10)) {
         if constexpr (checkTime) {
-            if (info.timeset && getTime() > info.startTime + info.hardTimeLim) flag_stopped = true;
+            if (info.timeset && getTime() > info.startTime + info.hardTimeLim) state |= STOP;
         }
         checkCount = 0;
     }
 
-    return flag_stopped;
+    return must_stop();
 }
 
 uint32_t probe_TB(Board& board, int depth) {
@@ -245,7 +245,7 @@ int SearchThread::quiesce(int alpha, int beta, StackEntry* stack) {
         }
         board.undo_move(move);
 
-        if (flag_stopped) return best;
+        if (must_stop()) return best;
 
         if (score > best) {
             best = score;
@@ -269,13 +269,6 @@ int SearchThread::quiesce(int alpha, int beta, StackEntry* stack) {
 template <bool rootNode, bool pvNode, bool cutNode>
 int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
     const int ply = board.ply;
-
-    if (rootNode) {
-        std::mutex lol;
-        lol.lock();
-        std::cout << thread_id << " " << alpha << " " << beta << " " << depth << " " << nodes << " " << ply << "\n";
-        lol.unlock();
-    }
     
     if (check_for_stop<true>() || ply >= MAX_DEPTH) return evaluate(board);
 
@@ -625,7 +618,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
         board.undo_move(move);
         nodes_seached[from_to(move)] += nodes - initNodes;
 
-        if (flag_stopped) /// stop search
+        if (must_stop()) /// stop search
             return best;
 
         if (score > best) {
@@ -730,8 +723,7 @@ void SearchThread::print_iteration_info(bool san_mode, int multipv, int score, i
     }
 }
 
-void SearchThread::start_search(Info _info) {
-
+void SearchThread::start_search() {
 #ifdef TUNE_FLAG
     if (main_thread()) {
         for (int i = 1; i < 64; i++) { /// depth
@@ -741,24 +733,19 @@ void SearchThread::start_search(Info _info) {
         }
     }
 #endif
+    clear_stack();
     nodes = sel_depth = tb_hits = 0;
     t0 = getTime();
-    flag_stopped = false;
     checkCount = 0;
     best_move_cnt = 0;
+    completed_depth = 0;
 
-    fill_multiarray<Move, MAX_DEPTH + 5, 2 * MAX_DEPTH + 5>(pv_table, 0);
-    info = _info;
-
-    int alpha, beta;
-    int limitDepth = main_thread() ? info.depth : MAX_DEPTH; // when limited by depth, allow helper threads to pass the fixed depth
-    int last_root_score = 0;
-    Move last_best_move = NULLMOVE;
+    info = thread_pool->info;
 
     scores.fill(0);
     best_move.fill(0);
     root_score.fill(0);
-    StackEntry* stack = search_stack.data() + 10;
+    stack = search_stack.data() + 10;
 
     search_stack.fill(StackEntry());
 
@@ -770,7 +757,20 @@ void SearchThread::start_search(Info _info) {
         (stack - i)->move = NULLMOVE;
     }
 
-    completed_depth = 0;
+    iterative_deepening();
+
+    if (!main_thread()) return;
+
+    thread_pool->stop();
+    thread_pool->wait_for_finish(false);
+    thread_pool->pick_and_print_best_thread();
+}
+
+void SearchThread::iterative_deepening() {
+    int alpha, beta;
+    int limitDepth = main_thread() ? info.depth : MAX_DEPTH; // when limited by depth, allow helper threads to pass the fixed depth
+    int last_root_score = 0;
+    Move last_best_move = NULLMOVE;
 
     for (tDepth = 1; tDepth <= limitDepth; tDepth++) {
         multipv_index = 0;
@@ -791,15 +791,13 @@ void SearchThread::start_search(Info _info) {
                 depth = std::max({ depth, 1, tDepth - 4 });
                 sel_depth = 0;
                 scores[i] = search<true, true, false>(alpha, beta, depth, stack);
-                if (flag_stopped) {
-                    std::cout << thread_id << "0\n";
-                    break;
-                }
+
+                if (must_stop()) break;
 
                 if (main_thread() && printStats && ((alpha < scores[i] && scores[i] < beta) || (i == 1 && getTime() > t0 + 3000))) {
                     print_iteration_info(info.sanMode, i, scores[i], alpha, beta, 
                                         static_cast<uint64_t>(getTime()) - t0, depth, sel_depth, 
-                                        thread_pool.get_total_nodes_pool(), thread_pool.get_total_tb_hits_pool());
+                                        thread_pool->get_nodes(), thread_pool->get_tbhits());
                 }
 
                 if (scores[i] <= alpha) {
@@ -822,7 +820,7 @@ void SearchThread::start_search(Info _info) {
             }
         }
 
-        if (main_thread() && !flag_stopped) {
+        if (main_thread() && !must_stop()) {
             double scoreChange = 1.0, bestMoveStreak = 1.0, nodesSearchedPercentage = 1.0;
             if (tDepth >= TimeManagerMinDepth) {
                 scoreChange = std::clamp<double>(TimeManagerScoreBias + 1.0 * (last_root_score - root_score[1]) / TimeManagerScoreDiv, TimeManagerScoreMin, TimeManagerScoreMax); /// adjust time based on score change
@@ -837,21 +835,15 @@ void SearchThread::start_search(Info _info) {
             last_best_move = best_move[1];
         }
 
-        if (flag_stopped) {
-            
-            std::cout << thread_id << "1\n";
-            break;
-        }
+        if (must_stop()) break;
         
         if (tDepth == limitDepth) {
-            std::cout << thread_id << "2\n";
-            flag_stopped = true;
+            state |= STOP;
             break;
         }
 
         if (main_thread() && ((info.timeset && getTime() > info.stopTime) || (info.min_nodes != -1 && nodes >= info.min_nodes))) {
-            flag_stopped = true;
-            std::cout << thread_id << "3\n";
+            state |= STOP;
             break;
         }
     }

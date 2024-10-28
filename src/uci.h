@@ -46,7 +46,6 @@ private:
     void set_param_int(std::istringstream &iss, int &value);
     void set_param_double(std::istringstream &iss, double &value);
 public:
-    std::thread main_thread;
     Board* uci_board;
     //ThreadPool thread_pool;
 };
@@ -124,9 +123,6 @@ void UCI::uci_loop() {
             ucinewgame(ttSize);
         }
         else if (cmd == "go") {
-            if(main_thread.joinable())
-                main_thread.join();
-            
             int depth = -1, movetime = -1;
             int time = -1, inc = 0;
             int64_t nodes = -1;
@@ -206,7 +202,7 @@ void UCI::uci_loop() {
             if (name == "Hash") {
                 iss >> value >> ttSize;
 #ifndef GENERATE
-                TT->initTable(ttSize * MB, thread_pool.search_threads.size());
+                TT->initTable(ttSize * MB, thread_pool.threads.size());
 #endif
             }
             else if (name == "Threads") {
@@ -229,7 +225,7 @@ void UCI::uci_loop() {
                 std::string chess960;
                 iss >> value >> chess960;
 
-                info.chess960 = (chess960 == "true");
+                info.chess960 = chess960 == "true";
             }
             else {
                 for (auto& param : params_int) {
@@ -306,10 +302,9 @@ void UCI::uci() {
 void UCI::ucinewgame(uint64_t ttSize) {
     thread_pool.set_fen(START_POS_FEN);
     thread_pool.clear_history();
-    thread_pool.clear_stack();
 #ifndef GENERATE
     TT->resetAge();
-    TT->initTable(ttSize * MB, thread_pool.search_threads.size());
+    TT->initTable(ttSize * MB, thread_pool.threads.size());
 #endif
 }
 
@@ -317,19 +312,16 @@ void UCI::go(Info &info) {
 #ifndef GENERATE
     TT->age();
 #endif
-    thread_pool.clear_stack();
     thread_pool.clear_board();
-    main_thread = std::thread(&ThreadPool::main_thread_handler, &thread_pool, std::ref(info));
+    thread_pool.search(info);
 }
 
 void UCI::stop() {
-    thread_pool.pool_stop();
+    thread_pool.stop();
 }
 
 void UCI::quit() {
-    stop();
-    thread_pool.delete_pool();
-    if (main_thread.joinable()) main_thread.join();
+    thread_pool.exit();
     delete uci_board;
     exit(0);
 }
@@ -339,7 +331,7 @@ void UCI::eval() {
 }
 
 void UCI::is_ready() {
-    thread_pool.isready();
+    thread_pool.is_ready();
 }
 
 void UCI::go_perft(int depth) {
@@ -420,20 +412,24 @@ void UCI::bench(int depth) {
     init(info);
     uint64_t ttSize = 16;
     thread_pool.create_pool(1);
+    thread_pool.wait_for_finish();
     ucinewgame(ttSize);
 
     printStats = false;
 
     uint64_t start = getTime();
+    info.timeset = false;
+    info.depth = depth == -1 ? 14 : depth;
+    info.startTime = getTime();
+    info.nodes = -1;
+
     uint64_t totalNodes = 0;
     for (auto& fen : benchPos) {
-        thread_pool.search_threads[0].set_fen(fen);
-        info.timeset = 0;
-        info.depth = (depth == -1 ? 14 : depth);
-        info.startTime = getTime();
-        info.nodes = -1;
-        thread_pool.search_threads[0].start_search(info);
-        totalNodes += thread_pool.get_total_nodes_pool();
+        thread_pool.set_fen(fen);
+        thread_pool.clear_board();
+        thread_pool.search(info);
+        thread_pool.wait_for_finish();
+        totalNodes += thread_pool.get_nodes();
         ucinewgame(ttSize);
     }
 

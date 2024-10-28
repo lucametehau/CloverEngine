@@ -116,7 +116,6 @@ void HashTable::initTable(uint64_t size, int nr_threads) {
     }
 
     table = new Bucket[buckets];
-
     std::vector <std::thread> threads(nr_threads);
     uint64_t start = 0;
     uint64_t slice_size = buckets / nr_threads + 1;

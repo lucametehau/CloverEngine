@@ -274,11 +274,10 @@ public:
     int64_t startTime, stopTime;
     int64_t goodTimeLim, hardTimeLim;
     int depth, multipv;
-    int timeset;
     int movestogo;
     int64_t min_nodes, max_nodes, nodes;
 
+    bool timeset;
     bool sanMode;
-
     bool chess960;
 };
