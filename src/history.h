@@ -59,7 +59,7 @@ public:
     SearchMove(Move _move, int _tried_count) : move(_move), tried_count(_tried_count) {}
 };
 
-class StackEntry { /// info to keep in the stack
+class StackEntry { // info to keep in the stack
 public:
     StackEntry() : piece(NO_PIECE), move(0), killer(0), excluded(0), eval(0) {
         quiets.fill(SearchMove());
