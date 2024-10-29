@@ -152,20 +152,29 @@ public:
 
                     if (pt != KING && pt != PAWN) {
                         score += QuietKingRingAttackBonus * (genAttacksSq(allPieces, to, pt) & enemyKingRing).count();
-                        
-                        if (threats_p.has_square(to))
-                            score -= QuietPawnAttackedCoef * seeVal[pt];
-                        else if (pt >= ROOK && threats_bn.has_square(to))
-                            score -= 16384;
-                        else if (pt == QUEEN && threats_r.has_square(to))
-                            score -= 16384;
 
-                        if (threats_p.has_square(from))
-                            score += QuietPawnAttackedDodgeCoef * seeVal[pt];
-                        else if (pt >= ROOK && threats_bn.has_square(from))
-                            score += 16384;
-                        else if (pt == QUEEN && threats_r.has_square(from))
-                            score += 16384;
+                        auto score_threats = [&](
+                            Bitboard threats_p, Bitboard threats_bn, Bitboard threats_r, 
+                            Piece pt, Square to
+                        ) {
+                            if (threats_p.has_square(to)) return QuietPawnAttackedCoef * seeVal[pt];
+                            if (pt >= ROOK && threats_bn.has_square(to)) return 16384;
+                            if (pt == QUEEN && threats_r.has_square(to)) return 16384;
+                            return 0;
+                        };
+
+                        auto score_threats_dodged = [&](
+                            Bitboard threats_p, Bitboard threats_bn, Bitboard threats_r,
+                            Piece pt, Square from
+                        ) {
+                            if (threats_p.has_square(from)) return QuietPawnAttackedDodgeCoef * seeVal[pt];
+                            if (pt >= ROOK && threats_bn.has_square(from)) return 16384;
+                            if (pt == QUEEN && threats_r.has_square(from)) return 16384;
+                            return 0;
+                        };
+
+                        score += score_threats_dodged(threats_p, threats_bn, threats_r, pt, from) -
+                                 score_threats(threats_p, threats_bn, threats_r, pt, to);
                     }
 
                     scores[m++] = score;
