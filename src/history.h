@@ -140,7 +140,7 @@ public:
     }
 
     inline const CorrectionHistory get_cont_corr_hist(const StackEntry* stack) const {
-        return cont_corr_hist[stack->piece][sq_to(stack->move)][(stack - 1)->piece][sq_to((stack - 1)->move)];
+        return cont_corr_hist[(stack - 1)->piece][sq_to((stack - 1)->move)][(stack - 2)->piece][sq_to((stack - 2)->move)];
     }
 
     inline void update_cont_hist_move(const Piece piece, const Square to, StackEntry* stack, const int16_t bonus) {
@@ -186,14 +186,14 @@ public:
         get_corr_hist(turn, pawn_key).update_corr_hist(w, delta);
         get_mat_corr_hist(turn, WHITE, white_mat_key).update_corr_hist(w, delta);
         get_mat_corr_hist(turn, BLACK, black_mat_key).update_corr_hist(w, delta);
-        if (stack->move && (stack - 1)->move) get_cont_corr_hist(stack).update_corr_hist(w, delta);
+        if ((stack - 1)->move && (stack - 2)->move) get_cont_corr_hist(stack).update_corr_hist(w, delta);
     }
 
     inline const int get_corrected_eval(const int eval, const bool turn, const uint64_t pawn_key, const uint64_t white_mat_key, const uint64_t black_mat_key, const StackEntry* stack) const {
         int correction = 200 * get_corr_hist(turn, pawn_key) + 
                          150 * get_mat_corr_hist(turn, WHITE, white_mat_key) + 
                          150 * get_mat_corr_hist(turn, BLACK, black_mat_key);
-        if (stack->move && (stack - 1)->move) correction += 150 * get_cont_corr_hist(stack);
+        if ((stack - 1)->move && (stack - 2)->move) correction += 150 * get_cont_corr_hist(stack);
         return eval + correction / (300 * CorrHistDiv);
     }
 };
