@@ -428,7 +428,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
             }
 
             // probcut
-            const int probcut_beta = beta + ProbcutMargin;
+            const int probcut_beta = beta + ProbcutMargin - ProbcutImproving * improving;
             if (depth >= ProbcutDepth && abs(beta) < MATE && !(ttHit && ttDepth >= depth - 3 && ttValue < probcut_beta)) {
                 Movepick picker(
                     ttMove && board.is_noisy_move(ttMove) && see(board, ttMove, probcut_beta - static_eval) ? ttMove : NULLMOVE,
