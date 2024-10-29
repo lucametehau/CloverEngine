@@ -45,7 +45,7 @@ public:
     CorrectionHistory() : corr(0) {}
     inline void update_corr_hist(const int w, const int delta) {
         corr = (corr * (CorrHistScale - w) + CorrHistDiv * delta * w) / CorrHistScale;
-        corr = std::clamp(corr, -32 * CorrHistDiv, 32 * CorrHistDiv);
+        corr = std::clamp(corr, -48 * CorrHistDiv, 48 * CorrHistDiv);
     }
 
     inline operator int() const { return corr; }
