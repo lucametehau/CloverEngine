@@ -47,7 +47,7 @@ private:
     int threshold;
 
     MoveList moves, badNoisy;
-    std::array<int, MAX_MOVES> scores;
+    std::array<int, MAX_MOVES> scores, noisy_history;
 
 public:
     Movepick(const Move _ttMove, const Move _killer, const int _threshold, const Threats threats) {
@@ -62,6 +62,7 @@ public:
         threats_r = threats.threats_pieces[ROOK] | threats_bn;
     }
 
+    template<bool noisy_sorting>
     void get_best_move(int offset, int nrMoves, MoveList &moves, std::array<int, MAX_MOVES> &scores) {
         int ind = offset;
         for (int i = offset + 1; i < nrMoves; i++) {
@@ -70,6 +71,7 @@ public:
         }
         std::swap(scores[ind], scores[offset]);
         std::swap(moves[ind], moves[offset]);
+        if constexpr (noisy_sorting) std::swap(noisy_history[ind], noisy_history[offset]);
     }
 
     Move get_next_move(Histories &histories, StackEntry* stack, Board &board, bool skip, bool noisyPicker) {
@@ -99,7 +101,8 @@ public:
                 const Piece piece = board.piece_at(sq_from(move)), cap = board.get_captured_type(move);
                 const Square to = sq_to(move);
                 int score = GoodNoisyValueCoef * seeVal[cap];
-                score += histories.get_cap_hist(piece, to, cap);
+                noisy_history[m] = histories.get_cap_hist(piece, to, cap);
+                score += noisy_history[m];
                 scores[m++] = score;
             }
 
@@ -110,8 +113,8 @@ public:
         case STAGE_GOOD_NOISY:
             trueStage = STAGE_GOOD_NOISY;
             while (index < nrNoisy) {
-                get_best_move(index, nrNoisy, moves, scores);
-                if (see(board, moves[index], threshold))
+                get_best_move<true>(index, nrNoisy, moves, scores);
+                if (see(board, moves[index], std::max(threshold, -noisy_history[index] / 32 + 200)))
                     return moves[index++];
                 else {
                     badNoisy[nrBadNoisy++] = moves[index++];
@@ -189,7 +192,7 @@ public:
         case STAGE_QUIETS:
             trueStage = STAGE_QUIETS;
             if (!skip && index < nrQuiets) {
-                get_best_move(index, nrQuiets, moves, scores);
+                get_best_move<false>(index, nrQuiets, moves, scores);
                 return moves[index++];
             }
             else {

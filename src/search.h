@@ -525,7 +525,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
                     auto history_margin = [&](int depth) {
                         return -HistoryPruningMargin * depth;
                     };
-                    if (depth <= HistoryPruningDepth && bad_static_eval && history < history_margin(depth + improving)) {
+                    if (depth <= HistoryPruningDepth && bad_static_eval && history < history_margin(depth)) {
                         skip = 1;
                         continue;
                     }

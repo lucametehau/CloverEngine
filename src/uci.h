@@ -38,7 +38,8 @@ private:
     void uci();
     void ucinewgame(uint64_t ttSize);
     void is_ready();
-    void go(Info &info);
+    void position(std::istringstream &iss, Info &info);
+    void go(std::istringstream &iss, Info &info);
     void stop();
     void quit();
     void eval();
@@ -47,7 +48,6 @@ private:
     void set_param_double(std::istringstream &iss, double &value);
 public:
     Board* uci_board;
-    //ThreadPool thread_pool;
 };
 
 void UCI::set_param_int(std::istringstream &iss, int &value) {
@@ -92,84 +92,13 @@ void UCI::uci_loop() {
             is_ready();
         }
         else if (cmd == "position") {
-            std::string type;
-            while (iss >> type) {
-                if (type == "startpos") {
-                    thread_pool.set_fen(START_POS_FEN);
-                    uci_board->set_fen(START_POS_FEN);
-                }
-                else if (type == "fen") {
-                    std::string fen;
-                    for (int i = 0; i < 6; i++) {
-                        std::string component;
-                        iss >> component;
-                        fen += component + " ";
-                    }
-                    thread_pool.set_fen(fen, info.chess960);
-                    uci_board->set_fen(fen);
-                    uci_board->chess960 = info.chess960;
-                }
-                else if (type == "moves") {
-                    std::string moveStr;
-                    while (iss >> moveStr) {
-                        Move move = parse_move_string(*uci_board, moveStr, info);
-                        thread_pool.make_move(move);
-                        uci_board->make_move(move);
-                    }
-                }
-            }
+            position(iss, info);
         }
         else if (cmd == "ucinewgame") {
             ucinewgame(ttSize);
         }
         else if (cmd == "go") {
-            int depth = -1, movetime = -1;
-            int time = -1, inc = 0;
-            int64_t nodes = -1;
-            bool turn = uci_board->turn;
-            info.timeset = 0;
-            info.sanMode = 0;
-
-            std::string param;
-
-            while (iss >> param) {
-                if (param == "binc" && turn == BLACK) { iss >> inc; }
-                else if (param == "winc" && turn == WHITE) { iss >> inc; }
-                else if (param == "wtime" && turn == WHITE) { iss >> time; }
-                else if (param == "btime" && turn == BLACK) { iss >> time; }
-                else if (param == "movetime") { iss >> movetime; }
-                else if (param == "depth") { iss >> depth; }
-                else if (param == "nodes") { iss >> nodes; }
-                else if (param == "san") { info.sanMode = true; }
-            }
-
-            info.startTime = getTime();
-            info.depth = depth;
-
-            if (movetime != -1) {
-                time = movetime;
-                info.timeset = 1;
-                info.goodTimeLim = info.hardTimeLim = time;
-                info.stopTime = info.startTime + info.goodTimeLim;
-            }
-            else if (time != -1) {
-                const int MOVE_OVERHEAD = 100; // idk
-                time -= MOVE_OVERHEAD;
-                int incTime = time + 40 * inc;
-                int goodTimeLim, hardTimeLim;
-                goodTimeLim = std::min<int>(incTime * TMCoef1, time * TMCoef2);
-                hardTimeLim = std::min<int>(goodTimeLim * TMCoef3, time * TMCoef4);
-                info.goodTimeLim = goodTimeLim;
-                info.hardTimeLim = hardTimeLim;
-                info.timeset = 1;
-                info.stopTime = info.startTime + goodTimeLim;
-            }
-
-            info.nodes = nodes;
-            if (depth == -1)
-                info.depth = MAX_DEPTH;
-
-            go(info);
+            go(iss, info);
         }
         else if (cmd == "quit") {
             quit();
@@ -308,7 +237,81 @@ void UCI::ucinewgame(uint64_t ttSize) {
 #endif
 }
 
-void UCI::go(Info &info) {
+void UCI::position(std::istringstream &iss, Info &info) {
+    std::string type;
+    while (iss >> type) {
+        if (type == "startpos") {
+            thread_pool.set_fen(START_POS_FEN);
+            uci_board->set_fen(START_POS_FEN);
+        }
+        else if (type == "fen") {
+            std::string fen;
+            for (int i = 0; i < 6; i++) {
+                std::string component;
+                iss >> component;
+                fen += component + " ";
+            }
+            thread_pool.set_fen(fen, info.chess960);
+            uci_board->set_fen(fen);
+            uci_board->chess960 = info.chess960;
+        }
+        else if (type == "moves") {
+            std::string moveStr;
+            while (iss >> moveStr) {
+                Move move = parse_move_string(*uci_board, moveStr, info);
+                thread_pool.make_move(move);
+                uci_board->make_move(move);
+            }
+        }
+    }
+}
+
+void UCI::go(std::istringstream &iss, Info &info) {
+    int depth = -1, movetime = -1, time = -1, inc = 0;
+    int64_t nodes = -1;
+    std::string param;
+    bool turn = uci_board->turn;
+
+    info.timeset = 0;
+    info.sanMode = 0;
+
+    while (iss >> param) {
+        if (param == "binc" && turn == BLACK) iss >> inc;
+        else if (param == "winc" && turn == WHITE) iss >> inc;
+        else if (param == "wtime" && turn == WHITE) iss >> time;
+        else if (param == "btime" && turn == BLACK) iss >> time;
+        else if (param == "movetime") iss >> movetime;
+        else if (param == "depth") iss >> depth;
+        else if (param == "nodes") iss >> nodes;
+        else if (param == "san") info.sanMode = true;
+    }
+
+    info.startTime = getTime();
+    info.depth = depth;
+
+    if (movetime != -1) {
+        time = movetime;
+        info.timeset = 1;
+        info.goodTimeLim = info.hardTimeLim = time;
+        info.stopTime = info.startTime + info.goodTimeLim;
+    }
+    else if (time != -1) {
+        const int MOVE_OVERHEAD = 100; // idk
+        time -= MOVE_OVERHEAD;
+        int incTime = time + 40 * inc;
+        int goodTimeLim, hardTimeLim;
+        goodTimeLim = std::min<int>(incTime * TMCoef1, time * TMCoef2);
+        hardTimeLim = std::min<int>(goodTimeLim * TMCoef3, time * TMCoef4);
+        info.goodTimeLim = goodTimeLim;
+        info.hardTimeLim = hardTimeLim;
+        info.timeset = 1;
+        info.stopTime = info.startTime + goodTimeLim;
+    }
+
+    info.nodes = nodes;
+    if (depth == -1)
+        info.depth = MAX_DEPTH;
+    
 #ifndef GENERATE
     TT->age();
 #endif
@@ -347,8 +350,7 @@ void UCI::go_perft(int depth) {
 }
 
 /// positions used for benching
-
-std::string benchPos[] = {
+const std::string benchPos[] = {
     "r3k2r/2pb1ppp/2pp1q2/p7/1nP1B3/1P2P3/P2N1PPP/R2QK2R w KQkq a6 0 14   ",
     "4rrk1/2p1b1p1/p1p3q1/4p3/2P2n1p/1P1NR2P/PB3PP1/3R1QK1 b - - 2 24     ",
     "r3qbrk/6p1/2b2pPp/p3pP1Q/PpPpP2P/3P1B2/2PB3K/R5R1 w - - 16 42        ",
