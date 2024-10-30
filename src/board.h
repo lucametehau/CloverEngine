@@ -267,6 +267,8 @@ public:
     }
 
     bool is_draw(int ply);
+
+    bool has_upcoming_repetition(int ply);
 };
 
 class Info {

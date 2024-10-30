@@ -156,6 +156,8 @@ private:
     template <bool checkTime>
     bool check_for_stop();
 
+    int draw_score() { return 1 - (nodes & 2); }
+
     std::array<uint64_t, 64 * 64> nodes_seached;
 };
 

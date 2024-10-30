@@ -20,6 +20,7 @@
 #include "defs.h"
 #include "move.h"
 #include "attacks.h"
+#include "cuckoo.h"
 
 void init(Info &info) {
     info.depth = MAX_DEPTH;
@@ -289,11 +290,27 @@ void Board::set_dfrc(int idx) {
     NN.calc(input, turn);
 }
 
-bool Board::is_draw(int ply) {
-    if (half_moves() < 100 || !checkers())
-        return isMaterialDraw() || is_repetition(ply) || half_moves() >= 100;
-    int nrmoves = 0;
+bool Board::is_draw(const int ply) {
+    if (half_moves() < 100 || !checkers()) return isMaterialDraw() || is_repetition(ply) || half_moves() >= 100;
     MoveList moves;
-    nrmoves = gen_legal_moves(*this, moves);
-    return nrmoves > 0;
+    return gen_legal_moves(*this, moves) > 0;
+}
+
+bool Board::has_upcoming_repetition(const int ply) {
+    const Bitboard all_pieces = get_bb_color(WHITE) | get_bb_color(BLACK);
+    for (int i = 3; i <= half_moves(); i += 2) {
+        const uint64_t key_delta = key() ^ history[game_ply - i].key;
+        int cuckoo_ind = cuckoo::hash1(key_delta);
+
+        if (cuckoo::cuckoo[cuckoo_ind] != key_delta) cuckoo_ind = cuckoo::hash2(key_delta);
+        if (cuckoo::cuckoo[cuckoo_ind] != key_delta) continue;
+
+        const Move move = cuckoo::cuckoo_move[cuckoo_ind];
+        const Square from = sq_from(move), to = sq_to(move);
+        if ((between_mask[from][to] ^ Bitboard(to)) & all_pieces) continue;
+        if (ply > i) return true;
+        const Piece piece = board[from] != NO_PIECE ? board[from] : board[to];
+        return piece != NO_PIECE && color_of(piece) == turn; 
+    }
+    return false;
 }
