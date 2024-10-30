@@ -519,7 +519,10 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
                         static_eval + futility_margin(new_depth) <= alpha) skip = 1;
 
                     // late move pruning
-                    if (new_depth <= LMPDepth && played >= (LMPBias + new_depth * new_depth) / (2 - improving)) skip = 1;
+                    auto lmp_count = [&](int depth, int improving) {
+                        return (LMPBias + depth * depth) / (2 - improving);
+                    };
+                    if (new_depth <= LMPDepth && played >= lmp_count(new_depth - (cutNode && new_depth <= 3), improving)) skip = 1;
 
                     // history pruning
                     auto history_margin = [&](int depth) {
