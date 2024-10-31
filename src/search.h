@@ -547,8 +547,9 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
                     auto noisy_futility_margin = [&](int depth, Piece captured) {
                         return FPBias + seeVal[captured] + FPMargin * depth;
                     };
-                    if (depth <= FPNoisyDepth && !in_check && 
-                        static_eval + noisy_futility_margin(depth, board.get_captured_type(move)) <= alpha) continue;
+                    int new_depth = was_pv ? depth : std::max(0, depth - lmr_red[std::min(63, depth)][std::min(63, played)] + improving);
+                    if (new_depth <= FPNoisyDepth && !in_check && 
+                        static_eval + noisy_futility_margin(new_depth, board.get_captured_type(move)) <= alpha) continue;
                 }
             }
         }
