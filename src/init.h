@@ -298,7 +298,10 @@ bool Board::is_draw(const int ply) {
 
 bool Board::has_upcoming_repetition(const int ply) {
     const Bitboard all_pieces = get_bb_color(WHITE) | get_bb_color(BLACK);
-    for (int i = 3; i <= half_moves(); i += 2) {
+    uint64_t b = ~(key() ^ history[game_ply - 1].key);
+    for (int i = 3; i <= half_moves() && i <= game_ply; i += 2) {
+        b ^= ~(history[game_ply - i].key ^ history[game_ply - i + 1].key);
+        if (b) continue;
         const uint64_t key_delta = key() ^ history[game_ply - i].key;
         int cuckoo_ind = cuckoo::hash1(key_delta);
 
@@ -309,7 +312,7 @@ bool Board::has_upcoming_repetition(const int ply) {
         const Square from = sq_from(move), to = sq_to(move);
         if ((between_mask[from][to] ^ Bitboard(to)) & all_pieces) continue;
         if (ply > i) return true;
-        const Piece piece = board[from] != NO_PIECE ? board[from] : board[to];
+        const Piece piece = piece_at(from) != NO_PIECE ? piece_at(from) : piece_at(to);
         return piece != NO_PIECE && color_of(piece) == turn; 
     }
     return false;

@@ -40,8 +40,8 @@ public:
     HistoricalState state;
     std::array<HistoricalState, STACK_SIZE> history; /// fuck it
 
-    std::array<uint8_t, 64> board;
-    MultiArray<uint8_t, 2, 2> rookSq;    
+    std::array<Piece, 64> board;
+    MultiArray<Square, 2, 2> rookSq;    
     MultiArray<uint8_t, 2, 64> castleRightsDelta;
 
     uint16_t ply, game_ply;
