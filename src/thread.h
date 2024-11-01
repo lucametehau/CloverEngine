@@ -90,8 +90,8 @@ public:
     }
 
 public:
-    inline bool main_thread() { return thread_id == 0; }
-    inline bool must_stop() { return state & (ThreadStates::STOP | ThreadStates::EXIT); }
+    bool main_thread() { return thread_id == 0; }
+    bool must_stop() { return state & (ThreadStates::STOP | ThreadStates::EXIT); }
 
     void wait_for_finish() {
         std::unique_lock<std::mutex> lock(mutex);

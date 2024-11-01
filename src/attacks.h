@@ -21,13 +21,13 @@
 
 namespace attacks {
 
-std::array<Bitboard, 64> rookAttacksMask, bishopAttacksMask;
-MultiArray<Bitboard, 2, 64> pawnAttacksMask;
-MultiArray<Bitboard, 64, 4096> rookTable;
-MultiArray<Bitboard, 64, 512> bishopTable;
-MultiArray<Bitboard, 64, 8> raysMask;
-std::array<Bitboard, 64> knightBBAttacks, kingBBAttacks;
-std::array<Bitboard, 64> kingRingMask, kingSquareMask, pawnShieldMask;
+inline std::array<Bitboard, 64> rookAttacksMask, bishopAttacksMask;
+inline MultiArray<Bitboard, 2, 64> pawnAttacksMask;
+inline MultiArray<Bitboard, 64, 4096> rookTable;
+inline MultiArray<Bitboard, 64, 512> bishopTable;
+inline MultiArray<Bitboard, 64, 8> raysMask;
+inline std::array<Bitboard, 64> knightBBAttacks, kingBBAttacks;
+inline std::array<Bitboard, 64> kingRingMask, kingSquareMask, pawnShieldMask;
 
 inline Bitboard genAttacksBishopSlow(Bitboard blockers, Square sq) {
     Bitboard attacks;
@@ -111,7 +111,7 @@ inline void initKnightAndKingAttacks() {
 
     for (Square i = 0; i < 64; i++) {
         int rank = i / 8, file = i % 8;
-        Square sq = 0; /// board.king(color)
+        Square sq = 0; /// board.get_king(color)
         if (rank < 1)
             sq = 1 * 8;
         else if (rank > 6)
@@ -264,15 +264,15 @@ inline Bitboard genAttacksKing(Square sq) {
 
 inline Bitboard genAttacksSq(Bitboard blockers, Square sq, Piece pieceType) {
     switch (pieceType) {
-    case KNIGHT:
+    case PieceTypes::KNIGHT:
         return genAttacksKnight(sq);
-    case BISHOP:
+    case PieceTypes::BISHOP:
         return genAttacksBishop(blockers, sq);
-    case ROOK:
+    case PieceTypes::ROOK:
         return genAttacksRook(blockers, sq);
-    case QUEEN:
+    case PieceTypes::QUEEN:
         return genAttacksQueen(blockers, sq);
-    case KING:
+    case PieceTypes::KING:
         return genAttacksKing(sq);
     }
     assert(0);

@@ -18,6 +18,7 @@
 #pragma once
 #include <type_traits>
 #include <cassert>
+#include <iostream>
 
 // tuning param/option
 template <typename T>
@@ -28,8 +29,8 @@ struct Parameter {
 };
 
 
-std::vector<Parameter<int>> params_int;
-std::vector<Parameter<double>> params_double;
+inline std::vector<Parameter<int>> params_int;
+inline std::vector<Parameter<double>> params_double;
 
 // trick to be able to create options
 template <typename T>
@@ -176,7 +177,7 @@ TUNE_PARAM(SeeValBishop, 334, 320, 380);
 TUNE_PARAM(SeeValRook, 504, 450, 600);
 TUNE_PARAM(SeeValQueen, 989, 900, 1100);
 
-void print_params_for_ob() {
+inline void print_params_for_ob() {
     for (auto& param : params_int) {
         std::cout << param.name << ", int, " << param.value << ", " << param.min << ", " << param.max << ", " << std::max(0.5, (param.max - param.min) / 20.0) << ", 0.002\n";
     }

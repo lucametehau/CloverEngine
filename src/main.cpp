@@ -16,7 +16,6 @@
 */
 #include <iostream>
 #include <string>
-#include "init.h"
 #include "cuckoo.h"
 #include "perft.h"
 #include "uci.h"

@@ -27,6 +27,7 @@
 #include <array>
 #include <chrono>
 #include <map>
+#include <iostream>
 #include "params.h"
 
 #if defined(__ARM_NEON)
@@ -35,8 +36,8 @@
 #include <immintrin.h>
 #endif
 
-std::mt19937_64 gen(0xBEEF);
-std::uniform_int_distribution <uint64_t> rng;
+inline std::mt19937_64 gen(0xBEEF);
+inline std::uniform_int_distribution <uint64_t> rng;
 
 template<typename T, std::size_t size, std::size_t... sizes>
 struct MultiArray_impl {
@@ -87,19 +88,19 @@ public:
     Bitboard(unsigned long long _bb = 0) : bb(_bb) {}
     Bitboard(Square sq) : bb(1ULL << sq) { assert(sq < NO_EP); }
 
-    inline bool has_square(Square sq) const { return (bb >> sq) & 1; }
-    inline Square get_msb_square() const { return 63 - __builtin_clzll(bb); }
-    inline Square get_lsb_square() const { return __builtin_ctzll(bb); }
-    inline Bitboard lsb() const { return bb & -bb; }
-    inline operator unsigned long long() const { return bb; } 
+    bool has_square(Square sq) const { return (bb >> sq) & 1; }
+    Square get_msb_square() const { return 63 - __builtin_clzll(bb); }
+    Square get_lsb_square() const { return __builtin_ctzll(bb); }
+    Bitboard lsb() const { return bb & -bb; }
+    operator unsigned long long() const { return bb; } 
 
-    inline Square get_square_pop() {
+    Square get_square_pop() {
         const Square sq = get_lsb_square();
         bb &= bb - 1;
         return sq;
     }
 
-    inline int count() const { return __builtin_popcountll(bb); }
+    int count() const { return __builtin_popcountll(bb); }
 
     Bitboard operator | (const Bitboard &other) const { return bb | other.bb; }
     Bitboard operator & (const Bitboard &other) const { return bb & other.bb; }
@@ -127,9 +128,7 @@ public:
     Bitboard all_threats;
     Bitboard threatened_pieces;
 
-    Threats() {
-        for(int i = 0; i < 4; i++) threats_pieces[i] = Bitboard(0ULL);
-    }
+    Threats() { for(int i = 0; i < 4; i++) threats_pieces[i] = Bitboard(0ULL); }
 };
 
 enum PieceTypes : Piece {
@@ -137,8 +136,8 @@ enum PieceTypes : Piece {
 };
 
 enum Pieces : Piece {
-    BP = 0, BN, BB, BR, BQ, BK,
-    WP = 6, WN, WB, WR, WQ, WK,
+    BlackPawn = 0, BlackKnight, BlackBishop, BlackRook, BlackQueen, BlackKing,
+    WhitePawn = 6, WhiteKnight, WhiteBishop, WhiteRook, WhiteQueen, WhiteKing,
     NO_PIECE
 };
 
@@ -179,25 +178,25 @@ constexpr int MAX_DEPTH = 200;
 constexpr int MAX_MOVES = 256;
 typedef std::array<Move, MAX_MOVES> MoveList;
 
-constexpr uint64_t ALL = 18446744073709551615ULL;
-const std::string piece_char = "pnbrqkPNBRQK.";
-const std::string START_POS_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+inline const Bitboard ALL = 18446744073709551615ULL;
+inline const std::string piece_char = "pnbrqkPNBRQK.";
+inline const std::string START_POS_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
-std::map<char, int> cod;
-MultiArray<uint64_t, 12, 64> hashKey;
-MultiArray<uint64_t, 2, 2> castleKey;
-std::array<uint64_t, 64> enPasKey;
-std::array<uint64_t, 16> castleKeyModifier;
+inline std::map<char, Piece> cod;
+inline MultiArray<uint64_t, 12, 64> hashKey;
+inline MultiArray<uint64_t, 2, 2> castleKey;
+inline std::array<uint64_t, 64> enPasKey;
+inline std::array<uint64_t, 16> castleKeyModifier;
 
-const std::array<Bitboard, 8> file_mask = {
+inline const std::array<Bitboard, 8> file_mask = {
     72340172838076673ull, 144680345676153346ull, 289360691352306692ull, 578721382704613384ull, 1157442765409226768ull, 2314885530818453536ull, 4629771061636907072ull, 9259542123273814144ull
 };
-const std::array<Bitboard, 8> rank_mask = {
+inline const std::array<Bitboard, 8> rank_mask = {
     255ull, 65280ull, 16711680ull, 4278190080ull, 1095216660480ull, 280375465082880ull, 71776119061217280ull, 18374686479671623680ull
 };
-MultiArray<Bitboard, 64, 64> between_mask, line_mask;
+inline MultiArray<Bitboard, 64, 64> between_mask, line_mask;
 
-MultiArray<int, 64, 64> lmr_red;
+inline MultiArray<int, 64, 64> lmr_red;
 
 constexpr std::pair<int, int> knightDir[8] = { {-1, -2}, {-2, -1}, {-2, 1}, {-1, 2}, {1, 2}, {2, 1}, {2, -1}, {1, -2} };
 constexpr std::pair<int, int> rookDir[4] = { {-1, 0}, {1, 0}, {0, -1}, {0, 1} };
@@ -220,27 +219,18 @@ constexpr std::array<int, 64> kingIndTable = {
 class MeanValue {
 private:
     std::string name;
-    double valuesSum;
-    int valuesCount;
+    double sum;
+    int count;
 
 public:
-    MeanValue(std::string _name = "") {
-        name = _name;
-        valuesSum = 0.0;
-        valuesCount = 0;
-    }
+    MeanValue(std::string _name = "") : name(_name), sum(0.0), count(0) {}
 
-    void upd(double value) {
-        valuesSum += value;
-        valuesCount++;
-    }
+    void upd(double value) { sum += value; count++; }
 
-    void print_mean() {
-        std::cout << name << " has the mean value " << valuesSum / valuesCount << "\n";//(" << valuesCount << " calls)\n";
-    }
+    void print_mean() { std::cout << name << " has the mean value " << sum / count << " (" << count << " calls)\n"; }
 };
 
-const auto t_init = std::chrono::steady_clock::now();
+inline const auto t_init = std::chrono::steady_clock::now();
 
 inline int64_t getTime() {
     auto t = std::chrono::steady_clock::now();
@@ -285,7 +275,7 @@ inline Square special_sqto(Move move) {
     return type(move) != CASTLE ? sq_to(move) : 8 * (sq_from(move) / 8) + (sq_from(move) < sq_to(move) ? 6 : 2);
 }
 
-std::string move_to_string(Move move, bool chess960 = false) {
+inline std::string move_to_string(Move move, bool chess960 = false) {
     int sq1 = sq_from(move), sq2 = !chess960 ? special_sqto(move) : sq_to(move);
     std::string ans;
     ans += char((sq1 & 7) + 'a');
@@ -293,16 +283,18 @@ std::string move_to_string(Move move, bool chess960 = false) {
     ans += char((sq2 & 7) + 'a');
     ans += char((sq2 >> 3) + '1');
     if (type(move) == PROMOTION)
-        ans += piece_char[promoted(move) + BN];
+        ans += piece_char[promoted(move) + Pieces::BlackKnight];
     return ans;
 }
 
-void init_defs() {
-    cod['p'] = BP, cod['n'] = BN, cod['b'] = BB, cod['r'] = BR, cod['q'] = BQ, cod['k'] = BK;
-    cod['P'] = WP, cod['N'] = WN, cod['B'] = WB, cod['R'] = WR, cod['Q'] = WQ, cod['K'] = WK;
+inline void init_defs() {
+    cod['p'] = Pieces::BlackPawn, cod['n'] = Pieces::BlackKnight, cod['b'] = Pieces::BlackBishop;
+    cod['r'] = Pieces::BlackRook, cod['q'] = Pieces::BlackQueen, cod['k'] = Pieces::BlackKing;
+    cod['P'] = Pieces::WhitePawn, cod['N'] = Pieces::WhiteKnight, cod['B'] = Pieces::WhiteBishop;
+    cod['R'] = Pieces::WhiteRook, cod['Q'] = Pieces::WhiteQueen, cod['K'] = Pieces::WhiteKing;
 
     /// zobrist keys
-    for (Piece i = BP; i <= WK; i++) {
+    for (Piece i = Pieces::BlackPawn; i <= Pieces::WhiteKing; i++) {
         for (Square j = 0; j < 64; j++)
             hashKey[i][j] = rng(gen);
     }

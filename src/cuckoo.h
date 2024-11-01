@@ -24,16 +24,16 @@ namespace cuckoo {
 constexpr int CUCKOO_SIZE = (1 << 13);
 constexpr int CUCKOO_MASK = CUCKOO_SIZE - 1;
 
-std::array<uint64_t, CUCKOO_SIZE> cuckoo;
-std::array<Move, CUCKOO_SIZE> cuckoo_move;
+inline std::array<uint64_t, CUCKOO_SIZE> cuckoo;
+inline std::array<Move, CUCKOO_SIZE> cuckoo_move;
 
 inline int hash1(const uint64_t key) { return key & CUCKOO_MASK; }
 inline int hash2(const uint64_t key) { return (key >> 16) & CUCKOO_MASK; }
 
-void init() {
+inline void init() {
     int count = 0;
-    for (Piece piece = BP; piece <= WK; piece++) {
-        if (piece_type(piece) == PAWN) continue; // no pawns
+    for (Piece piece = Pieces::BlackPawn; piece <= Pieces::WhiteKing; piece++) {
+        if (piece_type(piece) == PieceTypes::PAWN) continue; // no pawns
         for (Square from = 0; from < 64; from++) {
             for (Square to = from + 1; to < 64; to++) {
                 if (attacks::genAttacksSq(Bitboard(), from, piece_type(piece)).has_square(to)) {

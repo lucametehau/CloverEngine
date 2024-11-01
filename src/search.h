@@ -51,8 +51,8 @@ uint32_t probe_TB(Board& board, int depth) {
     if (TB_LARGEST && depth >= 2 && !board.half_moves()) {
         if (static_cast<uint32_t>((board.get_bb_color(WHITE) | board.get_bb_color(BLACK)).count()) <= TB_LARGEST)
             return tb_probe_wdl(board.get_bb_color(WHITE), board.get_bb_color(BLACK),
-                board.get_bb_piece_type(KING), board.get_bb_piece_type(QUEEN), board.get_bb_piece_type(ROOK),
-                board.get_bb_piece_type(BISHOP), board.get_bb_piece_type(KNIGHT), board.get_bb_piece_type(PAWN),
+                board.get_bb_piece_type(PieceTypes::KING), board.get_bb_piece_type(PieceTypes::QUEEN), board.get_bb_piece_type(PieceTypes::ROOK),
+                board.get_bb_piece_type(PieceTypes::BISHOP), board.get_bb_piece_type(PieceTypes::KNIGHT), board.get_bb_piece_type(PieceTypes::PAWN),
                 0, 0, board.enpas() == NO_EP ? 0 : board.enpas(), board.turn);
     }
     return TB_RESULT_FAILED;
@@ -60,59 +60,59 @@ uint32_t probe_TB(Board& board, int depth) {
 
 void get_threats(Threats& threats, Board& board, const bool us) {
     const bool enemy = 1 ^ us;
-    Bitboard our_pieces = board.get_bb_color(us) ^ board.get_bb_piece(PAWN, us);
-    Bitboard att = getPawnAttacks(enemy, board.get_bb_piece(PAWN, enemy)), threatened_pieces = att & our_pieces;
+    Bitboard our_pieces = board.get_bb_color(us) ^ board.get_bb_piece(PieceTypes::PAWN, us);
+    Bitboard att = getPawnAttacks(enemy, board.get_bb_piece(PieceTypes::PAWN, enemy)), threatened_pieces = att & our_pieces;
     Bitboard pieces, att_mask;
     const Bitboard all = board.get_bb_color(WHITE) | board.get_bb_color(BLACK);
 
-    threats.threats_pieces[PAWN] = att;
-    our_pieces ^= board.get_bb_piece(KNIGHT, us) | board.get_bb_piece(BISHOP, us);
+    threats.threats_pieces[PieceTypes::PAWN] = att;
+    our_pieces ^= board.get_bb_piece(PieceTypes::KNIGHT, us) | board.get_bb_piece(PieceTypes::BISHOP, us);
 
-    pieces = board.get_bb_piece(KNIGHT, enemy);
+    pieces = board.get_bb_piece(PieceTypes::KNIGHT, enemy);
     while (pieces) {
         att_mask = genAttacksKnight(pieces.get_square_pop());
         att |= att_mask;
-        threats.threats_pieces[KNIGHT] |= att_mask;
+        threats.threats_pieces[PieceTypes::KNIGHT] |= att_mask;
         threatened_pieces |= att & our_pieces;
     }
 
-    pieces = board.get_bb_piece(BISHOP, enemy);
+    pieces = board.get_bb_piece(PieceTypes::BISHOP, enemy);
     while (pieces) {
         att_mask = genAttacksBishop(all, pieces.get_square_pop());
         att |= att_mask;
-        threats.threats_pieces[BISHOP] |= att_mask;
+        threats.threats_pieces[PieceTypes::BISHOP] |= att_mask;
         threatened_pieces |= att & our_pieces;
     }
 
-    our_pieces ^= board.get_bb_piece(ROOK, us);
+    our_pieces ^= board.get_bb_piece(PieceTypes::ROOK, us);
 
-    pieces = board.get_bb_piece(ROOK, enemy);
+    pieces = board.get_bb_piece(PieceTypes::ROOK, enemy);
     while (pieces) {
         att_mask = genAttacksRook(all, pieces.get_square_pop());
         att |= att_mask;
-        threats.threats_pieces[ROOK] |= att_mask;
+        threats.threats_pieces[PieceTypes::ROOK] |= att_mask;
         threatened_pieces |= att & our_pieces;
     }
 
-    pieces = board.get_bb_piece(QUEEN, enemy);
+    pieces = board.get_bb_piece(PieceTypes::QUEEN, enemy);
     while (pieces) {
         att |= genAttacksQueen(all, pieces.get_square_pop());
     }
 
-    att |= genAttacksKing(board.king(enemy));
+    att |= genAttacksKing(board.get_king(enemy));
     threats.all_threats = att;
     threats.threatened_pieces = threatened_pieces;
 }
 
 std::string getSanString(Board& board, Move move) {
     if (type(move) == CASTLE) return sq_to(move) > sq_from(move) ? "O-O" : "O-O-O";
-    int from = sq_from(move), to = sq_to(move), prom = (type(move) == PROMOTION ? promoted(move) + KNIGHT + 6 : 0), piece = board.piece_type_at(from);
+    int from = sq_from(move), to = sq_to(move), prom = (type(move) == PROMOTION ? promoted(move) + PieceTypes::KNIGHT + 6 : 0), piece = board.piece_type_at(from);
     std::string san;
 
-    if (piece != PAWN) san += piece_char[piece + 6];
+    if (piece != PieceTypes::PAWN) san += piece_char[piece + 6];
     else san += char('a' + (from & 7));
     if (board.is_capture(move)) san += "x";
-    if (piece != PAWN || board.is_capture(move)) san += char('a' + (to & 7));
+    if (piece != PieceTypes::PAWN || board.is_capture(move)) san += char('a' + (to & 7));
 
     san += char('1' + (to >> 3));
 
@@ -541,7 +541,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
                     auto noisy_see_pruning_margin = [&](int depth, int history) {
                         return -SEEPruningNoisyMargin * depth * depth - history / SEENoisyHistDiv;
                     };
-                    if (depth <= SEEPruningNoisyDepth && !in_check && picker.trueStage > STAGE_GOOD_NOISY && 
+                    if (depth <= SEEPruningNoisyDepth && !in_check && picker.trueStage > Stages::STAGE_GOOD_NOISY && 
                         !see(board, move, noisy_see_pruning_margin(depth + bad_static_eval, history))) continue;
 
                     // futility pruning for noisy moves
@@ -601,16 +601,16 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
                 R = lmr_red[std::min(63, depth)][std::min(63, played)];
                 R += !was_pv + (improving <= 0); // not on pv or not improving
                 R -= !rootNode && pvNode;
-                R += enemy_has_no_threats && !in_check && eval - seeVal[KNIGHT] > beta; // if the position is relatively quiet and eval is bigger than beta by a margin
+                R += enemy_has_no_threats && !in_check && eval - seeVal[PieceTypes::KNIGHT] > beta; // if the position is relatively quiet and eval is bigger than beta by a margin
                 R += enemy_has_no_threats && !in_check && static_eval - root_eval > EvalDifferenceReductionMargin && ply % 2 == 0; /// the position in quiet and static eval is way bigger than root eval
-                R -= 2 * (picker.trueStage == STAGE_KILLER); // reduce for refutation moves
+                R -= 2 * (picker.trueStage == Stages::STAGE_KILLER); // reduce for refutation moves
                 R -= board.checkers() != 0; // move gives check
                 R -= history / HistReductionDiv; // reduce based on move history
             }
             else if (!was_pv) {
                 R = lmr_red[std::min(63, depth)][std::min(63, played)];
                 R += improving <= 0; // not improving
-                R += enemy_has_no_threats && picker.trueStage == STAGE_BAD_NOISY; // if the position is relatively quiet and the capture is "very losing"
+                R += enemy_has_no_threats && picker.trueStage == Stages::STAGE_BAD_NOISY; // if the position is relatively quiet and the capture is "very losing"
                 R -= history / CapHistReductionDiv; // reduce based on move history
             }
 

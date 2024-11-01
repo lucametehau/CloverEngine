@@ -21,17 +21,17 @@
 #include "board.h"
 #include "thread.h"
 
-inline int scale(Board& board) {
+int scale(Board& board) {
     return EvalScaleBias +
-        (board.get_bb_piece_type(PAWN).count() * seeVal[PAWN] + 
-        board.get_bb_piece_type(KNIGHT).count() * seeVal[KNIGHT] +
-        board.get_bb_piece_type(BISHOP).count() * seeVal[BISHOP] +
-        board.get_bb_piece_type(ROOK).count() * seeVal[ROOK] +
-        board.get_bb_piece_type(QUEEN).count() * seeVal[QUEEN]) / 32 - 
+        (board.get_bb_piece_type(PieceTypes::PAWN).count() * seeVal[PieceTypes::PAWN] + 
+        board.get_bb_piece_type(PieceTypes::KNIGHT).count() * seeVal[PieceTypes::KNIGHT] +
+        board.get_bb_piece_type(PieceTypes::BISHOP).count() * seeVal[PieceTypes::BISHOP] +
+        board.get_bb_piece_type(PieceTypes::ROOK).count() * seeVal[PieceTypes::ROOK] +
+        board.get_bb_piece_type(PieceTypes::QUEEN).count() * seeVal[PieceTypes::QUEEN]) / 32 - 
         board.half_moves() * EvalShuffleCoef;
 }
 
-inline int get_king_bucket_cache(const int king_sq, const bool c) {
+int get_king_bucket_cache(const int king_sq, const bool c) {
     return KING_BUCKETS * ((king_sq & 7) >= 4) + kingIndTable[king_sq ^ (56 * !c)];
 }
 
@@ -40,7 +40,7 @@ void Board::bring_up_to_date() {
     for (auto side : { BLACK, WHITE }) {
         if (!NN.hist[hist_size - 1].calc[side]) {
             int last_computed_pos = NN.get_computed_parent(side) + 1;
-            const int king_sq = king(side);
+            const int king_sq = get_king(side);
             if (last_computed_pos) { // no full refresh required
                 while(last_computed_pos < hist_size) {
                     NN.process_historic_update(last_computed_pos, king_sq, side);
@@ -50,7 +50,7 @@ void Board::bring_up_to_date() {
             else {
                 KingBucketState* state = &NN.cached_states[side][get_king_bucket_cache(king_sq, side)];
                 NN.clear_updates();
-                for (int i = BP; i <= WK; i++) {
+                for (Piece i = Pieces::BlackPawn; i <= Pieces::WhiteKing; i++) {
                     Bitboard prev = state->bb[i];
                     Bitboard curr = bb[i];
 

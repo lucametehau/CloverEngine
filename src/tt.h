@@ -28,7 +28,7 @@ struct Entry {
     int16_t eval;
     Move move;
 
-    inline int value(int ply) const {
+    int value(int ply) const {
         if (score != VALUE_NONE) {
             if (score >= TB_WIN_SCORE) return score - ply;
             else if (score <= -TB_WIN_SCORE) return score + ply;
@@ -36,11 +36,11 @@ struct Entry {
         return score;
     }
 
-    inline int bound() const { return about & 3; }
-    inline int depth() const { return (about >> 2) & 127; }
-    inline bool was_pv() const { return (about >> 9) & 1; }
-    inline int generation() const { return (about >> 10); }
-    inline void refresh(int gen) { about = (about & 1023u) | (gen << 10u); }
+    int bound() const { return about & 3; }
+    int depth() const { return (about >> 2) & 127; }
+    bool was_pv() const { return (about >> 9) & 1; }
+    int generation() const { return (about >> 10); }
+    void refresh(int gen) { about = (about & 1023u) | (gen << 10u); }
 };
 
 struct Bucket {
@@ -61,7 +61,7 @@ private:
 public:
     HashTable();
 
-    inline void initTableSlice(uint64_t start, uint64_t size);
+    void initTableSlice(uint64_t start, uint64_t size);
 
     void initTable(uint64_t size, int nr_threads = 1);
 
@@ -69,15 +69,15 @@ public:
 
     HashTable(const HashTable&) = delete;
 
-    inline void prefetch(const uint64_t hash);
+    void prefetch(const uint64_t hash);
 
     Entry* probe(const uint64_t hash, bool &ttHit);
 
     void save(Entry* entry, uint64_t hash, int score, int depth, int ply, int bound, uint16_t move, int eval, bool was_pv);
 
-    inline void reset_age();
+    void reset_age();
 
-    inline void age();
+    void age();
 
     int hashfull();
 };
@@ -128,7 +128,7 @@ void HashTable::initTable(uint64_t size, int nr_threads) {
     }
 }
 
-inline uint64_t mul_hi(const uint64_t a, const uint64_t b) {
+uint64_t mul_hi(const uint64_t a, const uint64_t b) {
     using uint128_t = unsigned __int128;
     return (static_cast<uint128_t>(a) * static_cast<uint128_t>(b)) >> 64;
 }
