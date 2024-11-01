@@ -222,7 +222,7 @@ inline void initBishopMagic() {
     }
 }
 
-inline void init_attacks() {
+inline void init() {
     initRays();
     initPawnAttacks();
     initKnightAndKingAttacks();
@@ -272,6 +272,8 @@ inline Bitboard genAttacksSq(Bitboard blockers, Square sq, Piece pieceType) {
         return genAttacksRook(blockers, sq);
     case QUEEN:
         return genAttacksQueen(blockers, sq);
+    case KING:
+        return genAttacksKing(sq);
     }
     assert(0);
     return Bitboard();

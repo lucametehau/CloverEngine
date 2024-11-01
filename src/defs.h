@@ -275,7 +275,7 @@ inline bool inside_board(int rank, int file) {
     return rank >= 0 && file >= 0 && rank <= 7 && file <= 7;
 }
 
-inline Move getMove(Square from, Square to, Piece prom, int type) { return from | (to << 6) | (prom << 12) | (type << 14); }
+inline Move get_move(Square from, Square to, Piece prom, int type) { return from | (to << 6) | (prom << 12) | (type << 14); }
 inline Square sq_from(Move move) { return move & 63; }
 inline Square sq_to(Move move) { return (move & 4095) >> 6; }
 inline int from_to(Move move) { return move & 4095; }
@@ -285,7 +285,7 @@ inline Square special_sqto(Move move) {
     return type(move) != CASTLE ? sq_to(move) : 8 * (sq_from(move) / 8) + (sq_from(move) < sq_to(move) ? 6 : 2);
 }
 
-inline std::string move_to_string(Move move, bool chess960 = false) {
+std::string move_to_string(Move move, bool chess960 = false) {
     int sq1 = sq_from(move), sq2 = !chess960 ? special_sqto(move) : sq_to(move);
     std::string ans;
     ans += char((sq1 & 7) + 'a');
@@ -297,7 +297,7 @@ inline std::string move_to_string(Move move, bool chess960 = false) {
     return ans;
 }
 
-inline void init_defs() {
+void init_defs() {
     cod['p'] = BP, cod['n'] = BN, cod['b'] = BB, cod['r'] = BR, cod['q'] = BQ, cod['k'] = BK;
     cod['P'] = WP, cod['N'] = WN, cod['B'] = WB, cod['R'] = WR, cod['Q'] = WQ, cod['K'] = WK;
 

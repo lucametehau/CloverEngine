@@ -300,7 +300,8 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
     pv_table_len[ply] = 0;
 
     if constexpr (!rootNode) {
-        if (board.is_draw(ply)) return 1 - (nodes & 2); /// beal effect, credit to Ethereal for this
+        if (alpha < 0 && board.has_upcoming_repetition(ply)) alpha = draw_score();
+        if (board.is_draw(ply)) return draw_score(); /// beal effect, credit to Ethereal for this
 
         /// mate distance pruning   
         alpha = std::max(alpha, -INF + ply);
