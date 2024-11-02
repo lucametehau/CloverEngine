@@ -134,7 +134,7 @@ public:
                 nrQuiets = board.gen_legal_quiet_moves(moves);
                 const bool turn = board.turn, enemy = 1 ^ turn;
                 const Bitboard allPieces = board.get_bb_color(WHITE) | board.get_bb_color(BLACK);
-                const Bitboard enemyKingRing = kingRingMask[board.get_king(enemy)];
+                const Bitboard enemyKingRing = attacks::kingRingMask[board.get_king(enemy)];
                 
                 int m = 0;
                 for (int i = 0; i < nrQuiets; i++) {
@@ -144,14 +144,14 @@ public:
 
                     moves[m] = move;
                     const Square from = sq_from(move), to = sq_to(move);
-                    const Piece piece = board.piece_at(from), pt = piece_type(piece);
+                    const Piece piece = board.piece_at(from), pt = piece.type();
                     int score = histories.get_history_movepick(move, piece, all_threats, turn, stack);
 
                     if (pt == PieceTypes::PAWN) // pawn push, generally good?
                         score += QuietPawnPushBonus;
 
                     if (pt != PieceTypes::KING && pt != PieceTypes::PAWN) {
-                        score += QuietKingRingAttackBonus * (genAttacksSq(allPieces, to, pt) & enemyKingRing).count();
+                        score += QuietKingRingAttackBonus * (attacks::genAttacksSq(allPieces, to, pt) & enemyKingRing).count();
 
                         auto score_threats = [&](
                             Bitboard threats_p, Bitboard threats_bn, Bitboard threats_r, 
@@ -260,7 +260,7 @@ bool see(Board& board, Move move, int threshold) {
             if (score <= 0)
                 break;
             occ ^= b.lsb();
-            att |= genAttacksBishop(occ, to) & diag;
+            att |= attacks::genAttacksBishop(occ, to) & diag;
         }
         else if ((b = (myAtt & board.get_bb_piece(PieceTypes::KNIGHT, stm)))) {
             score = seeVal[PieceTypes::KNIGHT] + 1 - score;
@@ -273,22 +273,22 @@ bool see(Board& board, Move move, int threshold) {
             if (score <= 0)
                 break;
             occ ^= b.lsb();
-            att |= genAttacksBishop(occ, to) & diag;
+            att |= attacks::genAttacksBishop(occ, to) & diag;
         }
         else if ((b = (myAtt & board.get_bb_piece(PieceTypes::ROOK, stm)))) {
             score = seeVal[PieceTypes::ROOK] + 1 - score;
             if (score <= 0)
                 break;
             occ ^= b.lsb();
-            att |= genAttacksRook(occ, to) & orth;
+            att |= attacks::genAttacksRook(occ, to) & orth;
         }
         else if ((b = (myAtt & board.get_bb_piece(PieceTypes::QUEEN, stm)))) {
             score = seeVal[PieceTypes::QUEEN] + 1 - score;
             if (score <= 0)
                 break;
             occ ^= b.lsb();
-            att |= genAttacksBishop(occ, to) & diag;
-            att |= genAttacksRook(occ, to) & orth;
+            att |= attacks::genAttacksBishop(occ, to) & diag;
+            att |= attacks::genAttacksRook(occ, to) & orth;
         }
         else {
             assert(myAtt & board.get_bb_piece(PieceTypes::KING, stm));

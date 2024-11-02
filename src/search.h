@@ -53,7 +53,7 @@ uint32_t probe_TB(Board& board, int depth) {
             return tb_probe_wdl(board.get_bb_color(WHITE), board.get_bb_color(BLACK),
                 board.get_bb_piece_type(PieceTypes::KING), board.get_bb_piece_type(PieceTypes::QUEEN), board.get_bb_piece_type(PieceTypes::ROOK),
                 board.get_bb_piece_type(PieceTypes::BISHOP), board.get_bb_piece_type(PieceTypes::KNIGHT), board.get_bb_piece_type(PieceTypes::PAWN),
-                0, 0, board.enpas() == NO_EP ? 0 : board.enpas(), board.turn);
+                0, 0, board.enpas() == NO_EP ? static_cast<Square>(0) : board.enpas(), board.turn);
     }
     return TB_RESULT_FAILED;
 }
@@ -61,7 +61,7 @@ uint32_t probe_TB(Board& board, int depth) {
 void get_threats(Threats& threats, Board& board, const bool us) {
     const bool enemy = 1 ^ us;
     Bitboard our_pieces = board.get_bb_color(us) ^ board.get_bb_piece(PieceTypes::PAWN, us);
-    Bitboard att = getPawnAttacks(enemy, board.get_bb_piece(PieceTypes::PAWN, enemy)), threatened_pieces = att & our_pieces;
+    Bitboard att = attacks::getPawnAttacks(enemy, board.get_bb_piece(PieceTypes::PAWN, enemy)), threatened_pieces = att & our_pieces;
     Bitboard pieces, att_mask;
     const Bitboard all = board.get_bb_color(WHITE) | board.get_bb_color(BLACK);
 
@@ -70,7 +70,7 @@ void get_threats(Threats& threats, Board& board, const bool us) {
 
     pieces = board.get_bb_piece(PieceTypes::KNIGHT, enemy);
     while (pieces) {
-        att_mask = genAttacksKnight(pieces.get_square_pop());
+        att_mask = attacks::genAttacksKnight(pieces.get_square_pop());
         att |= att_mask;
         threats.threats_pieces[PieceTypes::KNIGHT] |= att_mask;
         threatened_pieces |= att & our_pieces;
@@ -78,7 +78,7 @@ void get_threats(Threats& threats, Board& board, const bool us) {
 
     pieces = board.get_bb_piece(PieceTypes::BISHOP, enemy);
     while (pieces) {
-        att_mask = genAttacksBishop(all, pieces.get_square_pop());
+        att_mask = attacks::genAttacksBishop(all, pieces.get_square_pop());
         att |= att_mask;
         threats.threats_pieces[PieceTypes::BISHOP] |= att_mask;
         threatened_pieces |= att & our_pieces;
@@ -88,7 +88,7 @@ void get_threats(Threats& threats, Board& board, const bool us) {
 
     pieces = board.get_bb_piece(PieceTypes::ROOK, enemy);
     while (pieces) {
-        att_mask = genAttacksRook(all, pieces.get_square_pop());
+        att_mask = attacks::genAttacksRook(all, pieces.get_square_pop());
         att |= att_mask;
         threats.threats_pieces[PieceTypes::ROOK] |= att_mask;
         threatened_pieces |= att & our_pieces;
@@ -96,17 +96,18 @@ void get_threats(Threats& threats, Board& board, const bool us) {
 
     pieces = board.get_bb_piece(PieceTypes::QUEEN, enemy);
     while (pieces) {
-        att |= genAttacksQueen(all, pieces.get_square_pop());
+        att |= attacks::genAttacksQueen(all, pieces.get_square_pop());
     }
 
-    att |= genAttacksKing(board.get_king(enemy));
+    att |= attacks::genAttacksKing(board.get_king(enemy));
     threats.all_threats = att;
     threats.threatened_pieces = threatened_pieces;
 }
 
 std::string getSanString(Board& board, Move move) {
     if (type(move) == CASTLE) return sq_to(move) > sq_from(move) ? "O-O" : "O-O-O";
-    int from = sq_from(move), to = sq_to(move), prom = (type(move) == PROMOTION ? promoted(move) + PieceTypes::KNIGHT + 6 : 0), piece = board.piece_type_at(from);
+    int from = sq_from(move), to = sq_to(move);
+    Piece prom = type(move) == PROMOTION ? promoted(move) + PieceTypes::KNIGHT + 6 : static_cast<Piece>(0), piece = board.piece_type_at(from);
     std::string san;
 
     if (piece != PieceTypes::PAWN) san += piece_char[piece + 6];

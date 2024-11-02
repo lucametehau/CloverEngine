@@ -19,16 +19,19 @@ void Board::print() {
 
 Square Board::get_king(const bool color) { return get_bb_piece(PieceTypes::KING, color).get_lsb_square(); }
 
-Bitboard Board::diagonal_sliders(const bool color) { return bb[get_piece(PieceTypes::BISHOP, color)] | bb[get_piece(PieceTypes::QUEEN, color)]; }
+Bitboard Board::get_bb_piece(const Piece piece, const bool color) { return bb[get_piece(piece, color)]; }
+Bitboard Board::get_bb_color(const bool color) { return pieces[color]; }
+Bitboard Board::get_bb_piece_type(const Piece piece_type) {  return get_bb_piece(piece_type, WHITE) | get_bb_piece(piece_type, BLACK); }
 
-Bitboard Board::orthogonal_sliders(const bool color) { return bb[get_piece(PieceTypes::ROOK, color)] | bb[get_piece(PieceTypes::QUEEN, color)]; }
+Bitboard Board::diagonal_sliders(const bool color) { return get_bb_piece(PieceTypes::BISHOP, color) | get_bb_piece(PieceTypes::QUEEN, color); }
+Bitboard Board::orthogonal_sliders(const bool color) { return get_bb_piece(PieceTypes::ROOK, color) | get_bb_piece(PieceTypes::QUEEN, color); }
 
 Bitboard Board::get_attackers(const bool color, const Bitboard blockers, const Square sq) {
-    return (genAttacksPawn(1 ^ color, sq) & get_bb_piece(PieceTypes::PAWN, color)) |
-        (genAttacksKnight(sq) & get_bb_piece(PieceTypes::KNIGHT, color)) | 
-        (genAttacksBishop(blockers, sq) & diagonal_sliders(color)) |
-        (genAttacksRook(blockers, sq) & orthogonal_sliders(color)) | 
-        (genAttacksKing(sq) & get_bb_piece(PieceTypes::KING, color));
+    return (attacks::genAttacksPawn(1 ^ color, sq) & get_bb_piece(PieceTypes::PAWN, color)) |
+        (attacks::genAttacksKnight(sq) & get_bb_piece(PieceTypes::KNIGHT, color)) | 
+        (attacks::genAttacksBishop(blockers, sq) & diagonal_sliders(color)) |
+        (attacks::genAttacksRook(blockers, sq) & orthogonal_sliders(color)) | 
+        (attacks::genAttacksKing(sq) & get_bb_piece(PieceTypes::KING, color));
 }
 
 Bitboard Board::get_pinned_pieces() {
@@ -38,7 +41,7 @@ Bitboard Board::get_pinned_pieces() {
     Bitboard pinned; /// squares attacked by enemy / pinned pieces
     Bitboard enemyOrthSliders = orthogonal_sliders(enemy), enemyDiagSliders = diagonal_sliders(enemy);
 
-    mask = (genAttacksRook(them, king) & enemyOrthSliders) | (genAttacksBishop(them, king) & enemyDiagSliders);
+    mask = (attacks::genAttacksRook(them, king) & enemyOrthSliders) | (attacks::genAttacksBishop(them, king) & enemyDiagSliders);
 
     while (mask) {
         Bitboard b2 = us & between_mask[mask.get_square_pop()][king];
@@ -48,18 +51,15 @@ Bitboard Board::get_pinned_pieces() {
     return pinned;
 }
 
-Bitboard Board::getOrthSliderAttackers(const bool color, const Bitboard blockers, const Square sq) {
-    return genAttacksRook(blockers, sq) & orthogonal_sliders(color);
-}
 Bitboard Board::get_pawn_attacks(const bool color) {
     const Bitboard b = get_bb_piece(PieceTypes::PAWN, color);
     const int fileA = (color == WHITE ? 0 : 7), fileH = 7 - fileA;
     return shift_mask<NORTHWEST>(color, b & ~file_mask[fileA]) | shift_mask<NORTHEAST>(color, b & ~file_mask[fileH]);
 }
 
-Piece Board::piece_type_at(const Square sq) { return piece_type(board[sq]); }
-Piece Board::get_captured_type(const Move move) { return type(move) == ENPASSANT ? PieceTypes::PAWN : piece_type_at(sq_to(move)); }
 Piece Board::piece_at(const Square sq) { return board[sq]; }
+Piece Board::piece_type_at(const Square sq) { return piece_at(sq).type(); }
+Piece Board::get_captured_type(const Move move) { return type(move) == ENPASSANT ? PieceTypes::PAWN : piece_type_at(sq_to(move)); }
 
 bool Board::is_capture(const Move move) { return type(move) != CASTLE && piece_at(sq_to(move)) != NO_PIECE; }
 bool Board::is_noisy_move(const Move move) { 
@@ -79,7 +79,7 @@ void Board::make_move(const Move move) { /// assuming move is at least pseudo-le
 
     half_moves()++;
 
-    if (piece_type(piece) == PieceTypes::PAWN)
+    if (piece.type() == PieceTypes::PAWN)
         half_moves() = 0;
 
     captured() = NO_PIECE;
@@ -91,7 +91,7 @@ void Board::make_move(const Move move) { /// assuming move is at least pseudo-le
         bb[piece] ^= (1ULL << from) ^ (1ULL << to);
 
         key() ^= hashKey[piece][from] ^ hashKey[piece][to];
-        if (piece_type(piece) == PieceTypes::PAWN) pawn_key() ^= hashKey[piece][from] ^ hashKey[piece][to];
+        if (piece.type() == PieceTypes::PAWN) pawn_key() ^= hashKey[piece][from] ^ hashKey[piece][to];
         else mat_key(turn) ^= hashKey[piece][from] ^ hashKey[piece][to];
         /// moved a castle rook
         if (piece == Pieces::WhiteRook)
@@ -105,7 +105,7 @@ void Board::make_move(const Move move) { /// assuming move is at least pseudo-le
             pieces[1 ^ turn] ^= (1ULL << to);
             bb[piece_cap] ^= (1ULL << to);
             key() ^= hashKey[piece_cap][to];
-            if (piece_type(piece_cap) == PieceTypes::PAWN) pawn_key() ^= hashKey[piece_cap][to];
+            if (piece_cap.type() == PieceTypes::PAWN) pawn_key() ^= hashKey[piece_cap][to];
             else mat_key(1 ^ turn) ^= hashKey[piece_cap][to];
 
             /// special case: captured rook might have been a castle rook
@@ -120,7 +120,7 @@ void Board::make_move(const Move move) { /// assuming move is at least pseudo-le
         captured() = piece_cap;
 
         /// double push
-        if (piece_type(piece) == PieceTypes::PAWN && (from ^ to) == 16) {
+        if (piece.type() == PieceTypes::PAWN && (from ^ to) == 16) {
             if ((to % 8 && board[to - 1] == get_piece(PieceTypes::PAWN, turn ^ 1)) || 
                 (to % 8 < 7 && board[to + 1] == get_piece(PieceTypes::PAWN, turn ^ 1))) 
                 enpas() = shift_square<NORTH>(turn, from), key() ^= enPasKey[enpas()];
@@ -161,13 +161,13 @@ void Board::make_move(const Move move) { /// assuming move is at least pseudo-le
 
         if (to > from) { // king side castle
             rFrom = to;
-            to = mirror(turn, G1);
-            rTo = mirror(turn, F1);
+            to = mirror(turn, Squares::G1);
+            rTo = mirror(turn, Squares::F1);
         }
         else { // queen side castle
             rFrom = to;
-            to = mirror(turn, C1);
-            rTo = mirror(turn, D1);
+            to = mirror(turn, Squares::C1);
+            rTo = mirror(turn, Squares::D1);
         }
 
         pieces[turn] ^= (1ULL << from) ^ (1ULL << to) ^ (1ULL << rFrom) ^ (1ULL << rTo);
@@ -270,13 +270,13 @@ void Board::undo_move(const Move move) {
 
         if (to > from) { // king side castle
             rFrom = to;
-            to = mirror(turn, G1);
-            rTo = mirror(turn, F1);
+            to = mirror(turn, Squares::G1);
+            rTo = mirror(turn, Squares::F1);
         }
         else { // queen side castle
             rFrom = to;
-            to = mirror(turn, C1);
-            rTo = mirror(turn, D1);
+            to = mirror(turn, Squares::C1);
+            rTo = mirror(turn, Squares::D1);
         }
 
         pieces[turn] ^= Bitboard(from) ^ Bitboard(to) ^ Bitboard(rFrom) ^ Bitboard(rTo);
@@ -382,7 +382,7 @@ NetInput Board::to_netinput() {
 void Board::place_piece_at_sq(Piece piece, Square sq) {
     board[sq] = piece;
     key() ^= hashKey[piece][sq];
-    if (piece_type(piece) == PieceTypes::PAWN) pawn_key() ^= hashKey[piece][sq];
+    if (piece.type() == PieceTypes::PAWN) pawn_key() ^= hashKey[piece][sq];
     else mat_key(color_of(piece)) ^= hashKey[piece][sq];
 
     pieces[color_of(piece)] |= (1ULL << sq);
@@ -460,7 +460,7 @@ void Board::set_fen(const std::string fen) {
     for (int i = 7; i >= 0; i--) {
         int j = 0;
         while (fen[ind] != '/' && fen[ind] != ' ') {
-            Square sq = get_sq(i, j);
+            Square sq = Square(i, j);
             if (fen[ind] < '0' || '9' < fen[ind]) {
                 place_piece_at_sq(cod[fen[ind]], sq);
                 j++;
@@ -510,8 +510,8 @@ void Board::set_fen(const std::string fen) {
         if (fen[ind] == '-')
             ind++;
 
-        int a = 64, b = 64;
-        for (Square i = 0; i < 8; i++) {
+        Square a = 64, b = 64;
+        for (Square i = Squares::A1; i <= Squares::H1; i++) {
             if (piece_at(i) == Pieces::WhiteRook) {
                 a = b;
                 b = i;
@@ -526,7 +526,7 @@ void Board::set_fen(const std::string fen) {
             }
         }
         a = 64, b = 64;
-        for (Square i = 56; i < 64; i++) {
+        for (Square i = Squares::A8; i <= Squares::H8; i++) {
             if (piece_at(i) == Pieces::BlackRook) {
                 b = a;
                 a = i;
@@ -541,7 +541,7 @@ void Board::set_fen(const std::string fen) {
         }
     }
 
-    for (int i = 0; i < 64; i++) castleRightsDelta[BLACK][i] = castleRightsDelta[WHITE][i] = 15;
+    for (Square i = Squares::A1; i <= Squares::H8; i++) castleRightsDelta[BLACK][i] = castleRightsDelta[WHITE][i] = 15;
     if (rookSq[BLACK][0] != 64)
         castleRightsDelta[BLACK][rookSq[BLACK][0]] = 14, castleRightsDelta[BLACK][get_king(BLACK)] = 12;
     if (rookSq[BLACK][1] != 64)
@@ -557,7 +557,7 @@ void Board::set_fen(const std::string fen) {
         ind++;
         int rank = fen[ind] - '1';
         ind += 2;
-        enpas() = get_sq(rank, file);
+        enpas() = Square(rank, file);
 
         key() ^= enPasKey[enpas()];
     }
@@ -584,7 +584,7 @@ void Board::set_fen(const std::string fen) {
 }
 
 void Board::set_frc_side(bool color, int idx) {
-    int ind = (color == WHITE ? 0 : 56);
+    Square ind = color == WHITE ? Squares::A1 : Squares::A8;
 
     place_piece_at_sq(get_piece(PieceTypes::BISHOP, color), ind + 1 + (idx % 4) * 2);
     idx /= 4;
@@ -638,7 +638,7 @@ void Board::set_dfrc(int idx) {
     for (Piece i = Pieces::BlackPawn; i <= Pieces::WhiteKing; i++)
         bb[i] = Bitboard();
 
-    for (Square i = 0; i < 64; i++)
+    for (Square i = Squares::A1; i <= Squares::H8; i++)
         board[i] = NO_PIECE;
 
     pieces[BLACK] = pieces[WHITE] = Bitboard();
@@ -658,7 +658,7 @@ void Board::set_dfrc(int idx) {
     castle_rights() = 15;
 
     int a = 64, b = 64;
-    for (Square i = 0; i < 8; i++) {
+    for (Square i = Squares::A1; i <= Squares::H1; i++) {
         if (piece_at(i) == Pieces::WhiteRook) {
             a = b;
             b = i;
@@ -673,7 +673,7 @@ void Board::set_dfrc(int idx) {
         }
     }
     a = 64, b = 64;
-    for (Square i = 56; i < 64; i++) {
+    for (Square i = Squares::A8; i <= Squares::H8; i++) {
         if (piece_at(i) == Pieces::BlackRook) {
             b = a;
             a = i;
@@ -707,29 +707,27 @@ void Board::set_dfrc(int idx) {
     NN.calc(input, turn);
 }
 
-bool Board::isMaterialDraw() {
+bool Board::is_material_draw() {
     /// KvK, KBvK, KNvK, KNNvK
     const int num = (get_bb_color(WHITE) | get_bb_color(BLACK)).count();
-    return (num == 2 || (num == 3 && (get_bb_piece_type(PieceTypes::BISHOP) || get_bb_piece_type(PieceTypes::KNIGHT))) ||
-        (num == 4 && (bb[Pieces::WhiteKnight].count() == 2 || bb[Pieces::BlackKnight].count() == 2)));
+    return num == 2 || 
+        (num == 3 && (get_bb_piece_type(PieceTypes::BISHOP) || get_bb_piece_type(PieceTypes::KNIGHT))) ||
+        (num == 4 && (bb[Pieces::WhiteKnight].count() == 2 || bb[Pieces::BlackKnight].count() == 2));
 }
 
 bool Board::is_repetition(const int ply) {
     int cnt = 1;
-    for (int i = game_ply - 2; i >= game_ply - half_moves(); i -= 2) {
-        if (history[i].key == key()) {
+    for (int i = 2; i <= game_ply && i <= half_moves(); i += 2) {
+        if (history[game_ply - i].key == key()) {
             cnt++;
-            if (i > game_ply - ply)
-                return 1;
-            if (cnt == 3)
-                return 1;
+            if (ply > i || cnt == 3) return true;
         }
     }
-    return 0;
+    return false;
 }
 
 bool Board::is_draw(const int ply) {
-    if (half_moves() < 100 || !checkers()) return isMaterialDraw() || is_repetition(ply) || half_moves() >= 100;
+    if (half_moves() < 100 || !checkers()) return is_material_draw() || is_repetition(ply) || half_moves() >= 100;
     MoveList moves;
     return gen_legal_moves(moves) > 0;
 }

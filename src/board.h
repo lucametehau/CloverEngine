@@ -21,8 +21,6 @@
 #include "net.h"
 #include "attacks.h"
 
-using namespace attacks;
-
 class HistoricalState {
 public:
     Square enPas;
@@ -68,19 +66,16 @@ public:
     uint8_t& castle_rights() { return state.castleRights; }
     Piece& captured() { return state.captured; }
 
+    Bitboard get_bb_piece(const Piece piece, const bool color);
+    Bitboard get_bb_color(const bool color);
+    Bitboard get_bb_piece_type(const Piece piece_type);
+
     Bitboard diagonal_sliders(const bool color);
     Bitboard orthogonal_sliders(const bool color);
-
-    Bitboard get_bb_piece(const Piece piece, const bool color) { return bb[get_piece(piece, color)]; }
-    Bitboard get_bb_color(const bool color) { return pieces[color]; }
-    Bitboard get_bb_piece_type(const Piece piece_type) { 
-        return get_bb_piece(piece_type, WHITE) | get_bb_piece(piece_type, BLACK);
-    }
 
     Bitboard get_attackers(const bool color, const Bitboard blockers, const Square sq);
     Bitboard get_pinned_pieces();
 
-    Bitboard getOrthSliderAttackers(const bool color, const Bitboard blockers, const Square sq);
     Bitboard get_pawn_attacks(const bool color);
 
     Piece piece_type_at(const Square sq);
@@ -119,7 +114,7 @@ public:
 
     uint64_t speculative_next_key(const Move move);
 
-    bool isMaterialDraw();
+    bool is_material_draw();
     bool is_repetition(const int ply);
     bool is_draw(int ply);
     bool has_upcoming_repetition(int ply);

@@ -208,14 +208,15 @@ void Network::process_move(uint16_t move, Piece piece, Piece captured, Square ki
     }
     break;
     case CASTLE: {
-        Square rFrom = to, rTo, rPiece = get_piece(PieceTypes::ROOK, turn);
+        Square rFrom = to, rTo;
+        Piece rPiece = get_piece(PieceTypes::ROOK, turn);
         if (to > from) { // king side castle
-            to = mirror(turn, G1);
-            rTo = mirror(turn, F1);
+            to = mirror(turn, Squares::G1);
+            rTo = mirror(turn, Squares::F1);
         }
         else { // queen side castle
-            to = mirror(turn, C1);
-            rTo = mirror(turn, D1);
+            to = mirror(turn, Squares::C1);
+            rTo = mirror(turn, Squares::D1);
         }
         apply_sub_add_sub_add(a, b, net_index(piece, from, king, side), net_index(piece, to, king, side), net_index(rPiece, rFrom, king, side), net_index(rPiece, rTo, king, side));
     }
@@ -244,7 +245,7 @@ void Network::process_historic_update(const int index, const Square king_sq, con
 }
 
 void Network::add_move_to_history(uint16_t move, Piece piece, Piece captured) {
-    hist[hist_size] = { move, piece, captured, piece_type(piece) == PieceTypes::KING && recalc(sq_from(move), special_sqto(move), color_of(piece)), { 0, 0 } };
+    hist[hist_size] = { move, piece, captured, piece.type() == PieceTypes::KING && recalc(sq_from(move), special_sqto(move), color_of(piece)), { 0, 0 } };
     hist_size++;
 }
 
