@@ -15,9 +15,10 @@ else
 endif
 
 
-WFLAGS = -Wall -g -Wcast-align
-RFLAGS = $(WFLAGS) -std=c++17 -O3 -funroll-loops
+WFLAGS = -Wall -g -flto
+RFLAGS = $(WFLAGS) -std=c++20 -O3 -funroll-loops
 LIBS =
+RM_CMD = 
 
 FLAGS = $(shell echo | $(CXX) -march=native -E -dM -)
 
@@ -32,8 +33,10 @@ endif
 ifeq ($(EXT), .exe)
 	RFLAGS += -static -static-libgcc -static-libstdc++
 	LIBS += -pthread
+	RM_CMD = powershell "rm -Force *.o, 3rdparty/Fathom/src/tbprobe.o"
 else
 	LIBS += -lpthread
+	RM_CMD = rm -f $(OBJ)
 endif
 
 ifneq ($(findstring g++, $(CXX)),)
@@ -77,11 +80,11 @@ else ifneq ($(findstring generate, $(build_flag)),)
 endif
 
 %.o: %.cpp
-	$(CXX) $(BUILD_FLAGS) -o $@ -c $<
+	$(CXX) $(BUILD_FLAGS) $(RFLAGS) -o $@ -c $<
 
 # Fathom moment
 %.o: %.c
-	$(CXX) $(BUILD_FLAGS) -o $@ -c $<
+	$(CXX) $(BUILD_FLAGS) $(RFLAGS) -o $@ -c $<
 
 make: $(OBJ)
 	$(CXX) $(OBJ) $(RFLAGS) $(LIBS) $(BUILD_FLAGS) -o $(EXE)$(EXT) $(PGO_GENERATE)
@@ -98,4 +101,4 @@ release:
 	make build_flag=avx512
 
 clean:
-	rm -f $(OBJ)
+	$(RM_CMD)

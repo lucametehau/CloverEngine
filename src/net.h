@@ -84,8 +84,8 @@
 #define reg_save    _mm_store_si128
 #define ALIGN       16
 #elif defined(__ARM_NEON)
-#define reg_type    int16_t
-#define reg_type_s  int32_t
+#define reg_type          int16_t
+#define reg_type_s        int32_t
 #define reg_set1          int16_t
 #define reg_add16(a, b)   ((a) + (b))
 #define reg_sub16(a, b)   ((a) - (b))
@@ -114,18 +114,17 @@ constexpr int Q_IN_HIDDEN = Q_IN * Q_HIDDEN;
 
 constexpr int STACK_SIZE = 2000;
 
-inline const reg_type zero{};
-inline const reg_type one = reg_set1(Q_IN);
-
-alignas(ALIGN) extern int16_t inputBiases[SIDE_NEURONS];
-extern int16_t outputBias;
-alignas(ALIGN) extern int16_t inputWeights[INPUT_NEURONS * SIDE_NEURONS];
-alignas(ALIGN) extern int16_t outputWeights[HIDDEN_NEURONS];
-
-extern void loadNNUEWeights();
+extern void load_nnue_weights();
 
 enum {
     SUB = 0, ADD
+};
+
+struct NetworkWeights {
+    alignas(ALIGN) int16_t inputWeights[INPUT_NEURONS * SIDE_NEURONS];
+    alignas(ALIGN) int16_t inputBiases[SIDE_NEURONS];
+    alignas(ALIGN) int16_t outputWeights[HIDDEN_NEURONS];
+    int16_t outputBias;
 };
 
 struct NetInput {
@@ -144,8 +143,7 @@ struct KingBucketState {
     std::array<Bitboard, 12> bb;
 };
 
-class Network {
-public:
+struct Network {
     Network();
 
     void add_input(int ind);
@@ -156,21 +154,14 @@ public:
 
     int32_t calc(NetInput& input, bool stm);
 
-    reg_type reg_clamp(reg_type reg);
-
-    int32_t getOutput(NetInput& input, bool stm);
-
     void apply_updates(int16_t* output, int16_t* input);
     void apply_sub_add(int16_t* output, int16_t* input, int ind1, int ind2);
     void apply_sub_add_sub(int16_t* output, int16_t* input, int ind1, int ind2, int ind3);
     void apply_sub_add_sub_add(int16_t* output, int16_t* input, int ind1, int ind2, int ind3, int ind4);
 
     void process_move(uint16_t move, Piece piece, Piece captured, Square king, bool side, int16_t* a, int16_t* b);
-
     void process_historic_update(const int index, const Square king_sq, const bool side);
-
     void add_move_to_history(uint16_t move, Piece piece, Piece captured);
-
     void revert_move();
 
     int get_computed_parent(const bool c);
@@ -178,7 +169,6 @@ public:
     int32_t get_output(bool stm);
 
     int hist_size;
-
     int add_size, sub_size;
 
     alignas(ALIGN) int16_t output_history[STACK_SIZE][HIDDEN_NEURONS];

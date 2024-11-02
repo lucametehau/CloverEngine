@@ -370,7 +370,6 @@ NetInput Board::to_netinput() {
     for (Piece i = Pieces::BlackPawn; i <= Pieces::WhiteKing; i++) {
         Bitboard b = bb[i];
         while (b) {
-            std::cout << int(kingsSide[WHITE]) << " " << int(kingsSide[BLACK]) << " " << net_index(i, b.get_lsb_square(), kingsSide[WHITE], WHITE) << " " << net_index(i, b.get_lsb_square(), kingsSide[BLACK], BLACK) << "\n";
             ans.ind[WHITE].push_back(net_index(i, b.get_lsb_square(), kingsSide[WHITE], WHITE));
             ans.ind[BLACK].push_back(net_index(i, b.get_lsb_square(), kingsSide[BLACK], BLACK));
             b ^= b.lsb();

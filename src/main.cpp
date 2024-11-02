@@ -24,7 +24,7 @@ int main(int argc, char** argv) {
     init_defs();
     attacks::init();
     cuckoo::init();
-    loadNNUEWeights();
+    load_nnue_weights();
 
     UCI uci;
     if (argc > 1) {

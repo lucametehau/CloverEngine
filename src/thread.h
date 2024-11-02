@@ -255,4 +255,4 @@ public:
     }
 };
 
-ThreadPool thread_pool;
+static ThreadPool thread_pool;
