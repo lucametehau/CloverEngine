@@ -118,7 +118,7 @@
 #  define INCBIN_ALIGN_HOST ".align " INCBIN_STRINGIZE(INCBIN_ALIGNMENT_INDEX) "\n"
 #  define INCBIN_ALIGN_BYTE ".align 0\n"
 #else
-/* We assume other inline assembler's treat `.align' as `.balign' */
+/* We assume other assembler's treat `.align' as `.balign' */
 #  define INCBIN_ALIGN_HOST ".align " INCBIN_STRINGIZE(INCBIN_ALIGNMENT) "\n"
 #  define INCBIN_ALIGN_BYTE ".align 1\n"
 #endif

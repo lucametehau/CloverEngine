@@ -22,7 +22,7 @@
 #include "history.h"
 #include <cassert>
 
-enum {
+enum Stages : int {
     STAGE_NONE = 0,
     STAGE_TTMOVE,
     STAGE_GEN_NOISY, STAGE_GOOD_NOISY,
@@ -57,9 +57,9 @@ public:
         nrNoisy = nrQuiets = nrBadNoisy = 0;
         threshold = _threshold;
         all_threats = threats.all_threats;
-        threats_p = threats.threats_pieces[PAWN];
-        threats_bn = threats.threats_pieces[KNIGHT] | threats.threats_pieces[BISHOP] | threats_p;
-        threats_r = threats.threats_pieces[ROOK] | threats_bn;
+        threats_p = threats.threats_pieces[PieceTypes::PAWN];
+        threats_bn = threats.threats_pieces[PieceTypes::KNIGHT] | threats.threats_pieces[PieceTypes::BISHOP] | threats_p;
+        threats_r = threats.threats_pieces[PieceTypes::ROOK] | threats_bn;
     }
 
     void get_best_move(int offset, int nrMoves, MoveList &moves, std::array<int, MAX_MOVES> &scores) {
@@ -74,23 +74,23 @@ public:
 
     Move get_next_move(Histories &histories, StackEntry* stack, Board &board, bool skip, bool noisyPicker) {
         switch (stage) {
-        case STAGE_TTMOVE:
-            trueStage = STAGE_TTMOVE;
+        case Stages::STAGE_TTMOVE:
+            trueStage = Stages::STAGE_TTMOVE;
             stage++;
 
             if (ttMove && is_legal(board, ttMove)) {
                 return ttMove;
             }
-        case STAGE_GEN_NOISY:
+        case Stages::STAGE_GEN_NOISY:
         {
-            nrNoisy = gen_legal_noisy_moves(board, moves);
+            nrNoisy = board.gen_legal_noisy_moves(moves);
             int m = 0;
             for (int i = 0; i < nrNoisy; i++) {
                 const Move move = moves[i];
                 if (move == ttMove || move == killer)
                     continue;
 
-                if (type(move) == PROMOTION && promoted(move) + KNIGHT != QUEEN) {
+                if (type(move) == PROMOTION && promoted(move) + PieceTypes::KNIGHT != PieceTypes::QUEEN) {
                     badNoisy[nrBadNoisy++] = move;
                     continue;
                 }
@@ -107,8 +107,8 @@ public:
             index = 0;
             stage++;
         }
-        case STAGE_GOOD_NOISY:
-            trueStage = STAGE_GOOD_NOISY;
+        case Stages::STAGE_GOOD_NOISY:
+            trueStage = Stages::STAGE_GOOD_NOISY;
             while (index < nrNoisy) {
                 get_best_move(index, nrNoisy, moves, scores);
                 if (see(board, moves[index], threshold))
@@ -118,23 +118,23 @@ public:
                 }
             }
             if (skip) { /// no need to go through quiets
-                stage = STAGE_PRE_BAD_NOISY;
+                stage = Stages::STAGE_PRE_BAD_NOISY;
                 return get_next_move(histories, stack, board, skip, noisyPicker);
             }
             stage++;
-        case STAGE_KILLER:
-            trueStage = STAGE_KILLER;
+        case Stages::STAGE_KILLER:
+            trueStage = Stages::STAGE_KILLER;
             stage++;
 
             if (!skip && killer && is_legal(board, killer))
                 return killer;
-        case STAGE_GEN_QUIETS:
+        case Stages::STAGE_GEN_QUIETS:
         {
             if (!skip) {
-                nrQuiets = gen_legal_quiet_moves(board, moves);
+                nrQuiets = board.gen_legal_quiet_moves(moves);
                 const bool turn = board.turn, enemy = 1 ^ turn;
                 const Bitboard allPieces = board.get_bb_color(WHITE) | board.get_bb_color(BLACK);
-                const Bitboard enemyKingRing = kingRingMask[board.king(enemy)];
+                const Bitboard enemyKingRing = attacks::kingRingMask[board.get_king(enemy)];
                 
                 int m = 0;
                 for (int i = 0; i < nrQuiets; i++) {
@@ -144,22 +144,22 @@ public:
 
                     moves[m] = move;
                     const Square from = sq_from(move), to = sq_to(move);
-                    const Piece piece = board.piece_at(from), pt = piece_type(piece);
+                    const Piece piece = board.piece_at(from), pt = piece.type();
                     int score = histories.get_history_movepick(move, piece, all_threats, turn, stack);
 
-                    if (pt == PAWN) // pawn push, generally good?
+                    if (pt == PieceTypes::PAWN) // pawn push, generally good?
                         score += QuietPawnPushBonus;
 
-                    if (pt != KING && pt != PAWN) {
-                        score += QuietKingRingAttackBonus * (genAttacksSq(allPieces, to, pt) & enemyKingRing).count();
+                    if (pt != PieceTypes::KING && pt != PieceTypes::PAWN) {
+                        score += QuietKingRingAttackBonus * (attacks::genAttacksSq(allPieces, to, pt) & enemyKingRing).count();
 
                         auto score_threats = [&](
                             Bitboard threats_p, Bitboard threats_bn, Bitboard threats_r, 
                             Piece pt, Square to
                         ) {
                             if (threats_p.has_square(to)) return QuietPawnAttackedCoef * seeVal[pt];
-                            if (pt >= ROOK && threats_bn.has_square(to)) return 16384;
-                            if (pt == QUEEN && threats_r.has_square(to)) return 16384;
+                            if (pt >= PieceTypes::ROOK && threats_bn.has_square(to)) return 16384;
+                            if (pt == PieceTypes::QUEEN && threats_r.has_square(to)) return 16384;
                             return 0;
                         };
 
@@ -168,8 +168,8 @@ public:
                             Piece pt, Square from
                         ) {
                             if (threats_p.has_square(from)) return QuietPawnAttackedDodgeCoef * seeVal[pt];
-                            if (pt >= ROOK && threats_bn.has_square(from)) return 16384;
-                            if (pt == QUEEN && threats_r.has_square(from)) return 16384;
+                            if (pt >= PieceTypes::ROOK && threats_bn.has_square(from)) return 16384;
+                            if (pt == PieceTypes::QUEEN && threats_r.has_square(from)) return 16384;
                             return 0;
                         };
 
@@ -186,8 +186,8 @@ public:
 
             stage++;
         }
-        case STAGE_QUIETS:
-            trueStage = STAGE_QUIETS;
+        case Stages::STAGE_QUIETS:
+            trueStage = Stages::STAGE_QUIETS;
             if (!skip && index < nrQuiets) {
                 get_best_move(index, nrQuiets, moves, scores);
                 return moves[index++];
@@ -195,14 +195,14 @@ public:
             else {
                 stage++;
             }
-        case STAGE_PRE_BAD_NOISY:
+        case Stages::STAGE_PRE_BAD_NOISY:
             if (noisyPicker) {
                 return NULLMOVE;
             }
             index = 0;
             stage++;
-        case STAGE_BAD_NOISY:
-            trueStage = STAGE_BAD_NOISY;
+        case Stages::STAGE_BAD_NOISY:
+            trueStage = Stages::STAGE_BAD_NOISY;
             if (index < nrBadNoisy) {
                 return badNoisy[index++];
             }
@@ -214,7 +214,6 @@ public:
         assert(0);
 
         return NULLMOVE;
-
     }
 };
 
@@ -256,43 +255,43 @@ bool see(Board& board, Move move, int threshold) {
 
         result ^= 1;
 
-        if ((b = (myAtt & board.get_bb_piece(PAWN, stm)))) {
-            score = seeVal[PAWN] + 1 - score;
+        if ((b = (myAtt & board.get_bb_piece(PieceTypes::PAWN, stm)))) {
+            score = seeVal[PieceTypes::PAWN] + 1 - score;
             if (score <= 0)
                 break;
             occ ^= b.lsb();
-            att |= genAttacksBishop(occ, to) & diag;
+            att |= attacks::genAttacksBishop(occ, to) & diag;
         }
-        else if ((b = (myAtt & board.get_bb_piece(KNIGHT, stm)))) {
-            score = seeVal[KNIGHT] + 1 - score;
+        else if ((b = (myAtt & board.get_bb_piece(PieceTypes::KNIGHT, stm)))) {
+            score = seeVal[PieceTypes::KNIGHT] + 1 - score;
             if (score <= 0)
                 break;
             occ ^= b.lsb();
         }
-        else if ((b = (myAtt & board.get_bb_piece(BISHOP, stm)))) {
-            score = seeVal[BISHOP] + 1 - score;
+        else if ((b = (myAtt & board.get_bb_piece(PieceTypes::BISHOP, stm)))) {
+            score = seeVal[PieceTypes::BISHOP] + 1 - score;
             if (score <= 0)
                 break;
             occ ^= b.lsb();
-            att |= genAttacksBishop(occ, to) & diag;
+            att |= attacks::genAttacksBishop(occ, to) & diag;
         }
-        else if ((b = (myAtt & board.get_bb_piece(ROOK, stm)))) {
-            score = seeVal[ROOK] + 1 - score;
+        else if ((b = (myAtt & board.get_bb_piece(PieceTypes::ROOK, stm)))) {
+            score = seeVal[PieceTypes::ROOK] + 1 - score;
             if (score <= 0)
                 break;
             occ ^= b.lsb();
-            att |= genAttacksRook(occ, to) & orth;
+            att |= attacks::genAttacksRook(occ, to) & orth;
         }
-        else if ((b = (myAtt & board.get_bb_piece(QUEEN, stm)))) {
-            score = seeVal[QUEEN] + 1 - score;
+        else if ((b = (myAtt & board.get_bb_piece(PieceTypes::QUEEN, stm)))) {
+            score = seeVal[PieceTypes::QUEEN] + 1 - score;
             if (score <= 0)
                 break;
             occ ^= b.lsb();
-            att |= genAttacksBishop(occ, to) & diag;
-            att |= genAttacksRook(occ, to) & orth;
+            att |= attacks::genAttacksBishop(occ, to) & diag;
+            att |= attacks::genAttacksRook(occ, to) & orth;
         }
         else {
-            assert(myAtt & board.get_bb_piece(KING, stm));
+            assert(myAtt & board.get_bb_piece(PieceTypes::KING, stm));
             if (att & board.get_bb_color(1 ^ stm)) result ^= 1;
             break;
         }

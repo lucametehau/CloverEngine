@@ -21,13 +21,13 @@
 
 namespace attacks {
 
-std::array<Bitboard, 64> rookAttacksMask, bishopAttacksMask;
-MultiArray<Bitboard, 2, 64> pawnAttacksMask;
-MultiArray<Bitboard, 64, 4096> rookTable;
-MultiArray<Bitboard, 64, 512> bishopTable;
-MultiArray<Bitboard, 64, 8> raysMask;
-std::array<Bitboard, 64> knightBBAttacks, kingBBAttacks;
-std::array<Bitboard, 64> kingRingMask, kingSquareMask, pawnShieldMask;
+inline std::array<Bitboard, 64> rookAttacksMask, bishopAttacksMask;
+inline MultiArray<Bitboard, 2, 64> pawnAttacksMask;
+inline MultiArray<Bitboard, 64, 4096> rookTable;
+inline MultiArray<Bitboard, 64, 512> bishopTable;
+inline MultiArray<Bitboard, 64, 8> raysMask;
+inline std::array<Bitboard, 64> knightBBAttacks, kingBBAttacks;
+inline std::array<Bitboard, 64> kingRingMask, kingSquareMask, pawnShieldMask;
 
 inline Bitboard genAttacksBishopSlow(Bitboard blockers, Square sq) {
     Bitboard attacks;
@@ -98,12 +98,12 @@ inline void initKnightAndKingAttacks() {
         for (int j = 0; j < 8; j++) {
             int rankTo = rank + knightDir[j].first, fileTo = file + knightDir[j].second;
             if (inside_board(rankTo, fileTo))
-                knightBBAttacks[i] |= Bitboard(get_sq(rankTo, fileTo));
+                knightBBAttacks[i] |= Bitboard(Square(rankTo, fileTo));
         }
         for (int j = 0; j < 8; j++) {
             int rankTo = rank + kingDir[j].first, fileTo = file + kingDir[j].second;
             if (inside_board(rankTo, fileTo))
-                kingBBAttacks[i] |= Bitboard(get_sq(rankTo, fileTo));
+                kingBBAttacks[i] |= Bitboard(Square(rankTo, fileTo));
         }
     }
 
@@ -111,7 +111,7 @@ inline void initKnightAndKingAttacks() {
 
     for (Square i = 0; i < 64; i++) {
         int rank = i / 8, file = i % 8;
-        Square sq = 0; /// board.king(color)
+        Square sq = 0; /// board.get_king(color)
         if (rank < 1)
             sq = 1 * 8;
         else if (rank > 6)
@@ -157,32 +157,32 @@ inline void initRays() {
     for (int rank = 0; rank < 8; rank++) {
         for (int file = 0; file < 8; file++) {
             int r, f;
-            Square sq = get_sq(rank, file);
+            Square sq = Square(rank, file);
             r = rank, f = file;
             while (r > 0)
-                r--, raysMask[sq][SOUTH_ID] |= Bitboard(get_sq(r, f));
+                r--, raysMask[sq][SOUTH_ID] |= Bitboard(Square(r, f));
             r = rank, f = file;
             while (r < 7)
-                r++, raysMask[sq][NORTH_ID] |= Bitboard(get_sq(r, f));
+                r++, raysMask[sq][NORTH_ID] |= Bitboard(Square(r, f));
             r = rank, f = file;
             while (f > 0)
-                f--, raysMask[sq][WEST_ID] |= Bitboard(get_sq(r, f));
+                f--, raysMask[sq][WEST_ID] |= Bitboard(Square(r, f));
             r = rank, f = file;
             while (f < 7)
-                f++, raysMask[sq][EAST_ID] |= Bitboard(get_sq(r, f));
+                f++, raysMask[sq][EAST_ID] |= Bitboard(Square(r, f));
 
             r = rank, f = file;
             while (r > 0 && f > 0)
-                r--, f--, raysMask[sq][SOUTHWEST_ID] |= Bitboard(get_sq(r, f));
+                r--, f--, raysMask[sq][SOUTHWEST_ID] |= Bitboard(Square(r, f));
             r = rank, f = file;
             while (r < 7 && f > 0)
-                r++, f--, raysMask[sq][NORTHWEST_ID] |= Bitboard(get_sq(r, f));
+                r++, f--, raysMask[sq][NORTHWEST_ID] |= Bitboard(Square(r, f));
             r = rank, f = file;
             while (r > 0 && f < 7)
-                r--, f++, raysMask[sq][SOUTHEAST_ID] |= Bitboard(get_sq(r, f));
+                r--, f++, raysMask[sq][SOUTHEAST_ID] |= Bitboard(Square(r, f));
             r = rank, f = file;
             while (r < 7 && f < 7)
-                r++, f++, raysMask[sq][NORTHEAST_ID] |= Bitboard(get_sq(r, f));
+                r++, f++, raysMask[sq][NORTHEAST_ID] |= Bitboard(Square(r, f));
 
         }
     }
@@ -262,19 +262,12 @@ inline Bitboard genAttacksKing(Square sq) {
     return kingBBAttacks[sq];
 }
 
-inline Bitboard genAttacksSq(Bitboard blockers, Square sq, Piece pieceType) {
-    switch (pieceType) {
-    case KNIGHT:
-        return genAttacksKnight(sq);
-    case BISHOP:
-        return genAttacksBishop(blockers, sq);
-    case ROOK:
-        return genAttacksRook(blockers, sq);
-    case QUEEN:
-        return genAttacksQueen(blockers, sq);
-    case KING:
-        return genAttacksKing(sq);
-    }
+inline Bitboard genAttacksSq(Bitboard blockers, Square sq, Piece pt) {
+    if (pt == PieceTypes::KNIGHT) return genAttacksKnight(sq);
+    if (pt == PieceTypes::BISHOP) return genAttacksBishop(blockers, sq);
+    if (pt == PieceTypes::ROOK) return genAttacksRook(blockers, sq);
+    if (pt == PieceTypes::QUEEN) return genAttacksQueen(blockers, sq);
+    if (pt == PieceTypes::KING) return genAttacksKing(sq);
     assert(0);
     return Bitboard();
 }

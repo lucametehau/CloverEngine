@@ -1,5 +1,7 @@
-SRC = *.cpp 3rdparty/Fathom/src/tbprobe.c
-EXE = Clover.8.0.14
+SRCXX = $(wildcard *.cpp)
+SRC = 3rdparty/Fathom/src/tbprobe.c
+OBJ = $(SRCXX:.cpp=.o) $(SRC:.c=.o)
+EXE = Clover.8.0.15
 EVALFILE = clover-7buckets-mse-0.95-1280-cosine-600.bin
 
 ifeq ($(CXX),)
@@ -13,9 +15,10 @@ else
 endif
 
 
-WFLAGS = -Wall -g
-RFLAGS = $(WFLAGS) -std=c++17 -O3 -funroll-loops
+WFLAGS = -Wall -g -flto
+RFLAGS = $(WFLAGS) -std=c++20 -O3 -funroll-loops
 LIBS =
+RM_CMD = 
 
 FLAGS = $(shell echo | $(CXX) -march=native -E -dM -)
 
@@ -30,8 +33,10 @@ endif
 ifeq ($(EXT), .exe)
 	RFLAGS += -static -static-libgcc -static-libstdc++
 	LIBS += -pthread
+	RM_CMD = powershell "rm -Force *.o, 3rdparty/Fathom/src/tbprobe.o"
 else
 	LIBS += -lpthread
+	RM_CMD = rm -f $(OBJ)
 endif
 
 ifneq ($(findstring g++, $(CXX)),)
@@ -44,42 +49,56 @@ ifneq ($(findstring clang++, $(CXX)),)
 	PGO_USE      = -fprofile-instr-use=clover.profdata
 endif
 
-AVX2FLAGS     = -march=core-avx2
-NATIVEFLAGS   = -mno-avx512f -march=native
-OLDFLAGS      = -march=core2
-AVX512FLAGS   = $(AVX2FLAGS) -mavx512f -mavx512bw -mavx512dq
-EVALFILEFLAGS = -DEVALFILE=\"$(EVALFILE)\" -I . -IFathom
+AVX2_FLAGS     = -march=core-avx2
+NATIVE_FLAGS   = -mno-avx512f -march=native
+OLD_FLAGS      = -march=core2
+AVX512_FLAGS   = $(AVX2FLAGS) -mavx512f -mavx512bw -mavx512dq
+EVALFILE_FLAGS = -DEVALFILE=\"$(EVALFILE)\" -I . -IFathom
+BUILD_FLAGS    = $(EVALFILE_FLAGS) $(PEXT_FLAGS)
 
-pgo:
-	$(CXX)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(NATIVEFLAGS) -o $(EXE)$(EXT) $(PGO_GENERATE)
-	./$(EXE)$(EXT) bench 15
+ifeq ($(build_flag),)
+	build_flag = native
+endif
+
+ifneq ($(findstring old, $(build_flag)),)
+	BUILD_FLAGS += $(OLD_FLAGS)
+	EXE += -old
+else ifneq ($(findstring avx2, $(build_flag)),)
+	BUILD_FLAGS += $(AVX2_FLAGS)
+	EXE += -avx2
+else ifneq ($(findstring avx512, $(build_flag)),)
+	BUILD_FLAGS += $(AVX512_FLAGS)
+	EXE += -avx512
+else ifneq ($(findstring native, $(build_flag)),)
+	BUILD_FLAGS += $(NATIVE_FLAGS)
+else ifneq ($(findstring tune, $(build_flag)),)
+	BUILD_FLAGS += $(NATIVE_FLAGS) -DTUNE_FLAG
+	EXE += -tune
+else ifneq ($(findstring generate, $(build_flag)),)
+	BUILD_FLAGS += $(NATIVE_FLAGS) -DGENERATE
+	EXE += -generate
+endif
+
+%.o: %.cpp
+	$(CXX) $(BUILD_FLAGS) $(RFLAGS) -o $@ -c $<
+
+# Fathom moment
+%.o: %.c
+	$(CXX) $(BUILD_FLAGS) $(RFLAGS) -o $@ -c $<
+
+make: $(OBJ)
+	$(CXX) $(OBJ) $(RFLAGS) $(LIBS) $(BUILD_FLAGS) -o $(EXE)$(EXT) $(PGO_GENERATE)
+	./$(EXE)$(EXT) bench
 	$(PGO_MERGE)
-	$(CXX)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(NATIVEFLAGS) -o $(EXE)$(EXT) $(PGO_USE)
-generate:
-	$(CXX)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(NATIVEFLAGS) -DGENERATE -o Clover-generator$(EXT)
-debug:
-	clang++ $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(NATIVEFLAGS) -o $(EXE)$(EXT)
-native:
-	$(CXX)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(PEXT_FLAGS) $(LIBS) $(NATIVEFLAGS) -o $(EXE)$(EXT)
-old:
-	$(CXX)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(OLDFLAGS) -o $(EXE)-old$(EXT) $(PGO_GENERATE)
-	./$(EXE)-old$(EXT) bench 15
-	$(PGO_MERGE)
-	$(CXX)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(LIBS) $(OLDFLAGS) -o $(EXE)-old$(EXT) $(PGO_USE)
-avx2:
-	$(CXX)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(PEXT_FLAGS) $(LIBS) $(AVX2FLAGS) -o $(EXE)-avx2$(EXT) $(PGO_GENERATE)
-	./$(EXE)-avx2$(EXT) bench 15
-	$(PGO_MERGE)
-	$(CXX)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(PEXT_FLAGS) $(LIBS) $(AVX2FLAGS) -o $(EXE)-avx2$(EXT) $(PGO_USE)
-avx512:
-	$(CXX)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(PEXT_FLAGS) $(LIBS) $(AVX512FLAGS) -o $(EXE)-avx512$(EXT) $(PGO_GENERATE)
-	./$(EXE)-avx512$(EXT) bench 15
-	$(PGO_MERGE)
-	$(CXX)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(PEXT_FLAGS) $(LIBS) $(AVX512FLAGS) -o $(EXE)-avx512$(EXT) $(PGO_USE)
-tune:
-	$(CXX)   $(SRC) $(EVALFILEFLAGS) $(RFLAGS) $(PEXT_FLAGS) $(LIBS) $(NATIVEFLAGS) -DTUNE_FLAG -o $(EXE)$(EXT)
+	$(CXX) $(OBJ) $(RFLAGS) $(LIBS) $(BUILD_FLAGS) -o $(EXE)$(EXT) $(PGO_USE)
+
+normal: $(OBJ)
+	$(CXX) $(OBJ) $(RFLAGS) $(LIBS) $(BUILD_FLAGS) -o $(EXE)$(EXT)
 
 release:
-	make old
-	make avx2
-	make avx512
+	make build_flag=old
+	make build_flag=avx2
+	make build_flag=avx512
+
+clean:
+	$(RM_CMD)

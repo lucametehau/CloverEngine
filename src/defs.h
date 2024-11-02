@@ -15,9 +15,6 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #pragma once
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
 #include <string>
 #include <chrono>
 #include <ctime>
@@ -27,7 +24,10 @@
 #include <array>
 #include <chrono>
 #include <map>
+#include <iostream>
 #include "params.h"
+#include "bitboard.h"
+#include "piece.h"
 
 #if defined(__ARM_NEON)
 #include <arm_neon.h>
@@ -35,8 +35,8 @@
 #include <immintrin.h>
 #endif
 
-std::mt19937_64 gen(0xBEEF);
-std::uniform_int_distribution <uint64_t> rng;
+inline std::mt19937_64 gen(0xBEEF);
+inline std::uniform_int_distribution <uint64_t> rng;
 
 template<typename T, std::size_t size, std::size_t... sizes>
 struct MultiArray_impl {
@@ -64,62 +64,6 @@ void fill_multiarray(MultiArray<typename MultiArray_impl<T, sizes...>::type, siz
 }
 
 typedef uint16_t Move;
-typedef uint8_t Piece;
-typedef uint8_t Square;
-
-enum Squares : Square {
-    A1, B1, C1, D1, E1, F1, G1, H1,
-    A2, B2, C2, D2, E2, F2, G2, H2,
-    A3, B3, C3, D3, E3, F3, G3, H3,
-    A4, B4, C4, D4, E4, F4, G4, H4,
-    A5, B5, C5, D5, E5, F5, G5, H5,
-    A6, B6, C6, D6, E6, F6, G6, H6,
-    A7, B7, C7, D7, E7, F7, G7, H7,
-    A8, B8, C8, D8, E8, F8, G8, H8,
-    NO_EP
-};
-
-class Bitboard {
-private:
-    unsigned long long bb;
-
-public:
-    Bitboard(unsigned long long _bb = 0) : bb(_bb) {}
-    Bitboard(Square sq) : bb(1ULL << sq) { assert(sq < NO_EP); }
-
-    inline bool has_square(Square sq) const { return (bb >> sq) & 1; }
-    inline Square get_msb_square() const { return 63 - __builtin_clzll(bb); }
-    inline Square get_lsb_square() const { return __builtin_ctzll(bb); }
-    inline Bitboard lsb() const { return bb & -bb; }
-    inline operator unsigned long long() const { return bb; } 
-
-    inline Square get_square_pop() {
-        const Square sq = get_lsb_square();
-        bb &= bb - 1;
-        return sq;
-    }
-
-    inline int count() const { return __builtin_popcountll(bb); }
-
-    Bitboard operator | (const Bitboard &other) const { return bb | other.bb; }
-    Bitboard operator & (const Bitboard &other) const { return bb & other.bb; }
-    Bitboard operator ^ (const Bitboard &other) const { return bb ^ other.bb; }
-    Bitboard operator << (const int8_t shift) const { return bb << shift; }
-    Bitboard operator >> (const int8_t shift) const { return bb >> shift; }
-    Bitboard operator ~ () const { return ~bb; }
-
-    Bitboard& operator |= (const Bitboard &other) { bb |= other.bb; return *this; }
-    Bitboard& operator &= (const Bitboard &other) { bb &= other.bb; return *this; }
-    Bitboard& operator ^= (const Bitboard &other) { bb ^= other.bb; return *this; }
-
-    void print() {
-        Bitboard copy = bb;
-        while (copy) {
-            std::cout << int(copy.get_square_pop()) << " ";
-        }
-        std::cout << " mask\n";
-    }
-};
 
 class Threats {
 public:
@@ -127,19 +71,7 @@ public:
     Bitboard all_threats;
     Bitboard threatened_pieces;
 
-    Threats() {
-        for(int i = 0; i < 4; i++) threats_pieces[i] = Bitboard(0ULL);
-    }
-};
-
-enum PieceTypes : Piece {
-    PAWN = 0, KNIGHT, BISHOP, ROOK, QUEEN, KING, NO_PIECE_TYPE
-};
-
-enum Pieces : Piece {
-    BP = 0, BN, BB, BR, BQ, BK,
-    WP = 6, WN, WB, WR, WQ, WK,
-    NO_PIECE
+    Threats() { for(int i = 0; i < 4; i++) threats_pieces[i] = Bitboard(0ULL); }
 };
 
 enum {
@@ -179,25 +111,18 @@ constexpr int MAX_DEPTH = 200;
 constexpr int MAX_MOVES = 256;
 typedef std::array<Move, MAX_MOVES> MoveList;
 
-constexpr uint64_t ALL = 18446744073709551615ULL;
-const std::string piece_char = "pnbrqkPNBRQK.";
-const std::string START_POS_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+inline const std::string piece_char = "pnbrqkPNBRQK.";
+inline const std::string START_POS_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
-std::map<char, int> cod;
-MultiArray<uint64_t, 12, 64> hashKey;
-MultiArray<uint64_t, 2, 2> castleKey;
-std::array<uint64_t, 64> enPasKey;
-std::array<uint64_t, 16> castleKeyModifier;
+inline std::map<char, Piece> cod;
+inline MultiArray<uint64_t, 12, 64> hashKey;
+inline MultiArray<uint64_t, 2, 2> castleKey;
+inline std::array<uint64_t, 64> enPasKey;
+inline std::array<uint64_t, 16> castleKeyModifier;
 
-const std::array<Bitboard, 8> file_mask = {
-    72340172838076673ull, 144680345676153346ull, 289360691352306692ull, 578721382704613384ull, 1157442765409226768ull, 2314885530818453536ull, 4629771061636907072ull, 9259542123273814144ull
-};
-const std::array<Bitboard, 8> rank_mask = {
-    255ull, 65280ull, 16711680ull, 4278190080ull, 1095216660480ull, 280375465082880ull, 71776119061217280ull, 18374686479671623680ull
-};
-MultiArray<Bitboard, 64, 64> between_mask, line_mask;
+inline MultiArray<Bitboard, 64, 64> between_mask, line_mask;
 
-MultiArray<int, 64, 64> lmr_red;
+inline MultiArray<int, 64, 64> lmr_red;
 
 constexpr std::pair<int, int> knightDir[8] = { {-1, -2}, {-2, -1}, {-2, 1}, {-1, 2}, {1, 2}, {2, 1}, {2, -1}, {1, -2} };
 constexpr std::pair<int, int> rookDir[4] = { {-1, 0}, {1, 0}, {0, -1}, {0, 1} };
@@ -220,27 +145,18 @@ constexpr std::array<int, 64> kingIndTable = {
 class MeanValue {
 private:
     std::string name;
-    double valuesSum;
-    int valuesCount;
+    double sum;
+    int count;
 
 public:
-    MeanValue(std::string _name = "") {
-        name = _name;
-        valuesSum = 0.0;
-        valuesCount = 0;
-    }
+    MeanValue(std::string _name = "") : name(_name), sum(0.0), count(0) {}
 
-    void upd(double value) {
-        valuesSum += value;
-        valuesCount++;
-    }
+    void upd(double value) { sum += value; count++; }
 
-    void print_mean() {
-        std::cout << name << " has the mean value " << valuesSum / valuesCount << "\n";//(" << valuesCount << " calls)\n";
-    }
+    void print_mean() { std::cout << name << " has the mean value " << sum / count << " (" << count << " calls)\n"; }
 };
 
-const auto t_init = std::chrono::steady_clock::now();
+inline const auto t_init = std::chrono::steady_clock::now();
 
 inline int64_t getTime() {
     auto t = std::chrono::steady_clock::now();
@@ -255,7 +171,6 @@ inline bool recalc(Square from, Square to, bool side) {
     return (from & 4) != (to & 4) || kingIndTable[from ^ (56 * !side)] != kingIndTable[to ^ (56 * !side)];
 }
 
-inline Square get_sq(int rank, int file) { return (rank << 3) | file; }
 inline Square mirror(bool color, Square sq) { return sq ^ (56 * !color); }
 
 template<int direction>
@@ -267,7 +182,6 @@ inline Bitboard shift_mask(int color, Bitboard bb) {
     return direction > 0 ? bb << direction : bb >> static_cast<int8_t>(-direction);
 }
 
-inline Piece piece_type(Piece piece) { return piece >= 6 ? piece - 6 : piece; }
 inline Piece get_piece(const Piece piece_type, const bool color) { return 6 * color + piece_type; }
 inline bool color_of(Piece piece) { return piece >= 6; }
 
@@ -282,10 +196,10 @@ inline int from_to(Move move) { return move & 4095; }
 inline int type(Move move) { return move >> 14; }
 inline Piece promoted(Move move) { return (move & 16383) >> 12; }
 inline Square special_sqto(Move move) {
-    return type(move) != CASTLE ? sq_to(move) : 8 * (sq_from(move) / 8) + (sq_from(move) < sq_to(move) ? 6 : 2);
+    return type(move) != CASTLE ? sq_to(move) : static_cast<Square>(8 * (sq_from(move) / 8) + (sq_from(move) < sq_to(move) ? 6 : 2));
 }
 
-std::string move_to_string(Move move, bool chess960 = false) {
+inline std::string move_to_string(Move move, bool chess960 = false) {
     int sq1 = sq_from(move), sq2 = !chess960 ? special_sqto(move) : sq_to(move);
     std::string ans;
     ans += char((sq1 & 7) + 'a');
@@ -293,16 +207,18 @@ std::string move_to_string(Move move, bool chess960 = false) {
     ans += char((sq2 & 7) + 'a');
     ans += char((sq2 >> 3) + '1');
     if (type(move) == PROMOTION)
-        ans += piece_char[promoted(move) + BN];
+        ans += piece_char[promoted(move) + Pieces::BlackKnight];
     return ans;
 }
 
-void init_defs() {
-    cod['p'] = BP, cod['n'] = BN, cod['b'] = BB, cod['r'] = BR, cod['q'] = BQ, cod['k'] = BK;
-    cod['P'] = WP, cod['N'] = WN, cod['B'] = WB, cod['R'] = WR, cod['Q'] = WQ, cod['K'] = WK;
+inline void init_defs() {
+    cod['p'] = Pieces::BlackPawn, cod['n'] = Pieces::BlackKnight, cod['b'] = Pieces::BlackBishop;
+    cod['r'] = Pieces::BlackRook, cod['q'] = Pieces::BlackQueen, cod['k'] = Pieces::BlackKing;
+    cod['P'] = Pieces::WhitePawn, cod['N'] = Pieces::WhiteKnight, cod['B'] = Pieces::WhiteBishop;
+    cod['R'] = Pieces::WhiteRook, cod['Q'] = Pieces::WhiteQueen, cod['K'] = Pieces::WhiteKing;
 
     /// zobrist keys
-    for (Piece i = BP; i <= WK; i++) {
+    for (Piece i = Pieces::BlackPawn; i <= Pieces::WhiteKing; i++) {
         for (Square j = 0; j < 64; j++)
             hashKey[i][j] = rng(gen);
     }
@@ -331,21 +247,21 @@ void init_defs() {
                     r += kingDir[i].first, f += kingDir[i].second;
                     if (!inside_board(r, f))
                         break;
-                    between_mask[get_sq(rank, file)][get_sq(r, f)] = mask;
+                    between_mask[Square(rank, file)][Square(r, f)] = mask;
                     int x = r, y = f, d = (i < 4 ? (i + 2) % 4 : 11 - i);
                     Bitboard mask2;
                     while (inside_board(x, y)) {
-                        mask2 |= Bitboard(get_sq(x, y));
+                        mask2 |= Bitboard(Square(x, y));
                         x += kingDir[i].first, y += kingDir[i].second;
                     }
                     x = rank, y = file;
                     while (inside_board(x, y)) {
-                        mask2 |= Bitboard(get_sq(x, y));
+                        mask2 |= Bitboard(Square(x, y));
                         x += kingDir[d].first, y += kingDir[d].second;
                     }
-                    line_mask[get_sq(rank, file)][get_sq(r, f)] = mask | mask2;
+                    line_mask[Square(rank, file)][Square(r, f)] = mask | mask2;
 
-                    mask |= Bitboard(get_sq(r, f));
+                    mask |= Bitboard(Square(r, f));
                 }
             }
         }

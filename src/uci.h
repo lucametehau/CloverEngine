@@ -21,7 +21,6 @@
 #include "move.h"
 #include "search.h"
 #include "3rdparty/Fathom/src/tbprobe.h"
-#include "init.h"
 #include "perft.h"
 #include "generate.h"
 
@@ -79,7 +78,6 @@ void UCI::uci_loop() {
     uci_board = new Board();
 
     Info info;
-    init(info);
     thread_pool.create_pool(1);
     ucinewgame(ttSize);
 
@@ -409,7 +407,7 @@ void UCI::bench(int depth) {
     TT = new HashTable();
 #endif
 
-    init(info);
+    info = Info();
     uint64_t ttSize = 16;
     thread_pool.create_pool(1);
     thread_pool.wait_for_finish();
