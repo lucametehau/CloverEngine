@@ -106,7 +106,7 @@ TUNE_PARAM(FPNoisyDepth, 8, 5, 10);
 TUNE_PARAM(SEDepth, 5, 4, 8);
 TUNE_PARAM(SEMargin, 47, 32, 64);
 TUNE_PARAM(SEDoubleExtensionsMargin, 11, 0, 16);
-TUNE_PARAM(SETripleExtensionsMargin, 99, 50, 100);
+TUNE_PARAM(SETripleExtensionsMargin, 50, 50, 100);
 
 TUNE_PARAM(EvalDifferenceReductionMargin, 198, 100, 300);
 TUNE_PARAM(HistReductionDiv, 8316, 7000, 10000);
