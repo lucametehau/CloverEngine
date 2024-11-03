@@ -16,7 +16,7 @@
 */
 #pragma once
 #include <algorithm>
-#include "evaluate.h"
+#include "thread.h"
 #include "movepick.h"
 #include "tt.h"
 #include "3rdparty/Fathom/src/tbprobe.h"
@@ -150,13 +150,13 @@ void SearchThread::update_pv(int ply, int move) {
 template <bool pvNode>
 int SearchThread::quiesce(int alpha, int beta, StackEntry* stack) {
     const int ply = board.ply;
-    if (ply >= MAX_DEPTH) return evaluate(board);
+    if (ply >= MAX_DEPTH) return evaluate(board, NN);
 
     pv_table_len[ply] = 0;
     nodes++;
     if (board.is_draw(ply)) return 1 - (nodes & 2);
 
-    if (check_for_stop<false>()) return evaluate(board);
+    if (check_for_stop<false>()) return evaluate(board, NN);
 
     const uint64_t key = board.key();
     const bool turn = board.turn;
@@ -192,7 +192,7 @@ int SearchThread::quiesce(int alpha, int beta, StackEntry* stack) {
         best = futility_base = -INF;
     }
     else if (!ttHit) {
-        raw_eval = evaluate(board);
+        raw_eval = evaluate(board, NN);
         stack->eval = best = eval = histories.get_corrected_eval(raw_eval, turn, board.pawn_key(), board.mat_key(WHITE), board.mat_key(BLACK));
         futility_base = best + QuiesceFutilityBias;
     }
@@ -242,13 +242,13 @@ int SearchThread::quiesce(int alpha, int beta, StackEntry* stack) {
         stack->piece = board.piece_at(sq_from(move));
         stack->cont_hist = &histories.cont_history[!board.is_noisy_move(move)][stack->piece][sq_to(move)];
 
-        board.make_move(move);
+        board.make_move(move, NN);
         if (!pvNode || played > 1) score = -quiesce<false>(-alpha - 1, -alpha, stack + 1);
 
         if constexpr (pvNode) {
             if (played == 1 || score > alpha) score = -quiesce<pvNode>(-beta, -alpha, stack + 1);
         }
-        board.undo_move(move);
+        board.undo_move(move, NN);
 
         if (must_stop()) return best;
 
@@ -275,7 +275,7 @@ template<bool rootNode, bool pvNode, bool cutNode>
 int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
     const int ply = board.ply;
     
-    if (check_for_stop<true>() || ply >= MAX_DEPTH) return evaluate(board);
+    if (check_for_stop<true>() || ply >= MAX_DEPTH) return evaluate(board, NN);
 
     if (depth <= 0) return quiesce<pvNode>(alpha, beta, stack);
 
@@ -360,13 +360,13 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
     else if (!ttHit) { /// if we are in a singular search, we already know the evaluation
         if (stack->excluded) raw_eval = eval = stack->eval;
         else {
-            raw_eval = evaluate(board);
+            raw_eval = evaluate(board, NN);
             stack->eval = eval = histories.get_corrected_eval(raw_eval, turn, pawn_key, white_mat_key, black_mat_key);
             TT->save(entry, key, VALUE_NONE, 0, ply, 0, NULLMOVE, raw_eval, was_pv);
         }
     }
     else { /// ttValue might be a better evaluation
-        if (stack->excluded) raw_eval = evaluate(board);
+        if (stack->excluded) raw_eval = evaluate(board, NN);
         else raw_eval = eval;
         stack->eval = eval = histories.get_corrected_eval(raw_eval, turn, pawn_key, white_mat_key, black_mat_key);
         if (ttBound == EXACT || (ttBound == LOWER && ttValue > eval) || (ttBound == UPPER && ttValue < eval)) eval = ttValue;
@@ -448,12 +448,12 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
                     stack->piece = board.piece_at(sq_from(move));
                     stack->cont_hist = &histories.cont_history[0][stack->piece][sq_to(move)];
 
-                    board.make_move(move);
+                    board.make_move(move, NN);
 
                     int score = -quiesce<false>(-probcut_beta, -probcut_beta + 1, stack + 1);
                     if (score >= probcut_beta) score = -search<false, false, !cutNode>(-probcut_beta, -probcut_beta + 1, depth - ProbcutReduction, stack + 1);
                     
-                    board.undo_move(move);
+                    board.undo_move(move, NN);
 
                     if (score >= probcut_beta) {
                         if (!stack->excluded)
@@ -582,7 +582,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
         stack->piece = piece;
         stack->cont_hist = &histories.cont_history[is_quiet][piece][to];
 
-        board.make_move(move);
+        board.make_move(move, NN);
         played++;
 
         if constexpr (rootNode) {
@@ -642,7 +642,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
             }
         }
 
-        board.undo_move(move);
+        board.undo_move(move, NN);
         nodes_seached[from_to(move)] += nodes - nodes_previously;
 
         if (must_stop()) // stop search
@@ -766,7 +766,7 @@ void SearchThread::start_search() {
     time_check_count = 0;
     best_move_cnt = 0;
     completed_depth = 0;
-    root_eval = !board.checkers() ? evaluate(board) : INF;
+    root_eval = !board.checkers() ? evaluate(board, NN) : INF;
 
     scores.fill(0);
     best_move.fill(0);

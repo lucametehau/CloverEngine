@@ -22,27 +22,13 @@ void load_nnue_weights() {
     network.outputBias = *intData;
 }
 
-Network::Network() {
-    hist_size = 0;
-    for (auto c : { BLACK, WHITE }) {
-        for (int i = 0; i < 2 * KING_BUCKETS; i++) {
-            memcpy(cached_states[c][i].output, network.inputBiases, sizeof(network.inputBiases));
-            cached_states[c][i].bb.fill(Bitboard());
-        }
-    }
-}
-
-void Network::add_input(int ind) { add_ind[add_size++] = ind; }
-void Network::remove_input(int ind) { sub_ind[sub_size++] = ind; }
-void Network::clear_updates() { add_size = sub_size = 0; }
-
 inline reg_type reg_clamp(reg_type reg) {
     static const reg_type zero{};
     static const reg_type one = reg_set1(Q_IN);
     return reg_min16(reg_max16(reg, zero), one);
 }
 
-int32_t Network::get_sum(reg_type_s& x) {
+inline int32_t get_sum(reg_type_s& x) {
 #if   defined(__AVX512F__)
     __m256i reg_256 = _mm256_add_epi32(_mm512_castsi512_si256(x), _mm512_extracti32x8_epi32(x, 1));
     __m128i a = _mm_add_epi32(_mm256_castsi256_si128(reg_256), _mm256_extractf128_si256(reg_256, 1));
@@ -60,6 +46,20 @@ int32_t Network::get_sum(reg_type_s& x) {
     return _mm_cvtsi128_si32(c);
 #endif
 }
+
+Network::Network() {
+    hist_size = 0;
+    for (auto c : { BLACK, WHITE }) {
+        for (int i = 0; i < 2 * KING_BUCKETS; i++) {
+            memcpy(cached_states[c][i].output, network.inputBiases, sizeof(network.inputBiases));
+            cached_states[c][i].bb.fill(Bitboard());
+        }
+    }
+}
+
+void Network::add_input(int ind) { add_ind[add_size++] = ind; }
+void Network::remove_input(int ind) { sub_ind[sub_size++] = ind; }
+void Network::clear_updates() { add_size = sub_size = 0; }
 
 int32_t Network::calc(NetInput& input, bool stm) {
     int32_t sum;

@@ -47,8 +47,6 @@ public:
     std::array<Bitboard, 12> bb;
     std::array<Bitboard, 2> pieces;
 
-    Network NN;
-
     Board();
 
     void clear();
@@ -88,9 +86,9 @@ public:
     bool is_noisy_move(const Move move);
 
     bool is_attacked_by(const bool color, const Square sq);
-
-    void make_move(const Move move);
-    void undo_move(const Move move);
+    
+    void make_move(const Move move, Network* NN = nullptr);
+    void undo_move(const Move move, Network* NN = nullptr);
     void make_null_move();
     void undo_null_move();
 
@@ -100,7 +98,7 @@ public:
 
     bool has_non_pawn_material(const bool color);
 
-    void bring_up_to_date();
+    void bring_up_to_date(Network* NN);
 
     NetInput to_netinput();
 

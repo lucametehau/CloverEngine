@@ -3,11 +3,7 @@
 
 Board::Board() { set_fen(START_POS_FEN); }
 
-void Board::clear() {
-    ply = 0;
-    NetInput input = to_netinput();
-    NN.calc(input, turn);
-}
+void Board::clear() { ply = 0; }
 
 void Board::print() {
     for (int i = 7; i >= 0; i--) {
@@ -70,7 +66,7 @@ bool Board::is_attacked_by(const bool color, const Square sq) {
     return get_attackers(color, get_bb_color(WHITE) | get_bb_color(BLACK), sq); 
 }
 
-void Board::make_move(const Move move) { /// assuming move is at least pseudo-legal
+void Board::make_move(const Move move, Network* NN) { /// assuming move is at least pseudo-legal
     Square from = sq_from(move), to = sq_to(move);
     Piece piece = piece_at(from), piece_cap = piece_at(to);
 
@@ -223,7 +219,7 @@ void Board::make_move(const Move move) { /// assuming move is at least pseudo-le
     break;
     }
 
-    NN.add_move_to_history(move, piece, captured());
+    if (NN) NN->add_move_to_history(move, piece, captured());
 
     key() ^= castleKeyModifier[castle_rights() ^ history[game_ply].castleRights];
     checkers() = get_attackers(turn, pieces[WHITE] | pieces[BLACK], get_king(1 ^ turn));
@@ -237,7 +233,7 @@ void Board::make_move(const Move move) { /// assuming move is at least pseudo-le
     pinned_pieces() = get_pinned_pieces();
 }
 
-void Board::undo_move(const Move move) {
+void Board::undo_move(const Move move, Network* NN) {
     turn ^= 1;
     ply--;
     game_ply--;
@@ -326,7 +322,7 @@ void Board::undo_move(const Move move) {
     break;
     }
 
-    NN.revert_move();
+    if (NN) NN->revert_move();
 
     captured() = history[game_ply].captured;
 }
@@ -575,12 +571,8 @@ void Board::set_fen(const std::string fen) {
     while ('0' <= fen[ind] && fen[ind] <= '9') nr = nr * 10 + fen[ind++] - '0';
     move_index() = nr;
 
-    NetInput input = to_netinput();
-
     checkers() = get_attackers(1 ^ turn, pieces[WHITE] | pieces[BLACK], get_king(turn));
     pinned_pieces() = get_pinned_pieces();
-
-    NN.calc(input, turn);
 }
 
 void Board::set_frc_side(bool color, int idx) {
@@ -702,9 +694,6 @@ void Board::set_dfrc(int idx) {
     move_index() = 1;
     checkers() = get_attackers(1 ^ turn, pieces[WHITE] | pieces[BLACK], get_king(turn));
     pinned_pieces() = get_pinned_pieces();
-
-    NetInput input = to_netinput();
-    NN.calc(input, turn);
 }
 
 bool Board::is_material_draw() {

@@ -18,19 +18,14 @@
 #include "board.h"
 #include "tt.h"
 #include "history.h"
+#include "evaluate.h"
 #include <mutex>
 #include <thread>
 #include <chrono>
 #include <atomic>
 #include <condition_variable>
 
-bool printStats = true; // true by default
-
-#ifndef TUNE_FLAG
-constexpr int seeVal[] = { SeeValPawn, SeeValKnight, SeeValBishop, SeeValRook, SeeValQueen, 20000, 0 };
-#else
-int seeVal[] = { SeeValPawn, SeeValKnight, SeeValBishop, SeeValRook, SeeValQueen, 20000, 0 };
-#endif
+static bool printStats = true; // true by default
 
 typedef int ThreadState;
 
@@ -68,6 +63,7 @@ public:
     int64_t nodes;
     int completed_depth;
     Board board;
+    Network* NN;
 
 public:
     ThreadPool* thread_pool;
@@ -87,7 +83,10 @@ public:
     SearchThread(ThreadPool* thread_pool, int thread_id) : thread_pool(thread_pool), thread_id(thread_id) {
         state = ThreadStates::IDLE;
         thread = std::thread(&SearchThread::main_loop, this);
+        NN = new Network();
     }
+
+    ~SearchThread() { delete NN; }
 
 public:
     bool main_thread() { return thread_id == 0; }
@@ -127,17 +126,22 @@ public:
     }
     void clear_history() { histories.clear_history(); }
     void clear_board() { board.clear(); }
-
+    void init_NN() {
+        NetInput input = board.to_netinput();
+        NN->calc(input, board.turn);
+    }
     void set_fen(std::string fen, bool chess960 = false) {
         board.chess960 = chess960;
         board.set_fen(fen);
+        init_NN();
     }
     void set_dfrc(int idx) {
         board.chess960 = (idx > 0);
         board.set_dfrc(idx);
+        init_NN();
     }
 
-    void make_move(Move move) { board.make_move(move); }
+    void make_move(Move move) { board.make_move(move, NN); }
 
 private:
     template <bool pvNode>
@@ -206,6 +210,9 @@ public:
     void make_move(Move move) {
         for (auto &thread : threads) thread->make_move(move);
     }
+    Board &get_board() { return threads.front()->board; }
+    Network* get_NN() { return threads.front()->NN; }
+    int get_eval() { return evaluate(get_board(), get_NN()); }
 
     uint64_t get_nodes() {
         uint64_t nodes = 0;

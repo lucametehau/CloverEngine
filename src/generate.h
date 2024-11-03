@@ -108,7 +108,7 @@ void generateFens(SearchThread &thread_data, std::atomic<uint64_t>& sumFens, std
             if (ply < 8 + additionalPly) { /// simulating a book ?
                 std::uniform_int_distribution <uint32_t> rnd(0, nrMoves - 1);
                 move = moves[rnd(gn)];
-                thread_data.board.make_move(move);
+                thread_data.make_move(move);
             }
             else {
                 thread_data.TT->age();
@@ -118,7 +118,7 @@ void generateFens(SearchThread &thread_data, std::atomic<uint64_t>& sumFens, std
                 score = thread_data.root_score[1], move = thread_data.best_move[1];
 
                 if (nrMoves == 1) { /// in this case, engine reports score 0, which might be misleading
-                    thread_data.board.make_move(move);
+                    thread_data.make_move(move);
                     ply++;
                     continue;
                 }
@@ -144,7 +144,7 @@ void generateFens(SearchThread &thread_data, std::atomic<uint64_t>& sumFens, std
                     break;
                 }
 
-                thread_data.board.make_move(move);
+                thread_data.make_move(move);
             }
 
             ply++;
