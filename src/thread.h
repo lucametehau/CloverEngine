@@ -19,6 +19,7 @@
 #include "tt.h"
 #include "history.h"
 #include "evaluate.h"
+#include "search-info.h"
 #include <mutex>
 #include <thread>
 #include <chrono>
@@ -37,41 +38,41 @@ class ThreadPool;
 
 class SearchThread {
 public:
-    Info info;
+    Info m_info;
 
-    MoveList best_move;
-    std::array<int, MAX_MOVES> scores, root_score;
-    std::array<MeanValue, 100> values;
+    MoveList m_best_moves;
+    std::array<int, MAX_MOVES> m_scores, m_root_scores;
+    std::array<MeanValue, 100> m_values;
 
 private:
-    std::array<int, MAX_DEPTH + 5> pv_table_len;
-    MultiArray<Move, MAX_DEPTH + 5, 2 * MAX_DEPTH + 5> pv_table;
-    std::array<StackEntry, MAX_DEPTH + 15> search_stack;
-    StackEntry* stack;
+    std::array<int, MAX_DEPTH + 5> m_pv_table_len;
+    MultiArray<Move, MAX_DEPTH + 5, 2 * MAX_DEPTH + 5> m_pv_table;
+    std::array<uint64_t, 64 * 64> m_nodes_seached;
+    std::array<StackEntry, MAX_DEPTH + 15> m_search_stack;
+    StackEntry* m_stack;
     
-    Histories histories;
+    Histories m_histories;
 
-    int64_t start_time;
-    int time_check_count;
-    int best_move_cnt;
-    int multipv;
-    int tDepth, sel_depth;
-    int root_eval;
+    int m_time_check_count;
+    int m_best_move_cnt;
+    int m_multipv;
+    int m_id_depth, m_sel_depth;
+    int m_root_eval;
 
 public:
-    uint64_t tb_hits;
-    int64_t nodes;
-    int completed_depth;
-    Board board;
+    uint64_t m_tb_hits;
+    int64_t m_nodes;
+    int m_completed_depth;
+    Board m_board;
     Network* NN;
 
 public:
-    ThreadPool* thread_pool;
-    int thread_id;
-    std::mutex mutex;
-    std::thread thread;
-    std::condition_variable cv;
-    std::atomic<ThreadState> state{ThreadStates::IDLE};
+    ThreadPool* m_thread_pool;
+    int m_thread_id;
+    std::mutex m_mutex;
+    std::thread m_thread;
+    std::condition_variable m_cv;
+    std::atomic<ThreadState> m_state{ThreadStates::IDLE};
 
 #ifdef GENERATE
     HashTable* TT;
@@ -80,68 +81,68 @@ public:
 public:
     SearchThread() {}
 
-    SearchThread(ThreadPool* thread_pool, int thread_id) : thread_pool(thread_pool), thread_id(thread_id) {
-        state = ThreadStates::IDLE;
-        thread = std::thread(&SearchThread::main_loop, this);
+    SearchThread(ThreadPool* thread_pool, int thread_id) : m_thread_pool(thread_pool), m_thread_id(thread_id) {
+        m_state = ThreadStates::IDLE;
+        m_thread = std::thread(&SearchThread::main_loop, this);
         NN = new Network();
     }
 
     ~SearchThread() { delete NN; }
 
 public:
-    bool main_thread() { return thread_id == 0; }
-    bool must_stop() { return state & (ThreadStates::STOP | ThreadStates::EXIT); }
+    bool main_thread() { return m_thread_id == 0; }
+    bool must_stop() { return m_state & (ThreadStates::STOP | ThreadStates::EXIT); }
 
     void wait_for_finish() {
-        std::unique_lock<std::mutex> lock(mutex);
-        cv.wait(lock, [&] { return !(state & ThreadStates::SEARCH); });
+        std::unique_lock<std::mutex> lock(m_mutex);
+        m_cv.wait(lock, [&] { return !(m_state & ThreadStates::SEARCH); });
     }
 
     void start_search();
 
     void main_loop() {
-        while (!(state & ThreadStates::EXIT)) {
-            std::unique_lock<std::mutex> lock(mutex);
-            cv.wait(lock, [&] { return state & ThreadStates::SEARCH; });
+        while (!(m_state & ThreadStates::EXIT)) {
+            std::unique_lock<std::mutex> lock(m_mutex);
+            m_cv.wait(lock, [&] { return m_state & ThreadStates::SEARCH; });
                 
-            if (state & ThreadStates::EXIT) return;
+            if (m_state & ThreadStates::EXIT) return;
 
             start_search();
-            state &= ~ThreadStates::SEARCH;
-            cv.notify_all();
+            m_state &= ~ThreadStates::SEARCH;
+            m_cv.notify_all();
         }
     }
 
     void exit() {
-        state = ThreadStates::EXIT | ThreadStates::SEARCH | ThreadStates::STOP;
-        cv.notify_all();
-        if (thread.joinable()) thread.join();
+        m_state = ThreadStates::EXIT | ThreadStates::SEARCH | ThreadStates::STOP;
+        m_cv.notify_all();
+        if (m_thread.joinable()) m_thread.join();
     }
 
 public:
     void clear_stack() {
-        pv_table_len.fill(0);
-        nodes_seached.fill(0);
-        fill_multiarray<Move, MAX_DEPTH + 5, 2 * MAX_DEPTH + 5>(pv_table, 0);
+        m_pv_table_len.fill(0);
+        m_nodes_seached.fill(0);
+        fill_multiarray<Move, MAX_DEPTH + 5, 2 * MAX_DEPTH + 5>(m_pv_table, 0);
     }
-    void clear_history() { histories.clear_history(); }
-    void clear_board() { board.clear(); }
+    void clear_history() { m_histories.clear_history(); }
+    void clear_board() { m_board.clear(); }
     void init_NN() {
-        NetInput input = board.to_netinput();
-        NN->calc(input, board.turn);
+        NetInput input = m_board.to_netinput();
+        NN->calc(input, m_board.turn);
     }
     void set_fen(std::string fen, bool chess960 = false) {
-        board.chess960 = chess960;
-        board.set_fen(fen);
+        m_board.chess960 = chess960;
+        m_board.set_fen(fen);
         init_NN();
     }
     void set_dfrc(int idx) {
-        board.chess960 = (idx > 0);
-        board.set_dfrc(idx);
+        m_board.chess960 = (idx > 0);
+        m_board.set_dfrc(idx);
         init_NN();
     }
 
-    void make_move(Move move) { board.make_move(move, NN); }
+    void make_move(Move move) { m_board.make_move(move, NN); }
 
 private:
     template <bool pvNode>
@@ -160,24 +161,24 @@ private:
     template <bool checkTime>
     bool check_for_stop();
 
-    int draw_score() { return 1 - (nodes & 2); }
-
-    std::array<uint64_t, 64 * 64> nodes_seached;
+    int draw_score() { return 1 - (m_nodes & 2); }
 };
 
 class ThreadPool {
 public:
-    std::vector<std::unique_ptr<SearchThread>> threads;
-    Info info;
+    std::vector<std::unique_ptr<SearchThread>> m_threads;
+    Info m_info;
 
     ThreadPool() { create_pool(0); }
     ~ThreadPool() { exit(); }
 
     void create_pool(std::size_t thread_count) {
         exit();
-        threads.clear();
-        for (std::size_t i = 0; i < thread_count; i++) threads.push_back(std::make_unique<SearchThread>(this, i));
+        m_threads.clear();
+        for (std::size_t i = 0; i < thread_count; i++) m_threads.push_back(std::make_unique<SearchThread>(this, i));
     }
+
+    std::size_t get_num_threads() { return m_threads.size(); }
 
     void is_ready() {
         wait_for_finish();
@@ -185,58 +186,58 @@ public:
     }
 
     void stop() {
-        for (auto &thread : threads) thread->state |= ThreadStates::STOP;
+        for (auto &thread : m_threads) thread->m_state |= ThreadStates::STOP;
     }
     void exit() {
-        for (auto &thread : threads) thread->exit();
+        for (auto &thread : m_threads) thread->exit();
     }
     void wait_for_finish(bool main_as_well = true) {
-        for (auto &thread : threads) {
-            if (main_as_well || thread != threads.front()) thread->wait_for_finish();
+        for (auto &thread : m_threads) {
+            if (main_as_well || thread != m_threads.front()) thread->wait_for_finish();
         }
     }
     void clear_history() {
-        for (auto &thread : threads) thread->clear_history();
+        for (auto &thread : m_threads) thread->clear_history();
     }
     void clear_board() {
-        for (auto &thread : threads) thread->clear_board();
+        for (auto &thread : m_threads) thread->clear_board();
     }
     void set_fen(std::string fen, bool chess960 = false) {
-        for (auto &thread : threads) thread->set_fen(fen, chess960);
+        for (auto &thread : m_threads) thread->set_fen(fen, chess960);
     }
     void set_dfrc(int dfrc_index) {
-        for (auto &thread : threads) thread->set_dfrc(dfrc_index);
+        for (auto &thread : m_threads) thread->set_dfrc(dfrc_index);
     }
     void make_move(Move move) {
-        for (auto &thread : threads) thread->make_move(move);
+        for (auto &thread : m_threads) thread->make_move(move);
     }
-    Board &get_board() { return threads.front()->board; }
-    Network* get_NN() { return threads.front()->NN; }
+    Board &get_board() { return m_threads.front()->m_board; }
+    Network* get_NN() { return m_threads.front()->NN; }
     int get_eval() { return evaluate(get_board(), get_NN()); }
 
     uint64_t get_nodes() {
         uint64_t nodes = 0;
-        for (auto &thread : threads) nodes += thread->nodes;
+        for (auto &thread : m_threads) nodes += thread->m_nodes;
         return nodes;
     }
 
     uint64_t get_tbhits() {
         uint64_t tbhits = 0;
-        for (auto &thread : threads) tbhits += thread->tb_hits;
+        for (auto &thread : m_threads) tbhits += thread->m_tb_hits;
         return tbhits;
     }
 
-    void search(Info _info) {
-        info = _info;
+    void search(Info info) {
+        m_info = info;
         stop();
         wait_for_finish();
-        for (auto &thread : threads) {
-            thread->state &= ~ThreadStates::STOP;
-            std::lock_guard<std::mutex> lock(thread->mutex);
-            thread->state |= ThreadStates::SEARCH;
+        for (auto &thread : m_threads) {
+            thread->m_state &= ~ThreadStates::STOP;
+            std::lock_guard<std::mutex> lock(thread->m_mutex);
+            thread->m_state |= ThreadStates::SEARCH;
         }
-        for (auto &thread : threads) {
-            thread->cv.notify_all();
+        for (auto &thread : m_threads) {
+            thread->m_cv.notify_all();
         }
     }
 
@@ -244,19 +245,19 @@ public:
         int best_score = 0;
         Move best_move = NULLMOVE;
         
-        int bestDepth = threads.front()->completed_depth;
-        best_score = threads.front()->root_score[1];
-        best_move = threads.front()->best_move[1];
-        for (std::size_t i = 1; i < threads.size(); i++) {
-            if (threads[i]->root_score[1] > best_score && threads[i]->completed_depth >= bestDepth) {
-                best_score = threads[i]->root_score[1];
-                best_move = threads[i]->best_move[1];
-                bestDepth = threads[i]->completed_depth;
+        int bestDepth = m_threads.front()->m_completed_depth;
+        best_score = m_threads.front()->m_root_scores[1];
+        best_move = m_threads.front()->m_best_moves[1];
+        for (std::size_t i = 1; i < m_threads.size(); i++) {
+            if (m_threads[i]->m_root_scores[1] > best_score && m_threads[i]->m_completed_depth >= bestDepth) {
+                best_score = m_threads[i]->m_root_scores[1];
+                best_move = m_threads[i]->m_best_moves[1];
+                bestDepth = m_threads[i]->m_completed_depth;
             }
         }
 
         if (printStats) {
-            std::cout << "bestmove " << move_to_string(best_move, info.chess960);
+            std::cout << "bestmove " << move_to_string(best_move, m_info.is_chess960());
             std::cout << std::endl;
         }
     }

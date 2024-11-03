@@ -117,18 +117,3 @@ public:
     bool is_draw(int ply);
     bool has_upcoming_repetition(int ply);
 };
-
-class Info {
-public:
-    int64_t startTime, stopTime;
-    int64_t goodTimeLim, hardTimeLim;
-    int depth, multipv;
-    int movestogo;
-    int64_t nodes, min_nodes, max_nodes;
-
-    bool timeset;
-    bool sanMode;
-    bool chess960;
-
-    Info() : depth(MAX_DEPTH), multipv(1), nodes(-1), min_nodes(-1), max_nodes(-1), chess960(false) {}
-};

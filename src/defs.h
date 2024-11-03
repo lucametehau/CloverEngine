@@ -22,7 +22,6 @@
 #include <random>
 #include <cassert>
 #include <array>
-#include <chrono>
 #include <map>
 #include <iostream>
 #include "params.h"
@@ -95,10 +94,6 @@ enum {
     SOUTHWEST_ID, SOUTHEAST_ID
 };
 
-enum {
-    NONE = 0, UPPER, LOWER, EXACT
-};
-
 constexpr Move NULLMOVE = 0;
 
 constexpr int HALFMOVES = 100;
@@ -156,13 +151,6 @@ public:
     void print_mean() { std::cout << name << " has the mean value " << sum / count << " (" << count << " calls)\n"; }
 };
 
-inline const auto t_init = std::chrono::steady_clock::now();
-
-inline int64_t getTime() {
-    auto t = std::chrono::steady_clock::now();
-    return std::chrono::duration_cast<std::chrono::milliseconds>(t - t_init).count();
-}
-
 inline int16_t net_index(Piece piece, Square sq, Square kingSq, bool side) {
     return 64 * 12 * kingIndTable[kingSq ^ (56 * !side)] + 64 * (piece + side * (piece >= 6 ? -6 : +6)) + (sq ^ (56 * !side) ^ (7 * ((kingSq >> 2) & 1))); // kingSq should be ^7, if kingSq&7 >= 4
 }
@@ -170,8 +158,6 @@ inline int16_t net_index(Piece piece, Square sq, Square kingSq, bool side) {
 inline bool recalc(Square from, Square to, bool side) {
     return (from & 4) != (to & 4) || kingIndTable[from ^ (56 * !side)] != kingIndTable[to ^ (56 * !side)];
 }
-
-inline Square mirror(bool color, Square sq) { return sq ^ (56 * !color); }
 
 template<int direction>
 inline Square shift_square(bool color, Square sq) { return color == BLACK ? sq - direction : sq + direction; }
@@ -181,9 +167,6 @@ inline Bitboard shift_mask(int color, Bitboard bb) {
     if (color == BLACK) return direction > 0 ? bb >> direction : bb << static_cast<int8_t>(-direction);
     return direction > 0 ? bb << direction : bb >> static_cast<int8_t>(-direction);
 }
-
-inline Piece get_piece(const Piece piece_type, const bool color) { return 6 * color + piece_type; }
-inline bool color_of(Piece piece) { return piece >= 6; }
 
 inline bool inside_board(int rank, int file) {
     return rank >= 0 && file >= 0 && rank <= 7 && file <= 7;

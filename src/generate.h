@@ -42,14 +42,9 @@ void generateFens(SearchThread &thread_data, std::atomic<uint64_t>& sumFens, std
     int gameInd = 1;
     uint64_t totalFens = 0;
 
-    info.timeset = false;
-    info.depth = MAX_DEPTH;
-    info.startTime = getTime();
-    info.min_nodes = 5000;
-    info.max_nodes = (1 << 20);
-    info.nodes = -1;
-
-    info.multipv = 1;
+    info.init();
+    info.set_min_nodes(5000);
+    info.set_max_nodes(1 << 20);
 
     std::mutex M;
 
@@ -195,7 +190,7 @@ void generateData(uint64_t nrFens, int nrThreads, std::string rootPath, uint64_t
     std::uniform_int_distribution<uint64_t> rng;
     std::atomic<uint64_t> sumFens{0}, sumGames{0};
     std::atomic<uint64_t> totalFens{nrFens};
-    double startTime = getTime();
+    std::time_t startTime = get_current_time();
 
     for (auto& t : threads) {
         std::string pth = path[i];
@@ -206,8 +201,9 @@ void generateData(uint64_t nrFens, int nrThreads, std::string rootPath, uint64_t
 
     while (sumFens <= totalFens) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
-        std::cout << "Games " << std::setw(9) << sumGames << "; Fens " << std::setw(11) << sumFens << " ; Time elapsed: " << std::setw(9) << std::floor((getTime() - startTime) / 1000.0) << "s ; " <<
-            "fens/s " << std::setw(6) << std::floor(1LL * sumFens * 1000 / (getTime() - startTime)) << "\r";
+        std::time_t time_elapsed = get_current_time() - startTime;
+        std::cout << "Games " << std::setw(9) << sumGames << "; Fens " << std::setw(11) << sumFens << " ; Time elapsed: " << std::setw(9) << std::floor(time_elapsed / 1000.0) << "s ; " <<
+            "fens/s " << std::setw(6) << static_cast<uint64_t>(std::floor(1LL * sumFens * 1000 / time_elapsed)) << "\r";
     }
 
     for (auto& t : threads)

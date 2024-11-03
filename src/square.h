@@ -2,14 +2,17 @@
 #include <cstdint>
 
 class Square {
-public:
+private:
     uint8_t sq;
-    //Square(uint8_t sq = 64) : sq(sq) {}
+
+public:
     constexpr Square(uint8_t sq = 64) : sq(sq) {}
     constexpr Square(int _sq) : sq{static_cast<uint8_t>(_sq)} {}
     Square(uint8_t rank, uint8_t file) : sq(rank * 8 + file) {}
 
-    operator uint8_t() const { return sq; } 
+    operator uint8_t() const { return sq; }
+
+    Square mirror(const bool side) const { return sq ^ (56 * !side); };
 
     Square operator + (const Square &other) const { return sq + other.sq; }
     Square operator - (const Square &other) const { return sq - other.sq; }
@@ -89,4 +92,4 @@ constexpr Square G8 = Square(62);
 constexpr Square H8 = Square(63);
 };
 
-constexpr Square NO_EP = Square(64);
+constexpr Square NO_SQUARE = Square(64);

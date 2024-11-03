@@ -239,7 +239,7 @@ bool see(Board& board, Move move, int threshold) {
     occ = board.get_bb_color(WHITE) | board.get_bb_color(BLACK);
     occ = (occ ^ Bitboard(from)) | Bitboard(to);
 
-    if (type(move) == ENPASSANT && board.enpas() != NO_EP) occ ^= Bitboard(board.enpas());
+    if (type(move) == ENPASSANT && board.enpas() != NO_SQUARE) occ ^= Bitboard(board.enpas());
 
     att = board.get_attackers(WHITE, occ, to) | board.get_attackers(BLACK, occ, to);
 

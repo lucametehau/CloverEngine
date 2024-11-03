@@ -97,7 +97,7 @@ void UCI::uci_loop() {
                         iss >> component;
                         fen += component + " ";
                     }
-                    thread_pool.set_fen(fen, info.chess960);
+                    thread_pool.set_fen(fen, info.is_chess960());
                 }
                 else if (type == "moves") {
                     std::string moveStr;
@@ -112,12 +112,11 @@ void UCI::uci_loop() {
             ucinewgame(ttSize);
         }
         else if (cmd == "go") {
-            int depth = -1, movetime = -1;
+            int depth = MAX_DEPTH, movetime = -1;
             int time = -1, inc = 0;
             int64_t nodes = -1;
             bool turn = thread_pool.get_board().turn;
-            info.timeset = 0;
-            info.sanMode = 0;
+            info.init();
 
             std::string param;
 
@@ -129,34 +128,20 @@ void UCI::uci_loop() {
                 else if (param == "movetime") { iss >> movetime; }
                 else if (param == "depth") { iss >> depth; }
                 else if (param == "nodes") { iss >> nodes; }
-                else if (param == "san") { info.sanMode = true; }
+                else if (param == "san") { info.set_san_mode(); }
             }
 
-            info.startTime = getTime();
-            info.depth = depth;
-
             if (movetime != -1) {
-                time = movetime;
-                info.timeset = 1;
-                info.goodTimeLim = info.hardTimeLim = time;
-                info.stopTime = info.startTime + info.goodTimeLim;
+                info.set_movetime(movetime);
             }
             else if (time != -1) {
                 const int MOVE_OVERHEAD = 100; // idk
                 time -= MOVE_OVERHEAD;
-                int incTime = time + 40 * inc;
-                int goodTimeLim, hardTimeLim;
-                goodTimeLim = std::min<int>(incTime * TMCoef1, time * TMCoef2);
-                hardTimeLim = std::min<int>(goodTimeLim * TMCoef3, time * TMCoef4);
-                info.goodTimeLim = goodTimeLim;
-                info.hardTimeLim = hardTimeLim;
-                info.timeset = 1;
-                info.stopTime = info.startTime + goodTimeLim;
+                info.set_time(time, inc);
             }
 
-            info.nodes = nodes;
-            if (depth == -1)
-                info.depth = MAX_DEPTH;
+            info.set_nodes(nodes);
+            info.set_depth(depth);
 
             go(info);
         }
@@ -191,7 +176,7 @@ void UCI::uci_loop() {
             if (name == "Hash") {
                 iss >> value >> ttSize;
 #ifndef GENERATE
-                TT->initTable(ttSize * MB, thread_pool.threads.size());
+                TT->initTable(ttSize * MB, thread_pool.get_num_threads());
 #endif
             }
             else if (name == "Threads") {
@@ -208,13 +193,13 @@ void UCI::uci_loop() {
             else if (name == "MultiPV") {
                 int multipv;
                 iss >> value >> multipv;
-                info.multipv = multipv;
+                info.set_multipv(multipv);
             }
             else if (name == "UCI_Chess960") {
                 std::string chess960;
                 iss >> value >> chess960;
 
-                info.chess960 = chess960 == "true";
+                info.set_chess960(chess960 == "true");
             }
             else {
                 for (auto& param : params_int) {
@@ -293,7 +278,7 @@ void UCI::ucinewgame(uint64_t ttSize) {
     thread_pool.clear_history();
 #ifndef GENERATE
     TT->reset_age();
-    TT->initTable(ttSize * MB, thread_pool.threads.size());
+    TT->initTable(ttSize * MB, thread_pool.get_num_threads());
 #endif
 }
 
@@ -323,9 +308,9 @@ void UCI::is_ready() {
 }
 
 void UCI::go_perft(int depth) {
-    long double t1 = getTime();
+    std::time_t t1 = get_current_time();
     uint64_t nodes = perft<true>(thread_pool.get_board(), depth);
-    long double t2 = getTime();
+    std::time_t t2 = get_current_time();
     long double t = (t2 - t1) / 1000.0;
     uint64_t nps = nodes / t;
 
@@ -405,11 +390,9 @@ void UCI::bench(int depth) {
 
     printStats = false;
 
-    uint64_t start = getTime();
-    info.timeset = false;
-    info.depth = depth == -1 ? 14 : depth;
-    info.startTime = getTime();
-    info.nodes = -1;
+    std::time_t start = get_current_time();
+    info.init();
+    info.set_depth(depth == -1 ? 14 : depth);
 
     uint64_t totalNodes = 0;
     for (auto& fen : benchPos) {
@@ -421,7 +404,7 @@ void UCI::bench(int depth) {
         ucinewgame(ttSize);
     }
 
-    uint64_t end = getTime();
+    std::time_t end = get_current_time();
     long double t = 1.0 * (end - start) / 1000.0;
 
     printStats = true;
