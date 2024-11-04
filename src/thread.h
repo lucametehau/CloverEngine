@@ -20,6 +20,7 @@
 #include "history.h"
 #include "evaluate.h"
 #include "search-info.h"
+#include "net.h"
 #include <mutex>
 #include <thread>
 #include <chrono>
@@ -123,7 +124,7 @@ public:
     void clear_stack() {
         m_pv_table_len.fill(0);
         m_nodes_seached.fill(0);
-        fill_multiarray<Move, MAX_DEPTH + 5, 2 * MAX_DEPTH + 5>(m_pv_table, 0);
+        fill_multiarray<Move, MAX_DEPTH + 5, 2 * MAX_DEPTH + 5>(m_pv_table, NULLMOVE);
     }
     void clear_history() { m_histories.clear_history(); }
     void clear_board() { m_board.clear(); }
@@ -142,7 +143,16 @@ public:
         init_NN();
     }
 
-    void make_move(Move move) { m_board.make_move(move, NN); }
+    void make_move(Move move) { 
+        const Piece piece = m_board.piece_at(move.get_from());
+        m_board.make_move(move);
+        NN->add_move_to_history(move, piece, m_board.captured());
+    }
+
+    void undo_move(Move move) {
+        m_board.undo_move(move);
+        NN->revert_move();
+    }
 
 private:
     template <bool pvNode>
@@ -154,7 +164,7 @@ private:
     void iterative_deepening();
 
     void print_pv();
-    void update_pv(int ply, int move);
+    void update_pv(int ply, Move move);
 
     void print_iteration_info(bool san_mode, int multipv, int score, int alpha, int beta, uint64_t t, int depth, int sel_depth, uint64_t total_nodes, uint64_t total_tb_hits);
 
@@ -257,7 +267,7 @@ public:
         }
 
         if (printStats) {
-            std::cout << "bestmove " << move_to_string(best_move, m_info.is_chess960());
+            std::cout << "bestmove " << best_move.to_string(m_info.is_chess960());
             std::cout << std::endl;
         }
     }

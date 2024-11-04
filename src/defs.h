@@ -27,6 +27,7 @@
 #include "params.h"
 #include "bitboard.h"
 #include "piece.h"
+#include "move.h"
 
 #if defined(__ARM_NEON)
 #include <arm_neon.h>
@@ -62,8 +63,6 @@ void fill_multiarray(MultiArray<typename MultiArray_impl<T, sizes...>::type, siz
         fill_multiarray<T, sizes...>(array[i], value);
 }
 
-typedef uint16_t Move;
-
 class Threats {
 public:
     Bitboard threats_pieces[4];
@@ -73,12 +72,12 @@ public:
     Threats() { for(int i = 0; i < 4; i++) threats_pieces[i] = Bitboard(0ULL); }
 };
 
-enum {
-    BLACK = 0, WHITE
+struct NetInput {
+    std::vector<short> ind[2];
 };
 
 enum {
-    NO_TYPE = 0, PROMOTION, CASTLE, ENPASSANT
+    BLACK = 0, WHITE
 };
 
 enum {
@@ -94,19 +93,14 @@ enum {
     SOUTHWEST_ID, SOUTHEAST_ID
 };
 
-constexpr Move NULLMOVE = 0;
-
 constexpr int HALFMOVES = 100;
 constexpr int INF = 32000;
 constexpr int VALUE_NONE = INF + 10;
 constexpr int MATE = 31000;
 constexpr int TB_WIN_SCORE = 22000;
 constexpr int MAX_DEPTH = 200;
+constexpr int STACK_SIZE = 2000;
 
-constexpr int MAX_MOVES = 256;
-typedef std::array<Move, MAX_MOVES> MoveList;
-
-inline const std::string piece_char = "pnbrqkPNBRQK.";
 inline const std::string START_POS_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 inline std::map<char, Piece> cod;
@@ -152,7 +146,9 @@ public:
 };
 
 inline int16_t net_index(Piece piece, Square sq, Square kingSq, bool side) {
-    return 64 * 12 * kingIndTable[kingSq ^ (56 * !side)] + 64 * (piece + side * (piece >= 6 ? -6 : +6)) + (sq ^ (56 * !side) ^ (7 * ((kingSq >> 2) & 1))); // kingSq should be ^7, if kingSq&7 >= 4
+    return 64 * 12 * kingIndTable[kingSq.mirror(side)] + 
+           64 * (piece + side * (piece >= 6 ? -6 : +6)) + 
+           (sq.mirror(side) ^ (7 * ((kingSq >> 2) & 1))); // kingSq should be ^7, if kingSq&7 >= 4
 }
 
 inline bool recalc(Square from, Square to, bool side) {
@@ -170,28 +166,6 @@ inline Bitboard shift_mask(int color, Bitboard bb) {
 
 inline bool inside_board(int rank, int file) {
     return rank >= 0 && file >= 0 && rank <= 7 && file <= 7;
-}
-
-inline Move get_move(Square from, Square to, Piece prom, int type) { return from | (to << 6) | (prom << 12) | (type << 14); }
-inline Square sq_from(Move move) { return move & 63; }
-inline Square sq_to(Move move) { return (move & 4095) >> 6; }
-inline int from_to(Move move) { return move & 4095; }
-inline int type(Move move) { return move >> 14; }
-inline Piece promoted(Move move) { return (move & 16383) >> 12; }
-inline Square special_sqto(Move move) {
-    return type(move) != CASTLE ? sq_to(move) : static_cast<Square>(8 * (sq_from(move) / 8) + (sq_from(move) < sq_to(move) ? 6 : 2));
-}
-
-inline std::string move_to_string(Move move, bool chess960 = false) {
-    int sq1 = sq_from(move), sq2 = !chess960 ? special_sqto(move) : sq_to(move);
-    std::string ans;
-    ans += char((sq1 & 7) + 'a');
-    ans += char((sq1 >> 3) + '1');
-    ans += char((sq2 & 7) + 'a');
-    ans += char((sq2 >> 3) + '1');
-    if (type(move) == PROMOTION)
-        ans += piece_char[promoted(move) + Pieces::BlackKnight];
-    return ans;
 }
 
 inline void init_defs() {

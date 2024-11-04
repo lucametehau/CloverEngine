@@ -55,16 +55,13 @@ class SearchMove {
 public:
     Move move;
     int tried_count;
-    SearchMove() : move(NULLMOVE), tried_count(0) {}
-    SearchMove(Move _move, int _tried_count) : move(_move), tried_count(_tried_count) {}
+    constexpr SearchMove() : move(NULLMOVE), tried_count(0) {}
+    constexpr SearchMove(Move _move, int _tried_count) : move(_move), tried_count(_tried_count) {}
 };
 
 class StackEntry { /// info to keep in the stack
 public:
-    StackEntry() : piece(NO_PIECE), move(0), killer(0), excluded(0), eval(0) {
-        quiets.fill(SearchMove());
-        noisies.fill(SearchMove());
-    }
+    constexpr StackEntry() : piece(NO_PIECE), move(NULLMOVE), killer(NULLMOVE), excluded(NULLMOVE), eval(0) {}
     Piece piece;
     Move move, killer, excluded;
     std::array<SearchMove, MAX_MOVES> quiets, noisies;
@@ -134,34 +131,31 @@ public:
     }
 
     void update_cont_hist_move(const Piece piece, const Square to, StackEntry *stack, const int16_t bonus) {
-        if ((stack - 1)->move)
-            get_cont_hist(piece, to, stack, 1).update(bonus);
-        if ((stack - 2)->move)
-            get_cont_hist(piece, to, stack, 2).update(bonus);
-        if ((stack - 4)->move)
-            get_cont_hist(piece, to, stack, 4).update(bonus);
+        if ((stack - 1)->move) get_cont_hist(piece, to, stack, 1).update(bonus);
+        if ((stack - 2)->move) get_cont_hist(piece, to, stack, 2).update(bonus);
+        if ((stack - 4)->move) get_cont_hist(piece, to, stack, 4).update(bonus);
     }
 
     void update_hist_move(const Move move, const Bitboard threats, const bool turn, const int16_t bonus) {
-        get_hist(sq_from(move), sq_to(move), from_to(move), turn, threats).update(bonus);
+        get_hist(move.get_from(), move.get_to(), move.get_from_to(), turn, threats).update(bonus);
     }
 
     void update_hist_quiet_move(const Move move, const Piece piece, const Bitboard threats, const bool turn, StackEntry *&stack, const int16_t bonus) {
         update_hist_move(move, threats, turn, bonus);
-        update_cont_hist_move(piece, sq_to(move), stack, bonus);
+        update_cont_hist_move(piece, move.get_to(), stack, bonus);
     }
 
     const int get_history_search(const Move move, const Piece piece, const Bitboard threats, const bool turn, StackEntry *stack) const {
-        const int to = sq_to(move);
-        return get_hist(sq_from(move), to, from_to(move), turn, threats)
+        const Square to = move.get_to();
+        return get_hist(move.get_from(), to, move.get_from_to(), turn, threats)
              + get_cont_hist(piece, to, stack, 1)
              + get_cont_hist(piece, to, stack, 2)
              + get_cont_hist(piece, to, stack, 4);
     }
 
     const int get_history_movepick(const Move move, const Piece piece, const Bitboard threats, const bool turn, StackEntry *stack) const {
-        const Square to = sq_to(move);
-        return QuietHistCoef  * get_hist(sq_from(move), to, from_to(move), turn, threats)
+        const Square to = move.get_to();
+        return QuietHistCoef  * get_hist(move.get_from(), to, move.get_from_to(), turn, threats)
              + QuietContHist1 * get_cont_hist(piece, to, stack, 1)
              + QuietContHist2 * get_cont_hist(piece, to, stack, 2)
              + QuietContHist4 * get_cont_hist(piece, to, stack, 4);

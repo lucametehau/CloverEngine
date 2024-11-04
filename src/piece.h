@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <string>
 
 class Piece {
 private:
@@ -8,7 +9,7 @@ private:
 public:
     constexpr Piece(uint8_t piece = 12) : piece(piece) {}
     constexpr Piece(const Piece piece_type, const bool color) : piece(color * 6 + piece_type.piece) {}
-    operator uint8_t() const { return piece; }
+    constexpr operator uint8_t() const { return piece; }
 
     const Piece color() const { return piece >= 6; }
     Piece type() { return piece >= 6 ? piece - 6 : piece; }
@@ -50,3 +51,5 @@ constexpr Piece WhiteKing   = Piece(11);
 };
 
 constexpr Piece NO_PIECE    = Piece(12);
+
+inline const std::string piece_char = "pnbrqkPNBRQK.";

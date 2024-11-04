@@ -18,7 +18,7 @@
 #include <string>
 #include <fstream>
 #include <sstream>
-#include "move.h"
+#include "movegen.h"
 #include "search.h"
 #include "3rdparty/Fathom/src/tbprobe.h"
 #include "perft.h"

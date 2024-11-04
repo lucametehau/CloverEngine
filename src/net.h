@@ -25,6 +25,7 @@
 
 #include "incbin.h"
 #include "defs.h"
+#include "board.h"
 #include <fstream>
 #include <iostream>
 #include <iomanip>
@@ -112,9 +113,11 @@ constexpr int Q_IN = 255;
 constexpr int Q_HIDDEN = 64;
 constexpr int Q_IN_HIDDEN = Q_IN * Q_HIDDEN;
 
-constexpr int STACK_SIZE = 2000;
-
 extern void load_nnue_weights();
+
+inline int get_king_bucket_cache_index(const Square king_sq, const bool side) {
+    return KING_BUCKETS * ((king_sq & 7) >= 4) + kingIndTable[king_sq.mirror(side)];
+}
 
 enum {
     SUB = 0, ADD
@@ -127,12 +130,8 @@ struct NetworkWeights {
     int16_t outputBias;
 };
 
-struct NetInput {
-    std::vector<short> ind[2];
-};
-
 struct NetHist {
-    uint16_t move;
+    Move move;
     Piece piece, cap;
     bool recalc;
     bool calc[2];
@@ -158,12 +157,13 @@ public:
     void apply_sub_add_sub(int16_t* output, int16_t* input, int ind1, int ind2, int ind3);
     void apply_sub_add_sub_add(int16_t* output, int16_t* input, int ind1, int ind2, int ind3, int ind4);
 
-    void process_move(uint16_t move, Piece piece, Piece captured, Square king, bool side, int16_t* a, int16_t* b);
+    void process_move(Move move, Piece piece, Piece captured, Square king, bool side, int16_t* a, int16_t* b);
     void process_historic_update(const int index, const Square king_sq, const bool side);
-    void add_move_to_history(uint16_t move, Piece piece, Piece captured);
+    void add_move_to_history(Move move, Piece piece, Piece captured);
     void revert_move();
 
     int get_computed_parent(const bool c);
+    void bring_up_to_date(Board &board);
 
     int32_t get_output(bool stm);
 

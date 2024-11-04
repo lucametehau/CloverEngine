@@ -24,11 +24,11 @@ Bitboard Board::orthogonal_sliders(const bool color) { return get_bb_piece(Piece
 
 Piece Board::piece_at(const Square sq) { return board[sq]; }
 Piece Board::piece_type_at(const Square sq) { return piece_at(sq).type(); }
-Piece Board::get_captured_type(const Move move) { return type(move) == ENPASSANT ? PieceTypes::PAWN : piece_type_at(sq_to(move)); }
+Piece Board::get_captured_type(const Move move) { return move.get_type() == MoveTypes::ENPASSANT ? PieceTypes::PAWN : piece_type_at(move.get_to()); }
 
-bool Board::is_capture(const Move move) { return type(move) != CASTLE && piece_at(sq_to(move)) != NO_PIECE; }
+bool Board::is_capture(const Move move) { return move.get_type() != MoveTypes::CASTLE && piece_at(move.get_to()) != NO_PIECE; }
 bool Board::is_noisy_move(const Move move) { 
-    return (type(move) && type(move) != CASTLE) || is_capture(move); 
+    return (move.get_type() && move.get_type() != MoveTypes::CASTLE) || is_capture(move); 
 }
 
 Bitboard Board::get_attackers(const bool color, const Bitboard blockers, const Square sq) {
@@ -65,8 +65,8 @@ bool Board::is_attacked_by(const bool color, const Square sq) {
     return get_attackers(color, get_bb_color(WHITE) | get_bb_color(BLACK), sq); 
 }
 
-void Board::make_move(const Move move, Network* NN) { /// assuming move is at least pseudo-legal
-    Square from = sq_from(move), to = sq_to(move);
+void Board::make_move(const Move move) { /// assuming move is at least pseudo-legal
+    Square from = move.get_from(), to = move.get_to();
     Piece piece = piece_at(from), piece_cap = piece_at(to);
 
     history[game_ply] = state;
@@ -80,7 +80,7 @@ void Board::make_move(const Move move, Network* NN) { /// assuming move is at le
     captured() = NO_PIECE;
     enpas() = NO_SQUARE;
 
-    switch (type(move)) {
+    switch (move.get_type()) {
     case NO_TYPE:
         pieces[turn] ^= (1ULL << from) ^ (1ULL << to);
         bb[piece] ^= (1ULL << from) ^ (1ULL << to);
@@ -130,7 +130,7 @@ void Board::make_move(const Move move, Network* NN) { /// assuming move is at le
         }
 
         break;
-    case ENPASSANT:
+    case MoveTypes::ENPASSANT:
     {
         const Square pos = shift_square<SOUTH>(turn, to);
         piece_cap = Piece(PieceTypes::PAWN, 1 ^ turn);
@@ -149,7 +149,7 @@ void Board::make_move(const Move move, Network* NN) { /// assuming move is at le
     }
 
     break;
-    case CASTLE:
+    case MoveTypes::CASTLE:
     {
         Square rFrom, rTo;
         Piece rPiece = Piece(PieceTypes::ROOK, turn);
@@ -188,7 +188,7 @@ void Board::make_move(const Move move, Network* NN) { /// assuming move is at le
     break;
     default: /// promotion
     {
-        Piece prom_piece = Piece(promoted(move) + PieceTypes::KNIGHT, turn);
+        Piece prom_piece = Piece(move.get_prom() + PieceTypes::KNIGHT, turn);
 
         pieces[turn] ^= (1ULL << from) ^ (1ULL << to);
         bb[piece] ^= (1ULL << from);
@@ -218,8 +218,6 @@ void Board::make_move(const Move move, Network* NN) { /// assuming move is at le
     break;
     }
 
-    if (NN) NN->add_move_to_history(move, piece, captured());
-
     key() ^= castleKeyModifier[castle_rights() ^ history[game_ply].castleRights];
     checkers() = get_attackers(turn, pieces[WHITE] | pieces[BLACK], get_king(1 ^ turn));
 
@@ -232,7 +230,7 @@ void Board::make_move(const Move move, Network* NN) { /// assuming move is at le
     pinned_pieces() = get_pinned_pieces();
 }
 
-void Board::undo_move(const Move move, Network* NN) {
+void Board::undo_move(const Move move) {
     turn ^= 1;
     ply--;
     game_ply--;
@@ -240,10 +238,10 @@ void Board::undo_move(const Move move, Network* NN) {
     
     state = history[game_ply];
 
-    Square from = sq_from(move), to = sq_to(move);
+    Square from = move.get_from(), to = move.get_to();
     Piece piece = piece_at(to);
 
-    switch (type(move)) {
+    switch (move.get_type()) {
     case NO_TYPE:
         pieces[turn] ^= Bitboard(from) ^ Bitboard(to);
         bb[piece] ^= Bitboard(from) ^ Bitboard(to);
@@ -256,7 +254,7 @@ void Board::undo_move(const Move move, Network* NN) {
             bb[piece_cap] ^= Bitboard(to);
         }
         break;
-    case CASTLE:
+    case MoveTypes::CASTLE:
     {
         Square rFrom, rTo;
         Piece rPiece = Piece(PieceTypes::ROOK, turn);
@@ -283,7 +281,7 @@ void Board::undo_move(const Move move, Network* NN) {
         board[rFrom] = rPiece;
     }
     break;
-    case ENPASSANT:
+    case MoveTypes::ENPASSANT:
     {
         Square pos = shift_square<SOUTH>(turn, to);
 
@@ -302,7 +300,7 @@ void Board::undo_move(const Move move, Network* NN) {
     break;
     default: /// promotion
     {
-        Piece prom_piece = Piece(promoted(move) + PieceTypes::KNIGHT, turn);
+        Piece prom_piece = Piece(move.get_prom() + PieceTypes::KNIGHT, turn);
 
         piece = Piece(PieceTypes::PAWN, turn);
 
@@ -320,8 +318,6 @@ void Board::undo_move(const Move move, Network* NN) {
     }
     break;
     }
-
-    if (NN) NN->revert_move();
 
     captured() = history[game_ply].captured;
 }
@@ -515,7 +511,7 @@ void Board::set_fen(const std::string fen) {
     
     ind++;
     if (fen[ind] != '-') {
-        enpas() = Square(fen[ind] - 'a', fen[ind + 1] - '1');
+        enpas() = Square(fen[ind + 1] - '1', fen[ind] - 'a');
         ind += 3;
         key() ^= enPasKey[enpas()];
     }
@@ -689,7 +685,7 @@ bool Board::has_upcoming_repetition(const int ply) {
         if (cuckoo::cuckoo[cuckoo_ind] != key_delta) continue;
 
         const Move move = cuckoo::cuckoo_move[cuckoo_ind];
-        const Square from = sq_from(move), to = sq_to(move);
+        const Square from = move.get_from(), to = move.get_to();
         if ((between_mask[from][to] ^ Bitboard(to)) & all_pieces) continue;
         if (ply > i) return true;
         const Piece piece = piece_at(from) != NO_PIECE ? piece_at(from) : piece_at(to);
@@ -699,7 +695,7 @@ bool Board::has_upcoming_repetition(const int ply) {
 }
 
 uint64_t Board::speculative_next_key(const Move move) {
-    const int from = sq_from(move), to = sq_to(move);
+    const int from = move.get_from(), to = move.get_to();
     const Piece piece = piece_at(from);
     return key() ^ hashKey[piece][from] ^ hashKey[piece][to] ^ (piece_at(to) != NO_PIECE ? hashKey[piece_at(to)][to] : 0) ^ 1;
 }

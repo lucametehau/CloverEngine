@@ -15,7 +15,7 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #pragma once
-#include "move.h"
+#include "movegen.h"
 
 template <bool RootNode>
 uint64_t perft(Board& board, int depth) {
@@ -32,7 +32,7 @@ uint64_t perft(Board& board, int depth) {
         nodes += x;
         board.undo_move(move);
         if constexpr (RootNode)
-            std::cout << move_to_string(move, false) << ": " << x << "\n";
+            std::cout << move.to_string() << ": " << x << "\n";
     }
     return nodes;
 }
