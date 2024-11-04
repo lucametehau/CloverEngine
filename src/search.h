@@ -550,7 +550,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
                         return FPBias + seeVal[captured] + FPMargin * depth;
                     };
                     if (depth <= FPNoisyDepth && !in_check && 
-                        static_eval + noisy_futility_margin(depth, m_board.get_captured_type(move)) <= alpha) continue;
+                        static_eval + noisy_futility_margin(depth + is_ttmove_noisy, board.get_captured_type(move)) <= alpha) continue;
                 }
             }
         }
