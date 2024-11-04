@@ -155,6 +155,11 @@ int SearchThread::quiesce(int alpha, int beta, StackEntry* stack) {
     m_pv_table_len[ply] = 0;
     m_nodes++;
     if (m_board.is_draw(ply)) return draw_score();
+    
+    if (alpha < 0 && m_board.has_upcoming_repetition(ply)) {
+        alpha = draw_score();
+        if (alpha >= beta) return alpha;
+    }
 
     if (check_for_stop<false>()) return evaluate(m_board, NN);
 
