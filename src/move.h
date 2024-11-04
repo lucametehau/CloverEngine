@@ -26,7 +26,7 @@ public:
     inline Piece get_prom() const { return (move >> 12) & 3; }
     inline MoveType get_type() const { return (move >> 14) & 3; }
     inline Square get_special_to() const { return get_type() != MoveTypes::CASTLE ? get_to() : 
-                                                                             static_cast<Square>(8 * (get_from() / 8) + (get_from() < get_to() ? Squares::F1 : Squares::C1)); }
+                                                                             static_cast<Square>(8 * (get_from() / 8) + (get_from() < get_to() ? Squares::G1 : Squares::C1)); }
 
     inline bool operator == (const Move other) const { return move == other.move; } 
 
