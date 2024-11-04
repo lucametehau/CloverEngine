@@ -105,9 +105,9 @@ void get_threats(Threats& threats, Board& board, const bool us) {
 }
 
 std::string getSanString(Board& board, Move move) {
-    if (type(move) == CASTLE) return sq_to(move) > sq_from(move) ? "O-O" : "O-O-O";
-    int from = sq_from(move), to = sq_to(move);
-    Piece prom = type(move) == PROMOTION ? promoted(move) + PieceTypes::KNIGHT + 6 : static_cast<Piece>(0), piece = board.piece_type_at(from);
+    if (move.get_type() == MoveTypes::CASTLE) return move.get_to() > move.get_from() ? "O-O" : "O-O-O";
+    int from = move.get_from(), to = move.get_to();
+    Piece prom = move.get_type() == MoveTypes::PROMOTION ? move.get_prom() + PieceTypes::KNIGHT + 6 : static_cast<Piece>(0), piece = board.piece_type_at(from);
     std::string san;
 
     if (piece != PieceTypes::PAWN) san += piece_char[piece + 6];
@@ -136,12 +136,12 @@ void SearchThread::print_pv() {
     }
     else {
         for (int i = 0; i < m_pv_table_len[0]; i++) {
-            std::cout << move_to_string(m_pv_table[0][i], m_info.is_chess960()) << " ";
+            std::cout << m_pv_table[0][i].to_string(m_info.is_chess960()) << " ";
         }
     }
 }
 
-void SearchThread::update_pv(int ply, int move) {
+void SearchThread::update_pv(int ply, Move move) {
     m_pv_table[ply][0] = move;
     for (int i = 0; i < m_pv_table_len[ply + 1]; i++) m_pv_table[ply][i + 1] = m_pv_table[ply + 1][i];
     m_pv_table_len[ply] = 1 + m_pv_table_len[ply + 1];
@@ -229,7 +229,7 @@ int SearchThread::quiesce(int alpha, int beta, StackEntry* stack) {
             // futility pruning
             if (futility_base > -MATE) {
                 const int value = futility_base + seeVal[m_board.get_captured_type(move)];
-                if (type(move) != PROMOTION && value <= alpha) {
+                if (move.get_type() != MoveTypes::PROMOTION && value <= alpha) {
                     best = std::max(best, value);
                     continue;
                 }
@@ -239,8 +239,8 @@ int SearchThread::quiesce(int alpha, int beta, StackEntry* stack) {
         // update stack info
         TT->prefetch(m_board.speculative_next_key(move));
         stack->move = move;
-        stack->piece = m_board.piece_at(sq_from(move));
-        stack->cont_hist = &m_histories.cont_history[!m_board.is_noisy_move(move)][stack->piece][sq_to(move)];
+        stack->piece = m_board.piece_at(move.get_from());
+        stack->cont_hist = &m_histories.cont_history[!m_board.is_noisy_move(move)][stack->piece][move.get_to()];
 
         m_board.make_move(move, NN);
         if (!pvNode || played > 1) score = -quiesce<false>(-alpha - 1, -alpha, stack + 1);
@@ -445,8 +445,8 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
                         continue;
 
                     stack->move = move;
-                    stack->piece = m_board.piece_at(sq_from(move));
-                    stack->cont_hist = &m_histories.cont_history[0][stack->piece][sq_to(move)];
+                    stack->piece = m_board.piece_at(move.get_from());
+                    stack->cont_hist = &m_histories.cont_history[0][stack->piece][move.get_to()];
 
                     m_board.make_move(move, NN);
 
@@ -497,7 +497,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
             continue;
 
         const bool is_quiet = !m_board.is_noisy_move(move);
-        const Square from = sq_from(move), to = sq_to(move);
+        const Square from = move.get_from(), to = move.get_to();
         const Piece piece = m_board.piece_at(from);
         int history = 0;
 
@@ -588,7 +588,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
         if constexpr (rootNode) {
             // current root move info
             if (main_thread() && printStats && m_info.get_time_elapsed() > 2500 && !m_info.is_san_mode()) {
-                std::cout << "info depth " << depth << " currmove " << move_to_string(move, m_info.is_chess960()) << " currmovenumber " << played << std::endl;
+                std::cout << "info depth " << depth << " currmove " << move.to_string(m_info.is_chess960()) << " currmovenumber " << played << std::endl;
             }
         }
 
@@ -643,7 +643,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
         }
 
         m_board.undo_move(move, NN);
-        m_nodes_seached[from_to(move)] += m_nodes - nodes_previously;
+        m_nodes_seached[move.get_from_to()] += m_nodes - nodes_previously;
 
         if (must_stop()) // stop search
             return best;
@@ -665,21 +665,21 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
                     if (!m_board.is_noisy_move(bestMove)) {
                         stack->killer = bestMove;
                         if (nr_quiets || depth >= HistoryUpdateMinDepth)
-                            m_histories.update_hist_quiet_move(bestMove, m_board.piece_at(sq_from(bestMove)), 
+                            m_histories.update_hist_quiet_move(bestMove, m_board.piece_at(bestMove.get_from()), 
                                                                threats.all_threats, turn, stack, bonus * tried_count);
                         for (int i = 0; i < nr_quiets; i++) {
                             const auto [move, tried_count] = stack->quiets[i];
-                            m_histories.update_hist_quiet_move(move, m_board.piece_at(sq_from(move)), 
+                            m_histories.update_hist_quiet_move(move, m_board.piece_at(move.get_from()), 
                                                                threats.all_threats, turn, stack, malus * tried_count);
                         }
                     }
                     else {
-                        m_histories.update_cap_hist_move(m_board.piece_at(sq_from(bestMove)), sq_to(bestMove), 
+                        m_histories.update_cap_hist_move(m_board.piece_at(bestMove.get_from()), bestMove.get_to(), 
                                                          m_board.get_captured_type(bestMove), bonus * tried_count);
                     }
                     for (int i = 0; i < nr_noisies; i++) {
                         const auto [move, tried_count] = stack->noisies[i];
-                        m_histories.update_cap_hist_move(m_board.piece_at(sq_from(move)), sq_to(move), 
+                        m_histories.update_cap_hist_move(m_board.piece_at(move.get_from()), move.get_to(), 
                                                          m_board.get_captured_type(move), malus * tried_count);
                     }
                     break;
@@ -768,7 +768,7 @@ void SearchThread::start_search() {
     m_root_eval = !m_board.checkers() ? evaluate(m_board, NN) : INF;
 
     m_scores.fill(0);
-    m_best_moves.fill(0);
+    m_best_moves.fill(NULLMOVE);
     m_root_scores.fill(0);
     m_search_stack.fill(StackEntry());
     m_stack = m_search_stack.data() + 10;
@@ -848,7 +848,7 @@ void SearchThread::iterative_deepening() {
                 scoreChange = std::clamp<double>(TimeManagerScoreBias + 1.0 * (last_root_score - m_root_scores[1]) / TimeManagerScoreDiv, TimeManagerScoreMin, TimeManagerScoreMax); /// adjust time based on score change
                 m_best_move_cnt = (m_best_moves[1] == last_best_move ? m_best_move_cnt + 1 : 1);
                 /// adjust time based on how many nodes from the total searched nodes were used for the best move
-                nodesSearchedPercentage = 1.0 * m_nodes_seached[from_to(m_best_moves[1])] / m_nodes;
+                nodesSearchedPercentage = 1.0 * m_nodes_seached[m_best_moves[1].get_from_to()] / m_nodes;
                 nodesSearchedPercentage = TimeManagerNodesSearchedMaxPercentage - TimeManagerNodesSearchedCoef * nodesSearchedPercentage;
                 bestMoveStreak = TimeManagerBestMoveMax - TimeManagerbestMoveStep * std::min(10, m_best_move_cnt); /// adjust time based on how long the best move was the same
             }

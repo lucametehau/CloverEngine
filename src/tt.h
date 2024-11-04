@@ -32,6 +32,8 @@ struct Entry {
     int16_t eval;
     Move move;
 
+    Entry() : hash(0), about(0), score(0), eval(0), move(NULLMOVE) {}
+
     int value(int ply) const {
         if (score != VALUE_NONE) {
             if (score >= TB_WIN_SCORE) return score - ply;
@@ -50,6 +52,8 @@ struct Entry {
 struct Bucket {
     std::array<Entry, BUCKET> entries;
     char padding[2];
+
+    Bucket() { entries.fill(Entry()); }
 };
 
 static_assert(sizeof(Bucket) == 32);
@@ -77,7 +81,7 @@ public:
 
     Entry* probe(const uint64_t hash, bool &ttHit);
 
-    void save(Entry* entry, uint64_t hash, int score, int depth, int ply, int bound, uint16_t move, int eval, bool was_pv);
+    void save(Entry* entry, uint64_t hash, int score, int depth, int ply, int bound, Move move, int eval, bool was_pv);
 
     void reset_age();
 
@@ -99,7 +103,7 @@ HashTable::~HashTable() {
 }
 
 void HashTable::initTableSlice(uint64_t start, uint64_t size) {
-    memset(&table[start], 0, size * sizeof(Bucket));
+    std::fill(table + start, table + start + size, Bucket());
 }
 
 void HashTable::initTable(uint64_t size, int nr_threads) {
@@ -165,7 +169,7 @@ Entry* HashTable::probe(const uint64_t hash, bool &ttHit) {
     return bucket + idx;
 }
 
-void HashTable::save(Entry* entry, uint64_t hash, int score, int depth, int ply, int bound, uint16_t move, int eval, bool was_pv) {
+void HashTable::save(Entry* entry, uint64_t hash, int score, int depth, int ply, int bound, Move move, int eval, bool was_pv) {
     if (score != VALUE_NONE) {
         if (score >= TB_WIN_SCORE)
             score += ply;

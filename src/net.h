@@ -127,15 +127,15 @@ struct NetworkWeights {
     int16_t outputBias;
 };
 
-struct NetInput {
-    std::vector<short> ind[2];
-};
-
 struct NetHist {
-    uint16_t move;
+    Move move;
     Piece piece, cap;
     bool recalc;
     bool calc[2];
+};
+
+struct NetInput {
+    std::vector<short> ind[2];
 };
 
 struct KingBucketState {
@@ -158,9 +158,9 @@ public:
     void apply_sub_add_sub(int16_t* output, int16_t* input, int ind1, int ind2, int ind3);
     void apply_sub_add_sub_add(int16_t* output, int16_t* input, int ind1, int ind2, int ind3, int ind4);
 
-    void process_move(uint16_t move, Piece piece, Piece captured, Square king, bool side, int16_t* a, int16_t* b);
+    void process_move(Move move, Piece piece, Piece captured, Square king, bool side, int16_t* a, int16_t* b);
     void process_historic_update(const int index, const Square king_sq, const bool side);
-    void add_move_to_history(uint16_t move, Piece piece, Piece captured);
+    void add_move_to_history(Move move, Piece piece, Piece captured);
     void revert_move();
 
     int get_computed_parent(const bool c);

@@ -17,7 +17,7 @@
 #pragma once
 #include "defs.h"
 #include "board.h"
-#include "move.h"
+#include "movegen.h"
 #include "evaluate.h"
 #include "history.h"
 #include <cassert>
@@ -50,12 +50,11 @@ private:
     std::array<int, MAX_MOVES> scores;
 
 public:
-    Movepick(const Move _ttMove, const Move _killer, const int _threshold, const Threats threats) {
+    Movepick(const Move ttMove, const Move killer, const int threshold, const Threats threats) : 
+        ttMove(ttMove), killer(killer != ttMove ? killer : NULLMOVE), threshold(threshold)
+    {
         stage = STAGE_TTMOVE;
-        ttMove = _ttMove;
-        killer = (_killer != ttMove ? _killer : NULLMOVE);
         nrNoisy = nrQuiets = nrBadNoisy = 0;
-        threshold = _threshold;
         all_threats = threats.all_threats;
         threats_p = threats.threats_pieces[PieceTypes::PAWN];
         threats_bn = threats.threats_pieces[PieceTypes::KNIGHT] | threats.threats_pieces[PieceTypes::BISHOP] | threats_p;
@@ -90,14 +89,14 @@ public:
                 if (move == ttMove || move == killer)
                     continue;
 
-                if (type(move) == PROMOTION && promoted(move) + PieceTypes::KNIGHT != PieceTypes::QUEEN) {
+                if (move.get_type() == MoveTypes::PROMOTION && move.get_prom() + PieceTypes::KNIGHT != PieceTypes::QUEEN) {
                     badNoisy[nrBadNoisy++] = move;
                     continue;
                 }
                 moves[m] = move;
 
-                const Piece piece = board.piece_at(sq_from(move)), cap = board.get_captured_type(move);
-                const Square to = sq_to(move);
+                const Piece piece = board.piece_at(move.get_from()), cap = board.get_captured_type(move);
+                const Square to = move.get_to();
                 int score = GoodNoisyValueCoef * seeVal[cap];
                 score += histories.get_cap_hist(piece, to, cap);
                 scores[m++] = score;
@@ -143,7 +142,7 @@ public:
                         continue;
 
                     moves[m] = move;
-                    const Square from = sq_from(move), to = sq_to(move);
+                    const Square from = move.get_from(), to = move.get_to();
                     const Piece piece = board.piece_at(from), pt = piece.type();
                     int score = histories.get_history_movepick(move, piece, all_threats, turn, stack);
 
@@ -218,7 +217,7 @@ public:
 };
 
 bool see(Board& board, Move move, int threshold) {
-    Square from = sq_from(move), to = sq_to(move);
+    Square from = move.get_from(), to = move.get_to();
     int score = -threshold + 1;
     Bitboard diag, orth, occ, att, myAtt, b;
     bool stm, result = 1;
@@ -239,7 +238,7 @@ bool see(Board& board, Move move, int threshold) {
     occ = board.get_bb_color(WHITE) | board.get_bb_color(BLACK);
     occ = (occ ^ Bitboard(from)) | Bitboard(to);
 
-    if (type(move) == ENPASSANT && board.enpas() != NO_SQUARE) occ ^= Bitboard(board.enpas());
+    if (move.get_type() == MoveTypes::ENPASSANT && board.enpas() != NO_SQUARE) occ ^= Bitboard(board.enpas());
 
     att = board.get_attackers(WHITE, occ, to) | board.get_attackers(BLACK, occ, to);
 

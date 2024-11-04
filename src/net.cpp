@@ -196,10 +196,10 @@ void Network::apply_sub_add_sub_add(int16_t* output, int16_t* input, int ind1, i
     }
 }
 
-void Network::process_move(uint16_t move, Piece piece, Piece captured, Square king, bool side, int16_t* a, int16_t* b) {
-    Square from = sq_from(move), to = sq_to(move);
+void Network::process_move(Move move, Piece piece, Piece captured, Square king, bool side, int16_t* a, int16_t* b) {
+    Square from = move.get_from(), to = move.get_to();
     const bool turn = piece.color();
-    switch (type(move)) {
+    switch (move.get_type()) {
     case NO_TYPE: {
         if (captured == NO_PIECE)
             apply_sub_add(a, b, net_index(piece, from, king, side), net_index(piece, to, king, side));
@@ -207,7 +207,7 @@ void Network::process_move(uint16_t move, Piece piece, Piece captured, Square ki
             apply_sub_add_sub(a, b, net_index(piece, from, king, side), net_index(piece, to, king, side), net_index(captured, to, king, side));
     }
     break;
-    case CASTLE: {
+    case MoveTypes::CASTLE: {
         Square rFrom = to, rTo;
         Piece rPiece = Piece(PieceTypes::ROOK, turn);
         if (to > from) { // king side castle
@@ -221,14 +221,14 @@ void Network::process_move(uint16_t move, Piece piece, Piece captured, Square ki
         apply_sub_add_sub_add(a, b, net_index(piece, from, king, side), net_index(piece, to, king, side), net_index(rPiece, rFrom, king, side), net_index(rPiece, rTo, king, side));
     }
     break;
-    case ENPASSANT: {
+    case MoveTypes::ENPASSANT: {
         const Square pos = shift_square<SOUTH>(turn, to);
         const Piece pieceCap = Piece(PieceTypes::PAWN, 1 ^ turn);
         apply_sub_add_sub(a, b, net_index(piece, from, king, side), net_index(piece, to, king, side), net_index(pieceCap, pos, king, side));
     }
     break;
     default: {
-        const int promPiece = Piece(promoted(move) + PieceTypes::KNIGHT, turn);
+        const int promPiece = Piece(move.get_prom() + PieceTypes::KNIGHT, turn);
         if (captured == NO_PIECE)
             apply_sub_add(a, b, net_index(piece, from, king, side), net_index(promPiece, to, king, side));
         else
@@ -244,8 +244,8 @@ void Network::process_historic_update(const int index, const Square king_sq, con
         &output_history[index][side * SIDE_NEURONS], &output_history[index - 1][side * SIDE_NEURONS]);
 }
 
-void Network::add_move_to_history(uint16_t move, Piece piece, Piece captured) {
-    hist[hist_size] = { move, piece, captured, piece.type() == PieceTypes::KING && recalc(sq_from(move), special_sqto(move), piece.color()), { 0, 0 } };
+void Network::add_move_to_history(Move move, Piece piece, Piece captured) {
+    hist[hist_size] = { move, piece, captured, piece.type() == PieceTypes::KING && recalc(move.get_from(), move.get_special_to() , piece.color()), { 0, 0 } };
     hist_size++;
 }
 
