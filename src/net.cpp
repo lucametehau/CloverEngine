@@ -251,6 +251,40 @@ void Network::add_move_to_history(Move move, Piece piece, Piece captured) {
 
 void Network::revert_move() { hist_size--; }
 
+void Network::bring_up_to_date(Board &board) {
+    for (auto side : { BLACK, WHITE }) {
+        if (!hist[hist_size - 1].calc[side]) {
+            int last_computed_pos = get_computed_parent(side) + 1;
+            const int king_sq = board.get_king(side);
+            if (last_computed_pos) { // no full refresh required
+                while (last_computed_pos < hist_size) {
+                    process_historic_update(last_computed_pos, king_sq, side);
+                    last_computed_pos++;
+                }
+            }
+            else {
+                KingBucketState* state = &cached_states[side][get_king_bucket_cache_index(king_sq, side)];
+                clear_updates();
+                for (Piece i = Pieces::BlackPawn; i <= Pieces::WhiteKing; i++) {
+                    Bitboard prev = state->bb[i];
+                    Bitboard curr = board.bb[i];
+
+                    Bitboard b = curr & ~prev; // additions
+                    while (b) add_input(net_index(i, b.get_square_pop(), king_sq, side));
+
+                    b = prev & ~curr; // removals
+                    while (b) remove_input(net_index(i, b.get_square_pop(), king_sq, side));
+
+                    state->bb[i] = curr;
+                }
+                apply_updates(state->output, state->output);
+                memcpy(&output_history[hist_size - 1][side * SIDE_NEURONS], state->output, SIDE_NEURONS * sizeof(int16_t));
+                hist[hist_size - 1].calc[side] = 1;
+            }
+        }
+    }
+}
+
 int Network::get_computed_parent(const bool c) {
     int i = hist_size - 1;
     while (!hist[i].calc[c]) {

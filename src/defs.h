@@ -72,6 +72,10 @@ public:
     Threats() { for(int i = 0; i < 4; i++) threats_pieces[i] = Bitboard(0ULL); }
 };
 
+struct NetInput {
+    std::vector<short> ind[2];
+};
+
 enum {
     BLACK = 0, WHITE
 };
@@ -95,6 +99,7 @@ constexpr int VALUE_NONE = INF + 10;
 constexpr int MATE = 31000;
 constexpr int TB_WIN_SCORE = 22000;
 constexpr int MAX_DEPTH = 200;
+constexpr int STACK_SIZE = 2000;
 
 inline const std::string START_POS_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
@@ -141,7 +146,9 @@ public:
 };
 
 inline int16_t net_index(Piece piece, Square sq, Square kingSq, bool side) {
-    return 64 * 12 * kingIndTable[kingSq ^ (56 * !side)] + 64 * (piece + side * (piece >= 6 ? -6 : +6)) + (sq ^ (56 * !side) ^ (7 * ((kingSq >> 2) & 1))); // kingSq should be ^7, if kingSq&7 >= 4
+    return 64 * 12 * kingIndTable[kingSq.mirror(side)] + 
+           64 * (piece + side * (piece >= 6 ? -6 : +6)) + 
+           (sq.mirror(side) ^ (7 * ((kingSq >> 2) & 1))); // kingSq should be ^7, if kingSq&7 >= 4
 }
 
 inline bool recalc(Square from, Square to, bool side) {

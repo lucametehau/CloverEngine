@@ -242,13 +242,13 @@ int SearchThread::quiesce(int alpha, int beta, StackEntry* stack) {
         stack->piece = m_board.piece_at(move.get_from());
         stack->cont_hist = &m_histories.cont_history[!m_board.is_noisy_move(move)][stack->piece][move.get_to()];
 
-        m_board.make_move(move, NN);
+        make_move(move);
         if (!pvNode || played > 1) score = -quiesce<false>(-alpha - 1, -alpha, stack + 1);
 
         if constexpr (pvNode) {
             if (played == 1 || score > alpha) score = -quiesce<pvNode>(-beta, -alpha, stack + 1);
         }
-        m_board.undo_move(move, NN);
+        undo_move(move);
 
         if (must_stop()) return best;
 
@@ -448,12 +448,12 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
                     stack->piece = m_board.piece_at(move.get_from());
                     stack->cont_hist = &m_histories.cont_history[0][stack->piece][move.get_to()];
 
-                    m_board.make_move(move, NN);
+                    make_move(move);
 
                     int score = -quiesce<false>(-probcut_beta, -probcut_beta + 1, stack + 1);
                     if (score >= probcut_beta) score = -search<false, false, !cutNode>(-probcut_beta, -probcut_beta + 1, depth - ProbcutReduction, stack + 1);
                     
-                    m_board.undo_move(move, NN);
+                    undo_move(move);
 
                     if (score >= probcut_beta) {
                         if (!stack->excluded)
@@ -582,7 +582,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
         stack->piece = piece;
         stack->cont_hist = &m_histories.cont_history[is_quiet][piece][to];
 
-        m_board.make_move(move, NN);
+        make_move(move);
         played++;
 
         if constexpr (rootNode) {
@@ -642,7 +642,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
             }
         }
 
-        m_board.undo_move(move, NN);
+        undo_move(move);
         m_nodes_seached[move.get_from_to()] += m_nodes - nodes_previously;
 
         if (must_stop()) // stop search

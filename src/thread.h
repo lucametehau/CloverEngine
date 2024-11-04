@@ -20,6 +20,7 @@
 #include "history.h"
 #include "evaluate.h"
 #include "search-info.h"
+#include "net.h"
 #include <mutex>
 #include <thread>
 #include <chrono>
@@ -142,7 +143,16 @@ public:
         init_NN();
     }
 
-    void make_move(Move move) { m_board.make_move(move, NN); }
+    void make_move(Move move) { 
+        const Piece piece = m_board.piece_at(move.get_from());
+        m_board.make_move(move);
+        NN->add_move_to_history(move, piece, m_board.captured());
+    }
+
+    void undo_move(Move move) {
+        m_board.undo_move(move);
+        NN->revert_move();
+    }
 
 private:
     template <bool pvNode>

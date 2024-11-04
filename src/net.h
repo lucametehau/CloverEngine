@@ -25,6 +25,7 @@
 
 #include "incbin.h"
 #include "defs.h"
+#include "board.h"
 #include <fstream>
 #include <iostream>
 #include <iomanip>
@@ -112,9 +113,11 @@ constexpr int Q_IN = 255;
 constexpr int Q_HIDDEN = 64;
 constexpr int Q_IN_HIDDEN = Q_IN * Q_HIDDEN;
 
-constexpr int STACK_SIZE = 2000;
-
 extern void load_nnue_weights();
+
+inline int get_king_bucket_cache_index(const Square king_sq, const bool side) {
+    return KING_BUCKETS * ((king_sq & 7) >= 4) + kingIndTable[king_sq.mirror(side)];
+}
 
 enum {
     SUB = 0, ADD
@@ -132,10 +135,6 @@ struct NetHist {
     Piece piece, cap;
     bool recalc;
     bool calc[2];
-};
-
-struct NetInput {
-    std::vector<short> ind[2];
 };
 
 struct KingBucketState {
@@ -164,6 +163,7 @@ public:
     void revert_move();
 
     int get_computed_parent(const bool c);
+    void bring_up_to_date(Board &board);
 
     int32_t get_output(bool stm);
 

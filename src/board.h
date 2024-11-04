@@ -18,7 +18,6 @@
 #include <algorithm>
 #include <iostream>
 #include "defs.h"
-#include "net.h"
 #include "attacks.h"
 
 class HistoricalState {
@@ -87,8 +86,8 @@ public:
 
     bool is_attacked_by(const bool color, const Square sq);
     
-    void make_move(const Move move, Network* NN = nullptr);
-    void undo_move(const Move move, Network* NN = nullptr);
+    void make_move(const Move move);
+    void undo_move(const Move move);
     void make_null_move();
     void undo_null_move();
 
@@ -97,8 +96,6 @@ public:
     int gen_legal_quiet_moves(MoveList &moves);
 
     bool has_non_pawn_material(const bool color);
-
-    void bring_up_to_date(Network* NN);
 
     NetInput to_netinput();
 

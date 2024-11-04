@@ -65,7 +65,7 @@ bool Board::is_attacked_by(const bool color, const Square sq) {
     return get_attackers(color, get_bb_color(WHITE) | get_bb_color(BLACK), sq); 
 }
 
-void Board::make_move(const Move move, Network* NN) { /// assuming move is at least pseudo-legal
+void Board::make_move(const Move move) { /// assuming move is at least pseudo-legal
     Square from = move.get_from(), to = move.get_to();
     Piece piece = piece_at(from), piece_cap = piece_at(to);
 
@@ -218,8 +218,6 @@ void Board::make_move(const Move move, Network* NN) { /// assuming move is at le
     break;
     }
 
-    if (NN) NN->add_move_to_history(move, piece, captured());
-
     key() ^= castleKeyModifier[castle_rights() ^ history[game_ply].castleRights];
     checkers() = get_attackers(turn, pieces[WHITE] | pieces[BLACK], get_king(1 ^ turn));
 
@@ -232,7 +230,7 @@ void Board::make_move(const Move move, Network* NN) { /// assuming move is at le
     pinned_pieces() = get_pinned_pieces();
 }
 
-void Board::undo_move(const Move move, Network* NN) {
+void Board::undo_move(const Move move) {
     turn ^= 1;
     ply--;
     game_ply--;
@@ -320,8 +318,6 @@ void Board::undo_move(const Move move, Network* NN) {
     }
     break;
     }
-
-    if (NN) NN->revert_move();
 
     captured() = history[game_ply].captured;
 }
