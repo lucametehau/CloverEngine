@@ -16,12 +16,16 @@
 */
 #pragma once
 #include <cstring>
-#include "attacks.h"
 #include "defs.h"
 #include "board.h"
-#include "thread.h"
 
-int scale(Board& board) {
+#ifndef TUNE_FLAG
+constexpr int seeVal[] = { SeeValPawn, SeeValKnight, SeeValBishop, SeeValRook, SeeValQueen, 20000, 0 };
+#else
+int seeVal[] = { SeeValPawn, SeeValKnight, SeeValBishop, SeeValRook, SeeValQueen, 20000, 0 };
+#endif
+
+inline int scale(Board& board) {
     return EvalScaleBias +
         (board.get_bb_piece_type(PieceTypes::PAWN).count() * seeVal[PieceTypes::PAWN] + 
         board.get_bb_piece_type(PieceTypes::KNIGHT).count() * seeVal[PieceTypes::KNIGHT] +
@@ -31,49 +35,49 @@ int scale(Board& board) {
         board.half_moves() * EvalShuffleCoef;
 }
 
-int get_king_bucket_cache(const int king_sq, const bool c) {
+inline int get_king_bucket_cache(const int king_sq, const bool c) {
     return KING_BUCKETS * ((king_sq & 7) >= 4) + kingIndTable[king_sq ^ (56 * !c)];
 }
 
-void Board::bring_up_to_date() {
-    const int hist_size = NN.hist_size;
+void Board::bring_up_to_date(Network* NN) {
+    const int hist_size = NN->hist_size;
     for (auto side : { BLACK, WHITE }) {
-        if (!NN.hist[hist_size - 1].calc[side]) {
-            int last_computed_pos = NN.get_computed_parent(side) + 1;
+        if (!NN->hist[hist_size - 1].calc[side]) {
+            int last_computed_pos = NN->get_computed_parent(side) + 1;
             const int king_sq = get_king(side);
             if (last_computed_pos) { // no full refresh required
                 while(last_computed_pos < hist_size) {
-                    NN.process_historic_update(last_computed_pos, king_sq, side);
+                    NN->process_historic_update(last_computed_pos, king_sq, side);
                     last_computed_pos++;
                 }
             }
             else {
-                KingBucketState* state = &NN.cached_states[side][get_king_bucket_cache(king_sq, side)];
-                NN.clear_updates();
+                KingBucketState* state = &NN->cached_states[side][get_king_bucket_cache(king_sq, side)];
+                NN->clear_updates();
                 for (Piece i = Pieces::BlackPawn; i <= Pieces::WhiteKing; i++) {
                     Bitboard prev = state->bb[i];
                     Bitboard curr = bb[i];
 
                     Bitboard b = curr & ~prev; // additions
-                    while (b) NN.add_input(net_index(i, b.get_square_pop(), king_sq, side));
+                    while (b) NN->add_input(net_index(i, b.get_square_pop(), king_sq, side));
 
                     b = prev & ~curr; // removals
-                    while (b) NN.remove_input(net_index(i, b.get_square_pop(), king_sq, side));
+                    while (b) NN->remove_input(net_index(i, b.get_square_pop(), king_sq, side));
 
-                    state->bb[i] = bb[i];
+                    state->bb[i] = curr;
                 }
-                NN.apply_updates(state->output, state->output);
-                memcpy(&NN.output_history[hist_size - 1][side * SIDE_NEURONS], state->output, SIDE_NEURONS * sizeof(int16_t));
-                NN.hist[hist_size - 1].calc[side] = 1;
+                NN->apply_updates(state->output, state->output);
+                memcpy(&NN->output_history[hist_size - 1][side * SIDE_NEURONS], state->output, SIDE_NEURONS * sizeof(int16_t));
+                NN->hist[hist_size - 1].calc[side] = 1;
             }
         }
     }
 }
 
-int evaluate(Board& board) {
-    board.bring_up_to_date();
+int evaluate(Board& board, Network* NN) {
+    board.bring_up_to_date(NN);
 
-    int eval = board.NN.get_output(board.turn);
+    int eval = NN->get_output(board.turn);
     eval = eval * scale(board) / 1024;
     return eval;
 }

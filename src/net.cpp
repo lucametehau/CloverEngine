@@ -22,27 +22,13 @@ void load_nnue_weights() {
     network.outputBias = *intData;
 }
 
-Network::Network() {
-    hist_size = 0;
-    for (auto c : { BLACK, WHITE }) {
-        for (int i = 0; i < 2 * KING_BUCKETS; i++) {
-            memcpy(cached_states[c][i].output, network.inputBiases, sizeof(network.inputBiases));
-            cached_states[c][i].bb.fill(Bitboard());
-        }
-    }
-}
-
-void Network::add_input(int ind) { add_ind[add_size++] = ind; }
-void Network::remove_input(int ind) { sub_ind[sub_size++] = ind; }
-void Network::clear_updates() { add_size = sub_size = 0; }
-
 inline reg_type reg_clamp(reg_type reg) {
     static const reg_type zero{};
     static const reg_type one = reg_set1(Q_IN);
     return reg_min16(reg_max16(reg, zero), one);
 }
 
-int32_t Network::get_sum(reg_type_s& x) {
+inline int32_t get_sum(reg_type_s& x) {
 #if   defined(__AVX512F__)
     __m256i reg_256 = _mm256_add_epi32(_mm512_castsi512_si256(x), _mm512_extracti32x8_epi32(x, 1));
     __m128i a = _mm_add_epi32(_mm256_castsi256_si128(reg_256), _mm256_extractf128_si256(reg_256, 1));
@@ -60,6 +46,20 @@ int32_t Network::get_sum(reg_type_s& x) {
     return _mm_cvtsi128_si32(c);
 #endif
 }
+
+Network::Network() {
+    hist_size = 0;
+    for (auto c : { BLACK, WHITE }) {
+        for (int i = 0; i < 2 * KING_BUCKETS; i++) {
+            memcpy(cached_states[c][i].output, network.inputBiases, sizeof(network.inputBiases));
+            cached_states[c][i].bb.fill(Bitboard());
+        }
+    }
+}
+
+void Network::add_input(int ind) { add_ind[add_size++] = ind; }
+void Network::remove_input(int ind) { sub_ind[sub_size++] = ind; }
+void Network::clear_updates() { add_size = sub_size = 0; }
 
 int32_t Network::calc(NetInput& input, bool stm) {
     int32_t sum;
@@ -198,7 +198,7 @@ void Network::apply_sub_add_sub_add(int16_t* output, int16_t* input, int ind1, i
 
 void Network::process_move(uint16_t move, Piece piece, Piece captured, Square king, bool side, int16_t* a, int16_t* b) {
     Square from = sq_from(move), to = sq_to(move);
-    bool turn = color_of(piece);
+    const bool turn = piece.color();
     switch (type(move)) {
     case NO_TYPE: {
         if (captured == NO_PIECE)
@@ -209,26 +209,26 @@ void Network::process_move(uint16_t move, Piece piece, Piece captured, Square ki
     break;
     case CASTLE: {
         Square rFrom = to, rTo;
-        Piece rPiece = get_piece(PieceTypes::ROOK, turn);
+        Piece rPiece = Piece(PieceTypes::ROOK, turn);
         if (to > from) { // king side castle
-            to = mirror(turn, Squares::G1);
-            rTo = mirror(turn, Squares::F1);
+            to = Squares::G1.mirror(turn);
+            rTo = Squares::F1.mirror(turn);
         }
         else { // queen side castle
-            to = mirror(turn, Squares::C1);
-            rTo = mirror(turn, Squares::D1);
+            to = Squares::C1.mirror(turn);
+            rTo = Squares::D1.mirror(turn);
         }
         apply_sub_add_sub_add(a, b, net_index(piece, from, king, side), net_index(piece, to, king, side), net_index(rPiece, rFrom, king, side), net_index(rPiece, rTo, king, side));
     }
     break;
     case ENPASSANT: {
         const Square pos = shift_square<SOUTH>(turn, to);
-        const Piece pieceCap = get_piece(PieceTypes::PAWN, 1 ^ turn);
+        const Piece pieceCap = Piece(PieceTypes::PAWN, 1 ^ turn);
         apply_sub_add_sub(a, b, net_index(piece, from, king, side), net_index(piece, to, king, side), net_index(pieceCap, pos, king, side));
     }
     break;
     default: {
-        const int promPiece = get_piece(promoted(move) + PieceTypes::KNIGHT, turn);
+        const int promPiece = Piece(promoted(move) + PieceTypes::KNIGHT, turn);
         if (captured == NO_PIECE)
             apply_sub_add(a, b, net_index(piece, from, king, side), net_index(promPiece, to, king, side));
         else
@@ -245,7 +245,7 @@ void Network::process_historic_update(const int index, const Square king_sq, con
 }
 
 void Network::add_move_to_history(uint16_t move, Piece piece, Piece captured) {
-    hist[hist_size] = { move, piece, captured, piece.type() == PieceTypes::KING && recalc(sq_from(move), special_sqto(move), color_of(piece)), { 0, 0 } };
+    hist[hist_size] = { move, piece, captured, piece.type() == PieceTypes::KING && recalc(sq_from(move), special_sqto(move), piece.color()), { 0, 0 } };
     hist_size++;
 }
 
@@ -254,7 +254,7 @@ void Network::revert_move() { hist_size--; }
 int Network::get_computed_parent(const bool c) {
     int i = hist_size - 1;
     while (!hist[i].calc[c]) {
-        if (color_of(hist[i].piece) == c && hist[i].recalc)
+        if (hist[i].piece.color() == c && hist[i].recalc)
             return -1;
         i--;
     }

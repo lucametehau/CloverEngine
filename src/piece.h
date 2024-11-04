@@ -2,11 +2,15 @@
 #include <cstdint>
 
 class Piece {
-public:
+private:
     uint8_t piece;
+
+public:
     constexpr Piece(uint8_t piece = 12) : piece(piece) {}
+    constexpr Piece(const Piece piece_type, const bool color) : piece(color * 6 + piece_type.piece) {}
     operator uint8_t() const { return piece; }
 
+    const Piece color() const { return piece >= 6; }
     Piece type() { return piece >= 6 ? piece - 6 : piece; }
     const Piece type() const { return piece >= 6 ? piece - 6 : piece; }
 

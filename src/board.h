@@ -47,8 +47,6 @@ public:
     std::array<Bitboard, 12> bb;
     std::array<Bitboard, 2> pieces;
 
-    Network NN;
-
     Board();
 
     void clear();
@@ -88,9 +86,9 @@ public:
     bool is_noisy_move(const Move move);
 
     bool is_attacked_by(const bool color, const Square sq);
-
-    void make_move(const Move move);
-    void undo_move(const Move move);
+    
+    void make_move(const Move move, Network* NN = nullptr);
+    void undo_move(const Move move, Network* NN = nullptr);
     void make_null_move();
     void undo_null_move();
 
@@ -100,7 +98,7 @@ public:
 
     bool has_non_pawn_material(const bool color);
 
-    void bring_up_to_date();
+    void bring_up_to_date(Network* NN);
 
     NetInput to_netinput();
 
@@ -118,19 +116,4 @@ public:
     bool is_repetition(const int ply);
     bool is_draw(int ply);
     bool has_upcoming_repetition(int ply);
-};
-
-class Info {
-public:
-    int64_t startTime, stopTime;
-    int64_t goodTimeLim, hardTimeLim;
-    int depth, multipv;
-    int movestogo;
-    int64_t nodes, min_nodes, max_nodes;
-
-    bool timeset;
-    bool sanMode;
-    bool chess960;
-
-    Info() : depth(MAX_DEPTH), multipv(1), nodes(-1), min_nodes(-1), max_nodes(-1), chess960(false) {}
 };

@@ -11,7 +11,7 @@ private:
 
 public:
     constexpr Bitboard(unsigned long long _bb = 0) : bb(_bb) {}
-    Bitboard(Square sq) : bb(1ULL << sq) { assert(sq < NO_EP); }
+    Bitboard(Square sq) : bb(1ULL << sq) { assert(sq < NO_SQUARE); }
 
     bool has_square(Square sq) const { return (bb >> sq) & 1; }
     Square get_msb_square() const { return 63 - __builtin_clzll(bb); }
