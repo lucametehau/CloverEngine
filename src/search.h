@@ -518,7 +518,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
                         return FPBias + FPMargin * depth;
                     };
                     if (new_depth <= FPDepth && !in_check && 
-                        static_eval + futility_margin(new_depth) <= alpha) skip = 1;
+                        static_eval + futility_margin(new_depth + is_ttmove_noisy) <= alpha) skip = 1;
 
                     // late move pruning
                     if (new_depth <= LMPDepth && played >= (LMPBias + new_depth * new_depth) / (2 - improving)) skip = 1;
