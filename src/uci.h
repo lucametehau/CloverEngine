@@ -44,9 +44,6 @@ private:
     void go_perft(int depth);
     void set_param_int(std::istringstream &iss, int &value);
     void set_param_double(std::istringstream &iss, double &value);
-public:
-    Board* uci_board;
-    //ThreadPool thread_pool;
 };
 
 void UCI::set_param_int(std::istringstream &iss, int &value) {
@@ -75,8 +72,6 @@ void UCI::uci_loop() {
     TT = new HashTable();
 #endif
 
-    uci_board = new Board();
-
     Info info;
     thread_pool.create_pool(1);
     ucinewgame(ttSize);
@@ -94,7 +89,6 @@ void UCI::uci_loop() {
             while (iss >> type) {
                 if (type == "startpos") {
                     thread_pool.set_fen(START_POS_FEN);
-                    uci_board->set_fen(START_POS_FEN);
                 }
                 else if (type == "fen") {
                     std::string fen;
@@ -103,16 +97,13 @@ void UCI::uci_loop() {
                         iss >> component;
                         fen += component + " ";
                     }
-                    thread_pool.set_fen(fen, info.chess960);
-                    uci_board->set_fen(fen);
-                    uci_board->chess960 = info.chess960;
+                    thread_pool.set_fen(fen, info.is_chess960());
                 }
                 else if (type == "moves") {
                     std::string moveStr;
                     while (iss >> moveStr) {
-                        Move move = parse_move_string(*uci_board, moveStr, info);
+                        Move move = parse_move_string(thread_pool.get_board(), moveStr, info);
                         thread_pool.make_move(move);
-                        uci_board->make_move(move);
                     }
                 }
             }
@@ -121,12 +112,11 @@ void UCI::uci_loop() {
             ucinewgame(ttSize);
         }
         else if (cmd == "go") {
-            int depth = -1, movetime = -1;
+            int depth = MAX_DEPTH, movetime = -1;
             int time = -1, inc = 0;
             int64_t nodes = -1;
-            bool turn = uci_board->turn;
-            info.timeset = 0;
-            info.sanMode = 0;
+            bool turn = thread_pool.get_board().turn;
+            info.init();
 
             std::string param;
 
@@ -138,34 +128,20 @@ void UCI::uci_loop() {
                 else if (param == "movetime") { iss >> movetime; }
                 else if (param == "depth") { iss >> depth; }
                 else if (param == "nodes") { iss >> nodes; }
-                else if (param == "san") { info.sanMode = true; }
+                else if (param == "san") { info.set_san_mode(); }
             }
 
-            info.startTime = getTime();
-            info.depth = depth;
-
             if (movetime != -1) {
-                time = movetime;
-                info.timeset = 1;
-                info.goodTimeLim = info.hardTimeLim = time;
-                info.stopTime = info.startTime + info.goodTimeLim;
+                info.set_movetime(movetime);
             }
             else if (time != -1) {
                 const int MOVE_OVERHEAD = 100; // idk
                 time -= MOVE_OVERHEAD;
-                int incTime = time + 40 * inc;
-                int goodTimeLim, hardTimeLim;
-                goodTimeLim = std::min<int>(incTime * TMCoef1, time * TMCoef2);
-                hardTimeLim = std::min<int>(goodTimeLim * TMCoef3, time * TMCoef4);
-                info.goodTimeLim = goodTimeLim;
-                info.hardTimeLim = hardTimeLim;
-                info.timeset = 1;
-                info.stopTime = info.startTime + goodTimeLim;
+                info.set_time(time, inc);
             }
 
-            info.nodes = nodes;
-            if (depth == -1)
-                info.depth = MAX_DEPTH;
+            info.set_nodes(nodes);
+            info.set_depth(depth);
 
             go(info);
         }
@@ -181,8 +157,8 @@ void UCI::uci_loop() {
         else if (cmd == "checkmove") {
             std::string moveStr;
             iss >> moveStr;
-            Move move = parse_move_string(*uci_board, moveStr, info);
-            std::cout << is_legal(*uci_board, move) << " " << is_legal_slow(*uci_board, move) << "\n";
+            Move move = parse_move_string(thread_pool.get_board(), moveStr, info);
+            std::cout << is_legal(thread_pool.get_board(), move) << " " << is_legal_slow(thread_pool.get_board(), move) << "\n";
         }
         else if (cmd == "printparams") {
 #ifdef TUNE_FLAG
@@ -200,7 +176,7 @@ void UCI::uci_loop() {
             if (name == "Hash") {
                 iss >> value >> ttSize;
 #ifndef GENERATE
-                TT->initTable(ttSize * MB, thread_pool.threads.size());
+                TT->initTable(ttSize * MB, thread_pool.get_num_threads());
 #endif
             }
             else if (name == "Threads") {
@@ -217,13 +193,13 @@ void UCI::uci_loop() {
             else if (name == "MultiPV") {
                 int multipv;
                 iss >> value >> multipv;
-                info.multipv = multipv;
+                info.set_multipv(multipv);
             }
             else if (name == "UCI_Chess960") {
                 std::string chess960;
                 iss >> value >> chess960;
 
-                info.chess960 = chess960 == "true";
+                info.set_chess960(chess960 == "true");
             }
             else {
                 for (auto& param : params_int) {
@@ -247,7 +223,7 @@ void UCI::uci_loop() {
             generateData(nrFens, nrThreads, path);
         }
         else if (cmd == "show") {
-            uci_board->print();
+            thread_pool.get_board().print();
         }
         else if (cmd == "eval") {
             eval();
@@ -261,12 +237,12 @@ void UCI::uci_loop() {
             bench();
         }
         else if (cmd == "evalbench") {
-            int eval = evaluate(*uci_board);
+            int eval = thread_pool.get_eval();
             uint64_t total = 0;
             const int N = (int)1e8;
             for (int i = 0; i < N; i++) {
                 auto start = std::chrono::high_resolution_clock::now();
-                eval = evaluate(*uci_board);
+                eval = thread_pool.get_eval();
                 auto end = std::chrono::high_resolution_clock::now();
                 total += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
             }
@@ -276,8 +252,8 @@ void UCI::uci_loop() {
             std::string move_string;
             int threshold;
             iss >> move_string >> threshold;
-            Move move = parse_move_string(*uci_board, move_string, info);
-            std::cout << see(*uci_board, move, threshold) << std::endl;
+            Move move = parse_move_string(thread_pool.get_board(), move_string, info);
+            std::cout << see(thread_pool.get_board(), move, threshold) << std::endl;
         }
     }
 }
@@ -302,7 +278,7 @@ void UCI::ucinewgame(uint64_t ttSize) {
     thread_pool.clear_history();
 #ifndef GENERATE
     TT->reset_age();
-    TT->initTable(ttSize * MB, thread_pool.threads.size());
+    TT->initTable(ttSize * MB, thread_pool.get_num_threads());
 #endif
 }
 
@@ -320,12 +296,11 @@ void UCI::stop() {
 
 void UCI::quit() {
     thread_pool.exit();
-    delete uci_board;
     exit(0);
 }
 
 void UCI::eval() {
-    std::cout << evaluate(*uci_board) << std::endl;
+    std::cout << thread_pool.get_eval() << std::endl;
 }
 
 void UCI::is_ready() {
@@ -333,9 +308,9 @@ void UCI::is_ready() {
 }
 
 void UCI::go_perft(int depth) {
-    long double t1 = getTime();
-    uint64_t nodes = perft<true>(*uci_board, depth);
-    long double t2 = getTime();
+    std::time_t t1 = get_current_time();
+    uint64_t nodes = perft<true>(thread_pool.get_board(), depth);
+    std::time_t t2 = get_current_time();
     long double t = (t2 - t1) / 1000.0;
     uint64_t nps = nodes / t;
 
@@ -415,11 +390,9 @@ void UCI::bench(int depth) {
 
     printStats = false;
 
-    uint64_t start = getTime();
-    info.timeset = false;
-    info.depth = depth == -1 ? 14 : depth;
-    info.startTime = getTime();
-    info.nodes = -1;
+    std::time_t start = get_current_time();
+    info.init();
+    info.set_depth(depth == -1 ? 14 : depth);
 
     uint64_t totalNodes = 0;
     for (auto& fen : benchPos) {
@@ -431,7 +404,7 @@ void UCI::bench(int depth) {
         ucinewgame(ttSize);
     }
 
-    uint64_t end = getTime();
+    std::time_t end = get_current_time();
     long double t = 1.0 * (end - start) / 1000.0;
 
     printStats = true;

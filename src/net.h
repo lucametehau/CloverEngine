@@ -143,15 +143,14 @@ struct KingBucketState {
     std::array<Bitboard, 12> bb;
 };
 
-struct Network {
+class Network {
+public:
     Network();
 
     void add_input(int ind);
     void remove_input(int ind);
     void clear_updates();
-
-    int32_t get_sum(reg_type_s& x);
-
+    
     int32_t calc(NetInput& input, bool stm);
 
     void apply_updates(int16_t* output, int16_t* input);

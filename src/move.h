@@ -17,8 +17,8 @@
 #include <iomanip>
 #include "board.h"
 #include "defs.h"
+#include "search-info.h"
 #include "attacks.h"
-#include "evaluate.h"
 
 void add_moves(MoveList &moves, int& nrMoves, Square pos, Bitboard att) {
     while (att) moves[nrMoves++] = get_move(pos, att.get_square_pop(), 0, NO_TYPE);
@@ -62,7 +62,7 @@ int Board::gen_legal_moves(MoveList &moves) {
         
         if (pt == PieceTypes::PAWN) {
             /// make en passant to cancel the check
-            if (enpas() != NO_EP && checkers() == Bitboard(shift_square<NORTH>(enemy, enpas()))) {
+            if (enpas() != NO_SQUARE && checkers() == Bitboard(shift_square<NORTH>(enemy, enpas()))) {
                 mask = attacks::pawnAttacksMask[enemy][enpas()] & notPinned & get_bb_piece(PieceTypes::PAWN, color);
                 while (mask) moves[nrMoves++] = get_move(mask.get_square_pop(), enpas(), 0, ENPASSANT);
             }
@@ -79,7 +79,7 @@ int Board::gen_legal_moves(MoveList &moves) {
         capMask = them;
         quietMask = ~all;
 
-        if (enpas() != NO_EP) {
+        if (enpas() != NO_SQUARE) {
             Square ep = enpas(), sq2 = shift_square<SOUTH>(color, ep);
             b2 = attacks::pawnAttacksMask[enemy][ep] & get_bb_piece(PieceTypes::PAWN, color);
             b1 = b2 & notPinned;
@@ -111,7 +111,7 @@ int Board::gen_legal_moves(MoveList &moves) {
         }
         else {
             if ((castle_rights() >> (2 * color)) & 1) {
-                Square kingTo = mirror(color, Squares::C1), rook = rookSq[color][0], rookTo = mirror(color, Squares::D1);
+                Square kingTo = Squares::C1.mirror(color), rook = rookSq[color][0], rookTo = Squares::D1.mirror(color);
                 if (!(attacked & (between_mask[king][kingTo] | Bitboard(kingTo))) &&
                     (!((all ^ Bitboard(rook)) & (between_mask[king][kingTo] | Bitboard(kingTo))) || king == kingTo) &&
                     (!((all ^ Bitboard(king)) & (between_mask[rook][rookTo] | Bitboard(rookTo))) || rook == rookTo) &&
@@ -121,7 +121,7 @@ int Board::gen_legal_moves(MoveList &moves) {
             }
             /// castle king side
             if ((castle_rights() >> (2 * color + 1)) & 1) {
-                Square kingTo = mirror(color, Squares::G1), rook = rookSq[color][1], rookTo = mirror(color, Squares::F1);
+                Square kingTo = Squares::G1.mirror(color), rook = rookSq[color][1], rookTo = Squares::F1.mirror(color);
                 if (!(attacked & (between_mask[king][kingTo] | Bitboard(kingTo))) &&
                     (!((all ^ Bitboard(rook)) & (between_mask[king][kingTo] | Bitboard(kingTo))) || king == kingTo) &&
                     (!((all ^ Bitboard(king)) & (between_mask[rook][rookTo] | Bitboard(rookTo))) || rook == rookTo) &&
@@ -272,7 +272,7 @@ int Board::gen_legal_noisy_moves(MoveList &moves) {
     if (attacks::kingBBAttacks[king] & them) {
         attacked |= get_pawn_attacks(enemy);
 
-        pieces = bb[get_piece(PieceTypes::KNIGHT, enemy)];
+        pieces = bb[Piece(PieceTypes::KNIGHT, enemy)];
         while (pieces) attacked |= attacks::genAttacksKnight(pieces.get_square_pop());
 
         pieces = enemyDiagSliders;
@@ -298,7 +298,7 @@ int Board::gen_legal_noisy_moves(MoveList &moves) {
         const Piece pt = piece_type_at(sq);
         if (pt == PieceTypes::PAWN) {
             /// make en passant to cancel the check
-            if (enpas() != NO_EP && checkers() == Bitboard(shift_square<NORTH>(enemy, enpas()))) {
+            if (enpas() != NO_SQUARE && checkers() == Bitboard(shift_square<NORTH>(enemy, enpas()))) {
                 mask = attacks::pawnAttacksMask[enemy][enpas()] & notPinned & get_bb_piece(PieceTypes::PAWN, color);
                 while (mask) moves[nrMoves++] = get_move(mask.get_square_pop(), enpas(), 0, ENPASSANT);
             }
@@ -315,7 +315,7 @@ int Board::gen_legal_noisy_moves(MoveList &moves) {
         capMask = them;
         quietMask = ~all;
 
-        if (enpas() != NO_EP) {
+        if (enpas() != NO_SQUARE) {
             Square ep = enpas(), sq2 = shift_square<SOUTH>(color, ep);
             b2 = attacks::pawnAttacksMask[enemy][ep] & get_bb_piece(PieceTypes::PAWN, color);
             b1 = b2 & notPinned;
@@ -486,7 +486,7 @@ int Board::gen_legal_quiet_moves(MoveList &moves) {
         else {
             /// castle queen side
             if ((castle_rights() >> (2 * color)) & 1) {
-                Square kingTo = mirror(color, Squares::C1), rook = rookSq[color][0], rookTo = mirror(color, Squares::D1);
+                Square kingTo = Squares::C1.mirror(color), rook = rookSq[color][0], rookTo = Squares::D1.mirror(color);
                 if (!(attacked & (between_mask[king][kingTo] | Bitboard(kingTo))) &&
                     (!((all ^ Bitboard(rook)) & (between_mask[king][kingTo] | Bitboard(kingTo))) || king == kingTo) &&
                     (!((all ^ Bitboard(king)) & (between_mask[rook][rookTo] | Bitboard(rookTo))) || rook == rookTo) &&
@@ -496,7 +496,7 @@ int Board::gen_legal_quiet_moves(MoveList &moves) {
             }
             /// castle king side
             if ((castle_rights() >> (2 * color + 1)) & 1) {
-                Square kingTo = mirror(color, Squares::G1), rook = rookSq[color][1], rookTo = mirror(color, Squares::F1);
+                Square kingTo = Squares::G1.mirror(color), rook = rookSq[color][1], rookTo = Squares::F1.mirror(color);
                 if (!(attacked & (between_mask[king][kingTo] | Bitboard(kingTo))) &&
                     (!((all ^ Bitboard(rook)) & (between_mask[king][kingTo] | Bitboard(kingTo))) || king == kingTo) &&
                     (!((all ^ Bitboard(king)) & (between_mask[rook][rookTo] | Bitboard(rookTo))) || rook == rookTo) &&
@@ -654,8 +654,8 @@ bool is_legal(Board& board, Move move) {
         bool side = (to > from); /// queen side or king side
 
         if (board.castle_rights() & (1 << (2 * us + side))) { /// can i castle
-            const Square rFrom = to, rTo = mirror(us, side ? Squares::F1 : Squares::D1);
-            to = mirror(us, side ? Squares::G1 : Squares::C1);
+            const Square rFrom = to, rTo = (side ? Squares::F1 : Squares::D1).mirror(us);
+            to = (side ? Squares::G1 : Squares::C1).mirror(us);
             Bitboard mask = between_mask[from][to] | Bitboard(to);
             
             while (mask) {
@@ -725,7 +725,7 @@ Move parse_move_string(Board& board, std::string moveStr, Info &info) {
         return NULLMOVE;
 
     int from = Square(moveStr[1] - '1', moveStr[0] - 'a');
-    if (!info.chess960 && board.piece_type_at(from) == PieceTypes::KING) {
+    if (!info.is_chess960() && board.piece_type_at(from) == PieceTypes::KING) {
         if (moveStr == "e1c1") moveStr = "e1a1";
         else if (moveStr == "e1g1") moveStr = "e1h1";
         else if (moveStr == "e8c8") moveStr = "e8a8";

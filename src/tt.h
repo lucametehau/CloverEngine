@@ -21,6 +21,10 @@
 constexpr int MB = (1 << 20);
 constexpr int BUCKET = 3;
 
+enum TTBounds : int {
+    NONE = 0, UPPER, LOWER, EXACT
+};
+
 struct Entry {
     uint16_t hash;
     uint16_t about;
@@ -173,7 +177,7 @@ void HashTable::save(Entry* entry, uint64_t hash, int score, int depth, int ply,
 
     if (move || hash16 != entry->hash) entry->move = move;
 
-    if (bound == EXACT || hash16 != entry->hash || depth + 3 >= entry->depth()) {
+    if (bound == TTBounds::EXACT || hash16 != entry->hash || depth + 3 >= entry->depth()) {
         entry->hash = hash16;
         entry->score = score;
         entry->eval = eval;
