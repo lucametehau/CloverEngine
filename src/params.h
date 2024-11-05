@@ -82,8 +82,6 @@ TUNE_PARAM(IIRPvNodeReduction, 1, 1, 2);
 TUNE_PARAM(IIRCutNodeDepth, 3, 0, 5);
 TUNE_PARAM(IIRCutNodeReduction, 1, 1, 2);
 
-TUNE_PARAM(PVSSeeDepthCoef, 16, 10, 20);
-
 TUNE_PARAM(MoveloopHistDiv, 14614, 8192, 17000);
 
 TUNE_PARAM(FPDepth, 10, 5, 10);
@@ -113,8 +111,6 @@ TUNE_PARAM(HistReductionDiv, 8316, 7000, 10000);
 TUNE_PARAM(CapHistReductionDiv, 4264, 2048, 8192);
 TUNE_PARAM(LMRBadStaticEvalMargin, 244, 150, 300);
 TUNE_PARAM(DeeperMargin, 80, 40, 80);
-
-TUNE_PARAM(RootSeeDepthCoef, 9, 5, 20);
 
 TUNE_PARAM(AspirationWindowsDepth, 6, 4, 10);
 TUNE_PARAM(AspirationWindosValue, 7, 5, 20);

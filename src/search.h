@@ -465,16 +465,10 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
         }
     }
 
-#ifndef TUNE_FLAG
-    constexpr int see_depth_coef = rootNode ? RootSeeDepthCoef : PVSSeeDepthCoef;
-#else
-    int see_depth_coef = rootNode ? RootSeeDepthCoef : PVSSeeDepthCoef;
-#endif
-
     Movepick picker(
         ttMove,
         stack->killer,
-        -see_depth_coef * depth,
+        0,
         threats
     );
 
