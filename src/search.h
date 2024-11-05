@@ -696,7 +696,6 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
         }
     }
 
-
     if (!played) return in_check ? -INF + ply : 0;
 
     /// update tt only if we aren't in a singular search
