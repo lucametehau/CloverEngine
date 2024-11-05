@@ -181,7 +181,7 @@ void HashTable::save(Entry* entry, uint64_t hash, int score, int depth, int ply,
 
     if (move || hash16 != entry->hash) entry->move = move;
 
-    if (bound == TTBounds::EXACT || hash16 != entry->hash || depth + 3 >= entry->depth()) {
+    if (bound == TTBounds::EXACT || hash16 != entry->hash || depth + 3 + 2 * was_pv >= entry->depth()) {
         entry->hash = hash16;
         entry->score = score;
         entry->eval = eval;
