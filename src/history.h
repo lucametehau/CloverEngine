@@ -64,7 +64,6 @@ public:
     constexpr StackEntry() : piece(NO_PIECE), move(NULLMOVE), killer(NULLMOVE), excluded(NULLMOVE), eval(0) {}
     Piece piece;
     Move move, killer, excluded;
-    std::array<SearchMove, MAX_MOVES> quiets, noisies;
     int eval;
     MultiArray<History<16384>, 13, 64>* cont_hist;
 };

@@ -284,10 +284,13 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
     const int original_alpha = alpha;
     const uint64_t key = m_board.key(), pawn_key = m_board.pawn_key(), white_mat_key = m_board.mat_key(WHITE), black_mat_key = m_board.mat_key(BLACK);
     const bool turn = m_board.turn;
-
+    
+    std::array<SearchMove, 32> noisies, quiets;
     uint16_t nr_quiets = 0;
     uint16_t nr_noisies = 0;
-    int played = 0, skip = 0;
+
+    int played = 0;
+    bool skip = 0;
     int best = -INF;
     Move bestMove = NULLMOVE;
 
@@ -668,7 +671,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
                             m_histories.update_hist_quiet_move(bestMove, m_board.piece_at(bestMove.get_from()), 
                                                                threats.all_threats, turn, stack, bonus * tried_count);
                         for (int i = 0; i < nr_quiets; i++) {
-                            const auto [move, tried_count] = stack->quiets[i];
+                            const auto [move, tried_count] = quiets[i];
                             m_histories.update_hist_quiet_move(move, m_board.piece_at(move.get_from()), 
                                                                threats.all_threats, turn, stack, malus * tried_count);
                         }
@@ -678,7 +681,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
                                                          m_board.get_captured_type(bestMove), bonus * tried_count);
                     }
                     for (int i = 0; i < nr_noisies; i++) {
-                        const auto [move, tried_count] = stack->noisies[i];
+                        const auto [move, tried_count] = noisies[i];
                         m_histories.update_cap_hist_move(m_board.piece_at(move.get_from()), move.get_to(), 
                                                          m_board.get_captured_type(move), malus * tried_count);
                     }
@@ -688,8 +691,8 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
         }
         
         if(move != bestMove) {
-            if (is_quiet) stack->quiets[nr_quiets++] = SearchMove(move, tried_count);
-            else stack->noisies[nr_noisies++] = SearchMove(move, tried_count);
+            if (is_quiet && nr_quiets < 32) quiets[nr_quiets++] = SearchMove(move, tried_count);
+            else if (!is_quiet && nr_noisies < 32) noisies[nr_noisies++] = SearchMove(move, tried_count);
         }
     }
 
