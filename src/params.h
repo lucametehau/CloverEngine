@@ -69,7 +69,7 @@ TUNE_PARAM(SNMPMargin, 87, 75, 100);
 TUNE_PARAM(SNMPImproving, 19, 10, 25);
 
 TUNE_PARAM(NMPEvalMargin, 31, 20, 40);
-TUNE_PARAM(NMPReduction, 3, 3, 5);
+TUNE_PARAM(NMPReduction, 4, 3, 5);
 TUNE_PARAM(NMPDepthDiv, 3, 3, 5);
 TUNE_PARAM(NMPEvalDiv, 134, 120, 150);
 
