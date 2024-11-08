@@ -205,7 +205,11 @@ int SearchThread::quiesce(int alpha, int beta, StackEntry* stack) {
     }
 
     /// stand-pat
-    if (best >= beta) return best;
+    if (best >= beta) {
+        if (!ttHit)
+            TT->save(entry, key, best, 0, ply, TTBounds::LOWER, NULLMOVE, raw_eval, was_pv);
+        return best;
+    }
 
     /// delta pruning
     if (!in_check && best + DeltaPruningMargin < alpha) return alpha;
