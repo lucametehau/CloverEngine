@@ -702,7 +702,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
 
     if (!played) return in_check ? -INF + ply : 0;
 
-    /// update tt only if we aren't in a singular search
+    // update tt only if we aren't in a singular search
     if (!stack->excluded) {
         ttBound = best >= beta ? TTBounds::LOWER : (best > original_alpha ? TTBounds::EXACT : TTBounds::UPPER);
         if ((ttBound == TTBounds::UPPER || !m_board.is_noisy_move(bestMove)) && !in_check && 
