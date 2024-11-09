@@ -702,7 +702,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
 
     if (!played) return in_check ? -INF + ply : 0;
 
-    /// update tt only if we aren't in a singular search
+    // update tt only if we aren't in a singular search
     if (!stack->excluded) {
         ttBound = best >= beta ? TTBounds::LOWER : (best > original_alpha ? TTBounds::EXACT : TTBounds::UPPER);
         if ((ttBound == TTBounds::UPPER || !m_board.is_noisy_move(bestMove)) && !in_check && 
@@ -804,7 +804,7 @@ void SearchThread::iterative_deepening() {
 
     for (m_id_depth = 1; m_id_depth <= limitDepth; m_id_depth++) {
         for (m_multipv = 1; m_multipv <= m_info.get_multipv(); m_multipv++) {
-            int window = AspirationWindosValue;
+            int window = AspirationWindosValue + m_root_scores[1] * m_root_scores[1] / 10000;
             if (m_id_depth >= AspirationWindowsDepth) {
                 alpha = std::max(-INF, m_scores[m_multipv] - window);
                 beta = std::min(INF, m_scores[m_multipv] + window);
