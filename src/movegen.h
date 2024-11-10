@@ -30,7 +30,7 @@ int Board::gen_legal_moves(MoveList &moves) {
     const Square king = get_king(color), enemyKing = get_king(enemy);
     Bitboard pieces, mask, us = get_bb_color(color), them = get_bb_color(enemy);
     Bitboard b, b1, b2, b3;
-    Bitboard attacked, pinned = pinned_pieces(); /// squares attacked by enemy / pinned pieces
+    Bitboard attacked(0ull), pinned = pinned_pieces(); /// squares attacked by enemy / pinned pieces
     const Bitboard enemyOrthSliders = orthogonal_sliders(enemy), enemyDiagSliders = diagonal_sliders(enemy);
     const Bitboard all = us | them, emptySq = ~all;
 
@@ -50,7 +50,7 @@ int Board::gen_legal_moves(MoveList &moves) {
     b1 = attacks::kingBBAttacks[king] & ~(us | attacked);
     add_moves(moves, nrMoves, king, b1);
 
-    Bitboard notPinned = ~pinned, capMask, quietMask;
+    Bitboard notPinned = ~pinned, capMask(0ull), quietMask(0ull);
     int cnt = checkers().count();
 
     if (cnt == 2) { /// double check, only king moves are legal
@@ -265,7 +265,7 @@ int Board::gen_legal_noisy_moves(MoveList &moves) {
     const Square king = get_king(color), enemyKing = get_king(enemy);
     Bitboard pieces, mask, us = get_bb_color(color), them = get_bb_color(enemy);
     Bitboard b, b1, b2, b3;
-    Bitboard attacked, pinned = pinned_pieces(); /// squares attacked by enemy / pinned pieces
+    Bitboard attacked(0ull), pinned = pinned_pieces(); /// squares attacked by enemy / pinned pieces
     const Bitboard enemyOrthSliders = orthogonal_sliders(enemy), enemyDiagSliders = diagonal_sliders(enemy);
     const Bitboard all = us | them;
 
@@ -286,7 +286,7 @@ int Board::gen_legal_noisy_moves(MoveList &moves) {
         add_moves(moves, nrMoves, king, attacks::kingBBAttacks[king] & ~(us | attacked) & them);
     }
 
-    Bitboard notPinned = ~pinned, capMask, quietMask;
+    Bitboard notPinned = ~pinned, capMask(0ull), quietMask(0ull);
 
     int cnt = checkers().count();
 
@@ -435,7 +435,7 @@ int Board::gen_legal_quiet_moves(MoveList &moves) {
     const int rank7 = (color == WHITE ? 6 : 1), rank3 = (color == WHITE ? 2 : 5);
     Bitboard pieces, mask, us = get_bb_color(color), them = get_bb_color(enemy);
     Bitboard b1, b2, b3;
-    Bitboard attacked, pinned = pinned_pieces(); /// squares attacked by enemy / pinned pieces
+    Bitboard attacked(0ull), pinned = pinned_pieces(); /// squares attacked by enemy / pinned pieces
     const Bitboard enemyOrthSliders = orthogonal_sliders(enemy), enemyDiagSliders = diagonal_sliders(enemy);
     const Bitboard all = us | them, emptySq = ~all;
 
@@ -454,7 +454,7 @@ int Board::gen_legal_quiet_moves(MoveList &moves) {
 
     add_moves(moves, nrMoves, king, attacks::kingBBAttacks[king] & ~(us | attacked) & ~them);
 
-    Bitboard notPinned = ~pinned, quietMask;
+    Bitboard notPinned = ~pinned, quietMask(0ull);
     const int cnt = checkers().count();
 
     if (cnt == 2) { /// double check, only king moves are legal

@@ -15,8 +15,6 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #pragma once
-#include <algorithm>
-#include <iostream>
 #include "defs.h"
 #include "attacks.h"
 
@@ -46,7 +44,7 @@ public:
     std::array<Bitboard, 12> bb;
     std::array<Bitboard, 2> pieces;
 
-    Board();
+    constexpr Board() = default;
 
     void clear();
 

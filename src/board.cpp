@@ -1,8 +1,6 @@
 #include "board.h"
 #include "cuckoo.h"
 
-Board::Board() { set_fen(START_POS_FEN); }
-
 void Board::clear() { ply = 0; }
 
 void Board::print() {
@@ -43,7 +41,7 @@ Bitboard Board::get_pinned_pieces() {
     const bool enemy = turn ^ 1;
     const Square king = get_king(turn);
     Bitboard us = pieces[turn], them = pieces[enemy];
-    Bitboard pinned; /// squares attacked by enemy / pinned pieces
+    Bitboard pinned(0ull); /// squares attacked by enemy / pinned pieces
     Bitboard mask = (attacks::genAttacksRook(them, king) & orthogonal_sliders(enemy)) | 
                     (attacks::genAttacksBishop(them, king) & diagonal_sliders(enemy));
 
@@ -419,8 +417,8 @@ void Board::set_fen(const std::string fen) {
     captured() = NO_PIECE;
 
     //checkers() = 0;
-    bb.fill(Bitboard());
-    pieces.fill(Bitboard());
+    bb.fill(Bitboard(0ull));
+    pieces.fill(Bitboard(0ull));
 
     for (int i = 7; i >= 0; i--) {
         Square sq = Square(i, 0);
@@ -585,8 +583,8 @@ void Board::set_dfrc(int idx) {
     ply = game_ply = 0;
     captured() = NO_PIECE;
 
-    bb.fill(Bitboard());
-    pieces.fill(Bitboard());
+    bb.fill(Bitboard(0ull));
+    pieces.fill(Bitboard(0ull));
     board.fill(NO_PIECE);
 
     int idxw = idx / 960, idxb = idx % 960;

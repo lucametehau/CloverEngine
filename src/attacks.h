@@ -30,7 +30,7 @@ inline std::array<Bitboard, 64> knightBBAttacks, kingBBAttacks;
 inline std::array<Bitboard, 64> kingRingMask, kingSquareMask, pawnShieldMask;
 
 inline Bitboard genAttacksBishopSlow(Bitboard blockers, Square sq) {
-    Bitboard attacks;
+    Bitboard attacks(0ull);
 
     attacks |= raysMask[sq][NORTHWEST_ID];
     if (raysMask[sq][NORTHWEST_ID] & blockers) {
@@ -56,7 +56,7 @@ inline Bitboard genAttacksBishopSlow(Bitboard blockers, Square sq) {
 }
 
 inline Bitboard genAttacksRookSlow(Bitboard blockers, Square sq) {
-    Bitboard attacks;
+    Bitboard attacks(0ull);
 
     attacks |= raysMask[sq][NORTH_ID];
     if (raysMask[sq][NORTH_ID] & blockers) {
@@ -83,7 +83,7 @@ inline Bitboard genAttacksRookSlow(Bitboard blockers, Square sq) {
 
 inline Bitboard get_blockers(Bitboard mask, int ind) {
     int nr = mask.count();
-    Bitboard blockers;
+    Bitboard blockers(0ull);
     for (Square i = 0; i < nr; i++) {
         Bitboard lsb = mask.lsb();
         if (ind & Bitboard(i)) blockers |= lsb;
@@ -269,7 +269,7 @@ inline Bitboard genAttacksSq(Bitboard blockers, Square sq, Piece pt) {
     if (pt == PieceTypes::QUEEN) return genAttacksQueen(blockers, sq);
     if (pt == PieceTypes::KING) return genAttacksKing(sq);
     assert(0);
-    return Bitboard();
+    return Bitboard(0ull);
 }
 
 /// same as the below one, only difference is that b is known

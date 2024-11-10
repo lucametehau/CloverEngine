@@ -10,14 +10,15 @@ private:
     unsigned long long bb;
 
 public:
-    constexpr Bitboard(unsigned long long _bb = 0) : bb(_bb) {}
-    Bitboard(Square sq) : bb(1ULL << sq) { assert(sq < NO_SQUARE); }
+    constexpr Bitboard() = default;
+    constexpr Bitboard(unsigned long long _bb) : bb(_bb) {}
+    constexpr Bitboard(Square sq) : bb(1ULL << sq) { assert(sq < NO_SQUARE); }
 
-    bool has_square(Square sq) const { return (bb >> sq) & 1; }
-    Square get_msb_square() const { return 63 - __builtin_clzll(bb); }
-    Square get_lsb_square() const { return __builtin_ctzll(bb); }
-    Bitboard lsb() const { return bb & -bb; }
-    operator unsigned long long() const { return bb; } 
+    inline bool has_square(Square sq) const { return (bb >> sq) & 1; }
+    inline Square get_msb_square() const { return 63 - __builtin_clzll(bb); }
+    inline Square get_lsb_square() const { return __builtin_ctzll(bb); }
+    inline Bitboard lsb() const { return bb & -bb; }
+    inline operator unsigned long long() const { return bb; } 
 
     Square get_square_pop() {
         const Square sq = get_lsb_square();
@@ -25,25 +26,25 @@ public:
         return sq;
     }
 
-    int count() const { return __builtin_popcountll(bb); }
+    inline int count() const { return __builtin_popcountll(bb); }
 
-    Bitboard operator | (const Bitboard &other) const { return bb | other.bb; }
-    Bitboard operator & (const Bitboard &other) const { return bb & other.bb; }
-    Bitboard operator ^ (const Bitboard &other) const { return bb ^ other.bb; }
-    Bitboard operator << (const int8_t shift) const { return bb << shift; }
-    Bitboard operator >> (const int8_t shift) const { return bb >> shift; }
-    Bitboard operator ~ () const { return ~bb; }
+    inline Bitboard operator | (const Bitboard &other) const { return bb | other.bb; }
+    inline Bitboard operator & (const Bitboard &other) const { return bb & other.bb; }
+    inline Bitboard operator ^ (const Bitboard &other) const { return bb ^ other.bb; }
+    inline Bitboard operator << (const int8_t shift) const { return bb << shift; }
+    inline Bitboard operator >> (const int8_t shift) const { return bb >> shift; }
+    inline Bitboard operator ~ () const { return ~bb; }
 
-    Bitboard& operator |= (const Bitboard &other) { bb |= other.bb; return *this; }
-    Bitboard& operator &= (const Bitboard &other) { bb &= other.bb; return *this; }
-    Bitboard& operator ^= (const Bitboard &other) { bb ^= other.bb; return *this; }
+    inline Bitboard& operator |= (const Bitboard &other) { bb |= other.bb; return *this; }
+    inline Bitboard& operator &= (const Bitboard &other) { bb &= other.bb; return *this; }
+    inline Bitboard& operator ^= (const Bitboard &other) { bb ^= other.bb; return *this; }
 
     void print() {
         Bitboard copy = bb;
         while (copy) {
             std::cout << int(copy.get_square_pop()) << " ";
         }
-        std::cout << " mask\n";
+        std::cout << "mask\n";
     }
 };
 

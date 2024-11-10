@@ -26,15 +26,7 @@
 #include "incbin.h"
 #include "defs.h"
 #include "board.h"
-#include <fstream>
-#include <iostream>
-#include <iomanip>
 #include <vector>
-#include <random>
-#include <algorithm>
-#include <cmath>
-#include <cstring>
-#include <random>
 
 #if defined(__ARM_NEON)
 #include <arm_neon.h>
@@ -123,12 +115,10 @@ enum {
     SUB = 0, ADD
 };
 
-struct NetworkWeights {
-    alignas(ALIGN) int16_t inputWeights[INPUT_NEURONS * SIDE_NEURONS];
-    alignas(ALIGN) int16_t inputBiases[SIDE_NEURONS];
-    alignas(ALIGN) int16_t outputWeights[HIDDEN_NEURONS];
-    int16_t outputBias;
-};
+alignas(ALIGN) inline int16_t inputWeights[INPUT_NEURONS * SIDE_NEURONS];
+alignas(ALIGN) inline int16_t inputBiases[SIDE_NEURONS];
+alignas(ALIGN) inline int16_t outputWeights[HIDDEN_NEURONS];
+inline int16_t outputBias;
 
 struct NetHist {
     Move move;

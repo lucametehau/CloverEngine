@@ -20,7 +20,6 @@
 #include "movepick.h"
 #include "tt.h"
 #include "3rdparty/Fathom/src/tbprobe.h"
-#include <cstring>
 #include <cmath>
 #include <fstream>
 #include <iomanip>
