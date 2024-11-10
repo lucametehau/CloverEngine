@@ -20,6 +20,288 @@
 #include "search-info.h"
 #include "attacks.h"
 
+void Board::make_move(const Move move) { /// assuming move is at least pseudo-legal
+    Square from = move.get_from(), to = move.get_to();
+    Piece piece = piece_at(from), piece_cap = piece_at(to);
+
+    history[game_ply] = state;
+    key() ^= enpas() != NO_SQUARE ? enPasKey[enpas()] : 0;
+
+    half_moves()++;
+
+    if (piece.type() == PieceTypes::PAWN)
+        half_moves() = 0;
+
+    captured() = NO_PIECE;
+    enpas() = NO_SQUARE;
+
+    switch (move.get_type()) {
+    case NO_TYPE:
+        pieces[turn] ^= (1ULL << from) ^ (1ULL << to);
+        bb[piece] ^= (1ULL << from) ^ (1ULL << to);
+
+        key() ^= hashKey[piece][from] ^ hashKey[piece][to];
+        if (piece.type() == PieceTypes::PAWN) pawn_key() ^= hashKey[piece][from] ^ hashKey[piece][to];
+        else mat_key(turn) ^= hashKey[piece][from] ^ hashKey[piece][to];
+        /// moved a castle rook
+        if (piece == Pieces::WhiteRook)
+            castle_rights() &= castleRightsDelta[WHITE][from];
+        else if (piece == Pieces::BlackRook)
+            castle_rights() &= castleRightsDelta[BLACK][from];
+
+        if (piece_cap != NO_PIECE) {
+            half_moves() = 0;
+
+            pieces[1 ^ turn] ^= (1ULL << to);
+            bb[piece_cap] ^= (1ULL << to);
+            key() ^= hashKey[piece_cap][to];
+            if (piece_cap.type() == PieceTypes::PAWN) pawn_key() ^= hashKey[piece_cap][to];
+            else mat_key(1 ^ turn) ^= hashKey[piece_cap][to];
+
+            /// special case: captured rook might have been a castle rook
+            if (piece_cap == Pieces::WhiteRook)
+                castle_rights() &= castleRightsDelta[WHITE][to];
+            else if (piece_cap == Pieces::BlackRook)
+                castle_rights() &= castleRightsDelta[BLACK][to];
+        }
+
+        board[from] = NO_PIECE;
+        board[to] = piece;
+        captured() = piece_cap;
+
+        /// double push
+        if (piece.type() == PieceTypes::PAWN && (from ^ to) == 16) {
+            if ((to % 8 && board[to - 1] == Piece(PieceTypes::PAWN, turn ^ 1)) || 
+                (to % 8 < 7 && board[to + 1] == Piece(PieceTypes::PAWN, turn ^ 1))) 
+                enpas() = shift_square<NORTH>(turn, from), key() ^= enPasKey[enpas()];
+        }
+
+        /// moved the king
+        if (piece == Pieces::WhiteKing) {
+            castle_rights() &= castleRightsDelta[WHITE][from];
+        }
+        else if (piece == Pieces::BlackKing) {
+            castle_rights() &= castleRightsDelta[BLACK][from];
+        }
+
+        break;
+    case MoveTypes::ENPASSANT:
+    {
+        const Square pos = shift_square<SOUTH>(turn, to);
+        piece_cap = Piece(PieceTypes::PAWN, 1 ^ turn);
+        half_moves() = 0;
+        pieces[turn] ^= (1ULL << from) ^ (1ULL << to);
+        bb[piece] ^= (1ULL << from) ^ (1ULL << to);
+
+        key() ^= hashKey[piece][from] ^ hashKey[piece][to] ^ hashKey[piece_cap][pos];
+        pawn_key() ^= hashKey[piece][from] ^ hashKey[piece][to] ^ hashKey[piece_cap][pos];
+
+        pieces[1 ^ turn] ^= (1ULL << pos);
+        bb[piece_cap] ^= (1ULL << pos);
+
+        board[from] = board[pos] = NO_PIECE;
+        board[to] = piece;
+    }
+
+    break;
+    case MoveTypes::CASTLE:
+    {
+        Square rFrom, rTo;
+        Piece rPiece = Piece(PieceTypes::ROOK, turn);
+
+        if (to > from) { // king side castle
+            rFrom = to;
+            to = Squares::G1.mirror(turn);
+            rTo = Squares::F1.mirror(turn);
+        }
+        else { // queen side castle
+            rFrom = to;
+            to = Squares::C1.mirror(turn);
+            rTo = Squares::D1.mirror(turn);
+        }
+
+        pieces[turn] ^= (1ULL << from) ^ (1ULL << to) ^ (1ULL << rFrom) ^ (1ULL << rTo);
+        bb[piece] ^= (1ULL << from) ^ (1ULL << to);
+        bb[rPiece] ^= (1ULL << rFrom) ^ (1ULL << rTo);
+
+        key() ^= hashKey[piece][from] ^ hashKey[piece][to] ^
+                 hashKey[rPiece][rFrom] ^ hashKey[rPiece][rTo];
+        mat_key(turn) ^= hashKey[piece][from] ^ hashKey[piece][to] ^
+                         hashKey[rPiece][rFrom] ^ hashKey[rPiece][rTo];
+
+        board[from] = board[rFrom] = NO_PIECE;
+        board[to] = piece;
+        board[rTo] = rPiece;
+        captured() = NO_PIECE;
+
+        if (piece == Pieces::WhiteKing)
+            castle_rights() &= castleRightsDelta[WHITE][from];
+        else if (piece == Pieces::BlackKing)
+            castle_rights() &= castleRightsDelta[BLACK][from];
+    }
+
+    break;
+    default: /// promotion
+    {
+        Piece prom_piece = Piece(move.get_prom() + PieceTypes::KNIGHT, turn);
+
+        pieces[turn] ^= (1ULL << from) ^ (1ULL << to);
+        bb[piece] ^= (1ULL << from);
+        bb[prom_piece] ^= (1ULL << to);
+
+        if (piece_cap != NO_PIECE) {
+            bb[piece_cap] ^= (1ULL << to);
+            pieces[1 ^ turn] ^= (1ULL << to);
+            key() ^= hashKey[piece_cap][to];
+            mat_key(1 ^ turn) ^= hashKey[piece_cap][to];
+
+            /// special case: captured rook might have been a castle rook
+            if (piece_cap == Pieces::WhiteRook)
+                castle_rights() &= castleRightsDelta[WHITE][to];
+            else if (piece_cap == Pieces::BlackRook)
+                castle_rights() &= castleRightsDelta[BLACK][to];
+        }
+
+        board[from] = NO_PIECE;
+        board[to] = prom_piece;
+        captured() = piece_cap;
+
+        key() ^= hashKey[piece][from] ^ hashKey[prom_piece][to];
+        pawn_key() ^= hashKey[piece][from];
+    }
+
+    break;
+    }
+
+    key() ^= castleKeyModifier[castle_rights() ^ history[game_ply].castleRights];
+    checkers() = get_attackers(turn, pieces[WHITE] | pieces[BLACK], get_king(1 ^ turn));
+
+    turn ^= 1;
+    ply++;
+    game_ply++;
+    key() ^= 1;
+    if (turn == WHITE) move_index()++;
+
+    pinned_pieces() = get_pinned_pieces();
+}
+
+void Board::undo_move(const Move move) {
+    turn ^= 1;
+    ply--;
+    game_ply--;
+    Piece piece_cap = captured();
+    
+    state = history[game_ply];
+
+    Square from = move.get_from(), to = move.get_to();
+    Piece piece = piece_at(to);
+
+    switch (move.get_type()) {
+    case NO_TYPE:
+        pieces[turn] ^= Bitboard(from) ^ Bitboard(to);
+        bb[piece] ^= Bitboard(from) ^ Bitboard(to);
+
+        board[from] = piece;
+        board[to] = piece_cap;
+
+        if (piece_cap != NO_PIECE) {
+            pieces[1 ^ turn] ^= Bitboard(to);
+            bb[piece_cap] ^= Bitboard(to);
+        }
+        break;
+    case MoveTypes::CASTLE:
+    {
+        Square rFrom, rTo;
+        Piece rPiece = Piece(PieceTypes::ROOK, turn);
+
+        piece = Piece(PieceTypes::KING, turn);
+
+        if (to > from) { // king side castle
+            rFrom = to;
+            to = Squares::G1.mirror(turn);
+            rTo = Squares::F1.mirror(turn);
+        }
+        else { // queen side castle
+            rFrom = to;
+            to = Squares::C1.mirror(turn);
+            rTo = Squares::D1.mirror(turn);
+        }
+
+        pieces[turn] ^= Bitboard(from) ^ Bitboard(to) ^ Bitboard(rFrom) ^ Bitboard(rTo);
+        bb[piece] ^= Bitboard(from) ^ Bitboard(to);
+        bb[rPiece] ^= Bitboard(rFrom) ^ Bitboard(rTo);
+
+        board[to] = board[rTo] = NO_PIECE;
+        board[from] = piece;
+        board[rFrom] = rPiece;
+    }
+    break;
+    case MoveTypes::ENPASSANT:
+    {
+        Square pos = shift_square<SOUTH>(turn, to);
+
+        piece_cap = Piece(PieceTypes::PAWN, 1 ^ turn);
+
+        pieces[turn] ^= Bitboard(from) ^ Bitboard(to);
+        bb[piece] ^= Bitboard(from) ^ Bitboard(to);
+
+        pieces[1 ^ turn] ^= Bitboard(pos);
+        bb[piece_cap] ^= Bitboard(pos);
+
+        board[to] = NO_PIECE;
+        board[from] = piece;
+        board[pos] = piece_cap;
+    }
+    break;
+    default: /// promotion
+    {
+        Piece prom_piece = Piece(move.get_prom() + PieceTypes::KNIGHT, turn);
+
+        piece = Piece(PieceTypes::PAWN, turn);
+
+        pieces[turn] ^= Bitboard(from) ^ Bitboard(to);
+        bb[piece] ^= Bitboard(from);
+        bb[prom_piece] ^= Bitboard(to);
+
+        board[to] = piece_cap;
+        board[from] = piece;
+
+        if (piece_cap != NO_PIECE) {
+            pieces[1 ^ turn] ^= Bitboard(to);
+            bb[piece_cap] ^= Bitboard(to);
+        }
+    }
+    break;
+    }
+
+    captured() = history[game_ply].captured;
+}
+
+void Board::make_null_move() {
+    history[game_ply] = state;
+    
+    key() ^= enpas() != NO_SQUARE ? enPasKey[enpas()] : 0;
+
+    checkers() = get_attackers(turn, pieces[WHITE] | pieces[BLACK], get_king(1 ^ turn));
+    captured() = NO_PIECE;
+    enpas() = NO_SQUARE;
+    turn ^= 1;
+    key() ^= 1;
+    pinned_pieces() = get_pinned_pieces();
+    ply++;
+    game_ply++;
+    half_moves()++;
+    move_index()++;
+}
+
+void Board::undo_null_move() {
+    turn ^= 1;
+    ply--;
+    game_ply--;
+
+    state = history[game_ply];
+}
+
 void add_moves(MoveList &moves, int& nrMoves, Square pos, Bitboard att) {
     while (att) moves[nrMoves++] = Move(pos, att.get_square_pop(), 0, NO_TYPE);
 }

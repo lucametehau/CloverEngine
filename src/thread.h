@@ -21,6 +21,7 @@
 #include "evaluate.h"
 #include "search-info.h"
 #include "net.h"
+#include "fen.h"
 #include <mutex>
 #include <thread>
 #include <chrono>
