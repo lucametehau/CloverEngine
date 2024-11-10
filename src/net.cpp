@@ -1,4 +1,5 @@
 #include "net.h"
+#include <cstring>
 
 INCBIN(Net, EVALFILE);
 
