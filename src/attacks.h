@@ -263,11 +263,13 @@ inline Bitboard genAttacksKing(Square sq) {
 }
 
 inline Bitboard genAttacksSq(Bitboard blockers, Square sq, Piece pt) {
-    if (pt == PieceTypes::KNIGHT) return genAttacksKnight(sq);
-    if (pt == PieceTypes::BISHOP) return genAttacksBishop(blockers, sq);
-    if (pt == PieceTypes::ROOK) return genAttacksRook(blockers, sq);
-    if (pt == PieceTypes::QUEEN) return genAttacksQueen(blockers, sq);
-    if (pt == PieceTypes::KING) return genAttacksKing(sq);
+    switch (pt) {
+    case PieceTypes::KNIGHT: return genAttacksKnight(sq);
+    case PieceTypes::BISHOP: return genAttacksBishop(blockers, sq);
+    case PieceTypes::ROOK  : return genAttacksRook(blockers, sq);
+    case PieceTypes::QUEEN : return genAttacksQueen(blockers, sq);
+    case PieceTypes::KING  : return genAttacksKing(sq);
+    }
     assert(0);
     return Bitboard(0ull);
 }

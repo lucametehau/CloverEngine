@@ -107,7 +107,7 @@ void Board::make_move(const Move move) { /// assuming move is at least pseudo-le
     case MoveTypes::CASTLE:
     {
         Square rFrom, rTo;
-        Piece rPiece = Piece(PieceTypes::ROOK, turn);
+        Piece rPiece(PieceTypes::ROOK, turn);
 
         if (to > from) { // king side castle
             rFrom = to;
@@ -143,7 +143,7 @@ void Board::make_move(const Move move) { /// assuming move is at least pseudo-le
     break;
     default: /// promotion
     {
-        Piece prom_piece = Piece(move.get_prom() + PieceTypes::KNIGHT, turn);
+        Piece prom_piece(move.get_prom() + PieceTypes::KNIGHT, turn);
 
         pieces[turn] ^= (1ULL << from) ^ (1ULL << to);
         bb[piece] ^= (1ULL << from);
@@ -212,7 +212,7 @@ void Board::undo_move(const Move move) {
     case MoveTypes::CASTLE:
     {
         Square rFrom, rTo;
-        Piece rPiece = Piece(PieceTypes::ROOK, turn);
+        Piece rPiece(PieceTypes::ROOK, turn);
 
         piece = Piece(PieceTypes::KING, turn);
 
@@ -255,7 +255,7 @@ void Board::undo_move(const Move move) {
     break;
     default: /// promotion
     {
-        Piece prom_piece = Piece(move.get_prom() + PieceTypes::KNIGHT, turn);
+        Piece prom_piece(move.get_prom() + PieceTypes::KNIGHT, turn);
 
         piece = Piece(PieceTypes::PAWN, turn);
 
@@ -302,7 +302,7 @@ void Board::undo_null_move() {
     state = history[game_ply];
 }
 
-void add_moves(MoveList &moves, int& nrMoves, Square pos, Bitboard att) {
+inline void add_moves(MoveList &moves, int& nrMoves, Square pos, Bitboard att) {
     while (att) moves[nrMoves++] = Move(pos, att.get_square_pop(), 0, NO_TYPE);
 }
 

@@ -341,7 +341,7 @@ public:
         break;
         case MoveTypes::CASTLE: {
             Square rFrom = to, rTo;
-            Piece rPiece = Piece(PieceTypes::ROOK, turn);
+            Piece rPiece(PieceTypes::ROOK, turn);
             if (to > from) { // king side castle
                 to = Squares::G1.mirror(turn);
                 rTo = Squares::F1.mirror(turn);
@@ -355,12 +355,12 @@ public:
         break;
         case MoveTypes::ENPASSANT: {
             const Square pos = shift_square<SOUTH>(turn, to);
-            const Piece pieceCap = Piece(PieceTypes::PAWN, 1 ^ turn);
+            const Piece pieceCap(PieceTypes::PAWN, 1 ^ turn);
             apply_sub_add_sub(a, b, net_index(piece, from, king, side), net_index(piece, to, king, side), net_index(pieceCap, pos, king, side));
         }
         break;
         default: {
-            const int promPiece = Piece(move.get_prom() + PieceTypes::KNIGHT, turn);
+            const Piece promPiece(move.get_prom() + PieceTypes::KNIGHT, turn);
             if (captured == NO_PIECE)
                 apply_sub_add(a, b, net_index(piece, from, king, side), net_index(promPiece, to, king, side));
             else
@@ -411,7 +411,7 @@ public:
                         Bitboard prev = state->bb[i];
                         Bitboard curr = board.bb[i];
 
-                        Bitboard b = curr & ~prev; // additions
+                        Bitboard b(curr & ~prev); // additions
                         while (b) add_input(net_index(i, b.get_square_pop(), king_sq, side));
 
                         b = prev & ~curr; // removals

@@ -63,13 +63,10 @@ void fill_multiarray(MultiArray<typename MultiArray_impl<T, sizes...>::type, siz
         fill_multiarray<T, sizes...>(array[i], value);
 }
 
-class Threats {
-public:
+struct Threats {
     Bitboard threats_pieces[4];
     Bitboard all_threats;
     Bitboard threatened_pieces;
-
-    Threats() { for(int i = 0; i < 4; i++) threats_pieces[i] = Bitboard(0ull); }
 };
 
 struct NetInput {
