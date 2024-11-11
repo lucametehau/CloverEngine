@@ -1,7 +1,7 @@
 SRCXX = $(wildcard *.cpp)
 SRC = 3rdparty/Fathom/src/tbprobe.c
 OBJ = $(SRCXX:.cpp=.o) $(SRC:.c=.o)
-EXE = Clover.8.0.22
+EXE = Clover.8.0.23
 EVALFILE = clover-7buckets-mse-0.95-1280-cosine-600.bin
 
 ifeq ($(CXX),)
@@ -36,16 +36,6 @@ ifeq ($(EXT), .exe)
 else
 	LIBS += -lpthread
 	RM_CMD = rm -f $(OBJ)
-endif
-
-ifneq ($(findstring g++, $(CXX)),)
-	PGO_GENERATE = -fprofile-generate
-	PGO_USE      = -fprofile-use
-endif
-ifneq ($(findstring clang++, $(CXX)),)
-	PGO_MERGE    = llvm-profdata merge -output=clover.profdata *.profraw
-	PGO_GENERATE = -fprofile-instr-generate
-	PGO_USE      = -fprofile-instr-use=clover.profdata
 endif
 
 AVX2_FLAGS     = -march=core-avx2
@@ -86,12 +76,6 @@ endif
 	$(CXX) $(BUILD_FLAGS) $(RFLAGS) -o $@ -c $<
 
 make: $(OBJ)
-	$(CXX) $(OBJ) $(RFLAGS) $(LIBS) $(BUILD_FLAGS) -o $(EXE)$(EXT) $(PGO_GENERATE)
-	./$(EXE)$(EXT) bench
-	$(PGO_MERGE)
-	$(CXX) $(OBJ) $(RFLAGS) $(LIBS) $(BUILD_FLAGS) -o $(EXE)$(EXT) $(PGO_USE)
-
-normal: $(OBJ)
 	$(CXX) $(OBJ) $(RFLAGS) $(LIBS) $(BUILD_FLAGS) -o $(EXE)$(EXT)
 
 release:
