@@ -7,7 +7,8 @@ private:
     uint8_t piece;
 
 public:
-    constexpr Piece(uint8_t piece = 12) : piece(piece) {}
+    constexpr Piece() = default;
+    constexpr Piece(uint8_t piece) : piece(piece) {}
     constexpr Piece(const Piece piece_type, const bool color) : piece(color * 6 + piece_type.piece) {}
     constexpr operator uint8_t() const { return piece; }
 

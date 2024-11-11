@@ -15,7 +15,6 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #pragma once
-#include <cstring>
 #include "defs.h"
 #include "net.h"
 #include "board.h"
@@ -36,10 +35,10 @@ inline int scale(Board& board) {
         board.half_moves() * EvalShuffleCoef;
 }
 
-int evaluate(Board& board, Network* NN) {
-    NN->bring_up_to_date(board);
+int evaluate(Board& board, Network& NN) {
+    NN.bring_up_to_date(board);
 
-    int eval = NN->get_output(board.turn);
+    int eval = NN.get_output(board.turn);
     eval = eval * scale(board) / 1024;
     return eval;
 }

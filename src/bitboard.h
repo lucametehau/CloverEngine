@@ -10,8 +10,9 @@ private:
     unsigned long long bb;
 
 public:
-    constexpr Bitboard(unsigned long long _bb = 0) : bb(_bb) {}
-    Bitboard(Square sq) : bb(1ULL << sq) { assert(sq < NO_SQUARE); }
+    constexpr Bitboard() = default;
+    constexpr Bitboard(unsigned long long _bb) : bb(_bb) {}
+    constexpr Bitboard(Square sq) : bb(1ULL << sq) { assert(sq < NO_SQUARE); }
 
     bool has_square(Square sq) const { return (bb >> sq) & 1; }
     Square get_msb_square() const { return 63 - __builtin_clzll(bb); }
@@ -43,7 +44,7 @@ public:
         while (copy) {
             std::cout << int(copy.get_square_pop()) << " ";
         }
-        std::cout << " mask\n";
+        std::cout << "mask\n";
     }
 };
 

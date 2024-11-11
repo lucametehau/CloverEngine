@@ -21,6 +21,7 @@
 #include "evaluate.h"
 #include "search-info.h"
 #include "net.h"
+#include "fen.h"
 #include <mutex>
 #include <thread>
 #include <chrono>
@@ -65,7 +66,7 @@ public:
     int64_t m_nodes;
     int m_completed_depth;
     Board m_board;
-    Network* NN;
+    Network NN;
 
 public:
     ThreadPool* m_thread_pool;
@@ -85,10 +86,9 @@ public:
     SearchThread(ThreadPool* thread_pool, int thread_id) : m_thread_pool(thread_pool), m_thread_id(thread_id) {
         m_state = ThreadStates::IDLE;
         m_thread = std::thread(&SearchThread::main_loop, this);
-        NN = new Network();
     }
 
-    ~SearchThread() { delete NN; }
+    ~SearchThread() = default;
 
 public:
     bool main_thread() { return m_thread_id == 0; }
@@ -130,7 +130,7 @@ public:
     void clear_board() { m_board.clear(); }
     void init_NN() {
         NetInput input = m_board.to_netinput();
-        NN->calc(input, m_board.turn);
+        NN.calc(input, m_board.turn);
     }
     void set_fen(std::string fen, bool chess960 = false) {
         m_board.chess960 = chess960;
@@ -146,12 +146,12 @@ public:
     void make_move(Move move) { 
         const Piece piece = m_board.piece_at(move.get_from());
         m_board.make_move(move);
-        NN->add_move_to_history(move, piece, m_board.captured());
+        NN.add_move_to_history(move, piece, m_board.captured());
     }
 
     void undo_move(Move move) {
         m_board.undo_move(move);
-        NN->revert_move();
+        NN.revert_move();
     }
 
 private:
@@ -222,7 +222,7 @@ public:
         for (auto &thread : m_threads) thread->make_move(move);
     }
     Board &get_board() { return m_threads.front()->m_board; }
-    Network* get_NN() { return m_threads.front()->NN; }
+    Network& get_NN() { return m_threads.front()->NN; }
     int get_eval() { return evaluate(get_board(), get_NN()); }
 
     uint64_t get_nodes() {

@@ -63,13 +63,10 @@ void fill_multiarray(MultiArray<typename MultiArray_impl<T, sizes...>::type, siz
         fill_multiarray<T, sizes...>(array[i], value);
 }
 
-class Threats {
-public:
+struct Threats {
     Bitboard threats_pieces[4];
     Bitboard all_threats;
     Bitboard threatened_pieces;
-
-    Threats() { for(int i = 0; i < 4; i++) threats_pieces[i] = Bitboard(0ULL); }
 };
 
 struct NetInput {
@@ -199,14 +196,14 @@ inline void init_defs() {
         for (int rank = 0; rank < 8; rank++) {
             for (int i = 0; i < 8; i++) {
                 int r = rank, f = file;
-                Bitboard mask;
+                Bitboard mask(0ull);
                 while (true) {
                     r += kingDir[i].first, f += kingDir[i].second;
                     if (!inside_board(r, f))
                         break;
                     between_mask[Square(rank, file)][Square(r, f)] = mask;
                     int x = r, y = f, d = (i < 4 ? (i + 2) % 4 : 11 - i);
-                    Bitboard mask2;
+                    Bitboard mask2(0ull);
                     while (inside_board(x, y)) {
                         mask2 |= Bitboard(Square(x, y));
                         x += kingDir[i].first, y += kingDir[i].second;

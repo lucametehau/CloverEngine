@@ -20,7 +20,6 @@
 #include "movepick.h"
 #include "tt.h"
 #include "3rdparty/Fathom/src/tbprobe.h"
-#include <cstring>
 #include <cmath>
 #include <fstream>
 #include <iomanip>
@@ -66,6 +65,7 @@ void get_threats(Threats& threats, Board& board, const bool us) {
     const Bitboard all = board.get_bb_color(WHITE) | board.get_bb_color(BLACK);
 
     threats.threats_pieces[PieceTypes::PAWN] = att;
+    threats.threats_pieces[PieceTypes::KNIGHT] = threats.threats_pieces[PieceTypes::BISHOP] = threats.threats_pieces[PieceTypes::ROOK] = 0;
     our_pieces ^= board.get_bb_piece(PieceTypes::KNIGHT, us) | board.get_bb_piece(PieceTypes::BISHOP, us);
 
     pieces = board.get_bb_piece(PieceTypes::KNIGHT, enemy);

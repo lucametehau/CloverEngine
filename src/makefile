@@ -1,7 +1,7 @@
 SRCXX = $(wildcard *.cpp)
 SRC = 3rdparty/Fathom/src/tbprobe.c
 OBJ = $(SRCXX:.cpp=.o) $(SRC:.c=.o)
-EXE = Clover.8.0.21
+EXE = Clover.8.0.22
 EVALFILE = clover-7buckets-mse-0.95-1280-cosine-600.bin
 
 ifeq ($(CXX),)
@@ -31,7 +31,6 @@ ifneq ($(findstring __BMI2__, $(FLAGS)),)
 endif
 
 ifeq ($(EXT), .exe)
-	RFLAGS += -static -static-libgcc -static-libstdc++
 	LIBS += -pthread
 	RM_CMD = powershell "rm -Force *.o, 3rdparty/Fathom/src/tbprobe.o"
 else

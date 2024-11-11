@@ -26,8 +26,8 @@ template <int16_t Divisor>
 class History {
 public:
     int16_t hist;
-    History() : hist(0) {}
-    History(int16_t value) : hist(value) {}
+    constexpr History() = default;
+    constexpr History(int16_t hist) : hist(hist) {}
 
     void update(int16_t score) { hist += score - hist * abs(score) / Divisor; }
 
@@ -42,7 +42,8 @@ public:
 class CorrectionHistory {
 public:
     int corr;
-    CorrectionHistory() : corr(0) {}
+    constexpr CorrectionHistory() = default;
+    constexpr CorrectionHistory(int corr) : corr(corr) {}
     void update_corr_hist(const int w, const int delta) {
         corr = (corr * (CorrHistScale - w) + CorrHistDiv * delta * w) / CorrHistScale;
         corr = std::clamp(corr, -32 * CorrHistDiv, 32 * CorrHistDiv);
@@ -55,7 +56,7 @@ class SearchMove {
 public:
     Move move;
     int tried_count;
-    constexpr SearchMove() : move(NULLMOVE), tried_count(0) {}
+    constexpr SearchMove() = default;
     constexpr SearchMove(Move _move, int _tried_count) : move(_move), tried_count(_tried_count) {}
 };
 
@@ -83,8 +84,8 @@ public:
         fill_multiarray<History<16384>, 2, 2, 2, 64 * 64>(hist, 0);
         fill_multiarray<History<16384>, 12, 64, 7>(cap_hist, 0);
         fill_multiarray<History<16384>, 2, 13, 64, 13, 64>(cont_history, 0);
-        fill_multiarray<CorrectionHistory, 2, CORR_HIST_SIZE>(corr_hist, CorrectionHistory());
-        fill_multiarray<CorrectionHistory, 2, 2, CORR_HIST_SIZE>(mat_corr_hist, CorrectionHistory());
+        fill_multiarray<CorrectionHistory, 2, CORR_HIST_SIZE>(corr_hist, CorrectionHistory(0));
+        fill_multiarray<CorrectionHistory, 2, 2, CORR_HIST_SIZE>(mat_corr_hist, CorrectionHistory(0));
     }
 
     Histories() { clear_history(); }
@@ -178,10 +179,10 @@ public:
     }
 };
 
-int getHistoryBonus(int depth) {
+inline int getHistoryBonus(int depth) {
     return std::min<int>(HistoryBonusMargin * depth - HistoryBonusBias, HistoryBonusMax);
 }
 
-int getHistoryMalus(int depth) {
+inline int getHistoryMalus(int depth) {
     return -std::min<int>(HistoryMalusMargin * depth - HistoryMalusBias, HistoryMalusMax);
 }
