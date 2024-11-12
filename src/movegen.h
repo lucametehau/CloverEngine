@@ -20,11 +20,14 @@
 #include "search-info.h"
 #include "attacks.h"
 
-void Board::make_move(const Move move) { /// assuming move is at least pseudo-legal
+void Board::make_move(const Move move, HistoricalState& next_state) { /// assuming move is at least pseudo-legal
     Square from = move.get_from(), to = move.get_to();
     Piece piece = piece_at(from), piece_cap = piece_at(to);
 
-    history[game_ply] = state;
+    memcpy(&next_state, state, sizeof(HistoricalState));
+    next_state.prev = state;
+    state->next = &next_state;
+    state = &next_state;
     key() ^= enpas() != NO_SQUARE ? enPasKey[enpas()] : 0;
 
     half_moves()++;
@@ -172,8 +175,8 @@ void Board::make_move(const Move move) { /// assuming move is at least pseudo-le
 
     break;
     }
-
-    key() ^= castleKeyModifier[castle_rights() ^ history[game_ply].castleRights];
+    
+    key() ^= castleKeyModifier[castle_rights() ^ state->prev->castleRights];
     checkers() = get_attackers(turn, pieces[WHITE] | pieces[BLACK], get_king(1 ^ turn));
 
     turn ^= 1;
@@ -191,7 +194,7 @@ void Board::undo_move(const Move move) {
     game_ply--;
     Piece piece_cap = captured();
     
-    state = history[game_ply];
+    state = state->prev;
 
     Square from = move.get_from(), to = move.get_to();
     Piece piece = piece_at(to);
@@ -274,11 +277,14 @@ void Board::undo_move(const Move move) {
     break;
     }
 
-    captured() = history[game_ply].captured;
+    // captured() = history[game_ply].captured; ??
 }
 
-void Board::make_null_move() {
-    history[game_ply] = state;
+void Board::make_null_move(HistoricalState& next_state) {
+    memcpy(&next_state, state, sizeof(HistoricalState));
+    next_state.prev = state;
+    state->next = &next_state;
+    state = &next_state;
     
     key() ^= enpas() != NO_SQUARE ? enPasKey[enpas()] : 0;
 
@@ -299,7 +305,7 @@ void Board::undo_null_move() {
     ply--;
     game_ply--;
 
-    state = history[game_ply];
+    state = state->prev;
 }
 
 inline void add_moves(MoveList &moves, int& nrMoves, Square pos, Bitboard att) {
@@ -986,7 +992,9 @@ bool is_legal_dummy(Board& board, Move move) {
     if (move.get_type() == MoveTypes::CASTLE)
         return is_legal(board, move);
     bool legal = false;
-    board.make_move(move);
+
+    HistoricalState next_state;
+    board.make_move(move, next_state);
     legal = !board.is_attacked_by(board.turn, board.get_king(board.turn ^ 1));
     board.undo_move(move);
     if (legal != is_legal(board, move)) {

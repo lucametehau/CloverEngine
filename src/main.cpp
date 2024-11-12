@@ -28,6 +28,7 @@ int main(int argc, char** argv) {
     load_nnue_weights();
 
     UCI uci;
+
     if (argc > 1) {
         if (!strncmp(argv[1], "bench", 5)) {
             int depth = -1;

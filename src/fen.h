@@ -35,13 +35,14 @@ std::string Board::fen() {
     return fen;
 }
 
-void Board::set_fen(const std::string fen) {
+void Board::set_fen(const std::string fen, HistoricalState& next_state) {
     int ind = 0;
+    state = &next_state;
+
     key() = pawn_key() = mat_key(WHITE) = mat_key(BLACK) = 0;
     ply = game_ply = 0;
     captured() = NO_PIECE;
 
-    //checkers() = 0;
     bb.fill(Bitboard(0ull));
     pieces.fill(Bitboard(0ull));
 
@@ -82,7 +83,7 @@ void Board::set_fen(const std::string fen) {
         chess960 = true;
     }
     else {
-    const std::string castle_ch = "qkQK";
+        const std::string castle_ch = "qkQK";
         for (int i = 3; i >= 0; i--) {
             if (fen[ind] == castle_ch[i]) {
                 castle_rights() |= (1 << i);
@@ -204,7 +205,9 @@ void Board::set_frc_side(bool color, int idx) {
     }
 }
 
-void Board::set_dfrc(int idx) {
+void Board::set_dfrc(int idx, HistoricalState& next_state) {
+    state = &next_state;
+
     ply = game_ply = 0;
     captured() = NO_PIECE;
 

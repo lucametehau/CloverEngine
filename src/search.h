@@ -104,7 +104,7 @@ void get_threats(Threats& threats, Board& board, const bool us) {
     threats.threatened_pieces = threatened_pieces;
 }
 
-std::string getSanString(Board& board, Move move) {
+std::string getSanString(Board& board, Move move, HistoricalState& next_state) {
     if (move.get_type() == MoveTypes::CASTLE) return move.get_to() > move.get_from() ? "O-O" : "O-O-O";
     int from = move.get_from(), to = move.get_to();
     Piece prom = move.get_type() == MoveTypes::PROMOTION ? move.get_prom() + PieceTypes::KNIGHT + 6 : static_cast<Piece>(0), piece = board.piece_type_at(from);
@@ -119,7 +119,7 @@ std::string getSanString(Board& board, Move move) {
 
     if (prom) san += "=", san += piece_char[prom];
 
-    board.make_move(move);
+    board.make_move(move, next_state);
     if (board.checkers()) san += '+';
     board.undo_move(move);
 
@@ -127,10 +127,12 @@ std::string getSanString(Board& board, Move move) {
 }
 
 void SearchThread::print_pv() {
-    if (m_info.is_san_mode()) {    
+    if (m_info.is_san_mode()) {
+        std::unique_ptr<std::deque<HistoricalState>> states = std::make_unique<std::deque<HistoricalState>>(0);
         for (int i = 0; i < m_pv_table_len[0]; i++) {
-            std::cout << getSanString(m_board, m_pv_table[0][i]) << " ";
-            m_board.make_move(m_pv_table[0][i]);
+            states->emplace_back();
+            std::cout << getSanString(m_board, m_pv_table[0][i], states->back()) << " ";
+            m_board.make_move(m_pv_table[0][i], states->back());
         }
         for (int i = m_pv_table_len[0] - 1; i >= 0; i--) m_board.undo_move(m_pv_table[0][i]);
     }
@@ -182,6 +184,7 @@ int SearchThread::quiesce(int alpha, int beta, StackEntry* stack) {
         }
     }
 
+    HistoricalState next_state;
     const bool in_check = m_board.checkers() != 0;
     Threats threats;
     if (in_check) get_threats(threats, m_board, turn);
@@ -246,7 +249,7 @@ int SearchThread::quiesce(int alpha, int beta, StackEntry* stack) {
         stack->piece = m_board.piece_at(move.get_from());
         stack->cont_hist = &m_histories.cont_history[!m_board.is_noisy_move(move)][stack->piece][move.get_to()];
 
-        make_move(move);
+        make_move(move, next_state);
         if (!pvNode || played > 1) score = -quiesce<false>(-alpha - 1, -alpha, stack + 1);
 
         if constexpr (pvNode) {
@@ -355,6 +358,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
         }
     }
 
+    HistoricalState next_state;
     const bool in_check = (m_board.checkers() != 0);
     Threats threats;
     get_threats(threats, m_board, turn);
@@ -431,7 +435,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
                 stack->piece = NO_PIECE;
                 stack->cont_hist = &m_histories.cont_history[0][NO_PIECE][0];
 
-                m_board.make_null_move();
+                m_board.make_null_move(next_state);
                 int score = -search<false, false, !cutNode>(-beta, -beta + 1, depth - R, stack + 1);
                 m_board.undo_null_move();
 
@@ -457,7 +461,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
                     stack->piece = m_board.piece_at(move.get_from());
                     stack->cont_hist = &m_histories.cont_history[0][stack->piece][move.get_to()];
 
-                    make_move(move);
+                    make_move(move, next_state);
 
                     int score = -quiesce<false>(-probcut_beta, -probcut_beta + 1, stack + 1);
                     if (score >= probcut_beta) score = -search<false, false, !cutNode>(-probcut_beta, -probcut_beta + 1, depth - ProbcutReduction, stack + 1);
@@ -589,7 +593,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
         stack->piece = piece;
         stack->cont_hist = &m_histories.cont_history[is_quiet][piece][to];
 
-        make_move(move);
+        make_move(move, next_state);
         played++;
 
         if constexpr (rootNode) {
@@ -766,6 +770,8 @@ void SearchThread::start_search() {
         }
     }
 #endif
+    memcpy(&m_board, &m_thread_pool->m_board, sizeof(Board));
+    NN.init(m_board);
     clear_stack();
     m_nodes = m_sel_depth = m_tb_hits = 0;
     m_time_check_count = 0;
