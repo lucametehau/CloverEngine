@@ -27,14 +27,16 @@ public:
     uint16_t halfMoves, moveIndex;
     Bitboard checkers, pinnedPieces;
     uint64_t key, pawn_key, mat_key[2];
+
+    HistoricalState* prev;
+    HistoricalState* next;
 };
 
 class Board {
 public:
     bool turn, chess960;
 
-    HistoricalState state;
-    std::array<HistoricalState, STACK_SIZE> history; /// fuck it
+    HistoricalState* state;
 
     std::array<Piece, 64> board;
     MultiArray<Square, 2, 2> rookSq;    
@@ -57,16 +59,16 @@ public:
         }
     }
 
-    uint64_t& key() { return state.key; }
-    uint64_t& pawn_key() { return state.pawn_key; }
-    uint64_t& mat_key(const bool color) { return state.mat_key[color]; }
-    Bitboard& checkers() { return state.checkers; }
-    Bitboard& pinned_pieces() { return state.pinnedPieces; }
-    Square& enpas() { return state.enPas; }
-    uint16_t& half_moves() { return state.halfMoves; }
-    uint16_t& move_index() { return state.moveIndex; }
-    uint8_t& castle_rights() { return state.castleRights; }
-    Piece& captured() { return state.captured; }
+    uint64_t& key() { return state->key; }
+    uint64_t& pawn_key() { return state->pawn_key; }
+    uint64_t& mat_key(const bool color) { return state->mat_key[color]; }
+    Bitboard& checkers() { return state->checkers; }
+    Bitboard& pinned_pieces() { return state->pinnedPieces; }
+    Square& enpas() { return state->enPas; }
+    uint16_t& half_moves() { return state->halfMoves; }
+    uint16_t& move_index() { return state->moveIndex; }
+    uint8_t& castle_rights() { return state->castleRights; }
+    Piece& captured() { return state->captured; }
 
     Bitboard get_bb_piece(const Piece piece, const bool color) const { return bb[Piece(piece, color)]; }
     Bitboard get_bb_color(const bool color) const { return pieces[color]; }
@@ -120,9 +122,9 @@ public:
         return get_attackers(color, get_bb_color(WHITE) | get_bb_color(BLACK), sq); 
     }
     
-    void make_move(const Move move);
+    void make_move(const Move move, HistoricalState& state);
     void undo_move(const Move move);
-    void make_null_move();
+    void make_null_move(HistoricalState& state);
     void undo_null_move();
 
     int gen_legal_moves(MoveList &moves);
@@ -159,9 +161,9 @@ public:
         bb[piece] |= (1ULL << sq);
     }
 
-    void set_fen(const std::string fen);
+    void set_fen(const std::string fen, HistoricalState& state);
     void set_frc_side(bool color, int idx);
-    void set_dfrc(int idx);
+    void set_dfrc(int idx, HistoricalState& state);
 
     std::string fen();
 
@@ -181,8 +183,10 @@ public:
 
     bool is_repetition(const int ply) {
         int cnt = 1;
+        HistoricalState* temp_state = state;
         for (int i = 2; i <= game_ply && i <= half_moves(); i += 2) {
-            if (history[game_ply - i].key == key()) {
+            temp_state = temp_state->prev->prev;
+            if (temp_state->key == key()) {
                 cnt++;
                 if (ply > i || cnt == 3) return true;
             }
@@ -198,11 +202,14 @@ public:
 
     bool has_upcoming_repetition(const int ply) {
         const Bitboard all_pieces = get_bb_color(WHITE) | get_bb_color(BLACK);
-        uint64_t b = ~(key() ^ history[game_ply - 1].key);
+        HistoricalState* temp_state = state->prev;
+        uint64_t b = ~(key() ^ temp_state->key);
         for (int i = 3; i <= half_moves() && i <= game_ply; i += 2) {
-            b ^= ~(history[game_ply - i].key ^ history[game_ply - i + 1].key);
+            assert(temp_state->prev->prev);
+            temp_state = temp_state->prev->prev;
+            b ^= ~(temp_state->next->key ^ temp_state->key);
             if (b) continue;
-            const uint64_t key_delta = key() ^ history[game_ply - i].key;
+            const uint64_t key_delta = key() ^ temp_state->key;
             int cuckoo_ind = cuckoo::hash1(key_delta);
 
             if (cuckoo::cuckoo[cuckoo_ind] != key_delta) cuckoo_ind = cuckoo::hash2(key_delta);

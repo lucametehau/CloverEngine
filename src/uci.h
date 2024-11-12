@@ -18,6 +18,7 @@
 #include <string>
 #include <fstream>
 #include <sstream>
+#include <queue>
 #include "movegen.h"
 #include "search.h"
 #include "3rdparty/Fathom/src/tbprobe.h"
@@ -27,6 +28,9 @@
 const std::string VERSION = "8.0.1";
 
 class UCI {
+private:
+    std::unique_ptr<std::deque<HistoricalState>> states;
+    Network NN;
 public:
     UCI() {}
 public:
@@ -75,6 +79,8 @@ void UCI::uci_loop() {
     Info info;
     thread_pool.create_pool(1);
     ucinewgame(ttSize);
+    states = std::make_unique<std::deque<HistoricalState>>(1);
+    thread_pool.get_board().set_fen(START_POS_FEN, states->back());
 
     std::string input;
     while (getline(std::cin, input)) {
@@ -85,10 +91,11 @@ void UCI::uci_loop() {
             is_ready();
         }
         else if (cmd == "position") {
+            states = std::make_unique<std::deque<HistoricalState>>(1);
             std::string type;
             while (iss >> type) {
                 if (type == "startpos") {
-                    thread_pool.set_fen(START_POS_FEN);
+                    thread_pool.get_board().set_fen(START_POS_FEN, states->back());
                 }
                 else if (type == "fen") {
                     std::string fen;
@@ -97,13 +104,15 @@ void UCI::uci_loop() {
                         iss >> component;
                         fen += component + " ";
                     }
-                    thread_pool.set_fen(fen, info.is_chess960());
+                    thread_pool.get_board().chess960 = info.is_chess960();
+                    thread_pool.get_board().set_fen(fen, states->back());
                 }
                 else if (type == "moves") {
                     std::string moveStr;
                     while (iss >> moveStr) {
                         Move move = parse_move_string(thread_pool.get_board(), moveStr, info);
-                        thread_pool.make_move(move);
+                        states->emplace_back();
+                        thread_pool.get_board().make_move(move, states->back());
                     }
                 }
             }
@@ -237,12 +246,13 @@ void UCI::uci_loop() {
             bench();
         }
         else if (cmd == "evalbench") {
-            int eval = thread_pool.get_eval();
+            NN.init(thread_pool.get_board());
+            int eval = evaluate(thread_pool.get_board(), NN);
             uint64_t total = 0;
             const int N = (int)1e8;
             for (int i = 0; i < N; i++) {
                 auto start = std::chrono::high_resolution_clock::now();
-                eval = thread_pool.get_eval();
+                eval = evaluate(thread_pool.get_board(), NN);
                 auto end = std::chrono::high_resolution_clock::now();
                 total += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
             }
@@ -274,7 +284,6 @@ void UCI::uci() {
 }
 
 void UCI::ucinewgame(uint64_t ttSize) {
-    thread_pool.set_fen(START_POS_FEN);
     thread_pool.clear_history();
 #ifndef GENERATE
     TT->reset_age();
@@ -300,7 +309,8 @@ void UCI::quit() {
 }
 
 void UCI::eval() {
-    std::cout << thread_pool.get_eval() << std::endl;
+    NN.init(thread_pool.get_board());
+    std::cout << evaluate(thread_pool.get_board(), NN) << std::endl;
 }
 
 void UCI::is_ready() {
@@ -396,7 +406,8 @@ void UCI::bench(int depth) {
 
     uint64_t totalNodes = 0;
     for (auto& fen : benchPos) {
-        thread_pool.set_fen(fen);
+        states = std::make_unique<std::deque<HistoricalState>>(1);
+        thread_pool.get_board().set_fen(fen, states->back());
         thread_pool.clear_board();
         thread_pool.search(info);
         thread_pool.wait_for_finish();

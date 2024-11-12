@@ -127,25 +127,10 @@ public:
         fill_multiarray<Move, MAX_DEPTH + 5, 2 * MAX_DEPTH + 5>(m_pv_table, NULLMOVE);
     }
     void clear_history() { m_histories.clear_history(); }
-    void clear_board() { m_board.clear(); }
-    void init_NN() {
-        NetInput input = m_board.to_netinput();
-        NN.calc(input, m_board.turn);
-    }
-    void set_fen(std::string fen, bool chess960 = false) {
-        m_board.chess960 = chess960;
-        m_board.set_fen(fen);
-        init_NN();
-    }
-    void set_dfrc(int idx) {
-        m_board.chess960 = (idx > 0);
-        m_board.set_dfrc(idx);
-        init_NN();
-    }
 
-    void make_move(Move move) { 
+    void make_move(Move move, HistoricalState& next_state) { 
         const Piece piece = m_board.piece_at(move.get_from());
-        m_board.make_move(move);
+        m_board.make_move(move, next_state);
         NN.add_move_to_history(move, piece, m_board.captured());
     }
 
@@ -178,6 +163,7 @@ class ThreadPool {
 public:
     std::vector<std::unique_ptr<SearchThread>> m_threads;
     Info m_info;
+    Board m_board;
 
     ThreadPool() { create_pool(0); }
     ~ThreadPool() { exit(); }
@@ -210,20 +196,10 @@ public:
         for (auto &thread : m_threads) thread->clear_history();
     }
     void clear_board() {
-        for (auto &thread : m_threads) thread->clear_board();
+        m_board.clear();
     }
-    void set_fen(std::string fen, bool chess960 = false) {
-        for (auto &thread : m_threads) thread->set_fen(fen, chess960);
-    }
-    void set_dfrc(int dfrc_index) {
-        for (auto &thread : m_threads) thread->set_dfrc(dfrc_index);
-    }
-    void make_move(Move move) {
-        for (auto &thread : m_threads) thread->make_move(move);
-    }
-    Board &get_board() { return m_threads.front()->m_board; }
-    Network& get_NN() { return m_threads.front()->NN; }
-    int get_eval() { return evaluate(get_board(), get_NN()); }
+    
+    Board &get_board() { return m_board; }
 
     uint64_t get_nodes() {
         uint64_t nodes = 0;

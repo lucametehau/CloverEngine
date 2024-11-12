@@ -96,7 +96,7 @@ constexpr int VALUE_NONE = INF + 10;
 constexpr int MATE = 31000;
 constexpr int TB_WIN_SCORE = 22000;
 constexpr int MAX_DEPTH = 200;
-constexpr int STACK_SIZE = 2000;
+constexpr int STACK_SIZE = MAX_DEPTH + 5;
 
 inline const std::string START_POS_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 

@@ -25,10 +25,12 @@ uint64_t perft(Board& board, int depth) {
 
     uint64_t nodes = 0;
 
+    HistoricalState next_state;
     for (int i = 0; i < nrMoves; i++) {
         Move move = moves[i];
-        board.make_move(move);
-        uint64_t x = perft<false>(board, depth - 1);
+        board.make_move(move, next_state);
+        uint64_t x;
+        x = perft<false>(board, depth - 1);
         nodes += x;
         board.undo_move(move);
         if constexpr (RootNode)

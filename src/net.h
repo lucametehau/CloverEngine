@@ -193,7 +193,8 @@ public:
     void remove_input(int ind) { sub_ind[sub_size++] = ind; }
     void clear_updates() { add_size = sub_size = 0; }
     
-    int32_t calc(NetInput& input, bool stm) {
+    void init(Board& board) {
+        NetInput input = board.to_netinput();
         int32_t sum;
 
         for (int n = 0; n < SIDE_NEURONS; n++) {
@@ -214,9 +215,7 @@ public:
 
         hist_size = 1;
         hist[0].calc[0] = hist[0].calc[1] = 1;
-
-        return get_output(stm);
-}
+    }
 
     void apply_updates(int16_t* output, int16_t* input) {
         reg_type regs[UNROLL_LENGTH];
