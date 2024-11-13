@@ -196,12 +196,12 @@ int SearchThread::quiesce(int alpha, int beta, StackEntry* stack) {
     }
     else if (!ttHit) {
         raw_eval = evaluate(m_board, NN);
-        stack->eval = best = eval = m_histories.get_corrected_eval(raw_eval, turn, m_board.pawn_key(), m_board.mat_key(WHITE), m_board.mat_key(BLACK));
+        stack->eval = best = eval = m_histories.get_corrected_eval(raw_eval, turn, m_board.pawn_key(), m_board.mat_key(WHITE), m_board.mat_key(BLACK), stack);
         futility_base = best + QuiesceFutilityBias;
     }
     else { /// ttValue might be a better evaluation
         raw_eval = eval;
-        stack->eval = eval = m_histories.get_corrected_eval(raw_eval, turn, m_board.pawn_key(), m_board.mat_key(WHITE), m_board.mat_key(BLACK));
+        stack->eval = eval = m_histories.get_corrected_eval(raw_eval, turn, m_board.pawn_key(), m_board.mat_key(WHITE), m_board.mat_key(BLACK), stack);
         if (ttBound == TTBounds::EXACT || (ttBound == TTBounds::LOWER && ttValue > eval) || (ttBound == TTBounds::UPPER && ttValue < eval)) 
             best = ttValue;
         futility_base = best + QuiesceFutilityBias;
@@ -372,14 +372,14 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
         if (stack->excluded) raw_eval = eval = stack->eval;
         else {
             raw_eval = evaluate(m_board, NN);
-            stack->eval = eval = m_histories.get_corrected_eval(raw_eval, turn, pawn_key, white_mat_key, black_mat_key);
+            stack->eval = eval = m_histories.get_corrected_eval(raw_eval, turn, pawn_key, white_mat_key, black_mat_key, stack);
             TT->save(entry, key, VALUE_NONE, 0, ply, 0, NULLMOVE, raw_eval, was_pv);
         }
     }
     else { /// ttValue might be a better evaluation
         if (stack->excluded) raw_eval = evaluate(m_board, NN);
         else raw_eval = eval;
-        stack->eval = eval = m_histories.get_corrected_eval(raw_eval, turn, pawn_key, white_mat_key, black_mat_key);
+        stack->eval = eval = m_histories.get_corrected_eval(raw_eval, turn, pawn_key, white_mat_key, black_mat_key, stack);
         if (ttBound == TTBounds::EXACT || (ttBound == TTBounds::LOWER && ttValue > eval) || (ttBound == TTBounds::UPPER && ttValue < eval)) eval = ttValue;
     }
 
@@ -711,7 +711,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
         ttBound = best >= beta ? TTBounds::LOWER : (best > original_alpha ? TTBounds::EXACT : TTBounds::UPPER);
         if ((ttBound == TTBounds::UPPER || !m_board.is_noisy_move(bestMove)) && !in_check && 
             !(ttBound == TTBounds::LOWER && best <= static_eval) && !(ttBound == TTBounds::UPPER && best >= static_eval))
-            m_histories.update_corr_hist(turn, pawn_key, white_mat_key, black_mat_key, depth, best - raw_eval);
+            m_histories.update_corr_hist(turn, pawn_key, white_mat_key, black_mat_key, stack, depth, best - raw_eval);
         TT->save(entry, key, best, depth, ply, ttBound, bestMove, raw_eval, was_pv);
     }
 
