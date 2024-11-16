@@ -611,7 +611,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
         if (depth >= 2 && played > 1 + pvNode + rootNode) { // first few moves we don't reduce
             if (is_quiet) {
                 R = lmr_red[std::min(63, depth)][std::min(63, played)];
-                R += !was_pv + (improving <= 0); // not on pv or not improving
+                R += !was_pv + 1 - improving; // not on pv or not improving
                 R -= !rootNode && pvNode;
                 R += enemy_has_no_threats && !in_check && eval - seeVal[PieceTypes::KNIGHT] > beta; // if the position is relatively quiet and eval is bigger than beta by a margin
                 R += enemy_has_no_threats && !in_check && static_eval - m_root_eval > EvalDifferenceReductionMargin && ply % 2 == 0; /// the position in quiet and static eval is way bigger than root eval
