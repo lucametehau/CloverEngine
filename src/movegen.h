@@ -465,7 +465,9 @@ int Board::gen_legal_moves(MoveList &moves) {
     }
 
     // all other pieces
-    Bitboard mob_mask = noisy_mask | quiet_mask;
+    Bitboard mob_mask(0ull);
+    if constexpr (movegen_type & MovegenTypes::NOISY_MOVES) mob_mask |= noisy_mask;
+    if constexpr (movegen_type & MovegenTypes::QUIET_MOVES) mob_mask |= quiet_mask;
 
     mask = get_bb_piece(PieceTypes::KNIGHT, color) & ~pinned;
     while (mask) {
