@@ -19,15 +19,18 @@
 
 template <bool RootNode>
 uint64_t perft(Board& board, int depth) {
+    if (depth == 0) return 1;
+
     MoveList moves;
-    int nrMoves = board.gen_legal_moves(moves);
-    if (depth == 1) return nrMoves;
+    int nrMoves = board.gen_legal_moves<MovegenTypes::ALL_MOVES>(moves);
 
     uint64_t nodes = 0;
 
     HistoricalState next_state;
     for (int i = 0; i < nrMoves; i++) {
+        if (!is_legal(board, moves[i])) continue;
         Move move = moves[i];
+        //std::cout << move.to_string() << " at depth " << depth << '\n';
         board.make_move(move, next_state);
         uint64_t x;
         x = perft<false>(board, depth - 1);

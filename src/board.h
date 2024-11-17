@@ -127,9 +127,8 @@ public:
     void make_null_move(HistoricalState& state);
     void undo_null_move();
 
+    template<int move_type>
     int gen_legal_moves(MoveList &moves);
-    int gen_legal_noisy_moves(MoveList &moves);
-    int gen_legal_quiet_moves(MoveList &moves);
 
     bool has_non_pawn_material(const bool color) {
         return (get_bb_piece(PieceTypes::KING, color) ^ get_bb_piece(PieceTypes::PAWN, color)) != get_bb_color(color);
@@ -197,7 +196,7 @@ public:
     bool is_draw(const int ply) {
         if (half_moves() < 100 || !checkers()) return is_material_draw() || is_repetition(ply) || half_moves() >= 100;
         MoveList moves;
-        return gen_legal_moves(moves) > 0;
+        return gen_legal_moves<MovegenTypes::ALL_MOVES>(moves) > 0;
     }
 
     bool has_upcoming_repetition(const int ply) {

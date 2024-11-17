@@ -230,6 +230,8 @@ int SearchThread::quiesce(int alpha, int beta, StackEntry* stack) {
     int played = 0;
 
     while ((move = noisyPicker.get_next_move(m_histories, stack, m_board, !in_check, true))) {
+        if (!is_legal(m_board, move)) continue;
+
         played++;
         if (played == 4) break;
         if (played > 1) {
@@ -454,7 +456,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
 
                 Move move;
                 while ((move = picker.get_next_move(m_histories, stack, m_board, true, true)) != NULLMOVE) {
-                    if (move == stack->excluded)
+                    if (move == stack->excluded || !is_legal(m_board, move))
                         continue;
 
                     stack->move = move;
@@ -504,7 +506,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
             }
             if (move_was_searched) continue;
         }
-        if (move == stack->excluded)
+        if (move == stack->excluded || !is_legal(m_board, move))
             continue;
 
         const bool is_quiet = !m_board.is_noisy_move(move);

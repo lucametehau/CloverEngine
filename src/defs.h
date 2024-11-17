@@ -80,7 +80,8 @@ enum {
 enum {
     NORTH = 8, SOUTH = -8, EAST = 1, WEST = -1, 
     NORTHEAST = 9, NORTHWEST = 7, 
-    SOUTHEAST = -7, SOUTHWEST = -9
+    SOUTHEAST = -7, SOUTHWEST = -9,
+    DOUBLE_SOUTH = -16
 };
 
 
@@ -88,6 +89,10 @@ enum {
     NORTH_ID = 0, SOUTH_ID, WEST_ID, EAST_ID, 
     NORTHWEST_ID, NORTHEAST_ID, 
     SOUTHWEST_ID, SOUTHEAST_ID
+};
+
+enum MovegenTypes : int {
+    QUIET_MOVES = 1, NOISY_MOVES = 2, ALL_MOVES = 3
 };
 
 constexpr int HALFMOVES = 100;

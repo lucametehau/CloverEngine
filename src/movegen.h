@@ -312,15 +312,15 @@ inline void add_moves(MoveList &moves, int& nrMoves, Square pos, Bitboard att) {
     while (att) moves[nrMoves++] = Move(pos, att.get_square_pop(), 0, NO_TYPE);
 }
 
+template<int movegen_type>
 int Board::gen_legal_moves(MoveList &moves) {
     int nrMoves = 0;
     const bool color = turn, enemy = color ^ 1;
     const Square king = get_king(color), enemyKing = get_king(enemy);
     Bitboard pieces, mask, us = get_bb_color(color), them = get_bb_color(enemy);
-    Bitboard b, b1, b2, b3;
     Bitboard attacked(0ull), pinned = pinned_pieces(); /// squares attacked by enemy / pinned pieces
     const Bitboard enemyOrthSliders = orthogonal_sliders(enemy), enemyDiagSliders = diagonal_sliders(enemy);
-    const Bitboard all = us | them, emptySq = ~all;
+    const Bitboard all = us | them, empty = ~all;
 
     attacked |= get_pawn_attacks(enemy);
 
@@ -335,529 +335,158 @@ int Board::gen_legal_moves(MoveList &moves) {
 
     attacked |= attacks::kingBBAttacks[enemyKing];
 
-    b1 = attacks::kingBBAttacks[king] & ~(us | attacked);
-    add_moves(moves, nrMoves, king, b1);
+    if constexpr (movegen_type & MovegenTypes::NOISY_MOVES)
+        add_moves(moves, nrMoves, king, attacks::kingBBAttacks[king] & ~(us | attacked) & them);
+    if constexpr (movegen_type & MovegenTypes::QUIET_MOVES)
+        add_moves(moves, nrMoves, king, attacks::kingBBAttacks[king] & ~(us | attacked) & ~them);
 
-    Bitboard notPinned = ~pinned, capMask(0ull), quietMask(0ull);
+    Bitboard noisy_mask(0ull), quiet_mask(0ull);
     int cnt = checkers().count();
 
     if (cnt == 2) { /// double check, only king moves are legal
         return nrMoves;
     }
     else if (cnt == 1) { /// one check
-        Square sq = checkers().get_lsb_square();
-        const Piece pt = piece_type_at(sq);
-        
-        if (pt == PieceTypes::PAWN) {
-            /// make en passant to cancel the check
-            if (enpas() != NO_SQUARE && checkers() == Bitboard(shift_square<NORTH>(enemy, enpas()))) {
-                mask = attacks::pawnAttacksMask[enemy][enpas()] & notPinned & get_bb_piece(PieceTypes::PAWN, color);
-                while (mask) moves[nrMoves++] = Move(mask.get_square_pop(), enpas(), 0, MoveTypes::ENPASSANT);
-            }
-        }
-        if (pt == PieceTypes::KNIGHT) {
-            capMask = checkers();
-        }
-        else {
-            capMask = checkers();
-            quietMask = between_mask[king][sq];
-        }
+        noisy_mask = checkers();
+        quiet_mask = between_mask[king][checkers().get_lsb_square()];
     }
     else {
-        capMask = them;
-        quietMask = ~all;
+        noisy_mask = them;
+        quiet_mask = ~all;
 
-        if (enpas() != NO_SQUARE) {
-            Square ep = enpas(), sq2 = shift_square<SOUTH>(color, ep);
-            b2 = attacks::pawnAttacksMask[enemy][ep] & get_bb_piece(PieceTypes::PAWN, color);
-            b1 = b2 & notPinned;
-            while (b1) {
-                b = b1.lsb();
-                Square sq = b.get_lsb_square();
-                if (!(attacks::genAttacksRook(all ^ b ^ Bitboard(sq2) ^ Bitboard(ep), king) & enemyOrthSliders)) {
-                    moves[nrMoves++] =  Move(sq, ep, 0, MoveTypes::ENPASSANT);
+        if constexpr (movegen_type & MovegenTypes::QUIET_MOVES) {
+            if (!chess960) {
+                /// castle queen side
+                if (castle_rights() & (1 << (2 * color))) {
+                    if (!(attacked & Bitboard(7ULL << (king - 2))) && !(all & Bitboard(7ULL << (king - 3)))) {
+                        moves[nrMoves++] = Move(king, king - 4, 0, MoveTypes::CASTLE);
+                    }
                 }
-                b1 ^= b;
-            }
-            b1 = b2 & pinned & line_mask[ep][king];
-            if (b1) moves[nrMoves++] = Move(b1.get_lsb_square(), ep, 0, MoveTypes::ENPASSANT);
-        }
-
-        if (!chess960) {
-            /// castle queen side
-            if (castle_rights() & (1 << (2 * color))) {
-                if (!(attacked & Bitboard(7ULL << (king - 2))) && !(all & Bitboard(7ULL << (king - 3)))) {
-                    moves[nrMoves++] = Move(king, king - 4, 0, MoveTypes::CASTLE);
-                }
-            }
-            /// castle king side
-            if (castle_rights() & (1 << (2 * color + 1))) {
-                if (!(attacked & Bitboard(7ULL << king)) && !(all & Bitboard(3ULL << (king + 1)))) {
-                    moves[nrMoves++] = Move(king, king + 3, 0, MoveTypes::CASTLE);
-                }
-            }
-        }
-        else {
-            if ((castle_rights() >> (2 * color)) & 1) {
-                Square kingTo = Squares::C1.mirror(color), rook = rookSq[color][0], rookTo = Squares::D1.mirror(color);
-                if (!(attacked & (between_mask[king][kingTo] | Bitboard(kingTo))) &&
-                    (!((all ^ Bitboard(rook)) & (between_mask[king][kingTo] | Bitboard(kingTo))) || king == kingTo) &&
-                    (!((all ^ Bitboard(king)) & (between_mask[rook][rookTo] | Bitboard(rookTo))) || rook == rookTo) &&
-                    !get_attackers(enemy, all ^ Bitboard(rook), king)) {
-                    moves[nrMoves++] = Move(king, rook, 0, MoveTypes::CASTLE);
-                }
-            }
-            /// castle king side
-            if ((castle_rights() >> (2 * color + 1)) & 1) {
-                Square kingTo = Squares::G1.mirror(color), rook = rookSq[color][1], rookTo = Squares::F1.mirror(color);
-                if (!(attacked & (between_mask[king][kingTo] | Bitboard(kingTo))) &&
-                    (!((all ^ Bitboard(rook)) & (between_mask[king][kingTo] | Bitboard(kingTo))) || king == kingTo) &&
-                    (!((all ^ Bitboard(king)) & (between_mask[rook][rookTo] | Bitboard(rookTo))) || rook == rookTo) &&
-                    !get_attackers(enemy, all ^ Bitboard(rook), king)) {
-                    moves[nrMoves++] = Move(king, rook, 0, MoveTypes::CASTLE);
-                }
-            }
-        }
-
-        /// for pinned pieces they move on the same line with the king
-        b1 = ~notPinned & diagonal_sliders(color);
-        while (b1) {
-            Square sq = b1.get_square_pop();
-            b2 = attacks::genAttacksBishop(all, sq) & line_mask[king][sq];
-            add_moves(moves, nrMoves, sq, b2 & quietMask);
-            add_moves(moves, nrMoves, sq, b2 & capMask);
-        }
-        b1 = ~notPinned & orthogonal_sliders(color);
-        while (b1) {
-            Square sq = b1.get_square_pop();
-            b2 = attacks::genAttacksRook(all, sq) & line_mask[king][sq];
-            add_moves(moves, nrMoves, sq, b2 & quietMask);
-            add_moves(moves, nrMoves, sq, b2 & capMask);
-        }
-
-        /// pinned pawns
-
-        b1 = ~notPinned & get_bb_piece(PieceTypes::PAWN, color);
-        while (b1) {
-            Square sq = b1.get_square_pop();
-            int rank7 = (color == WHITE ? 6 : 1), rank3 = (color == WHITE ? 2 : 5);
-            if (sq / 8 == rank7) { /// promotion captures
-                b2 = attacks::pawnAttacksMask[color][sq] & capMask & line_mask[king][sq];
-                while (b2) {
-                    Square sq2 = b2.get_square_pop();
-                    for (int j = 0; j < 4; j++) moves[nrMoves++] = Move(sq, sq2, j, MoveTypes::PROMOTION);
+                /// castle king side
+                if (castle_rights() & (1 << (2 * color + 1))) {
+                    if (!(attacked & Bitboard(7ULL << king)) && !(all & Bitboard(3ULL << (king + 1)))) {
+                        moves[nrMoves++] = Move(king, king + 3, 0, MoveTypes::CASTLE);
+                    }
                 }
             }
             else {
-                b2 = attacks::pawnAttacksMask[color][sq] & them & line_mask[king][sq];
-                add_moves(moves, nrMoves, sq, b2);
-
-                /// single pawn push
-                b2 = Bitboard(shift_square<NORTH>(color, sq)) & emptySq & line_mask[king][sq];
-                if (b2) {
-                    const Square sq2 = b2.get_lsb_square();
-                    moves[nrMoves++] = Move(sq, sq2, 0, NO_TYPE);
-
-                    /// double pawn push
-                    b3 = Bitboard(shift_square<NORTH>(color, sq2)) & emptySq & line_mask[king][sq];
-                    if (b3 && sq2 / 8 == rank3) {
-                        moves[nrMoves++] = Move(sq, b3.get_lsb_square(), 0, NO_TYPE);
+                if ((castle_rights() >> (2 * color)) & 1) {
+                    Square kingTo = Squares::C1.mirror(color), rook = rookSq[color][0], rookTo = Squares::D1.mirror(color);
+                    if (!(attacked & (between_mask[king][kingTo] | Bitboard(kingTo))) &&
+                        (!((all ^ Bitboard(rook)) & (between_mask[king][kingTo] | Bitboard(kingTo))) || king == kingTo) &&
+                        (!((all ^ Bitboard(king)) & (between_mask[rook][rookTo] | Bitboard(rookTo))) || rook == rookTo) &&
+                        !get_attackers(enemy, all ^ Bitboard(rook), king)) {
+                        moves[nrMoves++] = Move(king, rook, 0, MoveTypes::CASTLE);
+                    }
+                }
+                /// castle king side
+                if ((castle_rights() >> (2 * color + 1)) & 1) {
+                    Square kingTo = Squares::G1.mirror(color), rook = rookSq[color][1], rookTo = Squares::F1.mirror(color);
+                    if (!(attacked & (between_mask[king][kingTo] | Bitboard(kingTo))) &&
+                        (!((all ^ Bitboard(rook)) & (between_mask[king][kingTo] | Bitboard(kingTo))) || king == kingTo) &&
+                        (!((all ^ Bitboard(king)) & (between_mask[rook][rookTo] | Bitboard(rookTo))) || rook == rookTo) &&
+                        !get_attackers(enemy, all ^ Bitboard(rook), king)) {
+                        moves[nrMoves++] = Move(king, rook, 0, MoveTypes::CASTLE);
                     }
                 }
             }
         }
     }
 
-    /// not pinned pieces (excluding pawns)
-    Bitboard mobMask = capMask | quietMask;
+    // pawn moves
+    int rank7 = color == WHITE ? 6 : 1, rank3 = color == WHITE ? 2 : 5;
+    int file_a = color == WHITE ? 0 : 7, file_h = 7 - file_a;
+    Bitboard pawns = get_bb_piece(PieceTypes::PAWN, color);
+    Bitboard non_promo_pawns = pawns & ~rank_mask[rank7];
+    Bitboard promo_pawns = pawns & rank_mask[rank7];
 
-    mask = get_bb_piece(PieceTypes::KNIGHT, color) & notPinned;
+    // quiet pawn moves
+    if constexpr (movegen_type & MovegenTypes::QUIET_MOVES) {
+        Bitboard single_push = shift_mask<NORTH>(color, non_promo_pawns) & empty;
+        Bitboard double_push = shift_mask<NORTH>(color, single_push & rank_mask[rank3]) & empty & quiet_mask;
+        single_push &= quiet_mask; // after doing double pushes
+
+        while (single_push) {
+            Square sq = single_push.get_square_pop();
+            moves[nrMoves++] = Move(shift_square<SOUTH>(color, sq), sq, 0, MoveTypes::NO_TYPE);
+        }
+
+        while (double_push) {
+            Square sq = double_push.get_square_pop();
+            moves[nrMoves++] = Move(shift_square<DOUBLE_SOUTH>(color, sq), sq, 0, MoveTypes::NO_TYPE);
+        }
+    }
+
+    if constexpr (movegen_type & MovegenTypes::NOISY_MOVES) {
+        assert((them & noisy_mask) == noisy_mask);
+        Bitboard left_captures  = shift_mask<NORTHWEST>(color, non_promo_pawns & ~file_mask[file_a]) & them & noisy_mask;
+        Bitboard right_captures = shift_mask<NORTHEAST>(color, non_promo_pawns & ~file_mask[file_h]) & them & noisy_mask;
+
+        while (left_captures) {
+            Square sq = left_captures.get_square_pop();
+            moves[nrMoves++] = Move(shift_square<SOUTHEAST>(color, sq), sq, 0, MoveTypes::NO_TYPE);
+        }
+
+        while (right_captures) {
+            Square sq = right_captures.get_square_pop();
+            moves[nrMoves++] = Move(shift_square<SOUTHWEST>(color, sq), sq, 0, MoveTypes::NO_TYPE);
+        }
+
+        Square ep = enpas();
+        if (ep != NO_SQUARE) {
+            Bitboard ep_pawns = non_promo_pawns & attacks::pawnAttacksMask[enemy][ep];
+
+            while (ep_pawns) moves[nrMoves++] = Move(ep_pawns.get_square_pop(), ep, 0, MoveTypes::ENPASSANT);
+        }
+
+        auto add_promotions = [&](MoveList& moves, int& nrMoves, Square from, Square to) {
+            moves[nrMoves++] = Move(from, to, 0, MoveTypes::PROMOTION);
+            moves[nrMoves++] = Move(from, to, 1, MoveTypes::PROMOTION);
+            moves[nrMoves++] = Move(from, to, 2, MoveTypes::PROMOTION);
+            moves[nrMoves++] = Move(from, to, 3, MoveTypes::PROMOTION);
+        };
+
+        Bitboard quiet_promo = shift_mask<NORTH>(color, promo_pawns) & empty & quiet_mask;
+        left_captures  = shift_mask<NORTHWEST>(color, promo_pawns & ~file_mask[file_a]) & them & noisy_mask;
+        right_captures = shift_mask<NORTHEAST>(color, promo_pawns & ~file_mask[file_h]) & them & noisy_mask;
+        
+        while (quiet_promo) {
+            Square sq = quiet_promo.get_square_pop();
+            add_promotions(moves, nrMoves, shift_square<SOUTH>(color, sq), sq);
+        }
+        while (left_captures) {
+            Square sq = left_captures.get_square_pop();
+            add_promotions(moves, nrMoves, shift_square<SOUTHEAST>(color, sq), sq);
+        }
+        while (right_captures) {
+            Square sq = right_captures.get_square_pop();
+            add_promotions(moves, nrMoves, shift_square<SOUTHWEST>(color, sq), sq);
+        }
+    }
+
+    // all other pieces
+    Bitboard mob_mask = noisy_mask | quiet_mask;
+
+    mask = get_bb_piece(PieceTypes::KNIGHT, color) & ~pinned;
     while (mask) {
         Square sq = mask.get_square_pop();
-        add_moves(moves, nrMoves, sq, attacks::genAttacksKnight(sq) & mobMask);
+        add_moves(moves, nrMoves, sq, attacks::genAttacksKnight(sq) & mob_mask);
     }
 
-    mask = diagonal_sliders(color) & notPinned;
+    mask = diagonal_sliders(color);
     while (mask) {
         Square sq = mask.get_square_pop();
-        add_moves(moves, nrMoves, sq, attacks::genAttacksBishop(all, sq) & mobMask);
+        Bitboard attacks = attacks::genAttacksBishop(all, sq) & mob_mask;
+        if (pinned.has_square(sq)) attacks &= line_mask[king][sq];
+        add_moves(moves, nrMoves, sq, attacks);
     }
 
-    mask = orthogonal_sliders(color) & notPinned;
+    mask = orthogonal_sliders(color);
     while (mask) {
         Square sq = mask.get_square_pop();
-        add_moves(moves, nrMoves, sq, attacks::genAttacksRook(all, sq) & mobMask);
-    }
-
-    int rank7 = (color == WHITE ? 6 : 1), rank3 = (color == WHITE ? 2 : 5);
-    int fileA = (color == WHITE ? 0 : 7), fileH = 7 - fileA;
-    b1 = get_bb_piece(PieceTypes::PAWN, color) & notPinned & ~rank_mask[rank7];
-
-    b2 = shift_mask<NORTH>(color, b1) & ~all; /// single push
-    b3 = shift_mask<NORTH>(color, b2 & rank_mask[rank3]) & quietMask; /// double push
-    b2 &= quietMask;
-
-    while (b2) {
-        Square sq = b2.get_square_pop();
-        moves[nrMoves++] = Move(shift_square<SOUTH>(color, sq), sq, 0, NO_TYPE);
-    }
-    while (b3) {
-        Square sq = b3.get_square_pop(), sq2 = shift_square<SOUTH>(color, sq);
-        moves[nrMoves++] = Move(shift_square<SOUTH>(color, sq2), sq, 0, NO_TYPE);
-    }
-
-    b2 = shift_mask<NORTHWEST>(color, b1 & ~file_mask[fileA]) & capMask;
-    b3 = shift_mask<NORTHEAST>(color, b1 & ~file_mask[fileH]) & capMask;
-    /// captures
-
-    while (b2) {
-        Square sq = b2.get_square_pop();
-        moves[nrMoves++] = Move(shift_square<SOUTHEAST>(color, sq), sq, 0, NO_TYPE);
-    }
-    while (b3) {
-        Square sq = b3.get_square_pop();
-        moves[nrMoves++] = Move(shift_square<SOUTHWEST>(color, sq), sq, 0, NO_TYPE);
-    }
-
-    b1 = get_bb_piece(PieceTypes::PAWN, color) & notPinned & rank_mask[rank7];
-    if (b1) {
-        /// quiet promotions
-        b2 = shift_mask<NORTH>(color, b1) & quietMask;
-        while (b2) {
-            Square sq = b2.get_square_pop();
-            for (int i = 0; i < 4; i++) moves[nrMoves++] = Move(shift_square<SOUTH>(color, sq), sq, i, MoveTypes::PROMOTION);
-        }
-
-        /// capture promotions
-
-        b2 = shift_mask<NORTHWEST>(color, b1 & ~file_mask[fileA]) & capMask;
-        b3 = shift_mask<NORTHEAST>(color, b1 & ~file_mask[fileH]) & capMask;
-        while (b2) {
-            Square sq = b2.get_square_pop();
-            for (int i = 0; i < 4; i++) moves[nrMoves++] = Move(shift_square<SOUTHEAST>(color, sq), sq, i, MoveTypes::PROMOTION);
-        }
-        while (b3) {
-            Square sq = b3.get_square_pop();
-            for (int i = 0; i < 4; i++) moves[nrMoves++] = Move(shift_square<SOUTHWEST>(color, sq), sq, i, MoveTypes::PROMOTION);
-        }
-    }
-
-    return nrMoves;
-}
-
-/// noisy moves generator
-
-int Board::gen_legal_noisy_moves(MoveList &moves) {
-    int nrMoves = 0;
-    const bool color = turn, enemy = color ^ 1;
-    const Square king = get_king(color), enemyKing = get_king(enemy);
-    Bitboard pieces, mask, us = get_bb_color(color), them = get_bb_color(enemy);
-    Bitboard b, b1, b2, b3;
-    Bitboard attacked(0ull), pinned = pinned_pieces(); /// squares attacked by enemy / pinned pieces
-    const Bitboard enemyOrthSliders = orthogonal_sliders(enemy), enemyDiagSliders = diagonal_sliders(enemy);
-    const Bitboard all = us | them;
-
-    if (attacks::kingBBAttacks[king] & them) {
-        attacked |= get_pawn_attacks(enemy);
-
-        pieces = bb[Piece(PieceTypes::KNIGHT, enemy)];
-        while (pieces) attacked |= attacks::genAttacksKnight(pieces.get_square_pop());
-
-        pieces = enemyDiagSliders;
-        while (pieces) attacked |= attacks::genAttacksBishop(all ^ Bitboard(king), pieces.get_square_pop());
-
-        pieces = enemyOrthSliders;
-        while (pieces) attacked |= attacks::genAttacksRook(all ^ Bitboard(king), pieces.get_square_pop());
-
-        attacked |= attacks::kingBBAttacks[enemyKing];
-
-        add_moves(moves, nrMoves, king, attacks::kingBBAttacks[king] & ~(us | attacked) & them);
-    }
-
-    Bitboard notPinned = ~pinned, capMask(0ull), quietMask(0ull);
-
-    int cnt = checkers().count();
-
-    if (cnt == 2) { /// double check, only king moves are legal
-        return nrMoves;
-    }
-    else if (cnt == 1) { /// one check
-        Square sq = checkers().get_lsb_square();
-        const Piece pt = piece_type_at(sq);
-        if (pt == PieceTypes::PAWN) {
-            /// make en passant to cancel the check
-            if (enpas() != NO_SQUARE && checkers() == Bitboard(shift_square<NORTH>(enemy, enpas()))) {
-                mask = attacks::pawnAttacksMask[enemy][enpas()] & notPinned & get_bb_piece(PieceTypes::PAWN, color);
-                while (mask) moves[nrMoves++] = Move(mask.get_square_pop(), enpas(), 0, MoveTypes::ENPASSANT);
-            }
-        }
-        if (pt == PieceTypes::KNIGHT) {
-            capMask = checkers();
-        }
-        else {
-            capMask = checkers();
-            quietMask = between_mask[king][sq];
-        }
-    }
-    else {
-        capMask = them;
-        quietMask = ~all;
-
-        if (enpas() != NO_SQUARE) {
-            Square ep = enpas(), sq2 = shift_square<SOUTH>(color, ep);
-            b2 = attacks::pawnAttacksMask[enemy][ep] & get_bb_piece(PieceTypes::PAWN, color);
-            b1 = b2 & notPinned;
-            while (b1) {
-                b = b1.lsb();
-                Square sq = b.get_lsb_square();
-                if (!(attacks::genAttacksRook(all ^ b ^ Bitboard(sq2) ^ Bitboard(ep), king) & enemyOrthSliders)) {
-                    moves[nrMoves++] = Move(sq, ep, 0, MoveTypes::ENPASSANT);
-                }
-                b1 ^= b;
-            }
-            b1 = b2 & pinned & line_mask[ep][king];
-            if (b1) moves[nrMoves++] = Move(b1.get_lsb_square(), ep, 0, MoveTypes::ENPASSANT);
-        }
-
-
-        /// for pinned pieces they move on the same line with the king
-        b1 = pinned & diagonal_sliders(color);
-        while (b1) {
-            Square sq = b1.get_square_pop();
-            b2 = attacks::genAttacksBishop(all, sq) & line_mask[king][sq];
-            add_moves(moves, nrMoves, sq, b2 & capMask);
-        }
-        b1 = pinned & orthogonal_sliders(color);
-        while (b1) {
-            Square sq = b1.get_square_pop();
-            b2 = attacks::genAttacksRook(all, sq) & line_mask[king][sq];
-            add_moves(moves, nrMoves, sq, b2 & capMask);
-        }
-
-        /// pinned pawns
-        b1 = pinned & get_bb_piece(PieceTypes::PAWN, color);
-        while (b1) {
-            const Square sq = b1.get_square_pop();
-            int rank7 = (color == WHITE ? 6 : 1);
-            if (sq / 8 == rank7) { /// promotion captures
-                b2 = attacks::pawnAttacksMask[color][sq] & capMask & line_mask[king][sq];
-                while (b2) {
-                    const int sq2 = b2.get_square_pop();
-                    for (int j = 0; j < 4; j++) moves[nrMoves++] = Move(sq, sq2, j, MoveTypes::PROMOTION);
-                }
-            }
-            else {
-                b2 = attacks::pawnAttacksMask[color][sq] & capMask & line_mask[king][sq];
-                add_moves(moves, nrMoves, sq, b2);
-            }
-        }
-    }
-
-    /// not pinned pieces (excluding pawns)
-
-    mask = get_bb_piece(PieceTypes::KNIGHT, color) & notPinned;
-    while (mask) {
-        Square sq = mask.get_square_pop();
-        add_moves(moves, nrMoves, sq, attacks::genAttacksKnight(sq) & capMask);
-    }
-
-    mask = diagonal_sliders(color) & notPinned;
-    while (mask) {
-        Square sq = mask.get_square_pop();
-        add_moves(moves, nrMoves, sq, attacks::genAttacksBishop(all, sq) & capMask);
-    }
-
-    mask = orthogonal_sliders(color) & notPinned;
-    while (mask) {
-        Square sq = mask.get_square_pop();
-        add_moves(moves, nrMoves, sq, attacks::genAttacksRook(all, sq) & capMask);
-    }
-
-    int rank7 = (color == WHITE ? 6 : 1);
-    int fileA = (color == WHITE ? 0 : 7), fileH = 7 - fileA;
-    b1 = get_bb_piece(PieceTypes::PAWN, color) & notPinned & ~rank_mask[rank7];
-
-    b2 = shift_mask<NORTHWEST>(color, b1 & ~file_mask[fileA]) & capMask;
-    b3 = shift_mask<NORTHEAST>(color, b1 & ~file_mask[fileH]) & capMask;
-    /// captures
-
-    while (b2) {
-        Square sq = b2.get_square_pop();
-        moves[nrMoves++] = Move(shift_square<SOUTHEAST>(color, sq), sq, 0, NO_TYPE);
-    }
-    while (b3) {
-        Square sq = b3.get_square_pop();
-        moves[nrMoves++] = Move(shift_square<SOUTHWEST>(color, sq), sq, 0, NO_TYPE);
-    }
-
-    b1 = get_bb_piece(PieceTypes::PAWN, color) & notPinned & rank_mask[rank7];
-    if (b1) {
-        /// quiet promotions
-        b2 = shift_mask<NORTH>(color, b1) & quietMask;
-        while (b2) {
-            Square sq = b2.get_square_pop();
-            for (int i = 0; i < 4; i++) moves[nrMoves++] = Move(shift_square<SOUTH>(color, sq), sq, i, MoveTypes::PROMOTION);
-        }
-
-        /// capture promotions
-        b2 = shift_mask<NORTHWEST>(color, b1 & ~file_mask[fileA]) & capMask;
-        b3 = shift_mask<NORTHEAST>(color, b1 & ~file_mask[fileH]) & capMask;
-        while (b2) {
-            Square sq = b2.get_square_pop();
-            for (int i = 0; i < 4; i++) moves[nrMoves++] = Move(shift_square<SOUTHEAST>(color, sq), sq, i, MoveTypes::PROMOTION);
-        }
-        while (b3) {
-            Square sq = b3.get_square_pop();
-            for (int i = 0; i < 4; i++) moves[nrMoves++] = Move(shift_square<SOUTHWEST>(color, sq), sq, i, MoveTypes::PROMOTION);
-        }
-    }
-
-    return nrMoves;
-}
-
-/// generate quiet moves
-int Board::gen_legal_quiet_moves(MoveList &moves) {
-    int nrMoves = 0;
-    const bool color = turn, enemy = color ^ 1;
-    const Square king = get_king(color), enemyKing = get_king(enemy);
-    const int rank7 = (color == WHITE ? 6 : 1), rank3 = (color == WHITE ? 2 : 5);
-    Bitboard pieces, mask, us = get_bb_color(color), them = get_bb_color(enemy);
-    Bitboard b1, b2, b3;
-    Bitboard attacked(0ull), pinned = pinned_pieces(); /// squares attacked by enemy / pinned pieces
-    const Bitboard enemyOrthSliders = orthogonal_sliders(enemy), enemyDiagSliders = diagonal_sliders(enemy);
-    const Bitboard all = us | them, emptySq = ~all;
-
-    attacked |= get_pawn_attacks(enemy);
-
-    pieces = get_bb_piece(PieceTypes::KNIGHT, enemy);
-    while (pieces) attacked |= attacks::genAttacksKnight(pieces.get_square_pop());
-
-    pieces = enemyDiagSliders;
-    while (pieces) attacked |= attacks::genAttacksBishop(all ^ Bitboard(king), pieces.get_square_pop());
-
-    pieces = enemyOrthSliders;
-    while (pieces) attacked |= attacks::genAttacksRook(all ^ Bitboard(king), pieces.get_square_pop());
-
-    attacked |= attacks::kingBBAttacks[enemyKing];
-
-    add_moves(moves, nrMoves, king, attacks::kingBBAttacks[king] & ~(us | attacked) & ~them);
-
-    Bitboard notPinned = ~pinned, quietMask(0ull);
-    const int cnt = checkers().count();
-
-    if (cnt == 2) { /// double check, only king moves are legal
-        return nrMoves;
-    }
-    else if (cnt == 1) { /// one check
-        const Square sq = checkers().get_lsb_square();
-        quietMask = between_mask[king][sq];
-        if (piece_type_at(sq) == PieceTypes::KNIGHT || !quietMask)
-            return nrMoves;
-    }
-    else {
-        quietMask = ~all;
-
-        if (!chess960) {
-            /// castle queen side
-            if (castle_rights() & (1 << (2 * color))) {
-                if (!(attacked & Bitboard(7ULL << (king - 2))) && !(all & Bitboard(7ULL << (king - 3)))) {
-                    moves[nrMoves++] = Move(king, king - 4, 0, MoveTypes::CASTLE);
-                }
-            }
-            /// castle king side
-            if (castle_rights() & (1 << (2 * color + 1))) {
-                if (!(attacked & Bitboard(7ULL << king)) && !(all & Bitboard(3ULL << (king + 1)))) {
-                    moves[nrMoves++] = Move(king, king + 3, 0, MoveTypes::CASTLE);
-                }
-            }
-        }
-        else {
-            /// castle queen side
-            if ((castle_rights() >> (2 * color)) & 1) {
-                Square kingTo = Squares::C1.mirror(color), rook = rookSq[color][0], rookTo = Squares::D1.mirror(color);
-                if (!(attacked & (between_mask[king][kingTo] | Bitboard(kingTo))) &&
-                    (!((all ^ Bitboard(rook)) & (between_mask[king][kingTo] | Bitboard(kingTo))) || king == kingTo) &&
-                    (!((all ^ Bitboard(king)) & (between_mask[rook][rookTo] | Bitboard(rookTo))) || rook == rookTo) &&
-                    !get_attackers(enemy, all ^ Bitboard(rook), king)) {
-                    moves[nrMoves++] = Move(king, rook, 0, MoveTypes::CASTLE);
-                }
-            }
-            /// castle king side
-            if ((castle_rights() >> (2 * color + 1)) & 1) {
-                Square kingTo = Squares::G1.mirror(color), rook = rookSq[color][1], rookTo = Squares::F1.mirror(color);
-                if (!(attacked & (between_mask[king][kingTo] | Bitboard(kingTo))) &&
-                    (!((all ^ Bitboard(rook)) & (between_mask[king][kingTo] | Bitboard(kingTo))) || king == kingTo) &&
-                    (!((all ^ Bitboard(king)) & (between_mask[rook][rookTo] | Bitboard(rookTo))) || rook == rookTo) &&
-                    !get_attackers(enemy, all ^ Bitboard(rook), king)) {
-                    moves[nrMoves++] = Move(king, rook, 0, MoveTypes::CASTLE);
-                }
-            }
-        }
-
-        /// for pinned pieces they move on the same line with the king
-        b1 = pinned & diagonal_sliders(color);
-        while (b1) {
-            Square sq = b1.get_square_pop();
-            add_moves(moves, nrMoves, sq, attacks::genAttacksBishop(all, sq) & line_mask[king][sq] & quietMask);
-        }
-        b1 = pinned & orthogonal_sliders(color);
-        while (b1) {
-            Square sq = b1.get_square_pop();
-            add_moves(moves, nrMoves, sq, attacks::genAttacksRook(all, sq) & line_mask[king][sq] & quietMask);
-        }
-
-        /// pinned pawns
-        b1 = pinned & get_bb_piece(PieceTypes::PAWN, color);
-        while (b1) {
-            Square sq = b1.get_square_pop();
-            if (sq / 8 != rank7) {
-                /// single pawn push
-                b2 = Bitboard(shift_square<NORTH>(color, sq)) & emptySq & line_mask[king][sq];
-                if (b2) {
-                    const Square sq2 = b2.get_lsb_square();
-                    moves[nrMoves++] = Move(sq, sq2, 0, NO_TYPE);
-
-                    /// double pawn push
-                    b3 = Bitboard(shift_square<NORTH>(color, sq2)) & emptySq & line_mask[king][sq];
-                    if (b3 && sq2 / 8 == rank3) moves[nrMoves++] = Move(sq, b3.get_lsb_square(), 0, NO_TYPE);
-                }
-
-            }
-        }
-    }
-
-    /// not pinned pieces (excluding pawns)
-    mask = get_bb_piece(PieceTypes::KNIGHT, color) & notPinned;
-    while (mask) {
-        Square sq = mask.get_square_pop();
-        add_moves(moves, nrMoves, sq, attacks::genAttacksKnight(sq) & quietMask);
-    }
-
-    mask = diagonal_sliders(color) & notPinned;
-    while (mask) {
-        Square sq = mask.get_square_pop();
-        add_moves(moves, nrMoves, sq, attacks::genAttacksBishop(all, sq) & quietMask);
-    }
-
-    mask = orthogonal_sliders(color) & notPinned;
-    while (mask) {
-        Square sq = mask.get_square_pop();
-        add_moves(moves, nrMoves, sq, attacks::genAttacksRook(all, sq) & quietMask);
-    }
-
-    b1 = get_bb_piece(PieceTypes::PAWN, color) & notPinned & ~rank_mask[rank7];
-
-    b2 = shift_mask<NORTH>(color, b1) & ~all; /// single push
-    b3 = shift_mask<NORTH>(color, b2 & rank_mask[rank3]) & quietMask; /// double push
-    b2 &= quietMask;
-
-    while (b2) {
-        Square sq = b2.get_square_pop();
-        moves[nrMoves++] = Move(shift_square<SOUTH>(color, sq), sq, 0, NO_TYPE);
-    }
-    while (b3) {
-        Square sq = b3.get_square_pop(), sq2 = shift_square<SOUTH>(color, sq);
-        moves[nrMoves++] = Move(shift_square<SOUTH>(color, sq2), sq, 0, NO_TYPE);
+        Bitboard attacks = attacks::genAttacksRook(all, sq) & mob_mask;
+        if (pinned.has_square(sq)) attacks &= line_mask[king][sq];
+        add_moves(moves, nrMoves, sq, attacks);
     }
 
     return nrMoves;
@@ -917,7 +546,7 @@ bool is_legal_slow(Board& board, Move move) {
     MoveList moves;
     int nrMoves = 0;
 
-    nrMoves = board.gen_legal_moves(moves);
+    nrMoves = board.gen_legal_moves<MovegenTypes::ALL_MOVES>(moves);
 
     for (int i = 0; i < nrMoves; i++) {
         if (move == moves[i])
@@ -1023,7 +652,7 @@ Move parse_move_string(Board& board, std::string moveStr, Info &info) {
     Square to = Square(moveStr[3] - '1', moveStr[2] - 'a');
 
     MoveList moves;
-    int nrMoves = board.gen_legal_moves(moves);
+    int nrMoves = board.gen_legal_moves<MovegenTypes::ALL_MOVES>(moves);
 
     for (int i = 0; i < nrMoves; i++) {
         Move move = moves[i];

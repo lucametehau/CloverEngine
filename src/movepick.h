@@ -82,7 +82,7 @@ public:
             }
         case Stages::STAGE_GEN_NOISY:
         {
-            nrNoisy = board.gen_legal_noisy_moves(moves);
+            nrNoisy = board.gen_legal_moves<MovegenTypes::NOISY_MOVES>(moves);
             int m = 0;
             for (int i = 0; i < nrNoisy; i++) {
                 const Move move = moves[i];
@@ -130,7 +130,7 @@ public:
         case Stages::STAGE_GEN_QUIETS:
         {
             if (!skip) {
-                nrQuiets = board.gen_legal_quiet_moves(moves);
+                nrQuiets = board.gen_legal_moves<MovegenTypes::QUIET_MOVES>(moves);
                 const bool turn = board.turn, enemy = 1 ^ turn;
                 const Bitboard allPieces = board.get_bb_color(WHITE) | board.get_bb_color(BLACK);
                 const Bitboard enemyKingRing = attacks::kingRingMask[board.get_king(enemy)];
