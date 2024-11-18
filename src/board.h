@@ -18,6 +18,9 @@
 #include "defs.h"
 #include "attacks.h"
 #include "cuckoo.h"
+#include <fstream>
+
+//inline std::ofstream fout("kek.txt");
 
 class HistoricalState {
 public:
@@ -54,8 +57,8 @@ public:
     void print() {
         for (int i = 7; i >= 0; i--) {
             for (Square sq = Square(i, 0); sq < Square(i + 1, 0); sq++)
-                std::cerr << piece_char[board[sq]] << " ";
-            std::cerr << "\n";
+                std::cout << piece_char[board[sq]] << " ";
+            std::cout << "\n";
         }
     }
 

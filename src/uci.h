@@ -163,17 +163,11 @@ void UCI::uci_loop() {
         else if (cmd == "uci") {
             uci();
         }
-        else if (cmd == "checkmove") {
-            std::string moveStr;
-            iss >> moveStr;
-            Move move = parse_move_string(thread_pool.get_board(), moveStr, info);
-            std::cout << is_legal(thread_pool.get_board(), move) << " " << is_legal_slow(thread_pool.get_board(), move) << "\n";
-        }
-        else if (cmd == "printparams") {
 #ifdef TUNE_FLAG
+        else if (cmd == "printparams") {
             print_params_for_ob();
-#endif
         }
+#endif
         else if (cmd == "setoption") {
             std::string name, value;
             iss >> name;
