@@ -422,7 +422,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
             auto snmp_margin = [&](int depth, int improving) {
                 return (SNMPMargin - SNMPImproving * improving) * depth;
             };
-            if (depth <= SNMPDepth && eval > beta && eval < MATE &&
+            if (depth <= SNMPDepth && eval > beta && eval < MATE && (!ttMove || is_ttmove_noisy) &&
                 eval - snmp_margin(depth - enemy_has_no_threats, improving) > beta) return beta > -MATE ? (eval + beta) / 2 : eval;
 
             /// null move pruning (when last move wasn't null, we still have non pawn material, we have a good position)
