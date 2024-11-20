@@ -573,7 +573,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
             if (!stack->excluded && !allNode && move == ttMove && abs(ttValue) < MATE &&
                 depth >= SEDepth && ttDepth >= depth - 3 && (ttBound & TTBounds::LOWER)
             ) {
-                int rBeta = ttValue - SEMargin * depth / 64;
+                int rBeta = ttValue - (SEMargin + 64 * (!pvNode && was_pv)) * depth / 64;
 
                 stack->excluded = move;
                 int score = search<false, false, cutNode>(rBeta - 1, rBeta, (depth - 1) / 2, stack);
