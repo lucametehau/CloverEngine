@@ -19,34 +19,20 @@
 
 template <bool RootNode>
 uint64_t perft(Board& board, int depth) {
-    if (depth == 0) return 1;
-
-    MoveList moves, quiets, noisies;
-
-    int nr_quiets = board.gen_legal_moves<MovegenTypes::QUIET_MOVES>(quiets);
-    int nr_noisies = board.gen_legal_moves<MovegenTypes::NOISY_MOVES>(noisies);
-    int nrMoves = board.gen_legal_moves<MovegenTypes::ALL_MOVES>(moves);
-
-    if (nr_quiets + nr_noisies != nrMoves) {
-        std::cout << nr_quiets << "\n";
-        for (int i = 0; i < nr_quiets; i++) std::cout << quiets[i].to_string() << " ";
-        std::cout << "\n";
-        std::cout << nr_noisies << "\n";
-        for (int i = 0; i < nr_noisies; i++) std::cout << noisies[i].to_string() << " ";
-        std::cout << "\n";
-        std::cout << nrMoves << "\n";
-        for (int i = 0; i < nrMoves; i++) std::cout << moves[i].to_string() << " ";
-        std::cout << "\n";
-        exit(0);
+    MoveList moves;
+    int nr_moves = board.gen_legal_moves<MovegenTypes::ALL_MOVES>(moves);
+    uint64_t nodes = 0;
+    
+    if (depth == 1) {
+        for (int i = 0; i < nr_moves; i++) nodes += is_legal(board, moves[i]);
+        return nodes;
     }
 
-    uint64_t nodes = 0;
 
     HistoricalState next_state;
-    for (int i = 0; i < nrMoves; i++) {
+    for (int i = 0; i < nr_moves; i++) {
         if (!is_legal(board, moves[i])) continue;
         Move move = moves[i];
-        //std::cout << move.to_string() << " at depth " << depth << '\n';
         board.make_move(move, next_state);
         uint64_t x;
         x = perft<false>(board, depth - 1);

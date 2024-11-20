@@ -77,7 +77,7 @@ public:
             trueStage = Stages::STAGE_TTMOVE;
             stage++;
 
-            if (ttMove && is_pseudo_legal(board, ttMove)) {
+            if (is_pseudo_legal(board, ttMove)) {
                 return ttMove;
             }
         case Stages::STAGE_GEN_NOISY:
@@ -125,7 +125,7 @@ public:
             trueStage = Stages::STAGE_KILLER;
             stage++;
 
-            if (!skip && killer && is_pseudo_legal(board, killer))
+            if (!skip && is_pseudo_legal(board, killer))
                 return killer;
         case Stages::STAGE_GEN_QUIETS:
         {
