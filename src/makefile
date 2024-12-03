@@ -31,6 +31,7 @@ ifneq ($(findstring __BMI2__, $(FLAGS)),)
 endif
 
 ifeq ($(EXT), .exe)
+	RFLAGS += -static -static-libgcc -static-libstdc++
 	LIBS += -pthread
 	RM_CMD = powershell "rm -Force *.o, 3rdparty/Fathom/src/tbprobe.o"
 else
