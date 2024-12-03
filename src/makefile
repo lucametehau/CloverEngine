@@ -51,21 +51,22 @@ endif
 
 ifneq ($(findstring old, $(build_flag)),)
 	BUILD_FLAGS += $(OLD_FLAGS)
-	EXE += -old
+	PEXT_FLAGS := 
+	EXE := $(EXE)-old
 else ifneq ($(findstring avx2, $(build_flag)),)
 	BUILD_FLAGS += $(AVX2_FLAGS)
-	EXE += -avx2
+	EXE := $(EXE)-avx2
 else ifneq ($(findstring avx512, $(build_flag)),)
 	BUILD_FLAGS += $(AVX512_FLAGS)
-	EXE += -avx512
+	EXE := $(EXE)-avx512
 else ifneq ($(findstring native, $(build_flag)),)
 	BUILD_FLAGS += $(NATIVE_FLAGS)
 else ifneq ($(findstring tune, $(build_flag)),)
 	BUILD_FLAGS += $(NATIVE_FLAGS) -DTUNE_FLAG
-	EXE += -tune
+	EXE := $(EXE)-tune
 else ifneq ($(findstring generate, $(build_flag)),)
 	BUILD_FLAGS += $(NATIVE_FLAGS) -DGENERATE
-	EXE += -generate
+	EXE := $(EXE)-generate
 endif
 
 %.o: %.cpp
@@ -80,7 +81,9 @@ make: $(OBJ)
 
 release:
 	make build_flag=old
+	make clean
 	make build_flag=avx2
+	make clean
 	make build_flag=avx512
 
 clean:
