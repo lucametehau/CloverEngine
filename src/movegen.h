@@ -41,7 +41,7 @@ void Board::make_move(const Move move, HistoricalState& next_state) { /// assumi
     switch (move.get_type()) {
     case NO_TYPE:
         pieces[turn] ^= (1ULL << from) ^ (1ULL << to);
-        bb[piece] ^= (1ULL << from) ^ (1ULL << to);
+        bb[piece.type()] ^= (1ULL << from) ^ (1ULL << to);
 
         key() ^= hashKey[piece][from] ^ hashKey[piece][to];
         if (piece.type() == PieceTypes::PAWN) pawn_key() ^= hashKey[piece][from] ^ hashKey[piece][to];
@@ -56,7 +56,7 @@ void Board::make_move(const Move move, HistoricalState& next_state) { /// assumi
             half_moves() = 0;
 
             pieces[1 ^ turn] ^= (1ULL << to);
-            bb[piece_cap] ^= (1ULL << to);
+            bb[piece_cap.type()] ^= (1ULL << to);
             key() ^= hashKey[piece_cap][to];
             if (piece_cap.type() == PieceTypes::PAWN) pawn_key() ^= hashKey[piece_cap][to];
             else mat_key(1 ^ turn) ^= hashKey[piece_cap][to];
@@ -94,13 +94,13 @@ void Board::make_move(const Move move, HistoricalState& next_state) { /// assumi
         piece_cap = Piece(PieceTypes::PAWN, 1 ^ turn);
         half_moves() = 0;
         pieces[turn] ^= (1ULL << from) ^ (1ULL << to);
-        bb[piece] ^= (1ULL << from) ^ (1ULL << to);
+        bb[piece.type()] ^= (1ULL << from) ^ (1ULL << to);
 
         key() ^= hashKey[piece][from] ^ hashKey[piece][to] ^ hashKey[piece_cap][pos];
         pawn_key() ^= hashKey[piece][from] ^ hashKey[piece][to] ^ hashKey[piece_cap][pos];
 
         pieces[1 ^ turn] ^= (1ULL << pos);
-        bb[piece_cap] ^= (1ULL << pos);
+        bb[piece_cap.type()] ^= (1ULL << pos);
 
         board[from] = board[pos] = NO_PIECE;
         board[to] = piece;
@@ -124,8 +124,8 @@ void Board::make_move(const Move move, HistoricalState& next_state) { /// assumi
         }
 
         pieces[turn] ^= (1ULL << from) ^ (1ULL << to) ^ (1ULL << rFrom) ^ (1ULL << rTo);
-        bb[piece] ^= (1ULL << from) ^ (1ULL << to);
-        bb[rPiece] ^= (1ULL << rFrom) ^ (1ULL << rTo);
+        bb[piece.type()] ^= (1ULL << from) ^ (1ULL << to);
+        bb[rPiece.type()] ^= (1ULL << rFrom) ^ (1ULL << rTo);
 
         key() ^= hashKey[piece][from] ^ hashKey[piece][to] ^
                  hashKey[rPiece][rFrom] ^ hashKey[rPiece][rTo];
@@ -149,11 +149,11 @@ void Board::make_move(const Move move, HistoricalState& next_state) { /// assumi
         Piece prom_piece(move.get_prom() + PieceTypes::KNIGHT, turn);
 
         pieces[turn] ^= (1ULL << from) ^ (1ULL << to);
-        bb[piece] ^= (1ULL << from);
-        bb[prom_piece] ^= (1ULL << to);
+        bb[piece.type()] ^= (1ULL << from);
+        bb[prom_piece.type()] ^= (1ULL << to);
 
         if (piece_cap != NO_PIECE) {
-            bb[piece_cap] ^= (1ULL << to);
+            bb[piece_cap.type()] ^= (1ULL << to);
             pieces[1 ^ turn] ^= (1ULL << to);
             key() ^= hashKey[piece_cap][to];
             mat_key(1 ^ turn) ^= hashKey[piece_cap][to];
@@ -202,14 +202,14 @@ void Board::undo_move(const Move move) {
     switch (move.get_type()) {
     case NO_TYPE:
         pieces[turn] ^= Bitboard(from) ^ Bitboard(to);
-        bb[piece] ^= Bitboard(from) ^ Bitboard(to);
+        bb[piece.type()] ^= Bitboard(from) ^ Bitboard(to);
 
         board[from] = piece;
         board[to] = piece_cap;
 
         if (piece_cap != NO_PIECE) {
             pieces[1 ^ turn] ^= Bitboard(to);
-            bb[piece_cap] ^= Bitboard(to);
+            bb[piece_cap.type()] ^= Bitboard(to);
         }
         break;
     case MoveTypes::CASTLE:
@@ -231,8 +231,8 @@ void Board::undo_move(const Move move) {
         }
 
         pieces[turn] ^= Bitboard(from) ^ Bitboard(to) ^ Bitboard(rFrom) ^ Bitboard(rTo);
-        bb[piece] ^= Bitboard(from) ^ Bitboard(to);
-        bb[rPiece] ^= Bitboard(rFrom) ^ Bitboard(rTo);
+        bb[piece.type()] ^= Bitboard(from) ^ Bitboard(to);
+        bb[rPiece.type()] ^= Bitboard(rFrom) ^ Bitboard(rTo);
 
         board[to] = board[rTo] = NO_PIECE;
         board[from] = piece;
@@ -246,10 +246,10 @@ void Board::undo_move(const Move move) {
         piece_cap = Piece(PieceTypes::PAWN, 1 ^ turn);
 
         pieces[turn] ^= Bitboard(from) ^ Bitboard(to);
-        bb[piece] ^= Bitboard(from) ^ Bitboard(to);
+        bb[piece.type()] ^= Bitboard(from) ^ Bitboard(to);
 
         pieces[1 ^ turn] ^= Bitboard(pos);
-        bb[piece_cap] ^= Bitboard(pos);
+        bb[piece_cap.type()] ^= Bitboard(pos);
 
         board[to] = NO_PIECE;
         board[from] = piece;
@@ -263,15 +263,15 @@ void Board::undo_move(const Move move) {
         piece = Piece(PieceTypes::PAWN, turn);
 
         pieces[turn] ^= Bitboard(from) ^ Bitboard(to);
-        bb[piece] ^= Bitboard(from);
-        bb[prom_piece] ^= Bitboard(to);
+        bb[piece.type()] ^= Bitboard(from);
+        bb[prom_piece.type()] ^= Bitboard(to);
 
         board[to] = piece_cap;
         board[from] = piece;
 
         if (piece_cap != NO_PIECE) {
             pieces[1 ^ turn] ^= Bitboard(to);
-            bb[piece_cap] ^= Bitboard(to);
+            bb[piece_cap.type()] ^= Bitboard(to);
         }
     }
     break;
@@ -560,7 +560,7 @@ int Board::gen_legal_noisy_moves(MoveList &moves) {
     if (attacks::kingBBAttacks[king] & them) {
         attacked |= get_pawn_attacks(enemy);
 
-        pieces = bb[Piece(PieceTypes::KNIGHT, enemy)];
+        pieces = get_bb_piece(PieceTypes::KNIGHT, enemy);
         while (pieces) attacked |= attacks::genAttacksKnight(pieces.get_square_pop());
 
         pieces = enemyDiagSliders;

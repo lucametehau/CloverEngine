@@ -44,7 +44,7 @@ public:
 
     uint16_t ply, game_ply;
 
-    std::array<Bitboard, 12> bb;
+    std::array<Bitboard, 6> bb;
     std::array<Bitboard, 2> pieces;
 
     constexpr Board() = default;
@@ -70,9 +70,9 @@ public:
     uint8_t& castle_rights() { return state->castleRights; }
     Piece& captured() { return state->captured; }
 
-    Bitboard get_bb_piece(const Piece piece, const bool color) const { return bb[Piece(piece, color)]; }
+    Bitboard get_bb_piece_type(const Piece piece_type) const {  return bb[piece_type]; }
     Bitboard get_bb_color(const bool color) const { return pieces[color]; }
-    Bitboard get_bb_piece_type(const Piece piece_type) const {  return get_bb_piece(piece_type, WHITE) | get_bb_piece(piece_type, BLACK); }
+    Bitboard get_bb_piece(const Piece piece_type, const bool color) const { return bb[piece_type] & pieces[color]; }
 
     Bitboard diagonal_sliders(const bool color) { return get_bb_piece(PieceTypes::BISHOP, color) | get_bb_piece(PieceTypes::QUEEN, color); }
     Bitboard orthogonal_sliders(const bool color) { return get_bb_piece(PieceTypes::ROOK, color) | get_bb_piece(PieceTypes::QUEEN, color); }
@@ -139,11 +139,13 @@ public:
     NetInput to_netinput() {
         NetInput ans;
         for (auto color : {WHITE, BLACK}) {
-            for (Piece i = Pieces::BlackPawn; i <= Pieces::WhiteKing; i++) {
-                Bitboard b = bb[i];
-                while (b) {
-                    ans.ind[color].push_back(net_index(i, b.get_lsb_square(), get_king(color), color));
-                    b ^= b.lsb();
+            for (auto c : {WHITE, BLACK}) {
+                for (Piece pt = PieceTypes::PAWN; pt <= PieceTypes::KING; pt++) {
+                    Bitboard b = get_bb_piece(pt, c);
+                    while (b) {
+                        ans.ind[color].push_back(net_index(Piece(pt, c), b.get_lsb_square(), get_king(color), color));
+                        b ^= b.lsb();
+                    }
                 }
             }
         }
@@ -152,13 +154,14 @@ public:
     }
 
     void place_piece_at_sq(Piece piece, Square sq) {
+        const Piece pt = piece.type();
         board[sq] = piece;
         key() ^= hashKey[piece][sq];
-        if (piece.type() == PieceTypes::PAWN) pawn_key() ^= hashKey[piece][sq];
+        if (pt == PieceTypes::PAWN) pawn_key() ^= hashKey[piece][sq];
         else mat_key(piece.color()) ^= hashKey[piece][sq];
 
         pieces[piece.color()] |= (1ULL << sq);
-        bb[piece] |= (1ULL << sq);
+        bb[pt] |= (1ULL << sq);
     }
 
     void set_fen(const std::string fen, HistoricalState& state);
@@ -178,7 +181,7 @@ public:
         const int num = (get_bb_color(WHITE) | get_bb_color(BLACK)).count();
         return num == 2 || 
             (num == 3 && (get_bb_piece_type(PieceTypes::BISHOP) || get_bb_piece_type(PieceTypes::KNIGHT))) ||
-            (num == 4 && (bb[Pieces::WhiteKnight].count() == 2 || bb[Pieces::BlackKnight].count() == 2));
+            (num == 4 && (get_bb_piece(PieceTypes::KNIGHT, WHITE).count() == 2 || get_bb_piece(PieceTypes::KNIGHT, BLACK).count() == 2));
     }
 
     bool is_repetition(const int ply) {

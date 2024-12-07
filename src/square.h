@@ -8,10 +8,9 @@ private:
 public:
     constexpr Square() = default;
     constexpr Square(uint8_t sq) : sq(sq) {}
-    constexpr Square(int _sq) : sq{static_cast<uint8_t>(_sq)} {}
     Square(uint8_t rank, uint8_t file) : sq(rank * 8 + file) {}
 
-    inline constexpr operator uint8_t() const { return sq; }
+    inline constexpr operator int() const { return sq; }
 
     inline Square mirror(const bool side) const { return sq ^ (56 * !side); };
 
