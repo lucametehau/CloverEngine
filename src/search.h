@@ -107,7 +107,7 @@ void get_threats(Threats& threats, Board& board, const bool us) {
 std::string getSanString(Board& board, Move move, HistoricalState& next_state) {
     if (move.get_type() == MoveTypes::CASTLE) return move.get_to() > move.get_from() ? "O-O" : "O-O-O";
     int from = move.get_from(), to = move.get_to();
-    Piece prom = move.get_type() == MoveTypes::PROMOTION ? move.get_prom() + PieceTypes::KNIGHT + 6 : static_cast<Piece>(0), piece = board.piece_type_at(from);
+    Piece prom = move.is_promo() ? move.get_prom() + PieceTypes::KNIGHT + 6 : static_cast<Piece>(0), piece = board.piece_type_at(from);
     std::string san;
 
     if (piece != PieceTypes::PAWN) san += piece_char[piece + 6];
@@ -236,7 +236,7 @@ int SearchThread::quiesce(int alpha, int beta, StackEntry* stack) {
             // futility pruning
             if (futility_base > -MATE) {
                 const int value = futility_base + seeVal[m_board.get_captured_type(move)];
-                if (move.get_type() != MoveTypes::PROMOTION && value <= alpha) {
+                if (!move.is_promo() && value <= alpha) {
                     best = std::max(best, value);
                     continue;
                 }

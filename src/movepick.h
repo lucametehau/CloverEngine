@@ -89,7 +89,7 @@ public:
                 if (move == ttMove || move == killer)
                     continue;
 
-                if (move.get_type() == MoveTypes::PROMOTION && move.get_prom() + PieceTypes::KNIGHT != PieceTypes::QUEEN) {
+                if (move.is_promo() && move.get_prom() + PieceTypes::KNIGHT != PieceTypes::QUEEN) {
                     badNoisy[nrBadNoisy++] = move;
                     continue;
                 }

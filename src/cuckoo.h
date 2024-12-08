@@ -37,7 +37,7 @@ inline void init() {
         for (Square from = 0; from < 64; from++) {
             for (Square to = from + 1; to < 64; to++) {
                 if (attacks::genAttacksSq(Bitboard(0ull), from, piece.type()).has_square(to)) {
-                    Move move = Move(from, to, 0, NO_TYPE);
+                    Move move = Move(from, to, NO_TYPE);
                     uint64_t key = hashKey[piece][from] ^ hashKey[piece][to] ^ 1;
                     int cuckoo_ind = hash1(key);
                     while (true) {

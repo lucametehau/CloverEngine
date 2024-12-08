@@ -153,8 +153,7 @@ void Board::set_fen(const std::string fen, HistoricalState& next_state) {
     while ('0' <= fen[ind] && fen[ind] <= '9') nr = nr * 10 + fen[ind++] - '0';
     move_index() = nr;
 
-    checkers() = get_attackers(1 ^ turn, pieces[WHITE] | pieces[BLACK], get_king(turn));
-    pinned_pieces() = get_pinned_pieces();
+    get_pinned_pieces_and_checkers();
 }
 
 void Board::set_frc_side(bool color, int idx) {
@@ -269,6 +268,5 @@ void Board::set_dfrc(int idx, HistoricalState& next_state) {
     enpas() = NO_SQUARE;
     half_moves() = 0;
     move_index() = 1;
-    checkers() = get_attackers(1 ^ turn, pieces[WHITE] | pieces[BLACK], get_king(turn));
-    pinned_pieces() = get_pinned_pieces();
+    get_pinned_pieces_and_checkers();
 }

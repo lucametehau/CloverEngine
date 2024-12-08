@@ -8,7 +8,7 @@ private:
 public:
     constexpr Square() = default;
     constexpr Square(uint8_t sq) : sq(sq) {}
-    Square(uint8_t rank, uint8_t file) : sq(rank * 8 + file) {}
+    constexpr Square(uint8_t rank, uint8_t file) : sq(rank * 8 + file) {}
 
     inline constexpr operator int() const { return sq; }
 

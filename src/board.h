@@ -85,20 +85,23 @@ public:
             (attacks::genAttacksKing(sq) & get_bb_piece(PieceTypes::KING, color));
     }
 
-    Bitboard get_pinned_pieces() {
+    void get_pinned_pieces_and_checkers() {
         const bool enemy = turn ^ 1;
         const Square king = get_king(turn);
         Bitboard us = pieces[turn], them = pieces[enemy];
-        Bitboard pinned(0ull); /// squares attacked by enemy / pinned pieces
+        pinned_pieces() = checkers() = Bitboard(0ull);
         Bitboard mask = (attacks::genAttacksRook(them, king) & orthogonal_sliders(enemy)) | 
                         (attacks::genAttacksBishop(them, king) & diagonal_sliders(enemy));
 
         while (mask) {
-            Bitboard b2 = us & between_mask[mask.get_square_pop()][king];
-            if (b2.count() == 1) pinned ^= b2;
+            Square sq = mask.get_square_pop();
+            Bitboard b2 = us & between_mask[sq][king];
+            if (b2.count() == 1) pinned_pieces() |= b2;
+            else if (!b2) checkers() |= (1ull << sq);
         }
 
-        return pinned;
+        checkers() |= (attacks::genAttacksKnight(king) & get_bb_piece(PieceTypes::KNIGHT, enemy)) | 
+                      (attacks::genAttacksPawn(turn, king) & get_bb_piece(PieceTypes::PAWN, enemy));
     }
 
     Bitboard get_pawn_attacks(const bool color) {
@@ -153,15 +156,42 @@ public:
         return ans;
     }
 
+    void move_from_to(Square from, Square to) {
+        const Piece piece = piece_at(from), pt = piece.type();
+        board[from] = NO_PIECE; board[to] = piece;
+
+        key() ^= hashKey[piece][from] ^ hashKey[piece][to];
+        if (pt == PieceTypes::PAWN) pawn_key() ^= hashKey[piece][from] ^ hashKey[piece][to];
+        else mat_key(piece.color()) ^= hashKey[piece][from] ^ hashKey[piece][to];
+
+        pieces[piece.color()] ^= (1ull << from) ^ (1ull << to);
+        bb[pt] ^= (1ULL << from) ^ (1ull << to);
+    }
+
     void place_piece_at_sq(Piece piece, Square sq) {
-        const Piece pt = piece.type();
         board[sq] = piece;
         key() ^= hashKey[piece][sq];
-        if (pt == PieceTypes::PAWN) pawn_key() ^= hashKey[piece][sq];
+        if (piece.type() == PieceTypes::PAWN) pawn_key() ^= hashKey[piece][sq];
         else mat_key(piece.color()) ^= hashKey[piece][sq];
 
         pieces[piece.color()] |= (1ULL << sq);
-        bb[pt] |= (1ULL << sq);
+        bb[piece.type()] |= (1ULL << sq);
+    }
+
+    void erase_square(Square sq) {
+        const Piece piece = piece_at(sq), pt = piece.type();
+        const bool color = piece.color();
+        board[sq] = NO_PIECE;
+
+        key() ^= hashKey[piece][sq];
+        if (pt == PieceTypes::PAWN) pawn_key() ^= hashKey[piece][sq];
+        else {
+            mat_key(color) ^= hashKey[piece][sq];
+            if (pt == PieceTypes::ROOK) castle_rights() &= castleRightsDelta[color][sq];
+        }
+
+        pieces[color] ^= (1ull << sq);
+        bb[pt] ^= (1ULL << sq);
     }
 
     void set_fen(const std::string fen, HistoricalState& state);
