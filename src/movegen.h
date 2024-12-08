@@ -97,8 +97,8 @@ void Board::make_move(const Move move, HistoricalState& next_state) { /// assumi
         Piece prom_piece(move.get_prom() + PieceTypes::KNIGHT, turn);
 
         pieces[turn] ^= Bitboard(from) ^ Bitboard(to);
-        bb[PieceTypes::PAWN] ^= Bitboard(from);
-        bb[prom_piece.type()] ^= Bitboard(to);
+        bb[piece] ^= Bitboard(from);
+        bb[prom_piece] ^= Bitboard(to);
 
         if (piece_cap != NO_PIECE) erase_square(to);
 
@@ -137,14 +137,14 @@ void Board::undo_move(const Move move) {
     switch (move.get_type()) {
     case NO_TYPE:
         pieces[turn] ^= (1ull << from) ^ (1ull << to);
-        bb[piece.type()] ^= (1ull << from) ^ (1ull << to);
+        bb[piece] ^= (1ull << from) ^ (1ull << to);
 
         board[from] = piece;
         board[to] = piece_cap;
 
         if (piece_cap != NO_PIECE) {
             pieces[1 ^ turn] ^= (1ull << to);
-            bb[piece_cap.type()] ^= (1ull << to);
+            bb[piece_cap] ^= (1ull << to);
         }
         break;
     case MoveTypes::CASTLE:
@@ -165,8 +165,8 @@ void Board::undo_move(const Move move) {
         }
 
         pieces[turn] ^= (1ull << from) ^ (1ull << to) ^ (1ull << rFrom) ^ (1ull << rTo);
-        bb[PieceTypes::KING] ^= (1ull << from) ^ (1ull << to);
-        bb[PieceTypes::ROOK] ^= (1ull << rFrom) ^ (1ull << rTo);
+        bb[piece] ^= (1ull << from) ^ (1ull << to);
+        bb[rPiece] ^= (1ull << rFrom) ^ (1ull << rTo);
 
         board[to] = board[rTo] = NO_PIECE;
         board[from] = piece;
@@ -180,7 +180,8 @@ void Board::undo_move(const Move move) {
         piece_cap = Piece(PieceTypes::PAWN, 1 ^ turn);
 
         pieces[turn] ^= (1ull << from) ^ (1ull << to);
-        bb[PieceTypes::PAWN] ^= (1ull << from) ^ (1ull << to) ^ (1ull << pos);
+        bb[piece] ^= (1ull << from) ^ (1ull << to);
+        bb[piece_cap] ^= (1ull << pos);
 
         pieces[1 ^ turn] ^= (1ull << pos);
 
@@ -194,15 +195,15 @@ void Board::undo_move(const Move move) {
         piece = Piece(PieceTypes::PAWN, turn);
 
         pieces[turn] ^= (1ull << from) ^ (1ull << to);
-        bb[PieceTypes::PAWN] ^= (1ull << from);
-        bb[move.get_prom() + PieceTypes::KNIGHT] ^= (1ull << to);
+        bb[piece] ^= (1ull << from);
+        bb[Piece(move.get_prom() + PieceTypes::KNIGHT, turn)] ^= (1ull << to);
 
         board[to] = piece_cap;
         board[from] = piece;
 
         if (piece_cap != NO_PIECE) {
             pieces[1 ^ turn] ^= (1ull << to);
-            bb[piece_cap.type()] ^= (1ull << to);
+            bb[piece_cap] ^= (1ull << to);
         }
     }
     break;

@@ -44,7 +44,7 @@ public:
 
     uint16_t ply, game_ply;
 
-    std::array<Bitboard, 6> bb;
+    std::array<Bitboard, 12> bb;
     std::array<Bitboard, 2> pieces;
 
     constexpr Board() = default;
@@ -70,9 +70,9 @@ public:
     uint8_t& castle_rights() { return state->castleRights; }
     Piece& captured() { return state->captured; }
 
-    Bitboard get_bb_piece_type(const Piece piece_type) const {  return bb[piece_type]; }
     Bitboard get_bb_color(const bool color) const { return pieces[color]; }
-    Bitboard get_bb_piece(const Piece piece_type, const bool color) const { return bb[piece_type] & pieces[color]; }
+    Bitboard get_bb_piece(const Piece piece_type, const bool color) const { return bb[6 * color + piece_type]; }
+    Bitboard get_bb_piece_type(const Piece piece_type) const {  return get_bb_piece(piece_type, WHITE) | get_bb_piece(piece_type, BLACK); }
 
     Bitboard diagonal_sliders(const bool color) { return get_bb_piece(PieceTypes::BISHOP, color) | get_bb_piece(PieceTypes::QUEEN, color); }
     Bitboard orthogonal_sliders(const bool color) { return get_bb_piece(PieceTypes::ROOK, color) | get_bb_piece(PieceTypes::QUEEN, color); }
@@ -165,7 +165,7 @@ public:
         else mat_key(piece.color()) ^= hashKey[piece][from] ^ hashKey[piece][to];
 
         pieces[piece.color()] ^= (1ull << from) ^ (1ull << to);
-        bb[pt] ^= (1ULL << from) ^ (1ull << to);
+        bb[piece] ^= (1ULL << from) ^ (1ull << to);
     }
 
     void place_piece_at_sq(Piece piece, Square sq) {
@@ -175,7 +175,7 @@ public:
         else mat_key(piece.color()) ^= hashKey[piece][sq];
 
         pieces[piece.color()] |= (1ULL << sq);
-        bb[piece.type()] |= (1ULL << sq);
+        bb[piece] |= (1ULL << sq);
     }
 
     void erase_square(Square sq) {
@@ -191,7 +191,7 @@ public:
         }
 
         pieces[color] ^= (1ull << sq);
-        bb[pt] ^= (1ULL << sq);
+        bb[piece] ^= (1ULL << sq);
     }
 
     void set_fen(const std::string fen, HistoricalState& state);
