@@ -90,6 +90,10 @@ enum {
     SOUTHWEST_ID, SOUTHEAST_ID
 };
 
+enum {
+    MOVEGEN_NOISY = 1, MOVEGEN_QUIET, MOVEGEN_ALL
+};
+
 constexpr int HALFMOVES = 100;
 constexpr int INF = 32000;
 constexpr int VALUE_NONE = INF + 10;

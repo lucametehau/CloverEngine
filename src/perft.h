@@ -20,7 +20,7 @@
 template <bool RootNode>
 uint64_t perft(Board& board, int depth) {
     MoveList moves;
-    int nrMoves = board.gen_legal_moves(moves);
+    int nrMoves = board.gen_legal_moves<MOVEGEN_ALL>(moves);
     if (depth == 1) return nrMoves;
 
     uint64_t nodes = 0;
