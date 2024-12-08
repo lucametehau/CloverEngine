@@ -27,6 +27,7 @@ public:
     uint16_t halfMoves, moveIndex;
     Bitboard checkers, pinnedPieces;
     uint64_t key, pawn_key, mat_key[2];
+    Threats threats;
 
     HistoricalState* prev;
     HistoricalState* next;
@@ -69,6 +70,7 @@ public:
     uint16_t& move_index() { return state->moveIndex; }
     uint8_t& castle_rights() { return state->castleRights; }
     Piece& captured() { return state->captured; }
+    Threats& threats() { return state->threats; }
 
     Bitboard get_bb_color(const bool color) const { return pieces[color]; }
     Bitboard get_bb_piece(const Piece piece_type, const bool color) const { return bb[6 * color + piece_type]; }
@@ -102,6 +104,58 @@ public:
 
         checkers() |= (attacks::genAttacksKnight(king) & get_bb_piece(PieceTypes::KNIGHT, enemy)) | 
                       (attacks::genAttacksPawn(turn, king) & get_bb_piece(PieceTypes::PAWN, enemy));
+    }
+    
+    void get_threats(const bool color) {
+        const bool enemy = 1 ^ color;
+        Bitboard our_pieces = get_bb_color(color) ^ get_bb_piece(PieceTypes::PAWN, color);
+        Bitboard att = attacks::getPawnAttacks(enemy, get_bb_piece(PieceTypes::PAWN, enemy));
+        Bitboard threatened_pieces = att & our_pieces;
+        Bitboard pieces, att_mask;
+        Bitboard all = get_bb_color(WHITE) | get_bb_color(BLACK);
+
+        threats().threats_pieces[PieceTypes::PAWN] = att;
+        threats().threats_pieces[PieceTypes::KNIGHT] = 0;
+        threats().threats_pieces[PieceTypes::BISHOP] = 0;
+        threats().threats_pieces[PieceTypes::ROOK] = 0;
+        our_pieces ^= get_bb_piece(PieceTypes::KNIGHT, color) | get_bb_piece(PieceTypes::BISHOP, color);
+
+        pieces = get_bb_piece(PieceTypes::KNIGHT, enemy);
+        while (pieces) {
+            att_mask = attacks::genAttacksKnight(pieces.get_square_pop());
+            att |= att_mask;
+            threats().threats_pieces[PieceTypes::KNIGHT] |= att_mask;
+            threatened_pieces |= att & our_pieces;
+        }
+
+        all ^= Bitboard(get_king(color));
+
+        pieces = get_bb_piece(PieceTypes::BISHOP, enemy);
+        while (pieces) {
+            att_mask = attacks::genAttacksBishop(all, pieces.get_square_pop());
+            att |= att_mask;
+            threats().threats_pieces[PieceTypes::BISHOP] |= att_mask;
+            threatened_pieces |= att & our_pieces;
+        }
+
+        our_pieces ^= get_bb_piece(PieceTypes::ROOK, color);
+
+        pieces = get_bb_piece(PieceTypes::ROOK, enemy);
+        while (pieces) {
+            att_mask = attacks::genAttacksRook(all, pieces.get_square_pop());
+            att |= att_mask;
+            threats().threats_pieces[PieceTypes::ROOK] |= att_mask;
+            threatened_pieces |= att & our_pieces;
+        }
+
+        pieces = get_bb_piece(PieceTypes::QUEEN, enemy);
+        while (pieces) {
+            att |= attacks::genAttacksQueen(all, pieces.get_square_pop());
+        }
+
+        att |= attacks::genAttacksKing(get_king(enemy));
+        threats().all_threats = att;
+        threats().threatened_pieces = threatened_pieces;
     }
 
     Bitboard get_pawn_attacks(const bool color) {

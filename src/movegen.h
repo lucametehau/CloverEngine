@@ -121,6 +121,7 @@ void Board::make_move(const Move move, HistoricalState& next_state) { /// assumi
     key() ^= 1;
     if (turn == WHITE) move_index()++;
     get_pinned_pieces_and_checkers();
+    get_threats(turn);
 }
 
 void Board::undo_move(const Move move) {
@@ -223,6 +224,7 @@ void Board::make_null_move(HistoricalState& next_state) {
     turn ^= 1;
     key() ^= 1;
     get_pinned_pieces_and_checkers();
+    get_threats(turn);
     ply++;
     game_ply++;
     half_moves()++;
@@ -256,24 +258,12 @@ int Board::gen_legal_moves(MoveList &moves) {
     int nrMoves = 0;
     const bool color = turn, enemy = color ^ 1;
     int rank7 = (color == WHITE ? 6 : 1), rank3 = (color == WHITE ? 2 : 5);
-    const Square king = get_king(color), enemyKing = get_king(enemy);
-    Bitboard pieces, mask, us = get_bb_color(color), them = get_bb_color(enemy);
+    const Square king = get_king(color);
+    Bitboard our_pawns = get_bb_piece(PieceTypes::PAWN, color);
+    Bitboard mask, us = get_bb_color(color), them = get_bb_color(enemy);
     Bitboard b, b1, b2, b3;
-    Bitboard attacked(0ull), pinned = pinned_pieces(); /// squares attacked by enemy / pinned pieces
+    Bitboard attacked = threats().all_threats, pinned = pinned_pieces(); /// squares attacked by enemy / pinned pieces
     const Bitboard all = us | them, empty = ~all;
-
-    attacked |= get_pawn_attacks(enemy);
-
-    pieces = get_bb_piece(PieceTypes::KNIGHT, enemy);
-    while (pieces) attacked |= attacks::genAttacksKnight(pieces.get_square_pop());
-
-    pieces = diagonal_sliders(enemy);
-    while (pieces) attacked |= attacks::genAttacksBishop(all ^ Bitboard(king), pieces.get_square_pop());
-
-    pieces = orthogonal_sliders(enemy);
-    while (pieces) attacked |= attacks::genAttacksRook(all ^ Bitboard(king), pieces.get_square_pop());
-
-    attacked |= attacks::kingBBAttacks[enemyKing];
 
     b1 = attacks::kingBBAttacks[king] & ~(us | attacked);
     
@@ -295,7 +285,7 @@ int Board::gen_legal_moves(MoveList &moves) {
         if constexpr (noisy_movegen) {
             /// make en passant to cancel the check
             if (pt == PieceTypes::PAWN && enpas() != NO_SQUARE && checkers() == Bitboard(shift_square<NORTH>(enemy, enpas()))) {
-                mask = attacks::pawnAttacksMask[enemy][enpas()] & notPinned & get_bb_piece(PieceTypes::PAWN, color);
+                mask = attacks::pawnAttacksMask[enemy][enpas()] & notPinned & our_pawns;
                 while (mask) moves[nrMoves++] = Move(mask.get_square_pop(), enpas(), MoveTypes::ENPASSANT);
             }
         }
@@ -364,7 +354,7 @@ int Board::gen_legal_moves(MoveList &moves) {
 
         /// pinned pawns
 
-        b1 = pinned & get_bb_piece(PieceTypes::PAWN, color) & ~rank_mask[rank7];
+        b1 = pinned & our_pawns & ~rank_mask[rank7];
         while (b1) {
             Square sq = b1.get_square_pop();
             if constexpr (noisy_movegen) {
@@ -388,7 +378,7 @@ int Board::gen_legal_moves(MoveList &moves) {
             }
         }
         if constexpr (noisy_movegen) {
-            b1 = pinned & get_bb_piece(PieceTypes::PAWN, color) & rank_mask[rank7];
+            b1 = pinned & our_pawns & rank_mask[rank7];
             while (b1) {
                 Square sq = b1.get_square_pop();
                 b2 = attacks::pawnAttacksMask[color][sq] & capMask & line_mask[king][sq];
@@ -427,7 +417,7 @@ int Board::gen_legal_moves(MoveList &moves) {
     }
 
     int fileA = (color == WHITE ? 0 : 7), fileH = 7 - fileA;
-    b1 = get_bb_piece(PieceTypes::PAWN, color) & notPinned & ~rank_mask[rank7];
+    b1 = our_pawns & notPinned & ~rank_mask[rank7];
 
     if constexpr (quiet_movegen) {
         b2 = shift_mask<NORTH>(color, b1) & ~all; /// single push
@@ -458,7 +448,7 @@ int Board::gen_legal_moves(MoveList &moves) {
             moves[nrMoves++] = Move(shift_square<SOUTHWEST>(color, sq), sq, NO_TYPE);
         }
 
-        b1 = get_bb_piece(PieceTypes::PAWN, color) & notPinned & rank_mask[rank7];
+        b1 = our_pawns & notPinned & rank_mask[rank7];
         b2 = shift_mask<NORTH>(color, b1) & quietMask;
         while (b2) {
             Square sq = b2.get_square_pop();

@@ -154,6 +154,7 @@ void Board::set_fen(const std::string fen, HistoricalState& next_state) {
     move_index() = nr;
 
     get_pinned_pieces_and_checkers();
+    get_threats(turn);
 }
 
 void Board::set_frc_side(bool color, int idx) {
@@ -269,4 +270,5 @@ void Board::set_dfrc(int idx, HistoricalState& next_state) {
     half_moves() = 0;
     move_index() = 1;
     get_pinned_pieces_and_checkers();
+    get_threats(turn);
 }

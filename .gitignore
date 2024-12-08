@@ -14,5 +14,5 @@ gmon.out
 *.gcda
 *.profraw
 *.profdata
-src/perf.data
-src/perf.data.old
+src/perf.*
+src/Clover.*
