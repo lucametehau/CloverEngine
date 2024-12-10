@@ -22,7 +22,7 @@
 class HistoricalState {
 public:
     Square enPas;
-    uint8_t castleRights;
+    MultiArray<Square, 2, 2> rook_sq;
     Piece captured;
     uint16_t halfMoves, moveIndex;
     Bitboard checkers, pinnedPieces;
@@ -40,8 +40,6 @@ public:
     HistoricalState* state;
 
     std::array<Piece, 64> board;
-    MultiArray<Square, 2, 2> rookSq;    
-    MultiArray<uint8_t, 2, 64> castleRightsDelta;
 
     uint16_t ply, game_ply;
 
@@ -68,9 +66,9 @@ public:
     Square& enpas() { return state->enPas; }
     uint16_t& half_moves() { return state->halfMoves; }
     uint16_t& move_index() { return state->moveIndex; }
-    uint8_t& castle_rights() { return state->castleRights; }
     Piece& captured() { return state->captured; }
     Threats& threats() { return state->threats; }
+    Square& rook_sq(bool color, bool side) { return state->rook_sq[color][side]; }
 
     Bitboard get_bb_color(const bool color) const { return pieces[color]; }
     Bitboard get_bb_piece(const Piece piece_type, const bool color) const { return bb[6 * color + piece_type]; }
@@ -240,7 +238,8 @@ public:
         if (pt == PieceTypes::PAWN) pawn_key() ^= hashKey[piece][sq];
         else {
             mat_key(color) ^= hashKey[piece][sq];
-            if (pt == PieceTypes::ROOK) castle_rights() &= castleRightsDelta[color][sq];
+            if (pt == PieceTypes::ROOK && (sq == rook_sq(color, 0) || sq == rook_sq(color, 1)))
+                rook_sq(color, get_king(color) < sq) = NO_SQUARE;
         }
 
         pieces[color] ^= (1ull << sq);

@@ -28,6 +28,7 @@ uint64_t perft(Board& board, int depth) {
     HistoricalState next_state;
     for (int i = 0; i < nrMoves; i++) {
         Move move = moves[i];
+        //Board new_board = board;
         board.make_move(move, next_state);
         uint64_t x;
         x = perft<false>(board, depth - 1);

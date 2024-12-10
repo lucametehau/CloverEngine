@@ -47,9 +47,12 @@ void Board::make_move(const Move move, HistoricalState& next_state) { /// assumi
 
         move_from_to(from, to);
         /// moved a castle rook
-        if (piece.type() == PieceTypes::ROOK || piece.type() == PieceTypes::KING)
-            castle_rights() &= castleRightsDelta[piece.color()][from];
-
+        if (piece.type() == PieceTypes::ROOK && (from == rook_sq(turn, 0) || from == rook_sq(turn, 1))) {
+            rook_sq(turn, get_king(turn) < from) = NO_SQUARE;
+        }
+        else if (piece.type() == PieceTypes::KING)
+            rook_sq(turn, 0) = rook_sq(turn, 1) = NO_SQUARE;
+        
         captured() = piece_cap;
 
         /// double push
@@ -88,7 +91,7 @@ void Board::make_move(const Move move, HistoricalState& next_state) { /// assumi
         move_from_to(rFrom, rTo);
         move_from_to(from, to);
         captured() = NO_PIECE;
-        castle_rights() &= castleRightsDelta[piece.color()][from];
+        rook_sq(turn, 0) = rook_sq(turn, 1) = NO_SQUARE;
     }
 
     break;
@@ -112,8 +115,10 @@ void Board::make_move(const Move move, HistoricalState& next_state) { /// assumi
 
     break;
     }
-    
-    key() ^= castleKeyModifier[castle_rights() ^ state->prev->castleRights];
+
+    if (state->rook_sq != state->prev->rook_sq) {
+        key() ^= castle_rights_key(state->rook_sq) ^ castle_rights_key(state->prev->rook_sq);
+    }
 
     turn ^= 1;
     ply++;
@@ -317,21 +322,21 @@ int Board::gen_legal_moves(MoveList &moves) {
         if constexpr (quiet_movegen) {
             if (!chess960) {
                 /// castle queen side
-                if (castle_rights() & (1 << (2 * color))) {
+                if (rook_sq(color, 0) != NO_SQUARE) {
                     if (!(attacked & Bitboard(7ULL << (king - 2))) && !(all & Bitboard(7ULL << (king - 3)))) {
                         moves[nrMoves++] = Move(king, king - 4, MoveTypes::CASTLE);
                     }
                 }
                 /// castle king side
-                if (castle_rights() & (1 << (2 * color + 1))) {
+                if (rook_sq(color, 1) != NO_SQUARE) {
                     if (!(attacked & Bitboard(7ULL << king)) && !(all & Bitboard(3ULL << (king + 1)))) {
                         moves[nrMoves++] = Move(king, king + 3, MoveTypes::CASTLE);
                     }
                 }
             }
             else {
-                if ((castle_rights() >> (2 * color)) & 1) {
-                    Square kingTo = Squares::C1.mirror(color), rook = rookSq[color][0], rookTo = Squares::D1.mirror(color);
+                if (rook_sq(color, 0) != NO_SQUARE) {
+                    Square kingTo = Squares::C1.mirror(color), rook = rook_sq(color, 0), rookTo = Squares::D1.mirror(color);
                     if (!(attacked & (between_mask[king][kingTo] | Bitboard(kingTo))) &&
                         (!((all ^ Bitboard(rook)) & (between_mask[king][kingTo] | Bitboard(kingTo))) || king == kingTo) &&
                         (!((all ^ Bitboard(king)) & (between_mask[rook][rookTo] | Bitboard(rookTo))) || rook == rookTo) &&
@@ -340,8 +345,8 @@ int Board::gen_legal_moves(MoveList &moves) {
                     }
                 }
                 /// castle king side
-                if ((castle_rights() >> (2 * color + 1)) & 1) {
-                    Square kingTo = Squares::G1.mirror(color), rook = rookSq[color][1], rookTo = Squares::F1.mirror(color);
+                if (rook_sq(color, 1) != NO_SQUARE) {
+                    Square kingTo = Squares::G1.mirror(color), rook = rook_sq(color, 1), rookTo = Squares::F1.mirror(color);
                     if (!(attacked & (between_mask[king][kingTo] | Bitboard(kingTo))) &&
                         (!((all ^ Bitboard(rook)) & (between_mask[king][kingTo] | Bitboard(kingTo))) || king == kingTo) &&
                         (!((all ^ Bitboard(king)) & (between_mask[rook][rookTo] | Bitboard(rookTo))) || rook == rookTo) &&
@@ -545,7 +550,7 @@ bool is_legal(Board& board, Move move) {
         if (from != king || board.checkers()) return 0;
         bool side = (to > from); /// queen side or king side
 
-        if (board.castle_rights() & (1 << (2 * us + side))) { /// can i castle
+        if (board.rook_sq(us, side) != NO_SQUARE) { /// can i castle
             const Square rFrom = to, rTo = (side ? Squares::F1 : Squares::D1).mirror(us);
             to = (side ? Squares::G1 : Squares::C1).mirror(us);
             Bitboard mask = between_mask[from][to] | Bitboard(to);

@@ -20,10 +20,11 @@ std::string Board::fen() {
     fen += (turn == WHITE ? "w" : "b");
     fen += " ";
     const std::string castle_ch = "qkQK";
+    bool has_castling_rights = false;
     for (int i = 3; i >= 0; i--) {
-        if (castle_rights() & (1 << i)) fen += castle_ch[i];
+        if (rook_sq(i / 2, i % 2) != NO_SQUARE) fen += castle_ch[i], has_castling_rights = true;
     }
-    if (!castle_rights()) fen += "-";
+    if (!has_castling_rights) fen += "-";
     fen += " ";
     if (enpas() != NO_SQUARE) {
         fen += char('a' + enpas() % 8);
@@ -66,27 +67,27 @@ void Board::set_fen(const std::string fen, HistoricalState& next_state) {
 
     key() ^= turn;
 
-    castle_rights() = 0;
     ind += 2;
-    rookSq[WHITE][0] = rookSq[WHITE][1] = rookSq[BLACK][0] = rookSq[BLACK][1] = 64;
+    rook_sq(WHITE, 0) = rook_sq(WHITE, 1) = rook_sq(BLACK, 0) = rook_sq(BLACK, 1) = NO_SQUARE;
     if (fen[ind] != 'K' && fen[ind] != 'Q' && fen[ind] != 'k' && fen[ind] != 'q' && fen[ind] != '-') { // most likely chess 960
         int kingSq = get_king(WHITE);
         if ('A' <= fen[ind] && fen[ind] <= 'H' && fen[ind] - 'A' > kingSq)
-            castle_rights() |= (1 << 3), key() ^= castleKey[WHITE][1], rookSq[WHITE][1] = fen[ind++] - 'A';
+            key() ^= castleKey[WHITE][1], rook_sq(WHITE, 1) = fen[ind++] - 'A';
         if ('A' <= fen[ind] && fen[ind] <= 'H' && kingSq > fen[ind] - 'A')
-            castle_rights() |= (1 << 2), key() ^= castleKey[WHITE][0], rookSq[WHITE][0] = fen[ind++] - 'A';
+            key() ^= castleKey[WHITE][0], rook_sq(WHITE, 0) = fen[ind++] - 'A';
         kingSq = get_king(BLACK);
         if ('a' <= fen[ind] && fen[ind] <= 'h' && 56 + fen[ind] - 'a' > kingSq)
-            castle_rights() |= (1 << 1), key() ^= castleKey[BLACK][1], rookSq[BLACK][1] = 56 + fen[ind++] - 'a';
+            key() ^= castleKey[BLACK][1], rook_sq(BLACK, 1) = 56 + fen[ind++] - 'a';
         if ('a' <= fen[ind] && fen[ind] <= 'h' && kingSq > 56 + fen[ind] - 'a')
-            castle_rights() |= (1 << 0), key() ^= castleKey[BLACK][0], rookSq[BLACK][0] = 56 + fen[ind++] - 'a';
+            key() ^= castleKey[BLACK][0], rook_sq(BLACK, 0) = 56 + fen[ind++] - 'a';
         chess960 = true;
     }
     else {
         const std::string castle_ch = "qkQK";
+        uint8_t castle_rights = 0;
         for (int i = 3; i >= 0; i--) {
             if (fen[ind] == castle_ch[i]) {
-                castle_rights() |= (1 << i);
+                castle_rights |= (1 << i);
                 key() ^= castleKey[i / 2][i % 2];
                 ind++;
             }
@@ -104,8 +105,8 @@ void Board::set_fen(const std::string fen, HistoricalState& next_state) {
         for (auto& rook : { a, b }) {
             if (rook != NO_SQUARE) {
                 if (rook % 8 && rook % 8 != 7) chess960 = true;
-                if (rook < get_king(WHITE) && (castle_rights() & 4)) rookSq[WHITE][0] = rook;
-                if (get_king(WHITE) < rook && (castle_rights() & 8)) rookSq[WHITE][1] = rook;
+                if (rook < get_king(WHITE) && (castle_rights & 4)) rook_sq(WHITE, 0) = rook;
+                if (get_king(WHITE) < rook && (castle_rights & 8)) rook_sq(WHITE, 1) = rook;
             }
         }
         a = NO_SQUARE, b = NO_SQUARE;
@@ -118,20 +119,11 @@ void Board::set_fen(const std::string fen, HistoricalState& next_state) {
         for (auto& rook : { a, b }) {
             if (rook != NO_SQUARE) {
                 if (rook % 8 && rook % 8 != 7) chess960 = true;
-                if (rook < get_king(BLACK) && (castle_rights() & 1)) rookSq[BLACK][0] = rook;
-                if (get_king(BLACK) < rook && (castle_rights() & 2)) rookSq[BLACK][1] = rook;
+                if (rook < get_king(BLACK) && (castle_rights & 1)) rook_sq(BLACK, 0) = rook;
+                if (get_king(BLACK) < rook && (castle_rights & 2)) rook_sq(BLACK, 1) = rook;
             }
         }
     }
-    fill_multiarray<uint8_t, 2, 64>(castleRightsDelta, 15);
-    if (rookSq[BLACK][0] != NO_SQUARE)
-        castleRightsDelta[BLACK][rookSq[BLACK][0]] = 14, castleRightsDelta[BLACK][get_king(BLACK)] = 12;
-    if (rookSq[BLACK][1] != NO_SQUARE)
-        castleRightsDelta[BLACK][rookSq[BLACK][1]] = 13, castleRightsDelta[BLACK][get_king(BLACK)] = 12;
-    if (rookSq[WHITE][0] != NO_SQUARE)
-        castleRightsDelta[WHITE][rookSq[WHITE][0]] = 11, castleRightsDelta[WHITE][get_king(WHITE)] = 3;
-    if (rookSq[WHITE][1] != NO_SQUARE)
-        castleRightsDelta[WHITE][rookSq[WHITE][1]] = 7, castleRightsDelta[WHITE][get_king(WHITE)] = 3;
     
     ind++;
     if (fen[ind] != '-') {
@@ -225,8 +217,6 @@ void Board::set_dfrc(int idx, HistoricalState& next_state) {
     turn = WHITE;
     key() ^= turn;
 
-    castle_rights() = 15;
-
     Square a = NO_SQUARE, b = NO_SQUARE;
     for (Square i = Squares::A1; i <= Squares::H1; i++) {
         if (piece_at(i) == Pieces::WhiteRook) {
@@ -238,8 +228,8 @@ void Board::set_dfrc(int idx, HistoricalState& next_state) {
     for (auto& rook : { a, b }) {
         if (rook != NO_SQUARE) {
             if (rook % 8 && rook % 8 != 7) chess960 = true;
-            if (rook < get_king(WHITE) && (castle_rights() & 4)) rookSq[WHITE][0] = rook;
-            if (get_king(WHITE) < rook && (castle_rights() & 8)) rookSq[WHITE][1] = rook;
+            if (rook < get_king(WHITE)) rook_sq(WHITE, 0) = rook;
+            if (get_king(WHITE) < rook) rook_sq(WHITE, 1) = rook;
         }
     }
     a = NO_SQUARE, b = NO_SQUARE;
@@ -252,19 +242,10 @@ void Board::set_dfrc(int idx, HistoricalState& next_state) {
     for (auto& rook : { a, b }) {
         if (rook != NO_SQUARE) {
             if (rook % 8 && rook % 8 != 7) chess960 = true;
-            if (rook < get_king(BLACK) && (castle_rights() & 1)) rookSq[BLACK][0] = rook;
-            if (get_king(BLACK) < rook && (castle_rights() & 2)) rookSq[BLACK][1] = rook;
+            if (rook < get_king(BLACK)) rook_sq(BLACK, 0) = rook;
+            if (get_king(BLACK) < rook) rook_sq(BLACK, 1) = rook;
         }
     }
-    fill_multiarray<uint8_t, 2, 64>(castleRightsDelta, 15);
-    if (rookSq[BLACK][0] != NO_SQUARE)
-        castleRightsDelta[BLACK][rookSq[BLACK][0]] = 14, castleRightsDelta[BLACK][get_king(BLACK)] = 12;
-    if (rookSq[BLACK][1] != NO_SQUARE)
-        castleRightsDelta[BLACK][rookSq[BLACK][1]] = 13, castleRightsDelta[BLACK][get_king(BLACK)] = 12;
-    if (rookSq[WHITE][0] != NO_SQUARE)
-        castleRightsDelta[WHITE][rookSq[WHITE][0]] = 11, castleRightsDelta[WHITE][get_king(WHITE)] = 3;
-    if (rookSq[WHITE][1] != NO_SQUARE)
-        castleRightsDelta[WHITE][rookSq[WHITE][1]] = 7, castleRightsDelta[WHITE][get_king(WHITE)] = 3;
 
     enpas() = NO_SQUARE;
     half_moves() = 0;

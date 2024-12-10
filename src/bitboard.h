@@ -31,6 +31,9 @@ public:
     Bitboard operator | (const Bitboard &other) const { return bb | other.bb; }
     Bitboard operator & (const Bitboard &other) const { return bb & other.bb; }
     Bitboard operator ^ (const Bitboard &other) const { return bb ^ other.bb; }
+    Bitboard operator | (const unsigned long long &other) const { return bb | other; }
+    Bitboard operator & (const unsigned long long &other) const { return bb & other; }
+    Bitboard operator ^ (const unsigned long long &other) const { return bb ^ other; }
     Bitboard operator << (const int8_t shift) const { return bb << shift; }
     Bitboard operator >> (const int8_t shift) const { return bb >> shift; }
     Bitboard operator ~ () const { return ~bb; }
@@ -38,6 +41,9 @@ public:
     Bitboard& operator |= (const Bitboard &other) { bb |= other.bb; return *this; }
     Bitboard& operator &= (const Bitboard &other) { bb &= other.bb; return *this; }
     Bitboard& operator ^= (const Bitboard &other) { bb ^= other.bb; return *this; }
+    Bitboard& operator |= (const unsigned long long &other) { bb |= other; return *this; }
+    Bitboard& operator &= (const unsigned long long &other) { bb &= other; return *this; }
+    Bitboard& operator ^= (const unsigned long long &other) { bb ^= other; return *this; }
 
     Bitboard& set_bit(Square sq) { bb |= (1ull << sq); return *this; }
     Bitboard& erase_bit(Square sq) { bb &= ~(1ull << sq); return *this; }
