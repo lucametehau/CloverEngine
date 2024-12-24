@@ -90,6 +90,10 @@ enum {
     SOUTHWEST_ID, SOUTHEAST_ID
 };
 
+enum {
+    MOVEGEN_NOISY = 1, MOVEGEN_QUIET, MOVEGEN_ALL
+};
+
 constexpr int HALFMOVES = 100;
 constexpr int INF = 32000;
 constexpr int VALUE_NONE = INF + 10;
@@ -146,6 +150,13 @@ inline int16_t net_index(Piece piece, Square sq, Square kingSq, bool side) {
     return 64 * 12 * kingIndTable[kingSq.mirror(side)] + 
            64 * (piece + side * (piece >= 6 ? -6 : +6)) + 
            (sq.mirror(side) ^ (7 * ((kingSq >> 2) & 1))); // kingSq should be ^7, if kingSq&7 >= 4
+}
+
+inline uint64_t castle_rights_key(MultiArray<Square, 2, 2>& rook_sq) {
+    return (castleKey[BLACK][0] * (rook_sq[BLACK][0] != NO_SQUARE)) ^ 
+           (castleKey[BLACK][1] * (rook_sq[BLACK][1] != NO_SQUARE)) ^
+           (castleKey[WHITE][0] * (rook_sq[WHITE][0] != NO_SQUARE)) ^ 
+           (castleKey[WHITE][1] * (rook_sq[WHITE][1] != NO_SQUARE));
 }
 
 inline bool recalc(Square from, Square to, bool side) {

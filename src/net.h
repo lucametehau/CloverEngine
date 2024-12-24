@@ -406,17 +406,17 @@ public:
                 else {
                     KingBucketState* state = &cached_states[side][get_king_bucket_cache_index(king_sq, side)];
                     clear_updates();
-                    for (Piece i = Pieces::BlackPawn; i <= Pieces::WhiteKing; i++) {
-                        Bitboard prev = state->bb[i];
-                        Bitboard curr = board.bb[i];
+                    for (Piece p = Pieces::BlackPawn; p <= Pieces::WhiteKing; p++) {
+                        Bitboard prev = state->bb[p];
+                        Bitboard curr = board.bb[p];
 
                         Bitboard b(curr & ~prev); // additions
-                        while (b) add_input(net_index(i, b.get_square_pop(), king_sq, side));
+                        while (b) add_input(net_index(p, b.get_square_pop(), king_sq, side));
 
                         b = prev & ~curr; // removals
-                        while (b) remove_input(net_index(i, b.get_square_pop(), king_sq, side));
+                        while (b) remove_input(net_index(p, b.get_square_pop(), king_sq, side));
 
-                        state->bb[i] = curr;
+                        state->bb[p] = curr;
                     }
                     apply_updates(state->output, state->output);
                     memcpy(&output_history[hist_size - 1][side * SIDE_NEURONS], state->output, SIDE_NEURONS * sizeof(int16_t));

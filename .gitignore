@@ -9,9 +9,10 @@
 bin
 .vs
 gmon.out
-search.cpp
 *.txt
 *.ilk
 *.gcda
 *.profraw
 *.profdata
+src/perf.*
+src/Clover.*

@@ -87,7 +87,7 @@ void generateFens(SearchThread &thread_data, std::atomic<uint64_t>& sumFens, std
 
             MoveList moves;
 
-            int nrMoves = thread_data.board.gen_legal_moves(moves);
+            int nrMoves = thread_data.board.gen_legal_moves<MOVEGEN_ALL>(moves);
 
             if (!nrMoves) {
                 if (thread_data.board.checkers()) {
