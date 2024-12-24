@@ -22,11 +22,12 @@
 class HistoricalState {
 public:
     Square enPas;
-    uint8_t castleRights;
+    MultiArray<Square, 2, 2> rook_sq;
     Piece captured;
     uint16_t halfMoves, moveIndex;
     Bitboard checkers, pinnedPieces;
     uint64_t key, pawn_key, mat_key[2];
+    Threats threats;
 
     HistoricalState* prev;
     HistoricalState* next;
@@ -39,8 +40,6 @@ public:
     HistoricalState* state;
 
     std::array<Piece, 64> board;
-    MultiArray<Square, 2, 2> rookSq;    
-    MultiArray<uint8_t, 2, 64> castleRightsDelta;
 
     uint16_t ply, game_ply;
 
@@ -67,11 +66,12 @@ public:
     Square& enpas() { return state->enPas; }
     uint16_t& half_moves() { return state->halfMoves; }
     uint16_t& move_index() { return state->moveIndex; }
-    uint8_t& castle_rights() { return state->castleRights; }
     Piece& captured() { return state->captured; }
+    Threats& threats() { return state->threats; }
+    Square& rook_sq(bool color, bool side) { return state->rook_sq[color][side]; }
 
-    Bitboard get_bb_piece(const Piece piece, const bool color) const { return bb[Piece(piece, color)]; }
     Bitboard get_bb_color(const bool color) const { return pieces[color]; }
+    Bitboard get_bb_piece(const Piece piece_type, const bool color) const { return bb[6 * color + piece_type]; }
     Bitboard get_bb_piece_type(const Piece piece_type) const {  return get_bb_piece(piece_type, WHITE) | get_bb_piece(piece_type, BLACK); }
 
     Bitboard diagonal_sliders(const bool color) { return get_bb_piece(PieceTypes::BISHOP, color) | get_bb_piece(PieceTypes::QUEEN, color); }
@@ -85,20 +85,75 @@ public:
             (attacks::genAttacksKing(sq) & get_bb_piece(PieceTypes::KING, color));
     }
 
-    Bitboard get_pinned_pieces() {
+    void get_pinned_pieces_and_checkers() {
         const bool enemy = turn ^ 1;
         const Square king = get_king(turn);
         Bitboard us = pieces[turn], them = pieces[enemy];
-        Bitboard pinned(0ull); /// squares attacked by enemy / pinned pieces
+        pinned_pieces() = checkers() = Bitboard(0ull);
         Bitboard mask = (attacks::genAttacksRook(them, king) & orthogonal_sliders(enemy)) | 
                         (attacks::genAttacksBishop(them, king) & diagonal_sliders(enemy));
 
         while (mask) {
-            Bitboard b2 = us & between_mask[mask.get_square_pop()][king];
-            if (b2.count() == 1) pinned ^= b2;
+            Square sq = mask.get_square_pop();
+            Bitboard b2 = us & between_mask[sq][king];
+            if (b2.count() == 1) pinned_pieces() |= b2;
+            else if (!b2) checkers() |= (1ull << sq);
         }
 
-        return pinned;
+        checkers() |= (attacks::genAttacksKnight(king) & get_bb_piece(PieceTypes::KNIGHT, enemy)) | 
+                      (attacks::genAttacksPawn(turn, king) & get_bb_piece(PieceTypes::PAWN, enemy));
+    }
+    
+    void get_threats(const bool color) {
+        const bool enemy = 1 ^ color;
+        Bitboard our_pieces = get_bb_color(color) ^ get_bb_piece(PieceTypes::PAWN, color);
+        Bitboard att = attacks::getPawnAttacks(enemy, get_bb_piece(PieceTypes::PAWN, enemy));
+        Bitboard threatened_pieces = att & our_pieces;
+        Bitboard pieces, att_mask;
+        Bitboard all = get_bb_color(WHITE) | get_bb_color(BLACK);
+
+        threats().threats_pieces[PieceTypes::PAWN] = att;
+        threats().threats_pieces[PieceTypes::KNIGHT] = 0;
+        threats().threats_pieces[PieceTypes::BISHOP] = 0;
+        threats().threats_pieces[PieceTypes::ROOK] = 0;
+        our_pieces ^= get_bb_piece(PieceTypes::KNIGHT, color) | get_bb_piece(PieceTypes::BISHOP, color);
+
+        pieces = get_bb_piece(PieceTypes::KNIGHT, enemy);
+        while (pieces) {
+            att_mask = attacks::genAttacksKnight(pieces.get_square_pop());
+            att |= att_mask;
+            threats().threats_pieces[PieceTypes::KNIGHT] |= att_mask;
+            threatened_pieces |= att & our_pieces;
+        }
+
+        all ^= Bitboard(get_king(color));
+
+        pieces = get_bb_piece(PieceTypes::BISHOP, enemy);
+        while (pieces) {
+            att_mask = attacks::genAttacksBishop(all, pieces.get_square_pop());
+            att |= att_mask;
+            threats().threats_pieces[PieceTypes::BISHOP] |= att_mask;
+            threatened_pieces |= att & our_pieces;
+        }
+
+        our_pieces ^= get_bb_piece(PieceTypes::ROOK, color);
+
+        pieces = get_bb_piece(PieceTypes::ROOK, enemy);
+        while (pieces) {
+            att_mask = attacks::genAttacksRook(all, pieces.get_square_pop());
+            att |= att_mask;
+            threats().threats_pieces[PieceTypes::ROOK] |= att_mask;
+            threatened_pieces |= att & our_pieces;
+        }
+
+        pieces = get_bb_piece(PieceTypes::QUEEN, enemy);
+        while (pieces) {
+            att |= attacks::genAttacksQueen(all, pieces.get_square_pop());
+        }
+
+        att |= attacks::genAttacksKing(get_king(enemy));
+        threats().all_threats = att;
+        threats().threatened_pieces = threatened_pieces;
     }
 
     Bitboard get_pawn_attacks(const bool color) {
@@ -127,9 +182,8 @@ public:
     void make_null_move(HistoricalState& state);
     void undo_null_move();
 
+    template<int movegen_type>
     int gen_legal_moves(MoveList &moves);
-    int gen_legal_noisy_moves(MoveList &moves);
-    int gen_legal_quiet_moves(MoveList &moves);
 
     bool has_non_pawn_material(const bool color) {
         return (get_bb_piece(PieceTypes::KING, color) ^ get_bb_piece(PieceTypes::PAWN, color)) != get_bb_color(color);
@@ -139,16 +193,30 @@ public:
     NetInput to_netinput() {
         NetInput ans;
         for (auto color : {WHITE, BLACK}) {
-            for (Piece i = Pieces::BlackPawn; i <= Pieces::WhiteKing; i++) {
-                Bitboard b = bb[i];
-                while (b) {
-                    ans.ind[color].push_back(net_index(i, b.get_lsb_square(), get_king(color), color));
-                    b ^= b.lsb();
+            for (auto c : {WHITE, BLACK}) {
+                for (Piece pt = PieceTypes::PAWN; pt <= PieceTypes::KING; pt++) {
+                    Bitboard b = get_bb_piece(pt, c);
+                    while (b) {
+                        ans.ind[color].push_back(net_index(Piece(pt, c), b.get_lsb_square(), get_king(color), color));
+                        b ^= b.lsb();
+                    }
                 }
             }
         }
 
         return ans;
+    }
+
+    void move_from_to(Square from, Square to) {
+        const Piece piece = piece_at(from), pt = piece.type();
+        board[from] = NO_PIECE; board[to] = piece;
+
+        key() ^= hashKey[piece][from] ^ hashKey[piece][to];
+        if (pt == PieceTypes::PAWN) pawn_key() ^= hashKey[piece][from] ^ hashKey[piece][to];
+        else mat_key(piece.color()) ^= hashKey[piece][from] ^ hashKey[piece][to];
+
+        pieces[piece.color()] ^= (1ull << from) ^ (1ull << to);
+        bb[piece] ^= (1ULL << from) ^ (1ull << to);
     }
 
     void place_piece_at_sq(Piece piece, Square sq) {
@@ -159,6 +227,23 @@ public:
 
         pieces[piece.color()] |= (1ULL << sq);
         bb[piece] |= (1ULL << sq);
+    }
+
+    void erase_square(Square sq) {
+        const Piece piece = piece_at(sq), pt = piece.type();
+        const bool color = piece.color();
+        board[sq] = NO_PIECE;
+
+        key() ^= hashKey[piece][sq];
+        if (pt == PieceTypes::PAWN) pawn_key() ^= hashKey[piece][sq];
+        else {
+            mat_key(color) ^= hashKey[piece][sq];
+            if (pt == PieceTypes::ROOK && (sq == rook_sq(color, 0) || sq == rook_sq(color, 1)))
+                rook_sq(color, get_king(color) < sq) = NO_SQUARE;
+        }
+
+        pieces[color] ^= (1ull << sq);
+        bb[piece] ^= (1ULL << sq);
     }
 
     void set_fen(const std::string fen, HistoricalState& state);
@@ -178,7 +263,7 @@ public:
         const int num = (get_bb_color(WHITE) | get_bb_color(BLACK)).count();
         return num == 2 || 
             (num == 3 && (get_bb_piece_type(PieceTypes::BISHOP) || get_bb_piece_type(PieceTypes::KNIGHT))) ||
-            (num == 4 && (bb[Pieces::WhiteKnight].count() == 2 || bb[Pieces::BlackKnight].count() == 2));
+            (num == 4 && (get_bb_piece(PieceTypes::KNIGHT, WHITE).count() == 2 || get_bb_piece(PieceTypes::KNIGHT, BLACK).count() == 2));
     }
 
     bool is_repetition(const int ply) {
@@ -197,7 +282,7 @@ public:
     bool is_draw(const int ply) {
         if (half_moves() < 100 || !checkers()) return is_material_draw() || is_repetition(ply) || half_moves() >= 100;
         MoveList moves;
-        return gen_legal_moves(moves) > 0;
+        return gen_legal_moves<MOVEGEN_ALL>(moves) > 0;
     }
 
     bool has_upcoming_repetition(const int ply) {

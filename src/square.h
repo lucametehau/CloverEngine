@@ -8,22 +8,21 @@ private:
 public:
     constexpr Square() = default;
     constexpr Square(uint8_t sq) : sq(sq) {}
-    constexpr Square(int _sq) : sq{static_cast<uint8_t>(_sq)} {}
-    Square(uint8_t rank, uint8_t file) : sq(rank * 8 + file) {}
+    constexpr Square(uint8_t rank, uint8_t file) : sq(rank * 8 + file) {}
 
-    inline constexpr operator uint8_t() const { return sq; }
+    constexpr operator int() const { return sq; }
 
-    inline Square mirror(const bool side) const { return sq ^ (56 * !side); };
+    Square mirror(const bool side) const { return sq ^ (56 * !side); };
 
-    inline Square operator + (const Square &other) const { return sq + other.sq; }
-    inline Square operator - (const Square &other) const { return sq - other.sq; }
-    inline Square operator + (const int &other) const { return sq + other; }
-    inline Square operator - (const int &other) const { return sq - other; }
+    Square operator + (const Square &other) const { return sq + other.sq; }
+    Square operator - (const Square &other) const { return sq - other.sq; }
+    Square operator + (const int &other) const { return sq + other; }
+    Square operator - (const int &other) const { return sq - other; }
 
-    inline Square& operator += (const Square &other) { sq += other.sq; return *this; }
-    inline Square& operator -= (const Square &other) { sq -= other.sq; return *this; }
-    inline Square& operator ++ () { sq++; return *this; }
-    inline Square operator ++ (int) { Square temp = *this; sq++; return temp; }
+    Square& operator += (const Square &other) { sq += other.sq; return *this; }
+    Square& operator -= (const Square &other) { sq -= other.sq; return *this; }
+    Square& operator ++ () { sq++; return *this; }
+    Square operator ++ (int) { Square temp = *this; sq++; return temp; }
 };
 
 namespace Squares {

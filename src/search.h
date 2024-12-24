@@ -57,57 +57,10 @@ uint32_t probe_TB(Board& board, int depth) {
     return TB_RESULT_FAILED;
 }
 
-void get_threats(Threats& threats, Board& board, const bool us) {
-    const bool enemy = 1 ^ us;
-    Bitboard our_pieces = board.get_bb_color(us) ^ board.get_bb_piece(PieceTypes::PAWN, us);
-    Bitboard att = attacks::getPawnAttacks(enemy, board.get_bb_piece(PieceTypes::PAWN, enemy)), threatened_pieces = att & our_pieces;
-    Bitboard pieces, att_mask;
-    const Bitboard all = board.get_bb_color(WHITE) | board.get_bb_color(BLACK);
-
-    threats.threats_pieces[PieceTypes::PAWN] = att;
-    threats.threats_pieces[PieceTypes::KNIGHT] = threats.threats_pieces[PieceTypes::BISHOP] = threats.threats_pieces[PieceTypes::ROOK] = 0;
-    our_pieces ^= board.get_bb_piece(PieceTypes::KNIGHT, us) | board.get_bb_piece(PieceTypes::BISHOP, us);
-
-    pieces = board.get_bb_piece(PieceTypes::KNIGHT, enemy);
-    while (pieces) {
-        att_mask = attacks::genAttacksKnight(pieces.get_square_pop());
-        att |= att_mask;
-        threats.threats_pieces[PieceTypes::KNIGHT] |= att_mask;
-        threatened_pieces |= att & our_pieces;
-    }
-
-    pieces = board.get_bb_piece(PieceTypes::BISHOP, enemy);
-    while (pieces) {
-        att_mask = attacks::genAttacksBishop(all, pieces.get_square_pop());
-        att |= att_mask;
-        threats.threats_pieces[PieceTypes::BISHOP] |= att_mask;
-        threatened_pieces |= att & our_pieces;
-    }
-
-    our_pieces ^= board.get_bb_piece(PieceTypes::ROOK, us);
-
-    pieces = board.get_bb_piece(PieceTypes::ROOK, enemy);
-    while (pieces) {
-        att_mask = attacks::genAttacksRook(all, pieces.get_square_pop());
-        att |= att_mask;
-        threats.threats_pieces[PieceTypes::ROOK] |= att_mask;
-        threatened_pieces |= att & our_pieces;
-    }
-
-    pieces = board.get_bb_piece(PieceTypes::QUEEN, enemy);
-    while (pieces) {
-        att |= attacks::genAttacksQueen(all, pieces.get_square_pop());
-    }
-
-    att |= attacks::genAttacksKing(board.get_king(enemy));
-    threats.all_threats = att;
-    threats.threatened_pieces = threatened_pieces;
-}
-
 std::string getSanString(Board& board, Move move, HistoricalState& next_state) {
     if (move.get_type() == MoveTypes::CASTLE) return move.get_to() > move.get_from() ? "O-O" : "O-O-O";
     int from = move.get_from(), to = move.get_to();
-    Piece prom = move.get_type() == MoveTypes::PROMOTION ? move.get_prom() + PieceTypes::KNIGHT + 6 : static_cast<Piece>(0), piece = board.piece_type_at(from);
+    Piece prom = move.is_promo() ? move.get_prom() + PieceTypes::KNIGHT + 6 : static_cast<Piece>(0), piece = board.piece_type_at(from);
     std::string san;
 
     if (piece != PieceTypes::PAWN) san += piece_char[piece + 6];
@@ -186,8 +139,6 @@ int SearchThread::quiesce(int alpha, int beta, StackEntry* stack) {
 
     HistoricalState next_state;
     const bool in_check = m_board.checkers() != 0;
-    Threats threats;
-    if (in_check) get_threats(threats, m_board, turn);
     int futility_base;
 
     if (in_check) {
@@ -223,7 +174,7 @@ int SearchThread::quiesce(int alpha, int beta, StackEntry* stack) {
         !in_check && see(m_board, ttMove, 0) ? ttMove : NULLMOVE, 
         NULLMOVE, 
         0, 
-        threats
+        m_board.threats()
     );
 
     Move move;
@@ -236,7 +187,7 @@ int SearchThread::quiesce(int alpha, int beta, StackEntry* stack) {
             // futility pruning
             if (futility_base > -MATE) {
                 const int value = futility_base + seeVal[m_board.get_captured_type(move)];
-                if (move.get_type() != MoveTypes::PROMOTION && value <= alpha) {
+                if (!move.is_promo() && value <= alpha) {
                     best = std::max(best, value);
                     continue;
                 }
@@ -360,9 +311,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
 
     HistoricalState next_state;
     const bool in_check = (m_board.checkers() != 0);
-    Threats threats;
-    get_threats(threats, m_board, turn);
-    const bool enemy_has_no_threats = !threats.threatened_pieces;
+    const bool enemy_has_no_threats = !m_board.threats().threatened_pieces;
     int raw_eval;
 
     if (in_check) { /// when in check, don't evaluate
@@ -449,7 +398,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
                     ttMove && m_board.is_noisy_move(ttMove) && see(m_board, ttMove, probcut_beta - static_eval) ? ttMove : NULLMOVE,
                     NULLMOVE,
                     probcut_beta - static_eval,
-                    threats
+                    m_board.threats()
                 );
 
                 Move move;
@@ -488,7 +437,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
         ttMove,
         stack->killer,
         -see_depth_coef * depth,
-        threats
+        m_board.threats()
     );
 
     Move move;
@@ -519,7 +468,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
 #endif
             if (best > -MATE && m_board.has_non_pawn_material(turn)) {
                 if (is_quiet) {
-                    history = m_histories.get_history_search(move, piece, threats.all_threats, turn, stack);
+                    history = m_histories.get_history_search(move, piece, m_board.threats().all_threats, turn, stack);
                     
                     // approximately the new depth for the next search
                     int new_depth = std::max(0, depth - lmr_red[std::min(63, depth)][std::min(63, played)] + improving + history / MoveloopHistDiv);
@@ -677,11 +626,11 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
                         stack->killer = bestMove;
                         if (nr_quiets || depth >= HistoryUpdateMinDepth)
                             m_histories.update_hist_quiet_move(bestMove, m_board.piece_at(bestMove.get_from()), 
-                                                               threats.all_threats, turn, stack, bonus * tried_count);
+                                                               m_board.threats().all_threats, turn, stack, bonus * tried_count);
                         for (int i = 0; i < nr_quiets; i++) {
                             const auto [move, tried_count] = quiets[i];
                             m_histories.update_hist_quiet_move(move, m_board.piece_at(move.get_from()), 
-                                                               threats.all_threats, turn, stack, malus * tried_count);
+                                                               m_board.threats().all_threats, turn, stack, malus * tried_count);
                         }
                     }
                     else {
