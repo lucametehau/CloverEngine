@@ -177,7 +177,7 @@ public:
                          100 * get_mat_corr_hist(turn, WHITE, white_mat_key) + 
                          100 * get_mat_corr_hist(turn, BLACK, black_mat_key);
         if ((stack - 1)->move && (stack - 2)->move) correction += 100 * get_cont_corr_hist(stack);
-        return eval + correction / 1024;
+        return eval + correction / 4096;
     }
 };
 
