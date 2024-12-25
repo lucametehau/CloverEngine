@@ -39,18 +39,7 @@ public:
     }
 };
 
-class CorrectionHistory {
-public:
-    int corr;
-    constexpr CorrectionHistory() = default;
-    constexpr CorrectionHistory(int corr) : corr(corr) {}
-    void update_corr_hist(const int w, const int delta) {
-        corr = (corr * (CorrHistScale - w) + CorrHistDiv * delta * w) / CorrHistScale;
-        corr = std::clamp(corr, -32 * CorrHistDiv, 32 * CorrHistDiv);
-    }
-
-    operator int() const { return corr; }
-};
+typedef History<1024> CorrectionHistory;
 
 class SearchMove {
 public:
@@ -176,19 +165,19 @@ public:
     }
 
     void update_corr_hist(const bool turn, const uint64_t pawn_key, const uint64_t white_mat_key, const uint64_t black_mat_key, StackEntry* stack, const int depth, const int delta) {
-        const int w = std::min(4 * (depth + 1) * (depth + 1), 1024);
-        get_corr_hist(turn, pawn_key).update_corr_hist(w, delta);
-        get_mat_corr_hist(turn, WHITE, white_mat_key).update_corr_hist(w, delta);
-        get_mat_corr_hist(turn, BLACK, black_mat_key).update_corr_hist(w, delta);
-        if ((stack - 1)->move && (stack - 2)->move) get_cont_corr_hist(stack).update_corr_hist(w, delta);
+        const int bonus = std::clamp(delta * depth / 8, -256, 256);
+        get_corr_hist(turn, pawn_key).update(bonus);
+        get_mat_corr_hist(turn, WHITE, white_mat_key).update(bonus);
+        get_mat_corr_hist(turn, BLACK, black_mat_key).update(bonus);
+        if ((stack - 1)->move && (stack - 2)->move) get_cont_corr_hist(stack).update(bonus);
     }
 
     const int get_corrected_eval(const int eval, const bool turn, const uint64_t pawn_key, const uint64_t white_mat_key, const uint64_t black_mat_key, StackEntry* stack) const {
-        int correction = 128 * get_corr_hist(turn, pawn_key) + 
-                         100 * get_mat_corr_hist(turn, WHITE, white_mat_key) + 
-                         100 * get_mat_corr_hist(turn, BLACK, black_mat_key);
-        if ((stack - 1)->move && (stack - 2)->move) correction += 100 * get_cont_corr_hist(stack);
-        return eval + correction / (256 * CorrHistDiv);
+        int correction = get_corr_hist(turn, pawn_key) + 
+                         get_mat_corr_hist(turn, WHITE, white_mat_key) + 
+                         get_mat_corr_hist(turn, BLACK, black_mat_key);
+        if ((stack - 1)->move && (stack - 2)->move) correction += get_cont_corr_hist(stack);
+        return eval + correction / 16;
     }
 };
 
