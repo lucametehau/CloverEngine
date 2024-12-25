@@ -173,11 +173,11 @@ public:
     }
 
     const int get_corrected_eval(const int eval, const bool turn, const uint64_t pawn_key, const uint64_t white_mat_key, const uint64_t black_mat_key, StackEntry* stack) const {
-        int correction = 128 * get_corr_hist(turn, pawn_key) + 
-                         100 * get_mat_corr_hist(turn, WHITE, white_mat_key) + 
-                         100 * get_mat_corr_hist(turn, BLACK, black_mat_key);
-        if ((stack - 1)->move && (stack - 2)->move) correction += 100 * get_cont_corr_hist(stack);
-        return eval + correction / 4096;
+        int correction = get_corr_hist(turn, pawn_key) + 
+                         get_mat_corr_hist(turn, WHITE, white_mat_key) + 
+                         get_mat_corr_hist(turn, BLACK, black_mat_key);
+        if ((stack - 1)->move && (stack - 2)->move) correction += get_cont_corr_hist(stack);
+        return eval + correction / 16;
     }
 };
 
