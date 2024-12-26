@@ -348,6 +348,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
     }();
     const bool is_ttmove_noisy = ttMove && m_board.is_noisy_move(ttMove);
     const bool bad_static_eval = static_eval <= alpha;
+    const bool complex = raw_eval * static_eval < 0 && abs(raw_eval - static_eval) > 30;
 
     (stack + 1)->killer = NULLMOVE;
 
@@ -378,7 +379,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
             if (!nullSearch && !stack->excluded && enemy_has_no_threats && m_board.has_non_pawn_material(turn) &&
                 eval >= beta + NMPEvalMargin * (depth <= 3) && eval >= static_eval
             ) {
-                int R = NMPReduction + depth / NMPDepthDiv + (eval - beta) / NMPEvalDiv + improving + is_ttmove_noisy;
+                int R = NMPReduction + depth / NMPDepthDiv + (eval - beta) / NMPEvalDiv + improving + is_ttmove_noisy - complex;
 
                 stack->move = NULLMOVE;
                 stack->piece = NO_PIECE;
