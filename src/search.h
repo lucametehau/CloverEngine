@@ -348,7 +348,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
     }();
     const bool is_ttmove_noisy = ttMove && m_board.is_noisy_move(ttMove);
     const bool bad_static_eval = static_eval <= alpha;
-    const bool complex = raw_eval * static_eval < 0 && abs(raw_eval - static_eval) > 30;
+    const bool complex = 100.0 * abs(raw_eval - static_eval) / static_eval > 40;
 
     (stack + 1)->killer = NULLMOVE;
 
