@@ -379,7 +379,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
             if (!nullSearch && !stack->excluded && enemy_has_no_threats && m_board.has_non_pawn_material(turn) &&
                 eval >= beta + NMPEvalMargin * (depth <= 3) && eval >= static_eval
             ) {
-                int R = NMPReduction + depth / NMPDepthDiv + (eval - beta) / NMPEvalDiv + improving + is_ttmove_noisy - complex;
+                int R = NMPReduction + depth / NMPDepthDiv + (eval - beta) / NMPEvalDiv + improving + is_ttmove_noisy;
 
                 stack->move = NULLMOVE;
                 stack->piece = NO_PIECE;
@@ -580,6 +580,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
             R -= was_pv && ttDepth >= depth; // reduce ex pv nodes with valuable info
             R += is_ttmove_noisy; // reduce if ttmove is noisy
             R += enemy_has_no_threats && !in_check && static_eval + LMRBadStaticEvalMargin <= alpha;
+            R -= complex;
 
             R = std::clamp(R, 1, new_depth); // clamp R
             score = -search<false, false, true>(-alpha - 1, -alpha, new_depth - R, stack + 1);
