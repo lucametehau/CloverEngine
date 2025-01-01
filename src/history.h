@@ -55,6 +55,7 @@ public:
     Piece piece;
     Move move, killer, excluded;
     int eval;
+    Bitboard threats; // for history
     MultiArray<History<16384>, 13, 64>* cont_hist;
 };
 

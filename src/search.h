@@ -198,6 +198,7 @@ int SearchThread::quiesce(int alpha, int beta, StackEntry* stack) {
         TT->prefetch(m_board.speculative_next_key(move));
         stack->move = move;
         stack->piece = m_board.piece_at(move.get_from());
+        stack->threats = m_board.threats().all_threats;
         stack->cont_hist = &m_histories.cont_history[!m_board.is_noisy_move(move)][stack->piece][move.get_to()];
 
         make_move(move, next_state);
@@ -356,6 +357,11 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
     /// also for cut nodes
     if (cutNode && depth >= IIRCutNodeDepth && (!ttHit || ttDepth + 4 <= depth)) depth -= IIRCutNodeReduction;
 
+    if ((stack - 1)->move && m_board.captured() != NO_PIECE) {
+        const int bonus = std::clamp(-10 * ((stack - 1)->eval + stack->eval), -1500, 1500) + 600;
+        m_histories.update_hist_move((stack - 1)->move, (stack - 1)->threats, 1 ^ turn, bonus);
+    }
+
     if constexpr (!pvNode) {
         if (!in_check) {
             // razoring
@@ -382,6 +388,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
 
                 stack->move = NULLMOVE;
                 stack->piece = NO_PIECE;
+                stack->threats = m_board.threats().all_threats;
                 stack->cont_hist = &m_histories.cont_history[0][NO_PIECE][0];
 
                 m_board.make_null_move(next_state);
@@ -408,6 +415,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
 
                     stack->move = move;
                     stack->piece = m_board.piece_at(move.get_from());
+                    stack->threats = m_board.threats().all_threats;
                     stack->cont_hist = &m_histories.cont_history[0][stack->piece][move.get_to()];
 
                     make_move(move, next_state);
@@ -540,6 +548,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
         TT->prefetch(m_board.speculative_next_key(move));
         stack->move = move;
         stack->piece = piece;
+        stack->threats = m_board.threats().all_threats;
         stack->cont_hist = &m_histories.cont_history[is_quiet][piece][to];
 
         make_move(move, next_state);
@@ -740,6 +749,7 @@ void SearchThread::start_search() {
         (m_stack - i)->cont_hist = &m_histories.cont_history[0][NO_PIECE][0];
         (m_stack - i)->eval = INF;
         (m_stack - i)->move = NULLMOVE;
+        (m_stack - i)->threats = Bitboard(0ull);
     }
 
     iterative_deepening();
