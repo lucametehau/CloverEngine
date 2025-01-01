@@ -357,7 +357,9 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
     /// also for cut nodes
     if (cutNode && depth >= IIRCutNodeDepth && (!ttHit || ttDepth + 4 <= depth)) depth -= IIRCutNodeReduction;
 
-    if ((stack - 1)->move && (stack - 1)->eval != INF && stack->eval != INF && m_board.captured() == NO_PIECE) {
+    if ((stack - 1)->move && (stack - 1)->eval != INF && stack->eval != INF && 
+        m_board.captured() == NO_PIECE && !(stack - 1)->move.is_promo() && (stack - 1)->move.get_type() != MoveTypes::ENPASSANT
+    ) {
         const int bonus = std::clamp(-10 * ((stack - 1)->eval + stack->eval), -1500, 1500) + 600;
         m_histories.update_hist_move((stack - 1)->move, (stack - 1)->threats, 1 ^ turn, bonus);
     }
