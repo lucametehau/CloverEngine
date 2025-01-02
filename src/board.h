@@ -26,7 +26,7 @@ public:
     Piece captured;
     uint16_t halfMoves, moveIndex;
     Bitboard checkers, pinnedPieces;
-    uint64_t key, pawn_key, mat_key[2];
+    uint64_t key, pawn_key, mat_key[2], minor_key, major_key;
     Threats threats;
 
     HistoricalState* prev;
@@ -61,6 +61,8 @@ public:
     uint64_t& key() { return state->key; }
     uint64_t& pawn_key() { return state->pawn_key; }
     uint64_t& mat_key(const bool color) { return state->mat_key[color]; }
+    uint64_t& minor_key() { return state->minor_key; }
+    uint64_t& major_key() { return state->major_key; }
     Bitboard& checkers() { return state->checkers; }
     Bitboard& pinned_pieces() { return state->pinnedPieces; }
     Square& enpas() { return state->enPas; }
@@ -209,11 +211,16 @@ public:
 
     void move_from_to(Square from, Square to) {
         const Piece piece = piece_at(from), pt = piece.type();
+        const uint64_t hash_delta = hashKey[piece][from] ^ hashKey[piece][to];
         board[from] = NO_PIECE; board[to] = piece;
 
-        key() ^= hashKey[piece][from] ^ hashKey[piece][to];
-        if (pt == PieceTypes::PAWN) pawn_key() ^= hashKey[piece][from] ^ hashKey[piece][to];
-        else mat_key(piece.color()) ^= hashKey[piece][from] ^ hashKey[piece][to];
+        key() ^= hash_delta;
+        if (pt == PieceTypes::PAWN) pawn_key() ^= hash_delta;
+        else {
+            mat_key(piece.color()) ^= hash_delta;
+            if (pt == PieceTypes::KNIGHT || pt == PieceTypes::BISHOP) minor_key() ^= hash_delta;
+            else major_key() ^= hash_delta;
+        }
 
         pieces[piece.color()] ^= (1ull << from) ^ (1ull << to);
         bb[piece] ^= (1ULL << from) ^ (1ull << to);
@@ -223,7 +230,11 @@ public:
         board[sq] = piece;
         key() ^= hashKey[piece][sq];
         if (piece.type() == PieceTypes::PAWN) pawn_key() ^= hashKey[piece][sq];
-        else mat_key(piece.color()) ^= hashKey[piece][sq];
+        else {
+            mat_key(piece.color()) ^= hashKey[piece][sq];
+            if (piece.type() == PieceTypes::KNIGHT || piece.type() == PieceTypes::BISHOP) minor_key() ^= hashKey[piece][sq];
+            else major_key() ^= hashKey[piece][sq];
+        }
 
         pieces[piece.color()] |= (1ULL << sq);
         bb[piece] |= (1ULL << sq);
@@ -238,8 +249,12 @@ public:
         if (pt == PieceTypes::PAWN) pawn_key() ^= hashKey[piece][sq];
         else {
             mat_key(color) ^= hashKey[piece][sq];
-            if (pt == PieceTypes::ROOK && (sq == rook_sq(color, 0) || sq == rook_sq(color, 1)))
-                rook_sq(color, get_king(color) < sq) = NO_SQUARE;
+            if (pt == PieceTypes::KNIGHT || pt == PieceTypes::BISHOP) minor_key() ^= hashKey[piece][sq];
+            else {
+                major_key() ^= hashKey[piece][sq];
+                if (pt == PieceTypes::ROOK && (sq == rook_sq(color, 0) || sq == rook_sq(color, 1)))
+                    rook_sq(color, get_king(color) < sq) = NO_SQUARE;
+            }
         }
 
         pieces[color] ^= (1ull << sq);
