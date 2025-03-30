@@ -644,7 +644,6 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
                     }
                     break;
                 }
-
                 if (depth >= 5 && depth <= 10 && -TB_WIN_SCORE < alpha && beta < TB_WIN_SCORE)
                     depth -= 1;
             }
