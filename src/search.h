@@ -530,7 +530,8 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
 
                 if (score < rBeta) ex = 1 + (!pvNode && rBeta - score > SEDoubleExtensionsMargin) + (!pvNode && !is_ttmove_noisy && rBeta - score > SETripleExtensionsMargin);
                 else if (rBeta >= beta) return rBeta; // multicut
-                else if (ttValue >= beta || ttValue <= alpha) ex = -1 - !pvNode; // negative extensions
+                else if (ttValue >= beta || ttValue <= alpha) ex = -2 - !pvNode; // negative extensions
+                else if (cutNode) ex = -2;
             }
             else if (in_check) ex = 1;
         }
