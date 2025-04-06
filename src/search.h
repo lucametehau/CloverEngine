@@ -647,10 +647,8 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
             }
         }
         
-        if(move != bestMove) {
-            if (is_quiet && nr_quiets < 32) quiets[nr_quiets++] = SearchMove(move, tried_count);
-            else if (!is_quiet && nr_noisies < 32) noisies[nr_noisies++] = SearchMove(move, tried_count);
-        }
+        if (is_quiet && nr_quiets < 32) quiets[nr_quiets++] = SearchMove(move, tried_count);
+        else if (!is_quiet && nr_noisies < 32) noisies[nr_noisies++] = SearchMove(move, tried_count);
     }
 
     if (!played) return in_check ? -INF + ply : 0;
