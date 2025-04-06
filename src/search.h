@@ -394,10 +394,11 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
             // probcut
             const int probcut_beta = beta + ProbcutMargin;
             if (depth >= ProbcutDepth && abs(beta) < MATE && !(ttHit && ttDepth >= depth - 3 && ttValue < probcut_beta)) {
+                const int probcut_threshold = (probcut_beta - static_eval) * 3 / 4;
                 Movepick picker(
-                    ttMove && m_board.is_noisy_move(ttMove) && see(m_board, ttMove, probcut_beta - static_eval) ? ttMove : NULLMOVE,
+                    ttMove && m_board.is_noisy_move(ttMove) && see(m_board, ttMove, probcut_threshold) ? ttMove : NULLMOVE,
                     NULLMOVE,
-                    probcut_beta - static_eval,
+                    probcut_threshold,
                     m_board.threats()
                 );
 
