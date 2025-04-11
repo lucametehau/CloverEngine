@@ -580,7 +580,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
             R += is_ttmove_noisy; // reduce if ttmove is noisy
             R += enemy_has_no_threats && !in_check && static_eval + LMRBadStaticEvalMargin <= alpha;
             R -= std::abs(raw_eval - static_eval) / 50;
-            R += was_pv && ttValue <= alpha && ttHit;
+            R += (1 + (ttDepth > depth)) * (was_pv && ttValue <= alpha && ttHit);
 
             R = std::clamp(R, 1, new_depth); // clamp R
             score = -search<false, false, true>(-alpha - 1, -alpha, new_depth - R, stack + 1);
