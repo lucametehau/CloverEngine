@@ -49,6 +49,7 @@ public:
 private:
     std::array<int, MAX_DEPTH + 5> m_pv_table_len;
     MultiArray<Move, MAX_DEPTH + 5, 2 * MAX_DEPTH + 5> m_pv_table;
+    MultiArray<Move, 2, KP_MOVE_SIZE> m_kp_move;
     std::array<uint64_t, 64 * 64> m_nodes_seached;
     std::array<StackEntry, MAX_DEPTH + 15> m_search_stack;
     StackEntry* m_stack;
@@ -126,7 +127,10 @@ public:
         m_nodes_seached.fill(0);
         fill_multiarray<Move, MAX_DEPTH + 5, 2 * MAX_DEPTH + 5>(m_pv_table, NULLMOVE);
     }
-    void clear_history() { m_histories.clear_history(); }
+    void clear_history() { 
+        m_histories.clear_history();
+        fill_multiarray<Move, 2, KP_MOVE_SIZE>(m_kp_move, NULLMOVE);
+    }
 
     void make_move(Move move, HistoricalState& next_state) { 
         const Piece piece = m_board.piece_at(move.get_from());

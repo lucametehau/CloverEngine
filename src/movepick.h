@@ -26,7 +26,7 @@ enum Stages : int {
     STAGE_NONE = 0,
     STAGE_TTMOVE,
     STAGE_GEN_NOISY, STAGE_GOOD_NOISY,
-    STAGE_KILLER,
+    STAGE_KILLER, STAGE_KP_MOVE,
     STAGE_GEN_QUIETS, STAGE_QUIETS,
     STAGE_PRE_BAD_NOISY, STAGE_BAD_NOISY,
 }; /// move picker stages
@@ -38,7 +38,7 @@ public:
     int stage, trueStage;
 
 private:
-    Move ttMove, killer;
+    Move ttMove, killer, kp_move;
     int nrNoisy, nrQuiets, nrBadNoisy;
     int index;
 
@@ -50,8 +50,11 @@ private:
     std::array<int, MAX_MOVES> scores;
 
 public:
-    Movepick(const Move ttMove, const Move killer, const int threshold, const Threats threats) : 
-        ttMove(ttMove), killer(killer != ttMove ? killer : NULLMOVE), threshold(threshold)
+    Movepick(const Move ttMove, const Move killer, const Move kp_move, const int threshold, const Threats threats) : 
+        ttMove(ttMove), 
+        killer(killer != ttMove ? killer : NULLMOVE), 
+        kp_move(kp_move != killer && kp_move != ttMove ? kp_move : NULLMOVE),
+        threshold(threshold)
     {
         stage = STAGE_TTMOVE;
         nrNoisy = nrQuiets = nrBadNoisy = 0;
@@ -127,6 +130,12 @@ public:
 
             if (!skip && killer && is_legal(board, killer))
                 return killer;
+        case Stages::STAGE_KP_MOVE:
+            trueStage = Stages::STAGE_KP_MOVE;
+            stage++;
+
+            if (!skip && kp_move && is_legal(board, kp_move))
+                return kp_move;
         case Stages::STAGE_GEN_QUIETS:
         {
             if (!skip) {

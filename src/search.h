@@ -172,7 +172,8 @@ int SearchThread::quiesce(int alpha, int beta, StackEntry* stack) {
 
     Movepick noisyPicker(
         !in_check && see(m_board, ttMove, 0) ? ttMove : NULLMOVE, 
-        NULLMOVE, 
+        NULLMOVE,
+        NULLMOVE,
         0, 
         m_board.threats()
     );
@@ -397,6 +398,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
                 Movepick picker(
                     ttMove && m_board.is_noisy_move(ttMove) && see(m_board, ttMove, probcut_beta - static_eval) ? ttMove : NULLMOVE,
                     NULLMOVE,
+                    NULLMOVE,
                     probcut_beta - static_eval,
                     m_board.threats()
                 );
@@ -436,6 +438,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
     Movepick picker(
         ttMove,
         stack->killer,
+        m_kp_move[turn][m_board.king_pawn_key() & KP_MOVE_MASK],
         -see_depth_coef * depth,
         m_board.threats()
     );
@@ -626,6 +629,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
                     const int malus = getHistoryMalus(depth + bad_static_eval + (cutNode && depth <= 3) + allNode);
                     if (!m_board.is_noisy_move(bestMove)) {
                         stack->killer = bestMove;
+                        m_kp_move[turn][m_board.king_pawn_key() & KP_MOVE_MASK] = bestMove;
                         if (nr_quiets || depth >= HistoryUpdateMinDepth)
                             m_histories.update_hist_quiet_move(bestMove, m_board.piece_at(bestMove.get_from()), 
                                                                m_board.threats().all_threats, turn, stack, bonus * tried_count);
