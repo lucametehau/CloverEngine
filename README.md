@@ -70,8 +70,9 @@ If one spots a bug or finds an improvement, I'm open to any suggestion.
 
 # Credits
 
-- [Weather-Factory](https://github.com/dsekercioglu/weather-factory) For being a great tuning tool!
-- [OpenBench](https://github.com/AndyGrant/OpenBench) For making testing easier!
+- [Weather-Factory](https://github.com/dsekercioglu/weather-factory), for being a great tuning tool!
+- [OpenBench](https://github.com/AndyGrant/OpenBench), for making testing easier!
+- [Bullet](https://github.com/jw1912/bullet), for making net training fast and easy!
 
 I inspired myself from:
 
