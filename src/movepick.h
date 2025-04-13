@@ -26,7 +26,7 @@ enum Stages : int {
     STAGE_NONE = 0,
     STAGE_TTMOVE,
     STAGE_GEN_NOISY, STAGE_GOOD_NOISY,
-    STAGE_KILLER, STAGE_KP_MOVE,
+    STAGE_KILLER,
     STAGE_GEN_QUIETS, STAGE_QUIETS,
     STAGE_PRE_BAD_NOISY, STAGE_BAD_NOISY,
 }; /// move picker stages
@@ -130,12 +130,6 @@ public:
 
             if (!skip && killer && is_legal(board, killer))
                 return killer;
-        case Stages::STAGE_KP_MOVE:
-            trueStage = Stages::STAGE_KP_MOVE;
-            stage++;
-
-            if (!skip && kp_move && is_legal(board, kp_move))
-                return kp_move;
         case Stages::STAGE_GEN_QUIETS:
         {
             if (!skip) {
@@ -184,6 +178,8 @@ public:
                         score += score_threats_dodged(threats_p, threats_bn, threats_r, pt, from) -
                                  score_threats(threats_p, threats_bn, threats_r, pt, to);
                     }
+
+                    if (move == kp_move) score += 10000;
 
                     scores[m++] = score;
                 }
