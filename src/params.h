@@ -153,7 +153,7 @@ TUNE_PARAM(QuietPawnAttackedCoef, 34, 20, 50);
 TUNE_PARAM(QuietPawnAttackedDodgeCoef, 35, 20, 50);
 TUNE_PARAM(QuietPawnPushBonus, 9022, 8000, 9500);
 TUNE_PARAM(QuietKingRingAttackBonus, 3471, 3000, 4000);
-TUNE_PARAM(KPMoveBonus, 10000, 5000, 20000);
+TUNE_PARAM(KPMoveBonus, 16384, 5000, 20000);
 
 // eval constants
 TUNE_PARAM(EvalScaleBias, 707, 600, 800);

@@ -22,7 +22,7 @@
 constexpr int CORR_HIST_SIZE = (1 << 16);
 constexpr int CORR_HIST_MASK = CORR_HIST_SIZE - 1;
 
-constexpr int KP_MOVE_SIZE = (1 << 14);
+constexpr int KP_MOVE_SIZE = (1 << 16);
 constexpr int KP_MOVE_MASK = KP_MOVE_SIZE - 1;
 
 template <int16_t Divisor>
