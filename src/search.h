@@ -525,7 +525,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
             if (!stack->excluded && !allNode && move == ttMove && abs(ttValue) < MATE &&
                 depth >= SEDepth && ttDepth >= depth - 3 && (ttBound & TTBounds::LOWER)
             ) {
-                int rBeta = ttValue - (SEMargin + 64 * (!pvNode && was_pv)) * depth / 64;
+                int rBeta = ttValue - (SEMargin + SEWasPVMargin * (!pvNode && was_pv)) * depth / 64;
 
                 stack->excluded = move;
                 int score = search<false, false, cutNode>(rBeta - 1, rBeta, (depth - 1) / 2, stack);
@@ -582,7 +582,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
             R -= was_pv && ttDepth >= depth; // reduce ex pv nodes with valuable info
             R += is_ttmove_noisy; // reduce if ttmove is noisy
             R += enemy_has_no_threats && !in_check && static_eval + LMRBadStaticEvalMargin <= alpha;
-            R -= std::abs(raw_eval - static_eval) / 50;
+            R -= std::abs(raw_eval - static_eval) / LMRCorrectionDivisor;
             R += (1 + (ttDepth > depth)) * (was_pv && ttValue <= alpha && ttHit);
 
             R = std::clamp(R, 1, new_depth); // clamp R

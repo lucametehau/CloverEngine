@@ -105,6 +105,7 @@ TUNE_PARAM(FPNoisyDepth, 8, 5, 10);
 
 TUNE_PARAM(SEDepth, 5, 4, 8);
 TUNE_PARAM(SEMargin, 47, 32, 64);
+TUNE_PARAM(SEWasPVMargin, 64, 32, 96);
 TUNE_PARAM(SEDoubleExtensionsMargin, 11, 0, 16);
 TUNE_PARAM(SETripleExtensionsMargin, 50, 50, 100);
 
@@ -112,6 +113,7 @@ TUNE_PARAM(EvalDifferenceReductionMargin, 198, 100, 300);
 TUNE_PARAM(HistReductionDiv, 8316, 7000, 10000);
 TUNE_PARAM(CapHistReductionDiv, 4264, 2048, 8192);
 TUNE_PARAM(LMRBadStaticEvalMargin, 244, 150, 300);
+TUNE_PARAM(LMRCorrectionDivisor, 50, 25, 75);
 TUNE_PARAM(DeeperMargin, 80, 40, 80);
 
 TUNE_PARAM(RootSeeDepthCoef, 9, 5, 20);
@@ -151,6 +153,7 @@ TUNE_PARAM(QuietPawnAttackedCoef, 34, 20, 50);
 TUNE_PARAM(QuietPawnAttackedDodgeCoef, 35, 20, 50);
 TUNE_PARAM(QuietPawnPushBonus, 9022, 8000, 9500);
 TUNE_PARAM(QuietKingRingAttackBonus, 3471, 3000, 4000);
+TUNE_PARAM(KPMoveBonus, 10000, 5000, 20000);
 
 // eval constants
 TUNE_PARAM(EvalScaleBias, 707, 600, 800);
