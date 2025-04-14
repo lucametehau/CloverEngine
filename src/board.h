@@ -60,6 +60,11 @@ public:
 
     uint64_t& key() { return state->key; }
     uint64_t& pawn_key() { return state->pawn_key; }
+    uint64_t king_pawn_key() { 
+        return state->pawn_key ^
+            hashKey[Pieces::WhiteKing][get_king(WHITE)] ^
+            hashKey[Pieces::BlackKing][get_king(BLACK)]; 
+    }
     uint64_t& mat_key(const bool color) { return state->mat_key[color]; }
     Bitboard& checkers() { return state->checkers; }
     Bitboard& pinned_pieces() { return state->pinnedPieces; }

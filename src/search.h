@@ -172,7 +172,8 @@ int SearchThread::quiesce(int alpha, int beta, StackEntry* stack) {
 
     Movepick noisyPicker(
         !in_check && see(m_board, ttMove, 0) ? ttMove : NULLMOVE, 
-        NULLMOVE, 
+        NULLMOVE,
+        NULLMOVE,
         0, 
         m_board.threats()
     );
@@ -397,6 +398,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
                 Movepick picker(
                     ttMove && m_board.is_noisy_move(ttMove) && see(m_board, ttMove, probcut_beta - static_eval) ? ttMove : NULLMOVE,
                     NULLMOVE,
+                    NULLMOVE,
                     probcut_beta - static_eval,
                     m_board.threats()
                 );
@@ -436,6 +438,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
     Movepick picker(
         ttMove,
         stack->killer,
+        m_kp_move[turn][m_board.king_pawn_key() & KP_MOVE_MASK],
         -see_depth_coef * depth,
         m_board.threats()
     );
@@ -522,7 +525,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
             if (!stack->excluded && !allNode && move == ttMove && abs(ttValue) < MATE &&
                 depth >= SEDepth && ttDepth >= depth - 3 && (ttBound & TTBounds::LOWER)
             ) {
-                int rBeta = ttValue - (SEMargin + 64 * (!pvNode && was_pv)) * depth / 64;
+                int rBeta = ttValue - (SEMargin + SEWasPVMargin * (!pvNode && was_pv)) * depth / 64;
 
                 stack->excluded = move;
                 int score = search<false, false, cutNode>(rBeta - 1, rBeta, (depth - 1) / 2, stack);
@@ -579,7 +582,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
             R -= was_pv && ttDepth >= depth; // reduce ex pv nodes with valuable info
             R += is_ttmove_noisy; // reduce if ttmove is noisy
             R += enemy_has_no_threats && !in_check && static_eval + LMRBadStaticEvalMargin <= alpha;
-            R -= std::abs(raw_eval - static_eval) / 50;
+            R -= std::abs(raw_eval - static_eval) / LMRCorrectionDivisor;
             R += (1 + (ttDepth > depth)) * (was_pv && ttValue <= alpha && ttHit);
 
             R = std::clamp(R, 1, new_depth); // clamp R
@@ -626,6 +629,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry* stack) {
                     const int malus = getHistoryMalus(depth + bad_static_eval + (cutNode && depth <= 3) + allNode);
                     if (!m_board.is_noisy_move(bestMove)) {
                         stack->killer = bestMove;
+                        m_kp_move[turn][m_board.king_pawn_key() & KP_MOVE_MASK] = bestMove;
                         if (nr_quiets || depth >= HistoryUpdateMinDepth)
                             m_histories.update_hist_quiet_move(bestMove, m_board.piece_at(bestMove.get_from()), 
                                                                m_board.threats().all_threats, turn, stack, bonus * tried_count);

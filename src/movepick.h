@@ -38,7 +38,7 @@ public:
     int stage, trueStage;
 
 private:
-    Move ttMove, killer;
+    Move ttMove, killer, kp_move;
     int nrNoisy, nrQuiets, nrBadNoisy;
     int index;
 
@@ -50,8 +50,11 @@ private:
     std::array<int, MAX_MOVES> scores;
 
 public:
-    Movepick(const Move ttMove, const Move killer, const int threshold, const Threats threats) : 
-        ttMove(ttMove), killer(killer != ttMove ? killer : NULLMOVE), threshold(threshold)
+    Movepick(const Move ttMove, const Move killer, const Move kp_move, const int threshold, const Threats threats) : 
+        ttMove(ttMove), 
+        killer(killer != ttMove ? killer : NULLMOVE), 
+        kp_move(kp_move != killer && kp_move != ttMove ? kp_move : NULLMOVE),
+        threshold(threshold)
     {
         stage = STAGE_TTMOVE;
         nrNoisy = nrQuiets = nrBadNoisy = 0;
@@ -175,6 +178,8 @@ public:
                         score += score_threats_dodged(threats_p, threats_bn, threats_r, pt, from) -
                                  score_threats(threats_p, threats_bn, threats_r, pt, to);
                     }
+
+                    if (move == kp_move) score += KPMoveBonus;
 
                     scores[m++] = score;
                 }
