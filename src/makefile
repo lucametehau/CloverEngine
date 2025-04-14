@@ -1,7 +1,7 @@
 SRCXX = $(wildcard *.cpp)
 SRC = 3rdparty/Fathom/src/tbprobe.c
 OBJ = $(SRCXX:.cpp=.o) $(SRC:.c=.o)
-EXE = Clover.8.1.5
+EXE = Clover.8.1.6
 EVALFILE = clover-7buckets-mse-0.95-1280-cosine-600.bin
 
 ifeq ($(CXX),)
@@ -71,14 +71,14 @@ else ifneq ($(findstring generate, $(build_flag)),)
 endif
 
 %.o: %.cpp
-	$(CXX) $(BUILD_FLAGS) $(RFLAGS) -o $@ -c $<
+	$(CXX) $(BUILD_FLAGS) -DTUNE_FLAG $(RFLAGS) -o $@ -c $<
 
 # Fathom moment
 %.o: %.c
-	$(CXX) $(BUILD_FLAGS) $(RFLAGS) -o $@ -c $<
+	$(CXX) $(BUILD_FLAGS) -DTUNE_FLAG $(RFLAGS) -o $@ -c $<
 
 make: $(OBJ)
-	$(CXX) $(OBJ) $(RFLAGS) $(LIBS) $(BUILD_FLAGS) -o $(EXE)$(EXT)
+	$(CXX) $(OBJ) $(RFLAGS) $(LIBS) $(BUILD_FLAGS) -DTUNE_FLAG -o $(EXE)$(EXT)
 
 release:
 	make build_flag=old
