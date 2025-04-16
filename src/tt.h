@@ -107,32 +107,36 @@ void HashTable::initTableSlice(uint64_t start, uint64_t size) {
 }
 
 void HashTable::initTable(uint64_t size, int nr_threads) {
-    size /= sizeof(Bucket);
-
-    if (buckets)
-        delete[] table;
-
+    std::cout << "info string initializing TT with " << size << " bytes and " << nr_threads << " threads\n";
     if (size < sizeof(Bucket)) {
-        buckets = 0;
+        if (buckets != 0) {
+            delete[] table;
+            table = nullptr;
+            buckets = 0;
+        }
         return;
     }
-    else {
-        buckets = size;
+
+    const uint64_t new_buckets = size / sizeof(Bucket);
+    
+    if (buckets != new_buckets) {
+        delete[] table;
+        table = new Bucket[new_buckets];
+        buckets = new_buckets;
     }
 
-    table = new Bucket[buckets];
-    std::vector <std::thread> threads(nr_threads);
-    uint64_t start = 0;
-    uint64_t slice_size = buckets / nr_threads + 1;
+    nr_threads = std::clamp(nr_threads, 1, static_cast<int>(buckets));
+    const uint64_t slice_size = (buckets + nr_threads - 1) / nr_threads;
+
+    std::vector<std::thread> threads;
+    threads.reserve(nr_threads);
+
+    for (int i = 0; i < nr_threads; ++i) {
+        threads.emplace_back(&HashTable::initTableSlice, this, slice_size * i, std::min(slice_size * (i + 1), buckets) - slice_size * i);
+    }
 
     for (auto& t : threads) {
-        uint64_t good_size = std::min(buckets - start, slice_size);
-        t = std::thread{ &HashTable::initTableSlice, this, start, good_size };
-        start += slice_size;
-    }
-    for (auto& t : threads) {
-        if (t.joinable())
-           t.join();
+        t.join();
     }
 }
 
