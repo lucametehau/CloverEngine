@@ -55,10 +55,10 @@ ifneq ($(findstring old, $(build_flag)),)
 	PEXT_FLAGS := 
 	EXE := $(EXE)-old
 else ifneq ($(findstring avx2, $(build_flag)),)
-	BUILD_FLAGS += $(AVX2_FLAGS)
+	BUILD_FLAGS += $(NATIVE_FLAGS) $(AVX2_FLAGS)
 	EXE := $(EXE)-avx2
 else ifneq ($(findstring avx512, $(build_flag)),)
-	BUILD_FLAGS += $(AVX512_FLAGS)
+	BUILD_FLAGS += -march=native $(AVX512_FLAGS)
 	EXE := $(EXE)-avx512
 else ifneq ($(findstring native, $(build_flag)),)
 	BUILD_FLAGS += $(NATIVE_FLAGS)
