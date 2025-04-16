@@ -107,7 +107,7 @@ void HashTable::initTableSlice(uint64_t start, uint64_t size) {
 }
 
 void HashTable::initTable(uint64_t size, int nr_threads) {
-    std::cout << "info string initializing TT with " << size << " bytes and " << nr_threads << " threads\n";
+    std::cout << "info string initializing TT with " << size << " bytes and " << nr_threads << " threads" << std::endl;
     if (size < sizeof(Bucket)) {
         if (buckets != 0) {
             delete[] table;
@@ -125,7 +125,12 @@ void HashTable::initTable(uint64_t size, int nr_threads) {
         buckets = new_buckets;
     }
 
-    nr_threads = std::clamp(nr_threads, 1, static_cast<int>(buckets));
+    std::cout << "info string declared " << buckets << " TT buckets" << std::endl;
+
+    // ugly, I know
+    if (nr_threads < 1) {
+        nr_threads = 1;
+    }
     const uint64_t slice_size = (buckets + nr_threads - 1) / nr_threads;
 
     std::vector<std::thread> threads;
