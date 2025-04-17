@@ -99,7 +99,7 @@ HashTable::HashTable() {
 }
 
 HashTable::~HashTable() {
-    delete[] table;
+    std::free(table);
 }
 
 void HashTable::initTableSlice(uint64_t start, uint64_t size) {
@@ -110,7 +110,7 @@ void HashTable::initTable(uint64_t size, int nr_threads) {
     std::cout << "info string initializing TT with " << size << " bytes and " << nr_threads << " threads" << std::endl;
     if (size < sizeof(Bucket)) {
         if (buckets != 0) {
-            delete[] table;
+            std::free(table);
             table = nullptr;
             buckets = 0;
         }
@@ -120,9 +120,9 @@ void HashTable::initTable(uint64_t size, int nr_threads) {
     const uint64_t new_buckets = size / sizeof(Bucket);
     
     if (buckets != new_buckets) {
-        delete[] table;
-        table = new Bucket[new_buckets];
+        std::free(table);
         buckets = new_buckets;
+        table = static_cast<Bucket*>(std::malloc(buckets * sizeof(Bucket)));
     }
 
     std::cout << "info string declared " << buckets << " TT buckets" << std::endl;
