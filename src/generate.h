@@ -106,7 +106,7 @@ void generateFens(SearchThread &thread_data, std::atomic<uint64_t>& sumFens, std
                 thread_data.make_move(move);
             }
             else {
-                thread_data.TT->age();
+                thread_data.TT->age(1);
                 thread_data.board.clear();
 
                 thread_data.start_search(info);

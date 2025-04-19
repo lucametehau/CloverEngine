@@ -85,7 +85,7 @@ public:
 
     void reset_age();
 
-    void age();
+    void age(int nr_threads);
 
     int hashfull();
 };
@@ -206,15 +206,28 @@ void HashTable::reset_age() {
             table[i].entries[j].refresh(0);
 }
 
-void HashTable::age() {
+void HashTable::age(int nr_threads) {
     generation++;
 
     if (generation == 63) {
         generation = 1;
 
-        for (uint64_t i = 0; i < buckets; i++)
-            for (int j = 0; j < BUCKET; j++)
-                table[i].entries[j].refresh(0);
+        std::vector<std::thread> threads;
+        uint64_t buckets_per_thread = (buckets + nr_threads - 1) / nr_threads;
+
+        auto refresh_slice = [&](uint64_t start, uint64_t end) {
+            for (uint64_t i = start; i < end; i++) {
+                for (int j = 0; j < BUCKET; j++) {
+                    table[i].entries[j].refresh(0);
+                }
+            }
+        };
+
+        for (int i = 0; i < nr_threads; i++) {
+            threads.emplace_back(refresh_slice, buckets_per_thread * i, std::min(buckets_per_thread * i + buckets_per_thread, buckets));
+        }
+
+        for (auto& t : threads) t.join();
     }
 }
 
