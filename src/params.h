@@ -56,24 +56,24 @@ struct CreateParam {
 
 
 // search constants
-TUNE_PARAM(DeltaPruningMargin, 1010, 900, 1100);
-TUNE_PARAM(QuiesceFutilityBias, 203, 150, 250);
+TUNE_PARAM(DeltaPruningMargin, 1023, 900, 1100);
+TUNE_PARAM(QuiesceFutilityBias, 201, 150, 250);
 
 TUNE_PARAM(NegativeImprovingMargin, -159, -300, -100);
 
 TUNE_PARAM(RazoringDepth, 2, 1, 5);
-TUNE_PARAM(RazoringMargin, 153, 100, 200);
+TUNE_PARAM(RazoringMargin, 157, 100, 200);
 
 TUNE_PARAM(SNMPDepth, 13, 8, 15);
-TUNE_PARAM(SNMPMargin, 87, 75, 100);
+TUNE_PARAM(SNMPMargin, 88, 75, 100);
 TUNE_PARAM(SNMPImproving, 19, 10, 25);
 
 TUNE_PARAM(NMPEvalMargin, 31, 20, 40);
 TUNE_PARAM(NMPReduction, 4, 3, 5);
 TUNE_PARAM(NMPDepthDiv, 3, 3, 5);
-TUNE_PARAM(NMPEvalDiv, 134, 120, 150);
+TUNE_PARAM(NMPEvalDiv, 136, 120, 150);
 
-TUNE_PARAM(ProbcutMargin, 178, 100, 300);
+TUNE_PARAM(ProbcutMargin, 176, 100, 300);
 TUNE_PARAM(ProbcutDepth, 4, 3, 7);
 TUNE_PARAM(ProbcutReduction, 5, 3, 5);
 
@@ -84,7 +84,7 @@ TUNE_PARAM(IIRCutNodeReduction, 1, 1, 2);
 
 TUNE_PARAM(PVSSeeDepthCoef, 16, 10, 20);
 
-TUNE_PARAM(MoveloopHistDiv, 14614, 8192, 17000);
+TUNE_PARAM(MoveloopHistDiv, 14312, 8192, 17000);
 
 TUNE_PARAM(FPDepth, 10, 5, 10);
 TUNE_PARAM(FPBias, 96, 90, 120);
@@ -94,106 +94,106 @@ TUNE_PARAM(LMPDepth, 7, 5, 10);
 TUNE_PARAM(LMPBias, 1, -1, 5);
 
 TUNE_PARAM(HistoryPruningDepth, 2, 2, 5);
-TUNE_PARAM(HistoryPruningMargin, 4522, 2048, 6144);
+TUNE_PARAM(HistoryPruningMargin, 4470, 2048, 6144);
 
 TUNE_PARAM(SEEPruningQuietDepth, 8, 5, 10);
-TUNE_PARAM(SEEPruningQuietMargin, 71, 60, 90);
+TUNE_PARAM(SEEPruningQuietMargin, 70, 60, 90);
 TUNE_PARAM(SEEPruningNoisyDepth, 8, 5, 10);
-TUNE_PARAM(SEEPruningNoisyMargin, 12, 5, 25);
-TUNE_PARAM(SEENoisyHistDiv, 279, 128, 512);
+TUNE_PARAM(SEEPruningNoisyMargin, 13, 5, 25);
+TUNE_PARAM(SEENoisyHistDiv, 273, 128, 512);
 TUNE_PARAM(FPNoisyDepth, 8, 5, 10);
 
 TUNE_PARAM(SEDepth, 5, 4, 8);
-TUNE_PARAM(SEMargin, 47, 32, 64);
-TUNE_PARAM(SEWasPVMargin, 64, 32, 96);
+TUNE_PARAM(SEMargin, 46, 32, 64);
+TUNE_PARAM(SEWasPVMargin, 55, 32, 96);
 TUNE_PARAM(SEDoubleExtensionsMargin, 11, 0, 16);
-TUNE_PARAM(SETripleExtensionsMargin, 50, 50, 100);
+TUNE_PARAM(SETripleExtensionsMargin, 53, 50, 100);
 
-TUNE_PARAM(LMRWasNotPV, 1024, 512, 2048);
-TUNE_PARAM(LMRImprovingM1, 2048, 1024, 3072);
-TUNE_PARAM(LMRImproving0, 1024, 512, 2048);
+TUNE_PARAM(LMRWasNotPV, 1065, 512, 2048);
+TUNE_PARAM(LMRImprovingM1, 2079, 1024, 3072);
+TUNE_PARAM(LMRImproving0, 1148, 512, 2048);
 
-TUNE_PARAM(LMRPVNode, 1024, 512, 2048);
-TUNE_PARAM(LMRGoodEval, 1024, 512, 2048);
-TUNE_PARAM(LMREvalDifference, 1024, 512, 2048);
-TUNE_PARAM(LMRRefutation, 2048, 1024, 3072);
-TUNE_PARAM(LMRGivesCheck, 1024, 512, 2048);
+TUNE_PARAM(LMRPVNode, 911, 512, 2048);
+TUNE_PARAM(LMRGoodEval, 1057, 512, 2048);
+TUNE_PARAM(LMREvalDifference, 999, 512, 2048);
+TUNE_PARAM(LMRRefutation, 2127, 1024, 3072);
+TUNE_PARAM(LMRGivesCheck, 1039, 512, 2048);
 
-TUNE_PARAM(LMRNoisyNotImproving, 1024, 412, 2048);
-TUNE_PARAM(LMRBadNoisy, 1024, 512, 2048);
+TUNE_PARAM(LMRNoisyNotImproving, 995, 412, 2048);
+TUNE_PARAM(LMRBadNoisy, 1053, 512, 2048);
 
-TUNE_PARAM(LMRCutNode, 2048, 1024, 3072);
-TUNE_PARAM(LMRWasPVHighDepth, 1024, 512, 2048);
-TUNE_PARAM(LMRTTMoveNoisy, 1024, 512, 2048);
-TUNE_PARAM(LMRBadStaticEval, 1024, 512, 2048);
-TUNE_PARAM(LMRFailLowPV, 1024, 512, 2048);
-TUNE_PARAM(LMRFailLowPVHighDepth, 1024, 512, 2048);
+TUNE_PARAM(LMRCutNode, 2197, 1024, 3072);
+TUNE_PARAM(LMRWasPVHighDepth, 983, 512, 2048);
+TUNE_PARAM(LMRTTMoveNoisy, 1143, 512, 2048);
+TUNE_PARAM(LMRBadStaticEval, 1061, 512, 2048);
+TUNE_PARAM(LMRFailLowPV, 959, 512, 2048);
+TUNE_PARAM(LMRFailLowPVHighDepth, 1129, 512, 2048);
 
-TUNE_PARAM(EvalDifferenceReductionMargin, 198, 100, 300);
-TUNE_PARAM(HistReductionDiv, 8316, 7000, 10000);
-TUNE_PARAM(CapHistReductionDiv, 4264, 2048, 8192);
-TUNE_PARAM(LMRBadStaticEvalMargin, 244, 150, 300);
-TUNE_PARAM(LMRCorrectionDivisor, 50, 25, 75);
+TUNE_PARAM(EvalDifferenceReductionMargin, 201, 100, 300);
+TUNE_PARAM(HistReductionDiv, 8458, 7000, 10000);
+TUNE_PARAM(CapHistReductionDiv, 3978, 2048, 8192);
+TUNE_PARAM(LMRBadStaticEvalMargin, 245, 150, 300);
+TUNE_PARAM(LMRCorrectionDivisor, 52, 25, 75);
 TUNE_PARAM(DeeperMargin, 80, 40, 80);
 
-TUNE_PARAM(RootSeeDepthCoef, 9, 5, 20);
+TUNE_PARAM(RootSeeDepthCoef, 8, 5, 20);
 
 TUNE_PARAM(AspirationWindowsDepth, 6, 4, 10);
 TUNE_PARAM(AspirationWindosValue, 7, 5, 20);
-TUNE_PARAM(AspirationWindowExpandMargin, 31, 10, 100);
+TUNE_PARAM(AspirationWindowExpandMargin, 24, 10, 100);
 TUNE_PARAM(AspirationWindowExpandBias, 0, 0, 10);
 
 TUNE_PARAM(TimeManagerMinDepth, 8, 5, 11);
-TUNE_PARAM_DOUBLE(TimeManagerNodesSearchedMaxPercentage, 1.8270414693595722, 1.400, 2.000);
-TUNE_PARAM_DOUBLE(TimeManagerNodesSearchedCoef, 1.1739235823823335, 0.500, 2.000);
+TUNE_PARAM_DOUBLE(TimeManagerNodesSearchedMaxPercentage, 1.8362629088744435, 1.400, 2.000);
+TUNE_PARAM_DOUBLE(TimeManagerNodesSearchedCoef, 1.0863310971639488, 0.500, 2.000);
 
-TUNE_PARAM_DOUBLE(TimeManagerBestMoveMax, 1.2239324841351675, 1.100, 1.500);
-TUNE_PARAM_DOUBLE(TimeManagerbestMoveStep, 0.06887573257015857, 0.010, 0.100);
+TUNE_PARAM_DOUBLE(TimeManagerBestMoveMax, 1.2322638607912109, 1.100, 1.500);
+TUNE_PARAM_DOUBLE(TimeManagerbestMoveStep, 0.07127471646638137, 0.010, 0.100);
 
-TUNE_PARAM_DOUBLE(TimeManagerScoreMin, 0.47944111835948844, 0.400, 0.900);
-TUNE_PARAM_DOUBLE(TimeManagerScoreMax, 1.6139551444543634, 1.100, 2.000);
-TUNE_PARAM_DOUBLE(TimeManagerScoreBias, 1.0995010600199973, 0.700, 1.500);
-TUNE_PARAM(TimeManagerScoreDiv, 115, 90, 150);
+TUNE_PARAM_DOUBLE(TimeManagerScoreMin, 0.47914961933033773, 0.400, 0.900);
+TUNE_PARAM_DOUBLE(TimeManagerScoreMax, 1.5984209246576317, 1.100, 2.000);
+TUNE_PARAM_DOUBLE(TimeManagerScoreBias, 1.0591846911721798, 0.700, 1.500);
+TUNE_PARAM(TimeManagerScoreDiv, 114, 90, 150);
 
-TUNE_PARAM_DOUBLE(TMCoef1, 0.052171460756161685, 0.035, 0.075);
-TUNE_PARAM_DOUBLE(TMCoef2, 0.3575439512748321, 0.250, 0.550);
-TUNE_PARAM_DOUBLE(TMCoef3, 5.4517580781361135, 4.500, 6.500);
-TUNE_PARAM_DOUBLE(TMCoef4, 0.7435082406528579, 0.650, 0.850);
+TUNE_PARAM_DOUBLE(TMCoef1, 0.051019169371045434, 0.035, 0.075);
+TUNE_PARAM_DOUBLE(TMCoef2, 0.3522696173376939, 0.250, 0.550);
+TUNE_PARAM_DOUBLE(TMCoef3, 5.538003047210683, 4.500, 6.500);
+TUNE_PARAM_DOUBLE(TMCoef4, 0.7470050629755027, 0.650, 0.850);
 
-TUNE_PARAM_DOUBLE(LMRQuietBias,  1.17, 1.00, 1.25);
-TUNE_PARAM_DOUBLE(LMRQuietDiv, 2.59, 1.50, 2.70);
+TUNE_PARAM_DOUBLE(LMRQuietBias,  1.1591537442175806, 1.00, 1.25);
+TUNE_PARAM_DOUBLE(LMRQuietDiv, 2.575429520757855, 1.50, 2.70);
 
 // movepicker constants
-TUNE_PARAM(GoodNoisyValueCoef, 9, 1, 20);
+TUNE_PARAM(GoodNoisyValueCoef, 10, 1, 20);
 TUNE_PARAM(QuietHistCoef, 1, 1, 4);
 TUNE_PARAM(QuietContHist1, 2, 1, 2);
 TUNE_PARAM(QuietContHist2, 2, 1, 2);
 TUNE_PARAM(QuietContHist4, 1, 1, 2);
 TUNE_PARAM(QuietPawnAttackedCoef, 34, 20, 50);
 TUNE_PARAM(QuietPawnAttackedDodgeCoef, 35, 20, 50);
-TUNE_PARAM(QuietPawnPushBonus, 9022, 8000, 9500);
-TUNE_PARAM(QuietKingRingAttackBonus, 3471, 3000, 4000);
-TUNE_PARAM(KPMoveBonus, 10000, 5000, 20000);
+TUNE_PARAM(QuietPawnPushBonus, 9013, 8000, 9500);
+TUNE_PARAM(QuietKingRingAttackBonus, 3488, 3000, 4000);
+TUNE_PARAM(KPMoveBonus, 9311, 5000, 20000);
 
 // eval constants
-TUNE_PARAM(EvalScaleBias, 707, 600, 800);
+TUNE_PARAM(EvalScaleBias, 718, 600, 800);
 TUNE_PARAM(EvalShuffleCoef, 5, 1, 10);
 
 // history constants
-TUNE_PARAM(HistoryBonusMargin, 271, 250, 500);
-TUNE_PARAM(HistoryBonusBias, 338, 200, 600);
-TUNE_PARAM(HistoryBonusMax, 2636, 1800, 3000);
+TUNE_PARAM(HistoryBonusMargin, 263, 250, 500);
+TUNE_PARAM(HistoryBonusBias, 347, 200, 600);
+TUNE_PARAM(HistoryBonusMax, 2568, 1800, 3000);
 TUNE_PARAM(HistoryUpdateMinDepth, 4, 2, 6);
-TUNE_PARAM(HistoryMalusMargin, 303, 250, 500);
-TUNE_PARAM(HistoryMalusBias, 359, 200, 600);
-TUNE_PARAM(HistoryMalusMax, 2475, 1800, 3000);
+TUNE_PARAM(HistoryMalusMargin, 318, 250, 500);
+TUNE_PARAM(HistoryMalusBias, 336, 200, 600);
+TUNE_PARAM(HistoryMalusMax, 2535, 1800, 3000);
 
 // universal constants
-TUNE_PARAM(SeeValPawn, 94, 80, 120);
+TUNE_PARAM(SeeValPawn, 93, 80, 120);
 TUNE_PARAM(SeeValKnight, 309, 280, 350);
-TUNE_PARAM(SeeValBishop, 334, 320, 380);
-TUNE_PARAM(SeeValRook, 504, 450, 600);
-TUNE_PARAM(SeeValQueen, 989, 900, 1100);
+TUNE_PARAM(SeeValBishop, 331, 320, 380);
+TUNE_PARAM(SeeValRook, 509, 450, 600);
+TUNE_PARAM(SeeValQueen, 993, 900, 1100);
 
 inline void print_params_for_ob() {
     for (auto& param : params_int) {
