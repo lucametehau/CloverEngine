@@ -120,7 +120,8 @@ void HashTable::initTable(uint64_t size, int nr_threads) {
     const uint64_t new_buckets = size / sizeof(Bucket);
     
     if (buckets != new_buckets) {
-        std::free(table);
+        if (buckets)
+            std::free(table);
         buckets = new_buckets;
         table = static_cast<Bucket*>(std::malloc(buckets * sizeof(Bucket)));
     }
