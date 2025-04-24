@@ -18,6 +18,7 @@
 #include "defs.h"
 #include "search-info.h"
 #include <cassert>
+#include <cstring>
 #include <iomanip>
 
 void Board::make_move(const Move move, HistoricalState &next_state)
