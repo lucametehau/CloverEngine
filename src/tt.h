@@ -163,12 +163,12 @@ Entry* HashTable::probe(const uint64_t hash, bool &ttHit) {
 
     for (int i = 0; i < BUCKET_COUNT; i++) {
         if (bucket[i].hash == hash16) {
-            ttHit = 1;
+            ttHit = true;
             return bucket + i;
         }
     }
 
-    ttHit = 0;
+    ttHit = false;
     int idx = 0;
     for (int i = 1; i < BUCKET_COUNT; i++) {
         if (bucket[i].depth() - 2 * bucket[i].generation_diff(generation) < 
