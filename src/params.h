@@ -109,6 +109,8 @@ TUNE_PARAM(SEWasPVMargin, 52, 32, 96);
 TUNE_PARAM(SEDoubleExtensionsMargin, 10, 0, 16);
 TUNE_PARAM(SETripleExtensionsMargin, 52, 50, 100);
 
+constexpr int LMRGrain = 1024;
+
 TUNE_PARAM(LMRWasNotPV, 1064, 512, 2048);
 TUNE_PARAM(LMRImprovingM1, 2092, 1024, 3072);
 TUNE_PARAM(LMRImproving0, 1163, 512, 2048);
