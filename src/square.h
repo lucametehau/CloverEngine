@@ -1,31 +1,72 @@
 #pragma once
 #include <cstdint>
 
-class Square {
-private:
+class Square
+{
+  private:
     uint8_t sq;
 
-public:
+  public:
     constexpr Square() = default;
-    constexpr Square(uint8_t sq) : sq(sq) {}
-    constexpr Square(uint8_t rank, uint8_t file) : sq(rank * 8 + file) {}
+    constexpr Square(uint8_t sq) : sq(sq)
+    {
+    }
+    constexpr Square(uint8_t rank, uint8_t file) : sq(rank * 8 + file)
+    {
+    }
 
-    constexpr operator int() const { return sq; }
+    constexpr operator int() const
+    {
+        return sq;
+    }
 
-    Square mirror(const bool side) const { return sq ^ (56 * !side); };
+    Square mirror(const bool side) const
+    {
+        return sq ^ (56 * !side);
+    };
 
-    Square operator + (const Square &other) const { return sq + other.sq; }
-    Square operator - (const Square &other) const { return sq - other.sq; }
-    Square operator + (const int &other) const { return sq + other; }
-    Square operator - (const int &other) const { return sq - other; }
+    Square operator+(const Square &other) const
+    {
+        return sq + other.sq;
+    }
+    Square operator-(const Square &other) const
+    {
+        return sq - other.sq;
+    }
+    Square operator+(const int &other) const
+    {
+        return sq + other;
+    }
+    Square operator-(const int &other) const
+    {
+        return sq - other;
+    }
 
-    Square& operator += (const Square &other) { sq += other.sq; return *this; }
-    Square& operator -= (const Square &other) { sq -= other.sq; return *this; }
-    Square& operator ++ () { sq++; return *this; }
-    Square operator ++ (int) { Square temp = *this; sq++; return temp; }
+    Square &operator+=(const Square &other)
+    {
+        sq += other.sq;
+        return *this;
+    }
+    Square &operator-=(const Square &other)
+    {
+        sq -= other.sq;
+        return *this;
+    }
+    Square &operator++()
+    {
+        sq++;
+        return *this;
+    }
+    Square operator++(int)
+    {
+        Square temp = *this;
+        sq++;
+        return temp;
+    }
 };
 
-namespace Squares {
+namespace Squares
+{
 constexpr Square A1 = Square(0);
 constexpr Square B1 = Square(1);
 constexpr Square C1 = Square(2);
@@ -90,6 +131,6 @@ constexpr Square E8 = Square(60);
 constexpr Square F8 = Square(61);
 constexpr Square G8 = Square(62);
 constexpr Square H8 = Square(63);
-};
+}; // namespace Squares
 
 constexpr Square NO_SQUARE = Square(64);

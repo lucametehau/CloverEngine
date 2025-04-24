@@ -15,29 +15,34 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #pragma once
-#include "defs.h"
 #include "board.h"
-#include "movegen.h"
+#include "defs.h"
 #include "evaluate.h"
 #include "history.h"
+#include "movegen.h"
 #include <cassert>
 
-enum Stages : int {
+enum Stages : int
+{
     STAGE_NONE = 0,
     STAGE_TTMOVE,
-    STAGE_GEN_NOISY, STAGE_GOOD_NOISY,
+    STAGE_GEN_NOISY,
+    STAGE_GOOD_NOISY,
     STAGE_KILLER,
-    STAGE_GEN_QUIETS, STAGE_QUIETS,
-    STAGE_PRE_BAD_NOISY, STAGE_BAD_NOISY,
+    STAGE_GEN_QUIETS,
+    STAGE_QUIETS,
+    STAGE_PRE_BAD_NOISY,
+    STAGE_BAD_NOISY,
 }; /// move picker stages
 
-bool see(Board& board, Move move, int threshold);
+bool see(Board &board, Move move, int threshold);
 
-class Movepick {
-public:
+class Movepick
+{
+  public:
     int stage, trueStage;
 
-private:
+  private:
     Move ttMove, killer, kp_move;
     int nrNoisy, nrQuiets, nrBadNoisy;
     int index;
@@ -49,24 +54,25 @@ private:
     MoveList moves, badNoisy;
     std::array<int, MAX_MOVES> scores;
 
-public:
-    Movepick(const Move ttMove, const Move killer, const Move kp_move, const int threshold, const Threats threats) : 
-        ttMove(ttMove), 
-        killer(killer != ttMove ? killer : NULLMOVE), 
-        kp_move(kp_move != killer && kp_move != ttMove ? kp_move : NULLMOVE),
-        threshold(threshold)
+  public:
+    Movepick(const Move ttMove, const Move killer, const Move kp_move, const int threshold, const Threats threats)
+        : ttMove(ttMove), killer(killer != ttMove ? killer : NULLMOVE),
+          kp_move(kp_move != killer && kp_move != ttMove ? kp_move : NULLMOVE), threshold(threshold)
     {
         stage = STAGE_TTMOVE;
         nrNoisy = nrQuiets = nrBadNoisy = 0;
         all_threats = threats.all_threats;
         threats_p = threats.threats_pieces[PieceTypes::PAWN];
-        threats_bn = threats.threats_pieces[PieceTypes::KNIGHT] | threats.threats_pieces[PieceTypes::BISHOP] | threats_p;
+        threats_bn =
+            threats.threats_pieces[PieceTypes::KNIGHT] | threats.threats_pieces[PieceTypes::BISHOP] | threats_p;
         threats_r = threats.threats_pieces[PieceTypes::ROOK] | threats_bn;
     }
 
-    void get_best_move(int offset, int nrMoves, MoveList &moves, std::array<int, MAX_MOVES> &scores) {
+    void get_best_move(int offset, int nrMoves, MoveList &moves, std::array<int, MAX_MOVES> &scores)
+    {
         int ind = offset;
-        for (int i = offset + 1; i < nrMoves; i++) {
+        for (int i = offset + 1; i < nrMoves; i++)
+        {
             if (scores[ind] < scores[i])
                 ind = i;
         }
@@ -74,25 +80,29 @@ public:
         std::swap(moves[ind], moves[offset]);
     }
 
-    Move get_next_move(Histories &histories, StackEntry* stack, Board &board, bool skip, bool noisyPicker) {
-        switch (stage) {
+    Move get_next_move(Histories &histories, StackEntry *stack, Board &board, bool skip, bool noisyPicker)
+    {
+        switch (stage)
+        {
         case Stages::STAGE_TTMOVE:
             trueStage = Stages::STAGE_TTMOVE;
             stage++;
 
-            if (ttMove && is_legal(board, ttMove)) {
+            if (ttMove && is_legal(board, ttMove))
+            {
                 return ttMove;
             }
-        case Stages::STAGE_GEN_NOISY:
-        {
+        case Stages::STAGE_GEN_NOISY: {
             nrNoisy = board.gen_legal_moves<MOVEGEN_NOISY>(moves);
             int m = 0;
-            for (int i = 0; i < nrNoisy; i++) {
+            for (int i = 0; i < nrNoisy; i++)
+            {
                 const Move move = moves[i];
                 if (move == ttMove || move == killer)
                     continue;
 
-                if (move.is_promo() && move.get_prom() + PieceTypes::KNIGHT != PieceTypes::QUEEN) {
+                if (move.is_promo() && move.get_prom() + PieceTypes::KNIGHT != PieceTypes::QUEEN)
+                {
                     badNoisy[nrBadNoisy++] = move;
                     continue;
                 }
@@ -111,15 +121,18 @@ public:
         }
         case Stages::STAGE_GOOD_NOISY:
             trueStage = Stages::STAGE_GOOD_NOISY;
-            while (index < nrNoisy) {
+            while (index < nrNoisy)
+            {
                 get_best_move(index, nrNoisy, moves, scores);
                 if (see(board, moves[index], threshold))
                     return moves[index++];
-                else {
+                else
+                {
                     badNoisy[nrBadNoisy++] = moves[index++];
                 }
             }
-            if (skip) { /// no need to go through quiets
+            if (skip)
+            { /// no need to go through quiets
                 stage = Stages::STAGE_PRE_BAD_NOISY;
                 return get_next_move(histories, stack, board, skip, noisyPicker);
             }
@@ -130,16 +143,17 @@ public:
 
             if (!skip && killer && is_legal(board, killer))
                 return killer;
-        case Stages::STAGE_GEN_QUIETS:
-        {
-            if (!skip) {
+        case Stages::STAGE_GEN_QUIETS: {
+            if (!skip)
+            {
                 nrQuiets = board.gen_legal_moves<MOVEGEN_QUIET>(moves);
                 const bool turn = board.turn, enemy = 1 ^ turn;
                 const Bitboard allPieces = board.get_bb_color(WHITE) | board.get_bb_color(BLACK);
                 const Bitboard enemyKingRing = attacks::kingRingMask[board.get_king(enemy)];
-                
+
                 int m = 0;
-                for (int i = 0; i < nrQuiets; i++) {
+                for (int i = 0; i < nrQuiets; i++)
+                {
                     const Move move = moves[i];
                     if (move == ttMove || move == killer)
                         continue;
@@ -152,26 +166,30 @@ public:
                     if (pt == PieceTypes::PAWN) // pawn push, generally good?
                         score += QuietPawnPushBonus;
 
-                    if (pt != PieceTypes::KING && pt != PieceTypes::PAWN) {
-                        score += QuietKingRingAttackBonus * (attacks::genAttacksSq(allPieces, to, pt) & enemyKingRing).count();
+                    if (pt != PieceTypes::KING && pt != PieceTypes::PAWN)
+                    {
+                        score += QuietKingRingAttackBonus *
+                                 (attacks::genAttacksSq(allPieces, to, pt) & enemyKingRing).count();
 
-                        auto score_threats = [&](
-                            Bitboard threats_p, Bitboard threats_bn, Bitboard threats_r, 
-                            Piece pt, Square to
-                        ) {
-                            if (threats_p.has_square(to)) return QuietPawnAttackedCoef * seeVal[pt];
-                            if (pt >= PieceTypes::ROOK && threats_bn.has_square(to)) return 16384;
-                            if (pt == PieceTypes::QUEEN && threats_r.has_square(to)) return 16384;
+                        auto score_threats = [&](Bitboard threats_p, Bitboard threats_bn, Bitboard threats_r, Piece pt,
+                                                 Square to) {
+                            if (threats_p.has_square(to))
+                                return QuietPawnAttackedCoef * seeVal[pt];
+                            if (pt >= PieceTypes::ROOK && threats_bn.has_square(to))
+                                return 16384;
+                            if (pt == PieceTypes::QUEEN && threats_r.has_square(to))
+                                return 16384;
                             return 0;
                         };
 
-                        auto score_threats_dodged = [&](
-                            Bitboard threats_p, Bitboard threats_bn, Bitboard threats_r,
-                            Piece pt, Square from
-                        ) {
-                            if (threats_p.has_square(from)) return QuietPawnAttackedDodgeCoef * seeVal[pt];
-                            if (pt >= PieceTypes::ROOK && threats_bn.has_square(from)) return 16384;
-                            if (pt == PieceTypes::QUEEN && threats_r.has_square(from)) return 16384;
+                        auto score_threats_dodged = [&](Bitboard threats_p, Bitboard threats_bn, Bitboard threats_r,
+                                                        Piece pt, Square from) {
+                            if (threats_p.has_square(from))
+                                return QuietPawnAttackedDodgeCoef * seeVal[pt];
+                            if (pt >= PieceTypes::ROOK && threats_bn.has_square(from))
+                                return 16384;
+                            if (pt == PieceTypes::QUEEN && threats_r.has_square(from))
+                                return 16384;
                             return 0;
                         };
 
@@ -179,7 +197,8 @@ public:
                                  score_threats(threats_p, threats_bn, threats_r, pt, to);
                     }
 
-                    if (move == kp_move) score += KPMoveBonus;
+                    if (move == kp_move)
+                        score += KPMoveBonus;
 
                     scores[m++] = score;
                 }
@@ -192,22 +211,26 @@ public:
         }
         case Stages::STAGE_QUIETS:
             trueStage = Stages::STAGE_QUIETS;
-            if (!skip && index < nrQuiets) {
+            if (!skip && index < nrQuiets)
+            {
                 get_best_move(index, nrQuiets, moves, scores);
                 return moves[index++];
             }
-            else {
+            else
+            {
                 stage++;
             }
         case Stages::STAGE_PRE_BAD_NOISY:
-            if (noisyPicker) {
+            if (noisyPicker)
+            {
                 return NULLMOVE;
             }
             index = 0;
             stage++;
         case Stages::STAGE_BAD_NOISY:
             trueStage = Stages::STAGE_BAD_NOISY;
-            if (index < nrBadNoisy) {
+            if (index < nrBadNoisy)
+            {
                 return badNoisy[index++];
             }
             return NULLMOVE;
@@ -221,7 +244,8 @@ public:
     }
 };
 
-bool see(Board& board, Move move, int threshold) {
+bool see(Board &board, Move move, int threshold)
+{
     Square from = move.get_from(), to = move.get_to();
     int score = -threshold + 1;
     Bitboard diag, orth, occ, att, myAtt, b;
@@ -243,13 +267,15 @@ bool see(Board& board, Move move, int threshold) {
     occ = board.get_bb_color(WHITE) | board.get_bb_color(BLACK);
     occ = (occ ^ Bitboard(from)) | Bitboard(to);
 
-    if (move.get_type() == MoveTypes::ENPASSANT && board.enpas() != NO_SQUARE) occ ^= Bitboard(board.enpas());
+    if (move.get_type() == MoveTypes::ENPASSANT && board.enpas() != NO_SQUARE)
+        occ ^= Bitboard(board.enpas());
 
     att = board.get_attackers(WHITE, occ, to) | board.get_attackers(BLACK, occ, to);
 
     stm = board.turn;
 
-    while (true) {
+    while (true)
+    {
         stm ^= 1;
         att &= occ;
         myAtt = att & board.get_bb_color(stm);
@@ -259,34 +285,39 @@ bool see(Board& board, Move move, int threshold) {
 
         result ^= 1;
 
-        if ((b = (myAtt & board.get_bb_piece(PieceTypes::PAWN, stm)))) {
+        if ((b = (myAtt & board.get_bb_piece(PieceTypes::PAWN, stm))))
+        {
             score = seeVal[PieceTypes::PAWN] + 1 - score;
             if (score <= 0)
                 break;
             occ ^= b.lsb();
             att |= attacks::genAttacksBishop(occ, to) & diag;
         }
-        else if ((b = (myAtt & board.get_bb_piece(PieceTypes::KNIGHT, stm)))) {
+        else if ((b = (myAtt & board.get_bb_piece(PieceTypes::KNIGHT, stm))))
+        {
             score = seeVal[PieceTypes::KNIGHT] + 1 - score;
             if (score <= 0)
                 break;
             occ ^= b.lsb();
         }
-        else if ((b = (myAtt & board.get_bb_piece(PieceTypes::BISHOP, stm)))) {
+        else if ((b = (myAtt & board.get_bb_piece(PieceTypes::BISHOP, stm))))
+        {
             score = seeVal[PieceTypes::BISHOP] + 1 - score;
             if (score <= 0)
                 break;
             occ ^= b.lsb();
             att |= attacks::genAttacksBishop(occ, to) & diag;
         }
-        else if ((b = (myAtt & board.get_bb_piece(PieceTypes::ROOK, stm)))) {
+        else if ((b = (myAtt & board.get_bb_piece(PieceTypes::ROOK, stm))))
+        {
             score = seeVal[PieceTypes::ROOK] + 1 - score;
             if (score <= 0)
                 break;
             occ ^= b.lsb();
             att |= attacks::genAttacksRook(occ, to) & orth;
         }
-        else if ((b = (myAtt & board.get_bb_piece(PieceTypes::QUEEN, stm)))) {
+        else if ((b = (myAtt & board.get_bb_piece(PieceTypes::QUEEN, stm))))
+        {
             score = seeVal[PieceTypes::QUEEN] + 1 - score;
             if (score <= 0)
                 break;
@@ -294,9 +325,11 @@ bool see(Board& board, Move move, int threshold) {
             att |= attacks::genAttacksBishop(occ, to) & diag;
             att |= attacks::genAttacksRook(occ, to) & orth;
         }
-        else {
+        else
+        {
             assert(myAtt & board.get_bb_piece(PieceTypes::KING, stm));
-            if (att & board.get_bb_color(1 ^ stm)) result ^= 1;
+            if (att & board.get_bb_color(1 ^ stm))
+                result ^= 1;
             break;
         }
     }

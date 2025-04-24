@@ -15,27 +15,30 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #pragma once
+#include "board.h"
 #include "defs.h"
 #include "net.h"
-#include "board.h"
 
 #ifndef TUNE_FLAG
-constexpr int seeVal[] = { SeeValPawn, SeeValKnight, SeeValBishop, SeeValRook, SeeValQueen, 20000, 0 };
+constexpr int seeVal[] = {SeeValPawn, SeeValKnight, SeeValBishop, SeeValRook, SeeValQueen, 20000, 0};
 #else
-int seeVal[] = { SeeValPawn, SeeValKnight, SeeValBishop, SeeValRook, SeeValQueen, 20000, 0 };
+int seeVal[] = {SeeValPawn, SeeValKnight, SeeValBishop, SeeValRook, SeeValQueen, 20000, 0};
 #endif
 
-inline int scale(Board& board) {
+inline int scale(Board &board)
+{
     return EvalScaleBias +
-        (board.get_bb_piece_type(PieceTypes::PAWN).count() * seeVal[PieceTypes::PAWN] + 
-        board.get_bb_piece_type(PieceTypes::KNIGHT).count() * seeVal[PieceTypes::KNIGHT] +
-        board.get_bb_piece_type(PieceTypes::BISHOP).count() * seeVal[PieceTypes::BISHOP] +
-        board.get_bb_piece_type(PieceTypes::ROOK).count() * seeVal[PieceTypes::ROOK] +
-        board.get_bb_piece_type(PieceTypes::QUEEN).count() * seeVal[PieceTypes::QUEEN]) / 32 - 
-        board.half_moves() * EvalShuffleCoef;
+           (board.get_bb_piece_type(PieceTypes::PAWN).count() * seeVal[PieceTypes::PAWN] +
+            board.get_bb_piece_type(PieceTypes::KNIGHT).count() * seeVal[PieceTypes::KNIGHT] +
+            board.get_bb_piece_type(PieceTypes::BISHOP).count() * seeVal[PieceTypes::BISHOP] +
+            board.get_bb_piece_type(PieceTypes::ROOK).count() * seeVal[PieceTypes::ROOK] +
+            board.get_bb_piece_type(PieceTypes::QUEEN).count() * seeVal[PieceTypes::QUEEN]) /
+               32 -
+           board.half_moves() * EvalShuffleCoef;
 }
 
-int evaluate(Board& board, Network& NN) {
+int evaluate(Board &board, Network &NN)
+{
     NN.bring_up_to_date(board);
 
     int eval = NN.get_output(board.turn);

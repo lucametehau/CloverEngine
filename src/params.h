@@ -16,35 +16,39 @@
 */
 
 #pragma once
-#include <type_traits>
 #include <cassert>
 #include <iostream>
+#include <type_traits>
 
 // tuning param/option
-template <typename T>
-struct Parameter {
+template <typename T> struct Parameter
+{
     std::string name;
     T &value;
     T min, max;
 };
 
-
 inline std::vector<Parameter<int>> params_int;
 inline std::vector<Parameter<double>> params_double;
 
 // trick to be able to create options
-template <typename T>
-struct CreateParam {
+template <typename T> struct CreateParam
+{
     T value;
-    CreateParam(std::string name, T _value, T min, T max) : value(_value) { 
+    CreateParam(std::string name, T _value, T min, T max) : value(_value)
+    {
         assert(min <= _value && _value <= max);
-        if constexpr (std::is_integral_v<T>) params_int.push_back({ name, value, min, max });
-        else params_double.push_back({ name, value, min, max }); 
+        if constexpr (std::is_integral_v<T>)
+            params_int.push_back({name, value, min, max});
+        else
+            params_double.push_back({name, value, min, max});
     }
 
-    operator T() const { return value; }
+    operator T() const
+    {
+        return value;
+    }
 };
-
 
 #ifndef TUNE_FLAG
 #define TUNE_PARAM(name, value, min, max) constexpr int name = value;
@@ -53,7 +57,6 @@ struct CreateParam {
 #define TUNE_PARAM(name, value, min, max) CreateParam<int> name(#name, value, min, max);
 #define TUNE_PARAM_DOUBLE(name, value, min, max) CreateParam<double> name(#name, value, min, max);
 #endif
-
 
 // search constants
 TUNE_PARAM(DeltaPruningMargin, 1031, 900, 1100);
@@ -162,7 +165,7 @@ TUNE_PARAM_DOUBLE(TMCoef2, 0.34772368050337443, 0.250, 0.550);
 TUNE_PARAM_DOUBLE(TMCoef3, 5.5483805603934195, 4.500, 6.500);
 TUNE_PARAM_DOUBLE(TMCoef4, 0.7453397854308839, 0.650, 0.850);
 
-TUNE_PARAM_DOUBLE(LMRQuietBias,  1.1540091336006513, 1.00, 1.25);
+TUNE_PARAM_DOUBLE(LMRQuietBias, 1.1540091336006513, 1.00, 1.25);
 TUNE_PARAM_DOUBLE(LMRQuietDiv, 2.575107162151004, 1.50, 2.70);
 
 // movepicker constants
@@ -197,11 +200,16 @@ TUNE_PARAM(SeeValBishop, 334, 320, 380);
 TUNE_PARAM(SeeValRook, 507, 450, 600);
 TUNE_PARAM(SeeValQueen, 990, 900, 1100);
 
-inline void print_params_for_ob() {
-    for (auto& param : params_int) {
-        std::cout << param.name << ", int, " << param.value << ", " << param.min << ", " << param.max << ", " << std::max(0.5, (param.max - param.min) / 20.0) << ", 0.002\n";
+inline void print_params_for_ob()
+{
+    for (auto &param : params_int)
+    {
+        std::cout << param.name << ", int, " << param.value << ", " << param.min << ", " << param.max << ", "
+                  << std::max(0.5, (param.max - param.min) / 20.0) << ", 0.002\n";
     }
-    for (auto& param : params_double) {
-        std::cout << param.name << ", float, " << param.value << ", " << param.min << ", " << param.max << ", " << (param.max - param.min) / 20.0 << ", 0.002\n";
+    for (auto &param : params_double)
+    {
+        std::cout << param.name << ", float, " << param.value << ", " << param.min << ", " << param.max << ", "
+                  << (param.max - param.min) / 20.0 << ", 0.002\n";
     }
 }

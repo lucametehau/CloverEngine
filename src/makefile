@@ -1,7 +1,8 @@
 SRCXX = $(wildcard *.cpp)
+SRCHEADERS = $(wildcard *.h)
 SRC = 3rdparty/Fathom/src/tbprobe.c
 OBJ = $(SRCXX:.cpp=.o) $(SRC:.c=.o)
-EXE = Clover.8.1.7
+EXE = Clover.8.1.6
 EVALFILE = clover-7buckets-mse-0.95-1280-cosine-600.bin
 
 ifeq ($(CXX),)
@@ -79,6 +80,24 @@ endif
 
 make: $(OBJ)
 	$(CXX) $(OBJ) $(RFLAGS) $(LIBS) $(BUILD_FLAGS) -o $(EXE)$(EXT)
+	make format
+
+ifeq ($(OS),Windows_NT)
+    CLANG_FORMAT_PATH := $(shell where $(FORMATTER) 2>nul)
+    ifeq ($(CLANG_FORMAT_PATH),)
+        CLANG_FORMAT_PATH := $(shell command -v $(FORMATTER) 2>nul)
+    endif
+else
+    CLANG_FORMAT_PATH := $(shell command -v $(FORMATTER) 2>/dev/null)
+endif
+
+ifeq ($(CLANG_FORMAT_PATH),)
+format:
+	echo "clang-format undetected"
+else
+format: $(SRCHEADERS) $(SRCXX)
+	clang-format -i $(SRCHEADERS) $(SRCXX)
+endif
 
 release:
 	make build_flag=old
