@@ -185,7 +185,7 @@ void UCI::uci_loop() {
             if (name == "Hash") {
                 iss >> value >> ttSize;
 #ifndef GENERATE
-                TT->initTable(ttSize * MB, thread_pool.get_num_threads());
+                TT->init(ttSize * MB, thread_pool.get_num_threads());
 #endif
             }
             else if (name == "Threads") {
@@ -286,8 +286,7 @@ void UCI::uci() {
 void UCI::ucinewgame(uint64_t ttSize) {
     thread_pool.clear_history();
 #ifndef GENERATE
-    TT->reset_age();
-    TT->initTable(ttSize * MB, thread_pool.get_num_threads());
+    TT->init(ttSize * MB, thread_pool.get_num_threads());
 #endif
 }
 

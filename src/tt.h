@@ -19,7 +19,7 @@
 #include <thread>
 
 constexpr int MB = (1 << 20);
-constexpr int BUCKET = 3;
+constexpr int BUCKET_COUNT = 3;
 
 enum TTBounds : int {
     NONE = 0, UPPER, LOWER, EXACT
@@ -46,11 +46,13 @@ struct Entry {
     int depth() const { return (about >> 2) & 127; }
     bool was_pv() const { return (about >> 9) & 1; }
     int generation() const { return (about >> 10); }
-    void refresh(int gen) { about = (about & 1023u) | (gen << 10u); }
+    void refresh(const int gen) { about = (about & 1023u) | (gen << 10u); }
+
+    int generation_diff(const int tt_generation) const { return (64 + tt_generation - generation()) & 63; }
 };
 
 struct Bucket {
-    std::array<Entry, BUCKET> entries;
+    std::array<Entry, BUCKET_COUNT> entries;
     char padding[2];
 
     Bucket() { entries.fill(Entry()); }
@@ -64,14 +66,12 @@ public:
     uint64_t buckets;
 
 private:
-    int generation = 1;
+    int generation = 0;
 
 public:
     HashTable();
 
-    void initTableSlice(uint64_t start, uint64_t size);
-
-    void initTable(uint64_t size, int nr_threads = 1);
+    void init(uint64_t size, int nr_threads = 1);
 
     ~HashTable();
 
@@ -82,8 +82,6 @@ public:
     Entry* probe(const uint64_t hash, bool &ttHit);
 
     void save(Entry* entry, uint64_t hash, int score, int depth, int ply, int bound, Move move, int eval, bool was_pv);
-
-    void reset_age();
 
     void age(int nr_threads);
 
@@ -102,11 +100,8 @@ HashTable::~HashTable() {
     std::free(table);
 }
 
-void HashTable::initTableSlice(uint64_t start, uint64_t size) {
-    std::fill(table + start, table + start + size, Bucket());
-}
-
-void HashTable::initTable(uint64_t size, int nr_threads) {
+void HashTable::init(uint64_t size, int nr_threads) {
+    generation = 0;
     std::cout << "info string initializing TT with " << size << " bytes and " << nr_threads << " threads" << std::endl;
     if (size < sizeof(Bucket)) {
         if (buckets != 0) {
@@ -120,7 +115,8 @@ void HashTable::initTable(uint64_t size, int nr_threads) {
     const uint64_t new_buckets = size / sizeof(Bucket);
     
     if (buckets != new_buckets) {
-        std::free(table);
+        if (buckets)
+            std::free(table);
         buckets = new_buckets;
         table = static_cast<Bucket*>(std::malloc(buckets * sizeof(Bucket)));
     }
@@ -136,8 +132,12 @@ void HashTable::initTable(uint64_t size, int nr_threads) {
     std::vector<std::thread> threads;
     threads.reserve(nr_threads);
 
+    auto init_slice = [&](uint64_t start, uint64_t end) {
+        std::fill(table + start, table + end, Bucket());
+    };
+
     for (int i = 0; i < nr_threads; ++i) {
-        threads.emplace_back(&HashTable::initTableSlice, this, slice_size * i, std::min(slice_size * (i + 1), buckets) - slice_size * i);
+        threads.emplace_back(init_slice, slice_size * i, std::min(slice_size * (i + 1), buckets));
     }
 
     for (auto& t : threads) {
@@ -161,18 +161,18 @@ Entry* HashTable::probe(const uint64_t hash, bool &ttHit) {
     Entry* bucket = table[ind].entries.data();
     const uint16_t hash16 = static_cast<uint16_t>(hash);
 
-    for (int i = 0; i < BUCKET; i++) {
+    for (int i = 0; i < BUCKET_COUNT; i++) {
         if (bucket[i].hash == hash16) {
             ttHit = 1;
-            bucket[i].refresh(generation);
             return bucket + i;
         }
     }
 
     ttHit = 0;
     int idx = 0;
-    for (int i = 1; i < BUCKET; i++) {
-        if (bucket[i].depth() + bucket[i].generation() < bucket[idx].depth() + bucket[idx].generation()) idx = i;
+    for (int i = 1; i < BUCKET_COUNT; i++) {
+        if (bucket[i].depth() - bucket[i].generation_diff(generation) < 
+            bucket[idx].depth() - bucket[idx].generation_diff(generation)) idx = i;
     }
 
     return bucket + idx;
@@ -190,7 +190,11 @@ void HashTable::save(Entry* entry, uint64_t hash, int score, int depth, int ply,
 
     if (move || hash16 != entry->hash) entry->move = move;
 
-    if (bound == TTBounds::EXACT || hash16 != entry->hash || depth + 3 + 2 * was_pv >= entry->depth()) {
+    if (bound == TTBounds::EXACT || 
+        hash16 != entry->hash || 
+        entry->generation_diff(generation) || 
+        depth + 3 + 2 * was_pv >= entry->depth()
+    ) {
         entry->hash = hash16;
         entry->score = score;
         entry->eval = eval;
@@ -198,48 +202,18 @@ void HashTable::save(Entry* entry, uint64_t hash, int score, int depth, int ply,
     }
 }
 
-void HashTable::reset_age() {
-    generation = 1;
-
-    for (uint64_t i = 0; i < buckets; i++)
-        for (int j = 0; j < BUCKET; j++)
-            table[i].entries[j].refresh(0);
-}
-
 void HashTable::age(int nr_threads) {
-    generation++;
-
-    if (generation == 63) {
-        generation = 1;
-
-        std::vector<std::thread> threads;
-        uint64_t buckets_per_thread = (buckets + nr_threads - 1) / nr_threads;
-
-        auto refresh_slice = [&](uint64_t start, uint64_t end) {
-            for (uint64_t i = start; i < end; i++) {
-                for (int j = 0; j < BUCKET; j++) {
-                    table[i].entries[j].refresh(0);
-                }
-            }
-        };
-
-        for (int i = 0; i < nr_threads; i++) {
-            threads.emplace_back(refresh_slice, buckets_per_thread * i, std::min(buckets_per_thread * i + buckets_per_thread, buckets));
-        }
-
-        for (auto& t : threads) t.join();
-    }
+    generation = (generation + 1) & 63;
 }
 
 int HashTable::hashfull() {
-    int tempSize = 1000, cnt = 0;
-
-    for (int i = 0; i < tempSize; i++) {
-        for (int j = 0; j < BUCKET; j++) {
+    int cnt = 0;
+    for (int i = 0; i < 1000; i++) {
+        for (int j = 0; j < BUCKET_COUNT; j++) {
             if (table[i].entries[j].generation() == generation)
                 cnt++;
         }
     }
 
-    return cnt / BUCKET;
+    return cnt / BUCKET_COUNT;
 }

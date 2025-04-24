@@ -1,7 +1,7 @@
 SRCXX = $(wildcard *.cpp)
 SRC = 3rdparty/Fathom/src/tbprobe.c
 OBJ = $(SRCXX:.cpp=.o) $(SRC:.c=.o)
-EXE = Clover.8.1.6
+EXE = Clover.8.1.7
 EVALFILE = clover-7buckets-mse-0.95-1280-cosine-600.bin
 
 ifeq ($(CXX),)
