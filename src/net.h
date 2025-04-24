@@ -93,9 +93,10 @@
 #define ALIGN       16
 #endif
 
-constexpr int KING_BUCKETS = 7;
+constexpr int KING_BUCKETS = 16;
+constexpr int OUTPUT_BUCKETS = 8;
 constexpr int INPUT_NEURONS = 768 * KING_BUCKETS;
-constexpr int SIDE_NEURONS = 1280;
+constexpr int SIDE_NEURONS = 1536;
 constexpr int HIDDEN_NEURONS = 2 * SIDE_NEURONS;
 constexpr int REG_LENGTH = sizeof(reg_type) / sizeof(int16_t);
 constexpr int NUM_REGS = SIDE_NEURONS / REG_LENGTH;
@@ -111,8 +112,8 @@ const reg_type one = reg_set1(Q_IN);
 
 alignas(ALIGN) inline int16_t inputWeights[INPUT_NEURONS * SIDE_NEURONS];
 alignas(ALIGN) inline int16_t inputBiases[SIDE_NEURONS];
-alignas(ALIGN) inline int16_t outputWeights[HIDDEN_NEURONS];
-inline int16_t outputBias;
+alignas(ALIGN) inline int16_t outputWeights[HIDDEN_NEURONS * OUTPUT_BUCKETS];
+alignas(ALIGN) inline int16_t outputBiases[OUTPUT_BUCKETS];
 
 inline int get_king_bucket_cache_index(const Square king_sq, const bool side) {
     return KING_BUCKETS * ((king_sq & 7) >= 4) + kingIndTable[king_sq.mirror(side)];
@@ -135,11 +136,15 @@ void load_nnue_weights() {
         inputBiases[j] = *intData;
         intData++;
     }
-    for (int j = 0; j < HIDDEN_NEURONS; j++) {
+    for (int j = 0; j < HIDDEN_NEURONS * OUTPUT_BUCKETS; j++) {
         outputWeights[j] = *intData;
         intData++;
     }
-    outputBias = *intData;
+
+    for (int j = 0; j < OUTPUT_BUCKETS; j++) {
+        outputBiases[j] = *intData;
+        intData++;
+    }
 }
 
 inline reg_type reg_clamp(reg_type reg) {
@@ -426,12 +431,12 @@ public:
         }
     }
 
-    int32_t get_output(bool stm) {
+    int32_t get_output(bool stm, int output_bucket) {
         reg_type_s acc{};
         const reg_type* w = reinterpret_cast<const reg_type*>(&output_history[hist_size - 1][stm * SIDE_NEURONS]);
         const reg_type* w2 = reinterpret_cast<const reg_type*>(&output_history[hist_size - 1][(stm ^ 1) * SIDE_NEURONS]);
-        const reg_type* v = reinterpret_cast<const reg_type*>(outputWeights);
-        const reg_type* v2 = reinterpret_cast<const reg_type*>(&outputWeights[SIDE_NEURONS]);
+        const reg_type* v = reinterpret_cast<const reg_type*>(&outputWeights[output_bucket * HIDDEN_NEURONS]);
+        const reg_type* v2 = reinterpret_cast<const reg_type*>(&outputWeights[output_bucket * HIDDEN_NEURONS + SIDE_NEURONS]);
         reg_type clamped;
 
         for (int j = 0; j < NUM_REGS; j++) {
@@ -441,7 +446,7 @@ public:
             acc = reg_add32(acc, reg_madd16(reg_mullo(clamped, v2[j]), clamped));
         }
 
-        return (outputBias + get_sum(acc) / Q_IN) * 225 / Q_IN_HIDDEN;
+        return (outputBiases[output_bucket] + get_sum(acc) / Q_IN) * 400 / Q_IN_HIDDEN;
     }
 
     int hist_size;

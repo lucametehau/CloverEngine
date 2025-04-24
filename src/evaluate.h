@@ -38,7 +38,8 @@ inline int scale(Board& board) {
 int evaluate(Board& board, Network& NN) {
     NN.bring_up_to_date(board);
 
-    int eval = NN.get_output(board.turn);
+    const int output_bucket = ((board.pieces[WHITE] | board.pieces[BLACK]).count() - 2) / 4;
+    int eval = NN.get_output(board.turn, output_bucket);
     eval = eval * scale(board) / 1024;
     return eval;
 }
