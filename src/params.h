@@ -19,6 +19,7 @@
 #include <cassert>
 #include <iostream>
 #include <type_traits>
+#include <vector>
 
 // tuning param/option
 template <typename T> struct Parameter

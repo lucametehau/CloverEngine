@@ -17,6 +17,7 @@
 #pragma once
 #include "board.h"
 #include "defs.h"
+#include <algorithm>
 #include <vector>
 
 constexpr int CORR_HIST_SIZE = (1 << 16);
