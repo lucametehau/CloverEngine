@@ -69,7 +69,7 @@ void generateFens(SearchThread &thread_data, std::atomic<uint64_t>& sumFens, std
         thread_data.clear_history();
         thread_data.clear_stack();
 
-        thread_data.TT->initTable(4 * MB);
+        thread_data.TT->init(4 * MB);
         std::uniform_int_distribution <int> rnd_ply(0, 100000);
 
         int additionalPly = rnd_ply(gn) % 2;

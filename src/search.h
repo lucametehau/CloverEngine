@@ -688,7 +688,7 @@ void SearchThread::print_iteration_info(bool san_mode, int multipv, int score, i
         if (score >= beta) std::cout << " lowerbound";
         else if (score <= alpha) std::cout << " upperbound";
 
-        std::cout << " depth " << depth << " sel_depth " << sel_depth << " nodes " << total_nodes;
+        std::cout << " depth " << depth << " seldepth " << sel_depth << " nodes " << total_nodes;
         if (t)
             std::cout << " nps " << total_nodes * 1000 / t;
         std::cout << " time " << t << " ";
