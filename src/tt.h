@@ -171,8 +171,8 @@ Entry* HashTable::probe(const uint64_t hash, bool &ttHit) {
     ttHit = 0;
     int idx = 0;
     for (int i = 1; i < BUCKET_COUNT; i++) {
-        if (bucket[i].depth() - bucket[i].generation_diff(generation) < 
-            bucket[idx].depth() - bucket[idx].generation_diff(generation)) idx = i;
+        if (bucket[i].depth() - 2 * bucket[i].generation_diff(generation) < 
+            bucket[idx].depth() - 2 * bucket[idx].generation_diff(generation)) idx = i;
     }
 
     return bucket + idx;
