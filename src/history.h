@@ -17,6 +17,7 @@
 #pragma once
 #include "board.h"
 #include "defs.h"
+#include <algorithm>
 #include <vector>
 
 constexpr int CORR_HIST_SIZE = (1 << 16);
@@ -24,6 +25,9 @@ constexpr int CORR_HIST_MASK = CORR_HIST_SIZE - 1;
 
 constexpr int KP_MOVE_SIZE = (1 << 14);
 constexpr int KP_MOVE_MASK = KP_MOVE_SIZE - 1;
+
+constexpr int PAWN_HIST_SIZE = (1 << 8);
+constexpr int PAWN_HIST_MASK = PAWN_HIST_SIZE - 1;
 
 template <int16_t Divisor> class History
 {
@@ -80,6 +84,7 @@ class Histories
 {
   private:
     MultiArray<History<16384>, 2, 2, 2, 64 * 64> hist;
+    MultiArray<History<16384>, 2, 13, 64, PAWN_HIST_SIZE> pawn_hist;
     MultiArray<History<16384>, 12, 64, 7> cap_hist;
     MultiArray<CorrectionHistory, 2, CORR_HIST_SIZE> corr_hist;
     MultiArray<CorrectionHistory, 2, 2, CORR_HIST_SIZE> mat_corr_hist;
@@ -92,6 +97,7 @@ class Histories
     void clear_history()
     {
         fill_multiarray<History<16384>, 2, 2, 2, 64 * 64>(hist, 0);
+        fill_multiarray<History<16384>, 2, 13, 64, PAWN_HIST_SIZE>(pawn_hist, 0);
         fill_multiarray<History<16384>, 12, 64, 7>(cap_hist, 0);
         fill_multiarray<History<16384>, 2, 13, 64, 13, 64>(cont_history, 0);
         fill_multiarray<CorrectionHistory, 2, CORR_HIST_SIZE>(corr_hist, CorrectionHistory(0));
@@ -104,16 +110,27 @@ class Histories
         clear_history();
     }
 
-    History<16384> &get_hist(const Square from, const Square to, const int from_to, const bool turn,
+    History<16384> &get_hist(const bool turn, const Square from, const Square to, const int from_to,
                              const Bitboard threats)
     {
         return hist[turn][!threats.has_square(from)][!threats.has_square(to)][from_to];
     }
 
-    const History<16384> get_hist(const Square from, const Square to, const int from_to, const bool turn,
+    const History<16384> get_hist(const bool turn, const Square from, const Square to, const int from_to,
                                   const Bitboard threats) const
     {
         return hist[turn][!threats.has_square(from)][!threats.has_square(to)][from_to];
+    }
+
+    History<16384> &get_pawn_hist(const bool turn, const Piece piece, const Square to, const uint64_t pawn_key)
+    {
+        return pawn_hist[turn][piece][to][pawn_key & PAWN_HIST_MASK];
+    }
+
+    const History<16384> get_pawn_hist(const bool turn, const Piece piece, const Square to,
+                                       const uint64_t pawn_key) const
+    {
+        return pawn_hist[turn][piece][to][pawn_key & PAWN_HIST_MASK];
     }
 
     History<16384> &get_cont_hist(const Piece piece, const Square to, StackEntry *stack, const int delta)
@@ -180,32 +197,40 @@ class Histories
 
     void update_hist_move(const Move move, const Bitboard threats, const bool turn, const int16_t bonus)
     {
-        get_hist(move.get_from(), move.get_to(), move.get_from_to(), turn, threats).update(bonus);
+        get_hist(turn, move.get_from(), move.get_to(), move.get_from_to(), threats).update(bonus);
+    }
+
+    void update_pawn_hist_move(const bool turn, const Piece piece, const Square to, const uint64_t pawn_key,
+                               const int16_t bonus)
+    {
+        get_pawn_hist(turn, piece, to, pawn_key).update(bonus);
     }
 
     void update_hist_quiet_move(const Move move, const Piece piece, const Bitboard threats, const bool turn,
-                                StackEntry *&stack, const int16_t bonus)
+                                const uint64_t pawn_key, StackEntry *&stack, const int16_t bonus)
     {
         update_hist_move(move, threats, turn, bonus);
         update_cont_hist_move(piece, move.get_to(), stack, bonus);
+        update_pawn_hist_move(turn, piece, move.get_to(), pawn_key, bonus);
     }
 
     const int get_history_search(const Move move, const Piece piece, const Bitboard threats, const bool turn,
                                  StackEntry *stack) const
     {
         const Square to = move.get_to();
-        return get_hist(move.get_from(), to, move.get_from_to(), turn, threats) + get_cont_hist(piece, to, stack, 1) +
+        return get_hist(turn, move.get_from(), to, move.get_from_to(), threats) + get_cont_hist(piece, to, stack, 1) +
                get_cont_hist(piece, to, stack, 2) + get_cont_hist(piece, to, stack, 4);
     }
 
     const int get_history_movepick(const Move move, const Piece piece, const Bitboard threats, const bool turn,
-                                   StackEntry *stack) const
+                                   const uint64_t pawn_key, StackEntry *stack) const
     {
         const Square to = move.get_to();
-        return QuietHistCoef * get_hist(move.get_from(), to, move.get_from_to(), turn, threats) +
+        return QuietHistCoef * get_hist(turn, move.get_from(), to, move.get_from_to(), threats) +
                QuietContHist1 * get_cont_hist(piece, to, stack, 1) +
                QuietContHist2 * get_cont_hist(piece, to, stack, 2) +
-               QuietContHist4 * get_cont_hist(piece, to, stack, 4);
+               QuietContHist4 * get_cont_hist(piece, to, stack, 4) +
+               QuietPawnHist * get_pawn_hist(turn, piece, move.get_to(), pawn_key);
     }
 
     void update_cap_hist_move(const Piece piece, const Square to, const int cap, const int16_t bonus)

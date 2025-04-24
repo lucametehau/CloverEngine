@@ -161,7 +161,7 @@ class Movepick
                     moves[m] = move;
                     const Square from = move.get_from(), to = move.get_to();
                     const Piece piece = board.piece_at(from), pt = piece.type();
-                    int score = histories.get_history_movepick(move, piece, all_threats, turn, stack);
+                    int score = histories.get_history_movepick(move, piece, all_threats, turn, board.pawn_key(), stack);
 
                     if (pt == PieceTypes::PAWN) // pawn push, generally good?
                         score += QuietPawnPushBonus;

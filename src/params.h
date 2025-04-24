@@ -19,6 +19,7 @@
 #include <cassert>
 #include <iostream>
 #include <type_traits>
+#include <vector>
 
 // tuning param/option
 template <typename T> struct Parameter
@@ -174,6 +175,7 @@ TUNE_PARAM(QuietHistCoef, 1, 1, 4);
 TUNE_PARAM(QuietContHist1, 2, 1, 2);
 TUNE_PARAM(QuietContHist2, 2, 1, 2);
 TUNE_PARAM(QuietContHist4, 1, 1, 2);
+TUNE_PARAM(QuietPawnHist, 1, 1, 2);
 TUNE_PARAM(QuietPawnAttackedCoef, 34, 20, 50);
 TUNE_PARAM(QuietPawnAttackedDodgeCoef, 36, 20, 50);
 TUNE_PARAM(QuietPawnPushBonus, 9027, 8000, 9500);

@@ -762,14 +762,14 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
                         m_kp_move[turn][m_board.king_pawn_key() & KP_MOVE_MASK] = bestMove;
                         if (nr_quiets || depth >= HistoryUpdateMinDepth)
                             m_histories.update_hist_quiet_move(bestMove, m_board.piece_at(bestMove.get_from()),
-                                                               m_board.threats().all_threats, turn, stack,
-                                                               bonus * tried_count);
+                                                               m_board.threats().all_threats, turn, m_board.pawn_key(),
+                                                               stack, bonus * tried_count);
                         for (int i = 0; i < nr_quiets; i++)
                         {
                             const auto [move, tried_count] = quiets[i];
                             m_histories.update_hist_quiet_move(move, m_board.piece_at(move.get_from()),
-                                                               m_board.threats().all_threats, turn, stack,
-                                                               malus * tried_count);
+                                                               m_board.threats().all_threats, turn, m_board.pawn_key(),
+                                                               stack, malus * tried_count);
                         }
                     }
                     else
