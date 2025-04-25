@@ -412,9 +412,11 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
 
     const int static_eval = stack->eval;
     const auto eval_diff = [&]() {
+        if ((stack - 1)->eval != INF)
+            return static_eval + (stack - 1)->eval;
         if ((stack - 2)->eval != INF)
             return static_eval - (stack - 2)->eval;
-        else if ((stack - 4)->eval != INF)
+        if ((stack - 4)->eval != INF)
             return static_eval - (stack - 4)->eval;
         return 0;
     }();
@@ -426,6 +428,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
             return 1;
         return eval_diff < NegativeImprovingMargin ? -1 : 0;
     }();
+
     const bool is_ttmove_noisy = ttMove && m_board.is_noisy_move(ttMove);
     const bool bad_static_eval = static_eval <= alpha;
 
