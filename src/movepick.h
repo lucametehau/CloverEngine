@@ -80,7 +80,8 @@ class Movepick
         std::swap(moves[ind], moves[offset]);
     }
 
-    Move get_next_move(Histories &histories, StackEntry *stack, Board &board, bool skip, bool noisyPicker)
+    Move get_next_move(Histories &histories, StackEntry *stack, Board &board, bool skip, bool noisyPicker,
+                       PolicyNetwork *policy_network = nullptr)
     {
         switch (stage)
         {
@@ -112,6 +113,8 @@ class Movepick
                 const Square to = move.get_to();
                 int score = GoodNoisyValueCoef * seeVal[cap];
                 score += histories.get_cap_hist(piece, to, cap);
+                if (policy_network)
+                    score += policy_network->score_move_movepicker(board.turn, move);
                 scores[m++] = score;
             }
 
@@ -134,7 +137,7 @@ class Movepick
             if (skip)
             { /// no need to go through quiets
                 stage = Stages::STAGE_PRE_BAD_NOISY;
-                return get_next_move(histories, stack, board, skip, noisyPicker);
+                return get_next_move(histories, stack, board, skip, noisyPicker, policy_network);
             }
             stage++;
         case Stages::STAGE_KILLER:
@@ -199,6 +202,9 @@ class Movepick
 
                     if (move == kp_move)
                         score += KPMoveBonus;
+
+                    if (policy_network)
+                        score += policy_network->score_move_movepicker(turn, move);
 
                     scores[m++] = score;
                 }

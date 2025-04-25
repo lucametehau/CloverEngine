@@ -20,6 +20,7 @@
 #include "fen.h"
 #include "history.h"
 #include "net.h"
+#include "policy.h"
 #include "search-info.h"
 #include "tt.h"
 #include <atomic>
@@ -74,6 +75,7 @@ class SearchThread
     int m_completed_depth;
     Board m_board;
     Network NN;
+    PolicyNetwork policy_network;
 
   public:
     ThreadPool *m_thread_pool;

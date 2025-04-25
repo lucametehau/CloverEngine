@@ -19,6 +19,7 @@
 #include "generate.h"
 #include "movegen.h"
 #include "perft.h"
+#include "policy.h"
 #include "search.h"
 #include <fstream>
 #include <queue>
@@ -32,6 +33,7 @@ class UCI
   private:
     std::unique_ptr<std::deque<HistoricalState>> states;
     Network NN;
+    PolicyNetwork policy_network;
 
   public:
     UCI()
@@ -50,6 +52,7 @@ class UCI
     void stop();
     void quit();
     void eval();
+    void policy_eval();
     void go_perft(int depth);
     void set_param_int(std::istringstream &iss, int &value);
     void set_param_double(std::istringstream &iss, double &value);
@@ -303,6 +306,10 @@ void UCI::uci_loop()
         {
             eval();
         }
+        else if (cmd == "policy")
+        {
+            policy_eval();
+        }
         else if (cmd == "perft")
         {
             int depth;
@@ -389,6 +396,18 @@ void UCI::eval()
 {
     NN.init(thread_pool.get_board());
     std::cout << evaluate(thread_pool.get_board(), NN) << std::endl;
+}
+
+void UCI::policy_eval()
+{
+    std::array<float, 256> scores = policy_network.score_moves(thread_pool.get_board());
+    MoveList moves;
+    int nr_moves = thread_pool.get_board().gen_legal_moves<MOVEGEN_ALL>(moves);
+
+    for (int i = 0; i < nr_moves; i++)
+    {
+        std::cout << moves[i].to_string() << " has score " << scores[i] << "\n";
+    }
 }
 
 void UCI::is_ready()

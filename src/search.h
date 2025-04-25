@@ -328,6 +328,10 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
         if (alpha >= beta)
             return alpha;
     }
+    else
+    {
+        policy_network.init_and_compute(m_board);
+    }
 
     Entry *entry = TT->probe(key, ttHit);
 
@@ -528,7 +532,8 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
 
     Move move;
 
-    while ((move = picker.get_next_move(m_histories, stack, m_board, skip, false)) != NULLMOVE)
+    while ((move = picker.get_next_move(m_histories, stack, m_board, skip, false,
+                                        rootNode ? &policy_network : nullptr)) != NULLMOVE)
     {
         if constexpr (rootNode)
         {

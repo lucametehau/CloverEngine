@@ -16,6 +16,7 @@
 */
 #include "cuckoo.h"
 #include "perft.h"
+#include "policy.h"
 #include "uci.h"
 #include <cstring>
 #include <iostream>
@@ -27,6 +28,7 @@ int main(int argc, char **argv)
     attacks::init();
     cuckoo::init();
     load_nnue_weights();
+    init_policy_network();
 
     UCI uci;
 
