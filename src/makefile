@@ -4,6 +4,7 @@ SRC = 3rdparty/Fathom/src/tbprobe.c
 OBJ = $(SRCXX:.cpp=.o) $(SRC:.c=.o)
 EXE = Clover.8.1.8
 EVALFILE = clover-7buckets-mse-0.95-1280-cosine-600.bin
+POLICY_FILE = policy-net-montydata.bin
 
 ifeq ($(CXX),)
     CXX = g++
@@ -44,7 +45,7 @@ AVX2_FLAGS     = -march=core-avx2
 NATIVE_FLAGS   = -mno-avx512f -march=native
 OLD_FLAGS      = -march=core2
 AVX512_FLAGS   = $(AVX2FLAGS) -mavx512f -mavx512bw -mavx512dq
-EVALFILE_FLAGS = -DEVALFILE=\"$(EVALFILE)\" -I . -IFathom
+EVALFILE_FLAGS = -DEVALFILE=\"$(EVALFILE)\" -DPOLICY_FILE=\"$(POLICY_FILE)\"  -I . -IFathom
 BUILD_FLAGS    = $(EVALFILE_FLAGS) $(PEXT_FLAGS)
 
 ifeq ($(build_flag),)

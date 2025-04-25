@@ -2,6 +2,7 @@
 
 #include "attacks.h"
 #include "board.h"
+#include "incbin.h"
 #include <algorithm>
 #include <cmath>
 
@@ -37,6 +38,8 @@ constexpr std::array<Bitboard, 64> ALL_DESTINATIONS = {
     18304606945994162561ull, 18234809986805039618ull, 18095216068426728452ull, 17815745661460023304ull,
     17256804838970232848ull, 16138922098757279776ull, 13830818648828297536ull, 9214611748970332801ull};
 
+INCBIN(Policy, POLICY_FILE);
+
 int16_t policy_input_weights[POLICY_SIDE_NEURONS * POLICY_INPUT_NEURONS];
 int16_t policy_input_biases[POLICY_SIDE_NEURONS];
 int16_t policy_output_weights[POLICY_HIDDEN_NEURONS * POLICY_OUTPUT_NEURONS];
@@ -56,16 +59,28 @@ int policy_move_index(bool color, Move move)
 
 void init_policy_network()
 {
-    FILE *net = fopen("policy_net_montydata.bin", "rb");
+    int16_t *int_data = (int16_t *)gPolicyData;
 
-    assert(fread(policy_input_weights, sizeof(int16_t), POLICY_SIDE_NEURONS * POLICY_INPUT_NEURONS, net) ==
-           POLICY_SIDE_NEURONS * POLICY_INPUT_NEURONS);
-    assert(fread(policy_input_biases, sizeof(int16_t), POLICY_SIDE_NEURONS, net) == POLICY_SIDE_NEURONS);
-    assert(fread(policy_output_weights, sizeof(int16_t), POLICY_HIDDEN_NEURONS * POLICY_OUTPUT_NEURONS, net) ==
-           POLICY_HIDDEN_NEURONS * POLICY_OUTPUT_NEURONS);
-    assert(fread(policy_output_biases, sizeof(int16_t), POLICY_OUTPUT_NEURONS, net) == POLICY_OUTPUT_NEURONS);
-
-    fclose(net);
+    for (int i = 0; i < POLICY_SIDE_NEURONS * POLICY_INPUT_NEURONS; i++)
+    {
+        policy_input_weights[i] = *int_data;
+        int_data++;
+    }
+    for (int j = 0; j < POLICY_SIDE_NEURONS; j++)
+    {
+        policy_input_biases[j] = *int_data;
+        int_data++;
+    }
+    for (int j = 0; j < POLICY_HIDDEN_NEURONS * POLICY_OUTPUT_NEURONS; j++)
+    {
+        policy_output_weights[j] = *int_data;
+        int_data++;
+    }
+    for (int j = 0; j < POLICY_OUTPUT_NEURONS; j++)
+    {
+        policy_output_biases[j] = *int_data;
+        int_data++;
+    }
 }
 
 class PolicyNetwork
