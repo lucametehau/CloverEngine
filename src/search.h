@@ -328,10 +328,6 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
         if (alpha >= beta)
             return alpha;
     }
-    else
-    {
-        policy_network.init_and_compute(m_board);
-    }
 
     Entry *entry = TT->probe(key, ttHit);
 
@@ -540,7 +536,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
     Move move;
 
     while ((move = picker.get_next_move(m_histories, stack, m_board, skip, false,
-                                        rootNode ? &policy_network : nullptr)) != NULLMOVE)
+                                        depth <= 2 ? &policy_network : nullptr)) != NULLMOVE)
     {
         if constexpr (rootNode)
         {
@@ -895,6 +891,7 @@ void SearchThread::start_search()
 #endif
     memcpy(&m_board, &m_thread_pool->m_board, sizeof(Board));
     NN.init(m_board);
+    policy_network.init(m_board);
     clear_stack();
     m_nodes = m_sel_depth = m_tb_hits = 0;
     m_time_check_count = 0;
@@ -934,6 +931,22 @@ void SearchThread::iterative_deepening()
                                    : MAX_DEPTH; // when limited by depth, allow helper threads to pass the fixed depth
     int last_root_score = 0;
     Move last_best_move = NULLMOVE;
+
+    /*policy_network.init_and_compute(m_board);
+    MoveList moves;
+    int nr_moves = m_board.gen_legal_moves<MOVEGEN_ALL>(moves);
+    float best_score = 0;
+
+    for (int i = 0; i < nr_moves; i++)
+    {
+        int score = policy_network.score_move_movepicker(m_board.turn, moves[i]);
+        if (score > best_score)
+        {
+            m_best_moves[1] = moves[i];
+            best_score = score;
+        }
+    }
+    return;*/
 
     for (m_id_depth = 1; m_id_depth <= limitDepth; m_id_depth++)
     {

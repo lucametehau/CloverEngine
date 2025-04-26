@@ -162,12 +162,14 @@ class SearchThread
         const Piece piece = m_board.piece_at(move.get_from());
         m_board.make_move(move, next_state);
         NN.add_move_to_history(move, piece, m_board.captured());
+        policy_network.add_move_to_history(move, piece, m_board.captured());
     }
 
     void undo_move(Move move)
     {
         m_board.undo_move(move);
         NN.revert_move();
+        policy_network.revert_move();
     }
 
   private:

@@ -96,6 +96,10 @@ class Movepick
         case Stages::STAGE_GEN_NOISY: {
             nrNoisy = board.gen_legal_moves<MOVEGEN_NOISY>(moves);
             int m = 0;
+            if (policy_network)
+            {
+                policy_network->bring_up_to_date(board);
+            }
             for (int i = 0; i < nrNoisy; i++)
             {
                 const Move move = moves[i];
@@ -114,7 +118,10 @@ class Movepick
                 int score = GoodNoisyValueCoef * seeVal[cap];
                 score += histories.get_cap_hist(piece, to, cap);
                 if (policy_network)
+                {
+                    // policy_network->init(board);
                     score += policy_network->score_move_movepicker(board.turn, move);
+                }
                 scores[m++] = score;
             }
 
@@ -155,6 +162,12 @@ class Movepick
                 const Bitboard enemyKingRing = attacks::kingRingMask[board.get_king(enemy)];
 
                 int m = 0;
+
+                if (policy_network)
+                {
+                    policy_network->bring_up_to_date(board);
+                }
+
                 for (int i = 0; i < nrQuiets; i++)
                 {
                     const Move move = moves[i];
@@ -204,7 +217,10 @@ class Movepick
                         score += KPMoveBonus;
 
                     if (policy_network)
+                    {
+                        // policy_network->init(board);
                         score += policy_network->score_move_movepicker(turn, move);
+                    }
 
                     scores[m++] = score;
                 }

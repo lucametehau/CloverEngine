@@ -3,6 +3,7 @@
 #include "attacks.h"
 #include "board.h"
 #include "incbin.h"
+#include "net.h"
 #include <algorithm>
 #include <cmath>
 
@@ -10,6 +11,8 @@ constexpr int POLICY_INPUT_NEURONS = 768;
 constexpr int POLICY_SIDE_NEURONS = 128;
 constexpr int POLICY_OUTPUT_NEURONS = 1880;
 constexpr int POLICY_HIDDEN_NEURONS = POLICY_SIDE_NEURONS * 2;
+constexpr int POLICY_NUM_REGS = POLICY_SIDE_NEURONS / REG_LENGTH;
+constexpr int POLICY_UNROLL_LENGTH = BUCKET_UNROLL / REG_LENGTH;
 
 constexpr int POLICY_Q_IN = 255;
 constexpr int POLICY_Q_OUT = 64;
@@ -40,21 +43,26 @@ constexpr std::array<Bitboard, 64> ALL_DESTINATIONS = {
 
 INCBIN(Policy, POLICY_FILE);
 
-int16_t policy_input_weights[POLICY_SIDE_NEURONS * POLICY_INPUT_NEURONS];
-int16_t policy_input_biases[POLICY_SIDE_NEURONS];
-int16_t policy_output_weights[POLICY_HIDDEN_NEURONS * POLICY_OUTPUT_NEURONS];
-int16_t policy_output_biases[POLICY_OUTPUT_NEURONS];
+alignas(ALIGN) int16_t policy_input_weights[POLICY_SIDE_NEURONS * POLICY_INPUT_NEURONS];
+alignas(ALIGN) int16_t policy_input_biases[POLICY_SIDE_NEURONS];
+alignas(ALIGN) int16_t policy_output_weights[POLICY_HIDDEN_NEURONS * POLICY_OUTPUT_NEURONS];
+alignas(ALIGN) int16_t policy_output_biases[POLICY_OUTPUT_NEURONS];
 
 int policy_move_index(bool color, Move move)
 {
     if (move.is_promo())
     {
         int id = 2 * (move.get_from() & 7) + (move.get_to() & 7);
-        return OFFSETS[64] + 22 * (move.get_prom() - PieceTypes::KNIGHT) + id;
+        return OFFSETS[64] + 22 * move.get_prom() + id;
     }
 
     return OFFSETS[move.get_from().mirror(color)] +
            (ALL_DESTINATIONS[move.get_from().mirror(color)] & ((1ull << move.get_to().mirror(color)) - 1)).count();
+}
+
+int policy_input_index(Piece piece, Square sq, bool side)
+{
+    return 64 * (piece + side * (piece >= 6 ? -6 : +6)) + sq.mirror(side);
 }
 
 void init_policy_network()
@@ -86,17 +94,19 @@ void init_policy_network()
 class PolicyNetwork
 {
   public:
-    PolicyNetwork()
+    PolicyNetwork() : hist_size(1)
     {
     }
 
     void init(Board &board)
     {
+        hist_size = 1;
+        // std::cout << "huhh\n";
         for (int i = 0; i < POLICY_SIDE_NEURONS; i++)
         {
             for (auto color : {WHITE, BLACK})
             {
-                output[i + POLICY_SIDE_NEURONS * color] = policy_input_biases[i];
+                output_history[0][i + POLICY_SIDE_NEURONS * color] = policy_input_biases[i];
                 for (auto c : {WHITE, BLACK})
                 {
                     for (Piece pt = PieceTypes::PAWN; pt <= PieceTypes::KING; pt++)
@@ -105,12 +115,210 @@ class PolicyNetwork
                         Piece piece = Piece(pt, c);
                         while (bb)
                         {
-                            int input_index =
-                                64 * (piece + color * (piece >= 6 ? -6 : +6)) + bb.get_lsb_square().mirror(color);
-                            output[i + POLICY_SIDE_NEURONS * color] +=
+                            int input_index = policy_input_index(piece, bb.get_lsb_square(), color);
+                            output_history[0][i + POLICY_SIDE_NEURONS * color] +=
                                 policy_input_weights[input_index * POLICY_SIDE_NEURONS + i];
                             bb ^= bb.lsb();
                         }
+                    }
+                }
+            }
+        }
+        hist[0].calc[0] = hist[0].calc[1] = 1;
+    }
+
+    void apply_sub_add(int16_t *output, int16_t *input, int ind1, int ind2)
+    {
+        reg_type regs[POLICY_UNROLL_LENGTH];
+        const int16_t *inputWeights1 =
+            reinterpret_cast<const int16_t *>(&policy_input_weights[ind1 * POLICY_SIDE_NEURONS]);
+        const int16_t *inputWeights2 =
+            reinterpret_cast<const int16_t *>(&policy_input_weights[ind2 * POLICY_SIDE_NEURONS]);
+
+        for (int b = 0; b < POLICY_SIDE_NEURONS / BUCKET_UNROLL; b++)
+        {
+            const int offset = b * BUCKET_UNROLL;
+            const reg_type *reg_in = reinterpret_cast<const reg_type *>(&input[offset]);
+            for (int i = 0; i < POLICY_UNROLL_LENGTH; i++)
+                regs[i] = reg_load(&reg_in[i]);
+
+            const reg_type *reg1 = reinterpret_cast<const reg_type *>(&inputWeights1[offset]);
+            for (int i = 0; i < POLICY_UNROLL_LENGTH; i++)
+                regs[i] = reg_sub16(regs[i], reg1[i]);
+            const reg_type *reg2 = reinterpret_cast<const reg_type *>(&inputWeights2[offset]);
+            for (int i = 0; i < POLICY_UNROLL_LENGTH; i++)
+                regs[i] = reg_add16(regs[i], reg2[i]);
+
+            reg_type *reg_out = (reg_type *)&output[offset];
+            for (int i = 0; i < POLICY_UNROLL_LENGTH; i++)
+                reg_save(&reg_out[i], regs[i]);
+        }
+    }
+
+    void apply_sub_add_sub(int16_t *output, int16_t *input, int ind1, int ind2, int ind3)
+    {
+        reg_type regs[POLICY_UNROLL_LENGTH];
+        const int16_t *inputWeights1 =
+            reinterpret_cast<const int16_t *>(&policy_input_weights[ind1 * POLICY_SIDE_NEURONS]);
+        const int16_t *inputWeights2 =
+            reinterpret_cast<const int16_t *>(&policy_input_weights[ind2 * POLICY_SIDE_NEURONS]);
+        const int16_t *inputWeights3 =
+            reinterpret_cast<const int16_t *>(&policy_input_weights[ind3 * POLICY_SIDE_NEURONS]);
+
+        for (int b = 0; b < POLICY_SIDE_NEURONS / BUCKET_UNROLL; b++)
+        {
+            const int offset = b * BUCKET_UNROLL;
+            const reg_type *reg_in = reinterpret_cast<const reg_type *>(&input[offset]);
+            for (int i = 0; i < POLICY_UNROLL_LENGTH; i++)
+                regs[i] = reg_load(&reg_in[i]);
+
+            const reg_type *reg1 = reinterpret_cast<const reg_type *>(&inputWeights1[offset]);
+            for (int i = 0; i < POLICY_UNROLL_LENGTH; i++)
+                regs[i] = reg_sub16(regs[i], reg1[i]);
+            const reg_type *reg2 = reinterpret_cast<const reg_type *>(&inputWeights2[offset]);
+            for (int i = 0; i < POLICY_UNROLL_LENGTH; i++)
+                regs[i] = reg_add16(regs[i], reg2[i]);
+            const reg_type *reg3 = reinterpret_cast<const reg_type *>(&inputWeights3[offset]);
+            for (int i = 0; i < POLICY_UNROLL_LENGTH; i++)
+                regs[i] = reg_sub16(regs[i], reg3[i]);
+
+            reg_type *reg_out = (reg_type *)&output[offset];
+            for (int i = 0; i < POLICY_UNROLL_LENGTH; i++)
+                reg_save(&reg_out[i], regs[i]);
+        }
+    }
+
+    void apply_sub_add_sub_add(int16_t *output, int16_t *input, int ind1, int ind2, int ind3, int ind4)
+    {
+        reg_type regs[POLICY_UNROLL_LENGTH];
+        const int16_t *inputWeights1 =
+            reinterpret_cast<const int16_t *>(&policy_input_weights[ind1 * POLICY_SIDE_NEURONS]);
+        const int16_t *inputWeights2 =
+            reinterpret_cast<const int16_t *>(&policy_input_weights[ind2 * POLICY_SIDE_NEURONS]);
+        const int16_t *inputWeights3 =
+            reinterpret_cast<const int16_t *>(&policy_input_weights[ind3 * POLICY_SIDE_NEURONS]);
+        const int16_t *inputWeights4 =
+            reinterpret_cast<const int16_t *>(&policy_input_weights[ind4 * POLICY_SIDE_NEURONS]);
+
+        for (int b = 0; b < POLICY_SIDE_NEURONS / BUCKET_UNROLL; b++)
+        {
+            const int offset = b * BUCKET_UNROLL;
+            const reg_type *reg_in = reinterpret_cast<const reg_type *>(&input[offset]);
+            for (int i = 0; i < POLICY_UNROLL_LENGTH; i++)
+                regs[i] = reg_load(&reg_in[i]);
+
+            const reg_type *reg1 = reinterpret_cast<const reg_type *>(&inputWeights1[offset]);
+            for (int i = 0; i < POLICY_UNROLL_LENGTH; i++)
+                regs[i] = reg_sub16(regs[i], reg1[i]);
+            const reg_type *reg2 = reinterpret_cast<const reg_type *>(&inputWeights2[offset]);
+            for (int i = 0; i < POLICY_UNROLL_LENGTH; i++)
+                regs[i] = reg_add16(regs[i], reg2[i]);
+            const reg_type *reg3 = reinterpret_cast<const reg_type *>(&inputWeights3[offset]);
+            for (int i = 0; i < POLICY_UNROLL_LENGTH; i++)
+                regs[i] = reg_sub16(regs[i], reg3[i]);
+            const reg_type *reg4 = reinterpret_cast<const reg_type *>(&inputWeights4[offset]);
+            for (int i = 0; i < POLICY_UNROLL_LENGTH; i++)
+                regs[i] = reg_add16(regs[i], reg4[i]);
+
+            reg_type *reg_out = (reg_type *)&output[offset];
+            for (int i = 0; i < POLICY_UNROLL_LENGTH; i++)
+                reg_save(&reg_out[i], regs[i]);
+        }
+    }
+
+    void process_move(Move move, Piece piece, Piece captured, bool side, int16_t *a, int16_t *b)
+    {
+        Square from = move.get_from(), to = move.get_to();
+        const bool turn = piece.color();
+        switch (move.get_type())
+        {
+        case NO_TYPE: {
+            if (captured == NO_PIECE)
+                apply_sub_add(a, b, policy_input_index(piece, from, side), policy_input_index(piece, to, side));
+            else
+                apply_sub_add_sub(a, b, policy_input_index(piece, from, side), policy_input_index(piece, to, side),
+                                  policy_input_index(captured, to, side));
+        }
+        break;
+        case MoveTypes::CASTLE: {
+            Square rFrom = to, rTo;
+            Piece rPiece(PieceTypes::ROOK, turn);
+            if (to > from)
+            { // king side castle
+                to = Squares::G1.mirror(turn);
+                rTo = Squares::F1.mirror(turn);
+            }
+            else
+            { // queen side castle
+                to = Squares::C1.mirror(turn);
+                rTo = Squares::D1.mirror(turn);
+            }
+            apply_sub_add_sub_add(a, b, policy_input_index(piece, from, side), policy_input_index(piece, to, side),
+                                  policy_input_index(rPiece, rFrom, side), policy_input_index(rPiece, rTo, side));
+        }
+        break;
+        case MoveTypes::ENPASSANT: {
+            const Square pos = shift_square<SOUTH>(turn, to);
+            const Piece pieceCap(PieceTypes::PAWN, 1 ^ turn);
+            apply_sub_add_sub(a, b, policy_input_index(piece, from, side), policy_input_index(piece, to, side),
+                              policy_input_index(pieceCap, pos, side));
+        }
+        break;
+        default: {
+            const Piece promPiece(move.get_prom() + PieceTypes::KNIGHT, turn);
+            if (captured == NO_PIECE)
+                apply_sub_add(a, b, policy_input_index(piece, from, side), policy_input_index(promPiece, to, side));
+            else
+                apply_sub_add_sub(a, b, policy_input_index(piece, from, side), policy_input_index(promPiece, to, side),
+                                  policy_input_index(captured, to, side));
+        }
+        break;
+        }
+    }
+
+    void process_historic_update(const int index, const bool side)
+    {
+        hist[index].calc[side] = 1;
+        process_move(hist[index].move, hist[index].piece, hist[index].captured, side,
+                     &output_history[index][side * POLICY_SIDE_NEURONS],
+                     &output_history[index - 1][side * POLICY_SIDE_NEURONS]);
+    }
+
+    void add_move_to_history(Move move, Piece piece, Piece captured)
+    {
+        hist[hist_size] = {move, piece, captured, {0, 0}};
+        // std::cout << "add " << move.to_string() << "\n";
+        hist_size++;
+    }
+
+    void revert_move()
+    {
+        hist_size--;
+        // std::cout << "revert\n";
+    }
+
+    int get_computed_parent(const bool c)
+    {
+        int i = hist_size - 1;
+        while (!hist[i].calc[c])
+            i--;
+        return i;
+    }
+
+    void bring_up_to_date(Board &board)
+    {
+        for (auto side : {BLACK, WHITE})
+        {
+            if (!hist[hist_size - 1].calc[side])
+            {
+                int last_computed_pos = get_computed_parent(side) + 1;
+                // std::cerr << last_computed_pos << " " << hist_size << " haha\n";
+                if (last_computed_pos)
+                { // no full refresh required
+                    while (last_computed_pos < hist_size)
+                    {
+                        process_historic_update(last_computed_pos, side);
+                        last_computed_pos++;
                     }
                 }
             }
@@ -147,22 +355,32 @@ class PolicyNetwork
     float score_move(bool stm, Move move)
     {
         int move_index = policy_move_index(stm, move);
-        float sum = 0;
-        for (int i = 0; i < POLICY_SIDE_NEURONS; i++)
+        reg_type_s acc{};
+        const reg_type *w =
+            reinterpret_cast<const reg_type *>(&output_history[hist_size - 1][stm * POLICY_SIDE_NEURONS]);
+        const reg_type *w2 =
+            reinterpret_cast<const reg_type *>(&output_history[hist_size - 1][(stm ^ 1) * POLICY_SIDE_NEURONS]);
+        const reg_type *v =
+            reinterpret_cast<const reg_type *>(&policy_output_weights[move_index * POLICY_HIDDEN_NEURONS]);
+        const reg_type *v2 = reinterpret_cast<const reg_type *>(
+            &policy_output_weights[move_index * POLICY_HIDDEN_NEURONS + POLICY_SIDE_NEURONS]);
+        reg_type clamped;
+
+        for (int j = 0; j < POLICY_NUM_REGS; j++)
         {
-            sum += screlu(output[stm * POLICY_SIDE_NEURONS + i]) *
-                   policy_output_weights[POLICY_HIDDEN_NEURONS * move_index + i];
-            sum += screlu(output[(1 - stm) * POLICY_SIDE_NEURONS + i]) *
-                   policy_output_weights[POLICY_HIDDEN_NEURONS * move_index + POLICY_SIDE_NEURONS + i];
+            clamped = reg_clamp(w[j]);
+            acc = reg_add32(acc, reg_madd16(reg_mullo(clamped, v[j]), clamped));
+            clamped = reg_clamp(w2[j]);
+            acc = reg_add32(acc, reg_madd16(reg_mullo(clamped, v2[j]), clamped));
         }
 
-        return (policy_output_biases[move_index] + sum / POLICY_Q_IN) / (POLICY_Q_IN * POLICY_Q_OUT);
+        return (policy_output_biases[move_index] + 1.0 * get_sum(acc) / POLICY_Q_IN) / (POLICY_Q_IN * POLICY_Q_OUT);
     }
 
     int score_move_movepicker(bool stm, Move move)
     {
-        float raw_score = softmax(score_move(stm, move));
-        return 20000 * log(1 + raw_score * 3) / log(4);
+        float raw_score = score_move(stm, move);
+        return 20000 / (1 - 5 * raw_score);
     }
 
     // used for debugging
@@ -181,12 +399,21 @@ class PolicyNetwork
         }
         for (int i = 0; i < nr_moves; i++)
         {
-            scores[i] = exp(scores[i]) / sum_exp;
+            // scores[i] = exp(scores[i]) / sum_exp;
         }
         return scores;
     }
 
   private:
-    int16_t output[POLICY_HIDDEN_NEURONS];
+    struct PolicyHist
+    {
+        Move move;
+        Piece piece, captured;
+        bool calc[2];
+    };
+
+    alignas(ALIGN) int16_t output_history[STACK_SIZE][POLICY_HIDDEN_NEURONS];
+    PolicyHist hist[STACK_SIZE];
+    int hist_size;
     float sum_exp;
 };
