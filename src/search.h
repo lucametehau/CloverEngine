@@ -414,7 +414,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
     const auto eval_diff = [&]() {
         if ((stack - 2)->eval != INF)
             return static_eval - (stack - 2)->eval;
-        else if ((stack - 4)->eval != INF)
+        if ((stack - 4)->eval != INF)
             return static_eval - (stack - 4)->eval;
         return 0;
     }();
@@ -426,6 +426,13 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
             return 1;
         return eval_diff < NegativeImprovingMargin ? -1 : 0;
     }();
+
+    const auto improving_after_move = [&]() {
+        if (in_check || (stack - 1)->eval == INF)
+            return false;
+        return static_eval + (stack - 1)->eval > 0;
+    }();
+
     const bool is_ttmove_noisy = ttMove && m_board.is_noisy_move(ttMove);
     const bool bad_static_eval = static_eval <= alpha;
 
@@ -452,11 +459,11 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
             }
 
             /// static null move pruning (don't prune when having a mate line, again stability)
-            auto snmp_margin = [&](int depth, int improving) {
-                return (SNMPMargin - SNMPImproving * improving) * depth;
+            auto snmp_margin = [&](int depth, int improving, bool improving_after_move) {
+                return (SNMPMargin - SNMPImproving * improving) * depth - SNMPImprovingAfterMove * improving_after_move;
             };
             if (depth <= SNMPDepth && eval > beta && eval < MATE && (!ttMove || is_ttmove_noisy) &&
-                eval - snmp_margin(depth - enemy_has_no_threats, improving) > beta)
+                eval - snmp_margin(depth - enemy_has_no_threats, improving, improving_after_move) > beta)
                 return beta > -MATE ? (eval + beta) / 2 : eval;
 
             /// null move pruning (when last move wasn't null, we still have non pawn material, we have a good position)
