@@ -162,7 +162,7 @@ class PolicyNetwork
     int score_move_movepicker(bool stm, Move move)
     {
         float raw_score = softmax(score_move(stm, move));
-        return 20000 * log(1 + raw_score * 19) / log(20);
+        return 20000 * log(1 + raw_score * 3) / log(4);
     }
 
     // used for debugging
