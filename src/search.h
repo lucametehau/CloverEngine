@@ -462,7 +462,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
             auto snmp_margin = [&](int depth, int improving, bool improving_after_move) {
                 return (SNMPMargin - SNMPImproving * improving) * depth - SNMPImprovingAfterMove * improving_after_move;
             };
-            if (depth <= SNMPDepth && eval > beta && eval < MATE && (!ttMove || is_ttmove_noisy) &&
+            if (!was_pv && depth <= SNMPDepth && eval > beta && eval < MATE && (!ttMove || is_ttmove_noisy) &&
                 eval - snmp_margin(depth - enemy_has_no_threats, improving, improving_after_move) > beta)
                 return beta > -MATE ? (eval + beta) / 2 : eval;
 
