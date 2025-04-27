@@ -352,7 +352,7 @@ class PolicyNetwork
     int score_move_movepicker(bool stm, Move move)
     {
         float raw_score = score_move(stm, move);
-        return 20000 / (1 - 5 * raw_score);
+        return 20000 * exp(raw_score);
     }
 
     // used for debugging
@@ -366,7 +366,9 @@ class PolicyNetwork
 
         for (int i = 0; i < nr_moves; i++)
         {
-            scores[i] = score_move_movepicker(board.turn, moves[i]);
+            scores[i] = score_move(board.turn, moves[i]);
+            std::cout << moves[i].to_string() << " has score " << scores[i] << " -> " << exp(scores[i]) * 20000
+                      << " OR " << score_move_movepicker(board.turn, moves[i]) << "\n";
             sum_exp += exp(scores[i]);
         }
         for (int i = 0; i < nr_moves; i++)
