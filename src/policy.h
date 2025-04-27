@@ -394,7 +394,7 @@ class PolicyNetwork
 
         for (int i = 0; i < nr_moves; i++)
         {
-            scores[i] = score_move(board.turn, moves[i]);
+            scores[i] = score_move_movepicker(board.turn, moves[i]);
             sum_exp += exp(scores[i]);
         }
         for (int i = 0; i < nr_moves; i++)

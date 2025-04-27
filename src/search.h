@@ -536,7 +536,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
     Move move;
 
     while ((move = picker.get_next_move(m_histories, stack, m_board, skip, false,
-                                        depth <= 2 ? &policy_network : nullptr)) != NULLMOVE)
+                                        depth > 2 ? &policy_network : nullptr)) != NULLMOVE)
     {
         if constexpr (rootNode)
         {
