@@ -101,7 +101,6 @@ class PolicyNetwork
     void init(Board &board)
     {
         hist_size = 1;
-        // std::cout << "huhh\n";
         for (int i = 0; i < POLICY_SIDE_NEURONS; i++)
         {
             for (auto color : {WHITE, BLACK})
@@ -325,33 +324,6 @@ class PolicyNetwork
         }
     }
 
-    void init_and_compute(Board &board)
-    {
-        init(board);
-
-        MoveList moves;
-        std::array<float, 256> scores;
-        int nr_moves = board.gen_legal_moves<MOVEGEN_ALL>(moves);
-
-        sum_exp = 0;
-        for (int i = 0; i < nr_moves; i++)
-        {
-            scores[i] = score_move(board.turn, moves[i]);
-            sum_exp += exp(scores[i]);
-        }
-    }
-
-    int32_t screlu(int32_t x)
-    {
-        x = std::clamp(x, 0, POLICY_Q_IN);
-        return x * x;
-    }
-
-    float softmax(float x)
-    {
-        return exp(x) / sum_exp;
-    }
-
     float score_move(bool stm, Move move)
     {
         int move_index = policy_move_index(stm, move);
@@ -415,5 +387,4 @@ class PolicyNetwork
     alignas(ALIGN) int16_t output_history[STACK_SIZE][POLICY_HIDDEN_NEURONS];
     PolicyHist hist[STACK_SIZE];
     int hist_size;
-    float sum_exp;
 };
