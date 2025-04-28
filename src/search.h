@@ -711,6 +711,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
                 LMRBadStaticEval * (enemy_has_no_threats && !in_check && static_eval + LMRBadStaticEvalMargin <= alpha);
             R -= LMRGrain * std::abs(raw_eval - static_eval) / LMRCorrectionDivisor;
             R += (LMRFailLowPV + LMRFailLowPVHighDepth * (ttDepth > depth)) * (was_pv && ttValue <= alpha && ttHit);
+            R -= LMRImprovingAfterMove * (!improving_after_move && !in_check && (stack - 1)->eval != INF);
 
             R /= LMRGrain;
 
