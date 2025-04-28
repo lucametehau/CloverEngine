@@ -931,11 +931,14 @@ void SearchThread::iterative_deepening()
     int last_root_score = 0;
     Move last_best_move = NULLMOVE;
 
+    std::fill(m_researches.begin(), m_researches.end(), 0);
+
     for (m_id_depth = 1; m_id_depth <= limitDepth; m_id_depth++)
     {
         for (m_multipv = 1; m_multipv <= m_info.get_multipv(); m_multipv++)
         {
-            int window = AspirationWindosValue + m_root_scores[1] * m_root_scores[1] / 10000;
+            int window =
+                AspirationWindosValue + m_researches[m_multipv] / 4 + m_root_scores[1] * m_root_scores[1] / 10000;
             if (m_id_depth >= AspirationWindowsDepth)
             {
                 alpha = std::max(-INF, m_scores[m_multipv] - window);
@@ -948,6 +951,7 @@ void SearchThread::iterative_deepening()
             }
 
             int depth = m_id_depth;
+            m_researches[m_multipv] = 0;
             while (true)
             {
                 depth = std::max({depth, 1, m_id_depth - 4});
@@ -986,6 +990,7 @@ void SearchThread::iterative_deepening()
                 }
 
                 window += window * AspirationWindowExpandMargin / 100 + AspirationWindowExpandBias;
+                m_researches[m_multipv]++;
             }
         }
 

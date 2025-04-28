@@ -49,7 +49,7 @@ class SearchThread
     Info m_info;
 
     MoveList m_best_moves;
-    std::array<int, MAX_MOVES> m_scores, m_root_scores;
+    std::array<int, MAX_MOVES> m_scores, m_root_scores, m_researches;
     std::array<MeanValue, 100> m_values;
 
   private:
