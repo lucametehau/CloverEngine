@@ -459,11 +459,12 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
             }
 
             /// static null move pruning (don't prune when having a mate line, again stability)
-            auto snmp_margin = [&](int depth, int improving, bool improving_after_move) {
-                return (SNMPMargin - SNMPImproving * improving) * depth - SNMPImprovingAfterMove * improving_after_move;
+            auto snmp_margin = [&](int depth, int improving, bool improving_after_move, bool is_cutnode) {
+                return (SNMPMargin - SNMPImproving * improving) * depth -
+                       SNMPImprovingAfterMove * improving_after_move - SNMPCutNode * is_cutnode;
             };
             if (depth <= SNMPDepth && eval > beta && eval < MATE && (!ttMove || is_ttmove_noisy) &&
-                eval - snmp_margin(depth - enemy_has_no_threats, improving, improving_after_move) > beta)
+                eval - snmp_margin(depth - enemy_has_no_threats, improving, improving_after_move, cutNode) > beta)
                 return beta > -MATE ? (eval + beta) / 2 : eval;
 
             /// null move pruning (when last move wasn't null, we still have non pawn material, we have a good position)
