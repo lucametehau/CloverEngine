@@ -446,7 +446,8 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
         depth -= IIRCutNodeReduction;
 
     // if we are in LMR and the previous move cause a huge swing, further reduce
-    if ((m_stack - 1)->R && depth > 1 && static_eval + (stack - 1)->eval > HugeEvalSwingMargin)
+    if ((m_stack - 1)->R && depth > 1 && !in_check && (stack - 1)->eval != INF &&
+        static_eval + (stack - 1)->eval > HugeEvalSwingMargin)
         depth--;
 
     if constexpr (!pvNode)
