@@ -64,6 +64,7 @@ TUNE_PARAM(DeltaPruningMargin, 1031, 900, 1100);
 TUNE_PARAM(QuiesceFutilityBias, 196, 150, 250);
 
 TUNE_PARAM(NegativeImprovingMargin, -153, -300, -100);
+TUNE_PARAM(HugeEvalSwingMargin, 150, 50, 250);
 
 TUNE_PARAM(RazoringDepth, 2, 1, 5);
 TUNE_PARAM(RazoringMargin, 158, 100, 200);

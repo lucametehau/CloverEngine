@@ -73,7 +73,7 @@ class StackEntry
     }
     Piece piece;
     Move move, killer, excluded;
-    int eval;
+    int eval, R;
     MultiArray<History<16384>, 13, 64> *cont_hist;
 };
 

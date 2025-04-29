@@ -438,12 +438,16 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
 
     (stack + 1)->killer = NULLMOVE;
 
-    /// internal iterative deepening (search at reduced depth to find a ttMove) (Rebel like)
+    // internal iterative deepening (search at reduced depth to find a ttMove) (Rebel like)
     if (pvNode && depth >= IIRPvNodeDepth && (!ttHit || ttDepth + 4 <= depth))
         depth -= IIRPvNodeReduction;
-    /// also for cut nodes
+    // also for cut nodes
     if (cutNode && depth >= IIRCutNodeDepth && (!ttHit || ttDepth + 4 <= depth))
         depth -= IIRCutNodeReduction;
+
+    // if we are in LMR and the previous move cause a huge swing, further reduce
+    if ((m_stack - 1)->R && depth > 1 && static_eval + (stack - 1)->eval > HugeEvalSwingMargin)
+        depth--;
 
     if constexpr (!pvNode)
     {
@@ -711,12 +715,13 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
                 LMRBadStaticEval * (enemy_has_no_threats && !in_check && static_eval + LMRBadStaticEvalMargin <= alpha);
             R -= LMRGrain * std::abs(raw_eval - static_eval) / LMRCorrectionDivisor;
             R += (LMRFailLowPV + LMRFailLowPVHighDepth * (ttDepth > depth)) * (was_pv && ttValue <= alpha && ttHit);
-            R -= LMRImprovingAfterMove * (!improving_after_move && !in_check && (stack - 1)->eval != INF);
 
             R /= LMRGrain;
 
             R = std::clamp(R, 1, new_depth); // clamp R
+            m_stack->R = R;
             score = -search<false, false, true>(-alpha - 1, -alpha, new_depth - R, stack + 1);
+            m_stack->R = 0;
             tried_count++;
 
             if (R > 1 && score > alpha)
