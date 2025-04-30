@@ -27,6 +27,13 @@
 #ifdef GENERATE
 
 const bool FRC_DATAGEN = true;
+constexpr int MIN_NODES = 5000;
+constexpr int MAX_NODES = (1 << 20);
+
+constexpr int ADJUDICATION_MAX_SCORE = 8000;
+constexpr int ADJUDICATION_DRAW_SCORE = 10;
+constexpr int ADJUDICATION_WIN_CNT = 4;
+constexpr int ADJUDICATION_DRAW_CNT = 10;
 
 struct FenData
 {
@@ -45,12 +52,13 @@ void generateFens(SearchThread &thread_data, std::atomic<uint64_t> &sumFens, std
     uint64_t totalFens = 0;
 
     info.init();
-    info.set_min_nodes(5000);
-    info.set_max_nodes(1 << 20);
+    info.set_min_nodes(MIN_NODES);
+    info.set_max_nodes(MAX_NODES);
 
     std::mutex M;
 
     thread_data.TT = new HashTable();
+    thread_data.TT->init(4 * MB);
     std::array<FenData, 10000> fens;
     std::uniform_int_distribution<uint32_t> rnd_dfrc(0, 960 * 960);
 
@@ -73,7 +81,6 @@ void generateFens(SearchThread &thread_data, std::atomic<uint64_t> &sumFens, std
         thread_data.clear_history();
         thread_data.clear_stack();
 
-        thread_data.TT->init(4 * MB);
         std::uniform_int_distribution<int> rnd_ply(0, 100000);
 
         int additionalPly = rnd_ply(gn) % 2;
@@ -83,8 +90,7 @@ void generateFens(SearchThread &thread_data, std::atomic<uint64_t> &sumFens, std
             uint16_t move;
             int score;
 
-            /// game over checking
-
+            // game over checking
             if (thread_data.board.is_draw(0))
             {
                 result = 0.5;
@@ -92,55 +98,44 @@ void generateFens(SearchThread &thread_data, std::atomic<uint64_t> &sumFens, std
             }
 
             MoveList moves;
+            int nr_moves = thread_data.board.gen_legal_moves<MOVEGEN_ALL>(moves);
 
-            int nrMoves = thread_data.board.gen_legal_moves<MOVEGEN_ALL>(moves);
-
-            if (!nrMoves)
+            if (!nr_moves)
             {
                 if (thread_data.board.checkers())
-                {
                     result = (thread_data.board.turn == WHITE ? 0.0 : 1.0);
-                }
                 else
-                {
                     result = 0.5;
-                }
 
                 break;
             }
 
             if (ply < 8 + additionalPly)
             { /// simulating a book ?
-                std::uniform_int_distribution<uint32_t> rnd(0, nrMoves - 1);
+                std::uniform_int_distribution<uint32_t> rnd(0, nr_moves - 1);
                 move = moves[rnd(gn)];
                 thread_data.make_move(move);
             }
             else
             {
-                thread_data.TT->age(1);
+                thread_data.TT->age();
                 thread_data.board.clear();
 
                 thread_data.start_search(info);
                 score = thread_data.root_score[1], move = thread_data.best_move[1];
 
-                if (nrMoves == 1)
-                { /// in this case, engine reports score 0, which might be misleading
-                    thread_data.make_move(move);
-                    ply++;
-                    continue;
-                }
-
-                if (!thread_data.board.checkers() && !thread_data.board.is_noisy_move(move) && abs(score) < 4000)
+                if (!thread_data.board.checkers() && !thread_data.board.is_noisy_move(move) &&
+                    abs(score) < ADJUDICATION_MAX_SCORE)
                 { /// relatively quiet position
                     data.fen = thread_data.board.fen();
                     data.score = score * (thread_data.board.turn == WHITE ? 1 : -1);
                     fens[nr_fens++] = data;
                 }
 
-                winCnt = (abs(score) >= 4000 ? winCnt + 1 : 0);
-                drawCnt = (abs(score) <= 10 ? drawCnt + 1 : 0);
+                winCnt = (abs(score) >= ADJUDICATION_MAX_SCORE ? winCnt + 1 : 0);
+                drawCnt = (abs(score) <= ADJUDICATION_DRAW_SCORE ? drawCnt + 1 : 0);
 
-                if (winCnt >= 4)
+                if (winCnt >= ADJUDICATION_WIN_CNT)
                 {
                     score *= (thread_data.board.turn == WHITE ? 1 : -1);
                     result = (score < 0 ? 0.0 : 1.0);
@@ -148,7 +143,7 @@ void generateFens(SearchThread &thread_data, std::atomic<uint64_t> &sumFens, std
                     break;
                 }
 
-                if (drawCnt >= 10)
+                if (drawCnt >= ADJUDICATION_DRAW_CNT)
                 {
                     result = 0.5;
                     break;

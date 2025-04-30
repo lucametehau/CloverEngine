@@ -368,7 +368,7 @@ void UCI::ucinewgame(uint64_t ttSize)
 void UCI::go(Info &info)
 {
 #ifndef GENERATE
-    TT->age(thread_pool.get_num_threads());
+    TT->age();
 #endif
     thread_pool.clear_board();
     thread_pool.search(info);
