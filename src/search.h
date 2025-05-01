@@ -199,6 +199,8 @@ template <bool pvNode> int SearchThread::quiesce(int alpha, int beta, StackEntry
     /// stand-pat
     if (best >= beta)
     {
+        if (abs(best) < MATE && abs(beta) < MATE)
+            best = (best + beta) / 2;
         if (!ttHit)
             TT->save(entry, key, best, 0, ply, TTBounds::LOWER, NULLMOVE, raw_eval, was_pv);
         return best;
