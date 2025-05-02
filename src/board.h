@@ -43,7 +43,7 @@ class Board
 
     constexpr Board() = default;
 
-    Board &operator=(const Board &other)
+    Board cheap_copy(const Board &other)
     {
         turn = other.turn;
         chess960 = other.chess960;

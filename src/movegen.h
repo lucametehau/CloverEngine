@@ -23,7 +23,8 @@
 
 Board Board::make_move(const Move move)
 {
-    Board new_board = *this;
+    Board new_board;
+    new_board.cheap_copy(*this);
     Square from = move.get_from(), to = move.get_to();
     Piece piece = piece_at(from), piece_cap = piece_at(to);
 
@@ -139,7 +140,8 @@ Board Board::make_move(const Move move)
 
 Board Board::make_null_move()
 {
-    Board new_board = *this;
+    Board new_board;
+    new_board.cheap_copy(*this);
 
     new_board.key ^= enpas() != NO_SQUARE ? enPasKey[enpas()] : 0;
 
