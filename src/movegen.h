@@ -19,6 +19,7 @@
 #include "search-info.h"
 #include <cassert>
 #include <cstring>
+#include <fstream>
 #include <iomanip>
 
 void Board::make_move(const Move move, HistoricalState &next_state)
@@ -273,8 +274,22 @@ inline void add_promotions(MoveList &moves, int &nr_moves, Square from, Square t
     moves[nr_moves++] = Move(from, to, MoveTypes::QUEEN_PROMO);
 }
 
+std::ofstream fout("debug.txt");
+
 template <int movegen_type> int Board::gen_legal_moves(MoveList &moves)
 {
+    if (bb[Pieces::BlackRook].count() > 2 && (pieces[WHITE] | pieces[BLACK]).count() > 21)
+    {
+        print();
+        for (int i = 0; i < 12; i++)
+            bb[i].print();
+        pieces[WHITE].print();
+        pieces[BLACK].print();
+        std::cout << int(rook_sq(BLACK, 0)) << " " << int(rook_sq(BLACK, 1)) << "\n";
+        // exit(0);
+        std::cout << fen() << "\n";
+    }
+    bool print_flag = (fen() == "1nbbrk1r/3ppp1p/pp4R1/8/1p6/3P4/P1P1PP1P/RN1BKQ1N b Qk - 0 8");
     constexpr bool noisy_movegen = movegen_type & MOVEGEN_NOISY;
     constexpr bool quiet_movegen = movegen_type & MOVEGEN_QUIET;
 

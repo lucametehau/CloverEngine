@@ -288,13 +288,6 @@ void UCI::uci_loop()
                 }
             }
         }
-        else if (cmd == "generate")
-        {
-            int nrThreads, nrFens;
-            std::string path;
-            iss >> nrFens >> nrThreads >> path;
-            generateData(nrFens, nrThreads, path);
-        }
         else if (cmd == "show")
         {
             thread_pool.get_board().print();

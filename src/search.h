@@ -292,6 +292,9 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
     if (depth <= 0)
         return quiesce<pvNode>(alpha, beta, stack);
 
+    // std::cout << "search node " << alpha << " " << beta << " " << depth << " " << m_nodes << "\n";
+    // m_board.print();
+
     constexpr bool allNode = !pvNode && !cutNode;
     const bool nullSearch = (stack - 1)->move == NULLMOVE;
     const int original_alpha = alpha;
@@ -807,6 +810,8 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
         }
     }
 
+    // std::cout << "so where teh fck is te problm\n";
+
     if (!played)
         return in_check ? -INF + ply : 0;
 
@@ -891,7 +896,10 @@ void SearchThread::start_search()
         }
     }
 #endif
+
+#ifndef GENERATE
     memcpy(&m_board, &m_thread_pool->m_board, sizeof(Board));
+#endif
     NN.init(m_board);
     clear_stack();
     m_nodes = m_sel_depth = m_tb_hits = 0;
@@ -906,7 +914,9 @@ void SearchThread::start_search()
     m_search_stack.fill(StackEntry());
     m_stack = m_search_stack.data() + 10;
 
+#ifndef GENERATE
     m_info = m_thread_pool->m_info;
+#endif
 
     for (int i = 1; i <= 10; i++)
     {
@@ -914,15 +924,16 @@ void SearchThread::start_search()
         (m_stack - i)->eval = INF;
         (m_stack - i)->move = NULLMOVE;
     }
-
     iterative_deepening();
 
     if (!main_thread())
         return;
 
+#ifndef GENERATE
     m_thread_pool->stop();
     m_thread_pool->wait_for_finish(false); // don't wait for main thread, it's already finished
     m_thread_pool->pick_and_print_best_thread();
+#endif
 }
 
 void SearchThread::iterative_deepening()

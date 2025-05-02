@@ -26,7 +26,7 @@
 
 #ifdef GENERATE
 
-const bool FRC_DATAGEN = true;
+constexpr bool FRC_DATAGEN = true;
 constexpr int MIN_NODES = 5000;
 constexpr int MAX_NODES = (1 << 20);
 
@@ -41,17 +41,22 @@ struct FenData
     std::string fen;
 };
 
-void generateFens(SearchThread &thread_data, std::atomic<uint64_t> &sumFens, std::atomic<uint64_t> &sumGames,
-                  uint64_t nrFens, std::string path, uint64_t seed, uint64_t extraSeed)
+void generateFens(SearchThread &thread_data, std::atomic<uint64_t> &total_fens_count, std::atomic<uint64_t> &num_games,
+                  uint64_t fens_limit, std::string path, uint64_t seed, uint64_t extraSeed)
 {
     std::ofstream out(path);
-    std::mt19937_64 gn((std::chrono::system_clock::now().time_since_epoch().count() + extraSeed) ^ 8257298672678ULL);
+    std::mt19937_64 gn(
+        0); //(std::chrono::system_clock::now().time_since_epoch().count() + extraSeed) ^ 8257298672678ULL);
+    std::uniform_int_distribution<uint32_t> rnd_dfrc(0, 960 * 960);
+    std::array<FenData, 10000> fens;
+    // std::unique_ptr<std::deque<HistoricalState>> states;
 
     Info info;
     int gameInd = 1;
-    uint64_t totalFens = 0;
+    uint64_t fens_count = 0;
 
     info.init();
+    info.set_chess960(FRC_DATAGEN);
     info.set_min_nodes(MIN_NODES);
     info.set_max_nodes(MAX_NODES);
 
@@ -59,11 +64,14 @@ void generateFens(SearchThread &thread_data, std::atomic<uint64_t> &sumFens, std
 
     thread_data.TT = new HashTable();
     thread_data.TT->init(4 * MB);
-    std::array<FenData, 10000> fens;
-    std::uniform_int_distribution<uint32_t> rnd_dfrc(0, 960 * 960);
+    thread_data.m_info = info;
 
-    while (totalFens < nrFens)
+    thread_data.m_board.chess960 = FRC_DATAGEN;
+
+    while (fens_count < fens_limit)
     {
+        std::unique_ptr<std::deque<HistoricalState>> states;
+        states = std::make_unique<std::deque<HistoricalState>>(1);
         FenData data;
         double result = 0;
         int ply = 0;
@@ -74,9 +82,10 @@ void generateFens(SearchThread &thread_data, std::atomic<uint64_t> &sumFens, std
         if (FRC_DATAGEN)
         {
             idx = rnd_dfrc(gn) % (960 * 960);
+            thread_data.m_board.set_dfrc(idx, states->back());
         }
-
-        thread_data.board.set_dfrc(idx);
+        else
+            thread_data.m_board.set_fen(START_POS_FEN, states->back());
 
         thread_data.clear_history();
         thread_data.clear_stack();
@@ -87,23 +96,27 @@ void generateFens(SearchThread &thread_data, std::atomic<uint64_t> &sumFens, std
 
         while (true)
         {
-            uint16_t move;
+            Move move;
             int score;
 
             // game over checking
-            if (thread_data.board.is_draw(0))
+            if (thread_data.m_board.is_draw(0))
             {
                 result = 0.5;
                 break;
             }
 
             MoveList moves;
-            int nr_moves = thread_data.board.gen_legal_moves<MOVEGEN_ALL>(moves);
+            int nr_moves = thread_data.m_board.gen_legal_moves<MOVEGEN_ALL>(moves);
+
+            std::cout << "-------------------\n";
+            thread_data.m_board.print();
+            std::cout << thread_data.m_board.chess960 << "\n";
 
             if (!nr_moves)
             {
-                if (thread_data.board.checkers())
-                    result = (thread_data.board.turn == WHITE ? 0.0 : 1.0);
+                if (thread_data.m_board.checkers())
+                    result = thread_data.m_board.turn == WHITE ? 0.0 : 1.0;
                 else
                     result = 0.5;
 
@@ -111,24 +124,26 @@ void generateFens(SearchThread &thread_data, std::atomic<uint64_t> &sumFens, std
             }
 
             if (ply < 8 + additionalPly)
-            { /// simulating a book ?
+            {
                 std::uniform_int_distribution<uint32_t> rnd(0, nr_moves - 1);
                 move = moves[rnd(gn)];
-                thread_data.make_move(move);
+                // states->emplace_back();
+                thread_data.make_move(move, states->back());
             }
             else
             {
                 thread_data.TT->age();
-                thread_data.board.clear();
+                thread_data.m_board.clear();
+                thread_data.m_state = ThreadStates::SEARCH;
+                thread_data.start_search();
 
-                thread_data.start_search(info);
-                score = thread_data.root_score[1], move = thread_data.best_move[1];
+                score = thread_data.m_root_scores[1], move = thread_data.m_best_moves[1];
 
-                if (!thread_data.board.checkers() && !thread_data.board.is_noisy_move(move) &&
+                if (!thread_data.m_board.checkers() && !thread_data.m_board.is_noisy_move(move) &&
                     abs(score) < ADJUDICATION_MAX_SCORE)
-                { /// relatively quiet position
-                    data.fen = thread_data.board.fen();
-                    data.score = score * (thread_data.board.turn == WHITE ? 1 : -1);
+                {
+                    data.fen = thread_data.m_board.fen();
+                    data.score = score * (thread_data.m_board.turn == WHITE ? 1 : -1);
                     fens[nr_fens++] = data;
                 }
 
@@ -137,8 +152,8 @@ void generateFens(SearchThread &thread_data, std::atomic<uint64_t> &sumFens, std
 
                 if (winCnt >= ADJUDICATION_WIN_CNT)
                 {
-                    score *= (thread_data.board.turn == WHITE ? 1 : -1);
-                    result = (score < 0 ? 0.0 : 1.0);
+                    score *= (thread_data.m_board.turn == WHITE ? 1 : -1);
+                    result = score < 0 ? 0.0 : 1.0;
 
                     break;
                 }
@@ -149,7 +164,8 @@ void generateFens(SearchThread &thread_data, std::atomic<uint64_t> &sumFens, std
                     break;
                 }
 
-                thread_data.make_move(move);
+                // states->emplace_back();
+                thread_data.make_move(move, states->back());
             }
 
             ply++;
@@ -161,9 +177,9 @@ void generateFens(SearchThread &thread_data, std::atomic<uint64_t> &sumFens, std
                 << (result > 0.6 ? "1.0" : (result < 0.4 ? "0.0" : "0.5")) << "\n";
         }
 
-        sumFens.fetch_add(nr_fens);
-        sumGames.fetch_add(1);
-        totalFens += nr_fens;
+        total_fens_count.fetch_add(nr_fens);
+        num_games.fetch_add(1);
+        fens_count += nr_fens;
 
         /*M.lock();
 
@@ -176,43 +192,39 @@ void generateFens(SearchThread &thread_data, std::atomic<uint64_t> &sumFens, std
 }
 #endif
 
-void generateData(uint64_t nrFens, int nrThreads, std::string rootPath, uint64_t extraSeed = 0)
+void generateData(uint64_t num_fens, int num_threads, std::string rootPath, uint64_t extraSeed = 0)
 {
 #ifdef GENERATE
-    thread_pool.create_pool(nrThreads);
     printStats = false;
-    std::string path[100];
+    std::array<std::string, 100> path;
 
     srand(time(0));
 
-    for (int i = 0; i < nrThreads; i++)
-    {
-        path[i] = rootPath;
+    for (int i = 0; i < num_threads; i++)
+        path[i] = rootPath + std::to_string(i) + ".txt";
 
-        if (i < 10)
-            path[i] += char(i + '0');
-        else
-            path[i] += char(i / 10 + '0'), path[i] += char(i % 10 + '0');
-        path[i] += ".txt";
-    }
-
-    std::vector<std::thread> threads(nrThreads);
-    uint64_t batch = nrFens / nrThreads, i = 0;
+    std::vector<std::thread> threads(num_threads);
+    thread_pool.create_pool(num_threads);
+    for (auto &t : thread_pool.m_threads)
+        t->m_thread_id = 0;
+    uint64_t batch = num_fens / num_threads;
+    std::size_t i = 0;
 
     std::mt19937 gen(time(0));
     std::uniform_int_distribution<uint64_t> rng;
-    std::atomic<uint64_t> sumFens{0}, sumGames{0};
-    std::atomic<uint64_t> totalFens{nrFens};
+    std::atomic<uint64_t> total_fens_count{0}, num_games{0};
+    std::atomic<uint64_t> num_fens_atomic{num_fens};
     std::time_t startTime = get_current_time();
 
     for (auto &t : threads)
     {
         std::string pth = path[i];
         std::cout << "Starting thread " << i << std::endl;
+        // generateFens(*thread_pool.m_threads[i], total_fens_count, num_games, batch, pth, rng(gen), extraSeed);
         t = std::thread{generateFens,
-                        std::ref(thread_pool.threads_data[i]),
-                        std::ref(sumFens),
-                        std::ref(sumGames),
+                        std::ref(*thread_pool.m_threads[i]),
+                        std::ref(total_fens_count),
+                        std::ref(num_games),
                         batch,
                         pth,
                         rng(gen),
@@ -220,14 +232,14 @@ void generateData(uint64_t nrFens, int nrThreads, std::string rootPath, uint64_t
         i++;
     }
 
-    while (sumFens <= totalFens)
+    while (total_fens_count <= num_fens_atomic)
     {
         std::this_thread::sleep_for(std::chrono::seconds(1));
         std::time_t time_elapsed = get_current_time() - startTime;
-        std::cout << "Games " << std::setw(9) << sumGames << "; Fens " << std::setw(11) << sumFens
+        std::cout << "Games " << std::setw(9) << num_games << "; Fens " << std::setw(11) << total_fens_count
                   << " ; Time elapsed: " << std::setw(9) << std::floor(time_elapsed / 1000.0) << "s ; "
-                  << "fens/s " << std::setw(6) << static_cast<uint64_t>(std::floor(1LL * sumFens * 1000 / time_elapsed))
-                  << "\r";
+                  << "fens/s " << std::setw(9)
+                  << static_cast<uint64_t>(std::floor(1LL * total_fens_count * 1000 / time_elapsed)) << "\r";
     }
 
     for (auto &t : threads)
