@@ -74,6 +74,8 @@ struct NetInput
     std::vector<short> ind[2];
 };
 
+typedef std::vector<uint64_t> KeyArray;
+
 enum
 {
     BLACK = 0,

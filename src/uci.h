@@ -30,7 +30,6 @@ const std::string VERSION = "8.1";
 class UCI
 {
   private:
-    std::unique_ptr<std::deque<HistoricalState>> states;
     Network NN;
 
   public:
@@ -87,8 +86,7 @@ void UCI::uci_loop()
     Info info;
     thread_pool.create_pool(1);
     ucinewgame(ttSize);
-    states = std::make_unique<std::deque<HistoricalState>>(1);
-    thread_pool.get_board().set_fen(START_POS_FEN, states->back());
+    thread_pool.get_board().set_fen(START_POS_FEN);
 
     std::string input;
     while (getline(std::cin, input))
@@ -102,13 +100,12 @@ void UCI::uci_loop()
         }
         else if (cmd == "position")
         {
-            states = std::make_unique<std::deque<HistoricalState>>(1);
             std::string type;
             while (iss >> type)
             {
                 if (type == "startpos")
                 {
-                    thread_pool.get_board().set_fen(START_POS_FEN, states->back());
+                    thread_pool.get_board().set_fen(START_POS_FEN);
                 }
                 else if (type == "fen")
                 {
@@ -120,7 +117,7 @@ void UCI::uci_loop()
                         fen += component + " ";
                     }
                     thread_pool.get_board().chess960 = info.is_chess960();
-                    thread_pool.get_board().set_fen(fen, states->back());
+                    thread_pool.get_board().set_fen(fen);
                 }
                 else if (type == "moves")
                 {
@@ -128,8 +125,7 @@ void UCI::uci_loop()
                     while (iss >> moveStr)
                     {
                         Move move = parse_move_string(thread_pool.get_board(), moveStr, info);
-                        states->emplace_back();
-                        thread_pool.get_board().make_move(move, states->back());
+                        thread_pool.get_board() = thread_pool.get_board().make_move(move);
                     }
                 }
             }
@@ -487,8 +483,7 @@ void UCI::bench(int depth)
     uint64_t totalNodes = 0;
     for (auto &fen : benchPos)
     {
-        states = std::make_unique<std::deque<HistoricalState>>(1);
-        thread_pool.get_board().set_fen(fen, states->back());
+        thread_pool.get_board().set_fen(fen);
         thread_pool.clear_board();
         thread_pool.search(info);
         thread_pool.wait_for_finish();

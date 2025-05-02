@@ -48,12 +48,11 @@ std::string Board::fen()
     return fen;
 }
 
-void Board::set_fen(const std::string fen, HistoricalState &next_state)
+void Board::set_fen(const std::string fen)
 {
     int ind = 0;
-    state = &next_state;
 
-    key() = pawn_key() = mat_key(WHITE) = mat_key(BLACK) = 0;
+    key = pawn_key = mat_key[WHITE] = mat_key[BLACK] = 0;
     ply = game_ply = 0;
     captured() = NO_PIECE;
 
@@ -82,7 +81,7 @@ void Board::set_fen(const std::string fen, HistoricalState &next_state)
     }
     turn = fen[ind] == 'w';
 
-    key() ^= turn;
+    key ^= turn;
 
     ind += 2;
     rook_sq(WHITE, 0) = rook_sq(WHITE, 1) = rook_sq(BLACK, 0) = rook_sq(BLACK, 1) = NO_SQUARE;
@@ -90,14 +89,14 @@ void Board::set_fen(const std::string fen, HistoricalState &next_state)
     { // most likely chess 960
         int kingSq = get_king(WHITE);
         if ('A' <= fen[ind] && fen[ind] <= 'H' && fen[ind] - 'A' > kingSq)
-            key() ^= castleKey[WHITE][1], rook_sq(WHITE, 1) = fen[ind++] - 'A';
+            key ^= castleKey[WHITE][1], rook_sq(WHITE, 1) = fen[ind++] - 'A';
         if ('A' <= fen[ind] && fen[ind] <= 'H' && kingSq > fen[ind] - 'A')
-            key() ^= castleKey[WHITE][0], rook_sq(WHITE, 0) = fen[ind++] - 'A';
+            key ^= castleKey[WHITE][0], rook_sq(WHITE, 0) = fen[ind++] - 'A';
         kingSq = get_king(BLACK);
         if ('a' <= fen[ind] && fen[ind] <= 'h' && 56 + fen[ind] - 'a' > kingSq)
-            key() ^= castleKey[BLACK][1], rook_sq(BLACK, 1) = 56 + fen[ind++] - 'a';
+            key ^= castleKey[BLACK][1], rook_sq(BLACK, 1) = 56 + fen[ind++] - 'a';
         if ('a' <= fen[ind] && fen[ind] <= 'h' && kingSq > 56 + fen[ind] - 'a')
-            key() ^= castleKey[BLACK][0], rook_sq(BLACK, 0) = 56 + fen[ind++] - 'a';
+            key ^= castleKey[BLACK][0], rook_sq(BLACK, 0) = 56 + fen[ind++] - 'a';
         chess960 = true;
     }
     else
@@ -109,7 +108,7 @@ void Board::set_fen(const std::string fen, HistoricalState &next_state)
             if (fen[ind] == castle_ch[i])
             {
                 castle_rights |= (1 << i);
-                key() ^= castleKey[i / 2][i % 2];
+                key ^= castleKey[i / 2][i % 2];
                 ind++;
             }
         }
@@ -166,7 +165,7 @@ void Board::set_fen(const std::string fen, HistoricalState &next_state)
     {
         enpas() = Square(fen[ind + 1] - '1', fen[ind] - 'a');
         ind += 3;
-        key() ^= enPasKey[enpas()];
+        key ^= enPasKey[enpas()];
     }
     else
     {
@@ -245,10 +244,8 @@ void Board::set_frc_side(bool color, int idx)
     }
 }
 
-void Board::set_dfrc(int idx, HistoricalState &next_state)
+void Board::set_dfrc(int idx)
 {
-    state = &next_state;
-
     ply = game_ply = 0;
     captured() = NO_PIECE;
 
@@ -266,7 +263,7 @@ void Board::set_dfrc(int idx, HistoricalState &next_state)
         place_piece_at_sq(Pieces::BlackPawn, i);
 
     turn = WHITE;
-    key() ^= turn;
+    key ^= turn;
 
     Square a = NO_SQUARE, b = NO_SQUARE;
     for (Square i = Squares::A1; i <= Squares::H1; i++)

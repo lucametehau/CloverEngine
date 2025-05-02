@@ -19,34 +19,26 @@
 #include "cuckoo.h"
 #include "defs.h"
 
-class HistoricalState
-{
-  public:
-    Square enPas;
-    MultiArray<Square, 2, 2> rook_sq;
-    Piece captured;
-    uint16_t halfMoves, moveIndex;
-    Bitboard checkers, pinnedPieces;
-    uint64_t key, pawn_key, mat_key[2];
-    Threats threats;
-
-    HistoricalState *prev;
-    HistoricalState *next;
-};
-
 class Board
 {
   public:
     bool turn, chess960;
 
-    HistoricalState *state;
-
     std::array<Piece, 64> board;
+    Piece captured_piece;
+
+    Square enPas;
+    MultiArray<Square, 2, 2> rook_squares;
 
     uint16_t ply, game_ply;
+    uint16_t halfMoves, moveIndex;
+
+    uint64_t key, pawn_key, mat_key[2];
 
     std::array<Bitboard, 12> bb;
     std::array<Bitboard, 2> pieces;
+    Bitboard m_checkers, pinnedPieces;
+    Threats m_threats;
 
     constexpr Board() = default;
 
@@ -65,54 +57,41 @@ class Board
         }
     }
 
-    uint64_t &key()
-    {
-        return state->key;
-    }
-    uint64_t &pawn_key()
-    {
-        return state->pawn_key;
-    }
     uint64_t king_pawn_key()
     {
-        return state->pawn_key ^ hashKey[Pieces::WhiteKing][get_king(WHITE)] ^
-               hashKey[Pieces::BlackKing][get_king(BLACK)];
-    }
-    uint64_t &mat_key(const bool color)
-    {
-        return state->mat_key[color];
+        return pawn_key ^ hashKey[Pieces::WhiteKing][get_king(WHITE)] ^ hashKey[Pieces::BlackKing][get_king(BLACK)];
     }
     Bitboard &checkers()
     {
-        return state->checkers;
+        return m_checkers;
     }
     Bitboard &pinned_pieces()
     {
-        return state->pinnedPieces;
+        return pinnedPieces;
     }
     Square &enpas()
     {
-        return state->enPas;
+        return enPas;
     }
     uint16_t &half_moves()
     {
-        return state->halfMoves;
+        return halfMoves;
     }
     uint16_t &move_index()
     {
-        return state->moveIndex;
+        return moveIndex;
     }
     Piece &captured()
     {
-        return state->captured;
+        return captured_piece;
     }
     Threats &threats()
     {
-        return state->threats;
+        return m_threats;
     }
     Square &rook_sq(bool color, bool side)
     {
-        return state->rook_sq[color][side];
+        return rook_squares[color][side];
     }
 
     Bitboard get_bb_color(const bool color) const
@@ -266,10 +245,8 @@ class Board
         return get_attackers(color, get_bb_color(WHITE) | get_bb_color(BLACK), sq);
     }
 
-    void make_move(const Move move, HistoricalState &state);
-    void undo_move(const Move move);
-    void make_null_move(HistoricalState &state);
-    void undo_null_move();
+    Board make_move(const Move move);
+    Board make_null_move();
 
     template <int movegen_type> int gen_legal_moves(MoveList &moves);
 
@@ -306,11 +283,11 @@ class Board
         board[from] = NO_PIECE;
         board[to] = piece;
 
-        key() ^= hashKey[piece][from] ^ hashKey[piece][to];
+        key ^= hashKey[piece][from] ^ hashKey[piece][to];
         if (pt == PieceTypes::PAWN)
-            pawn_key() ^= hashKey[piece][from] ^ hashKey[piece][to];
+            pawn_key ^= hashKey[piece][from] ^ hashKey[piece][to];
         else
-            mat_key(piece.color()) ^= hashKey[piece][from] ^ hashKey[piece][to];
+            mat_key[piece.color()] ^= hashKey[piece][from] ^ hashKey[piece][to];
 
         pieces[piece.color()] ^= (1ull << from) ^ (1ull << to);
         bb[piece] ^= (1ULL << from) ^ (1ull << to);
@@ -319,11 +296,11 @@ class Board
     void place_piece_at_sq(Piece piece, Square sq)
     {
         board[sq] = piece;
-        key() ^= hashKey[piece][sq];
+        key ^= hashKey[piece][sq];
         if (piece.type() == PieceTypes::PAWN)
-            pawn_key() ^= hashKey[piece][sq];
+            pawn_key ^= hashKey[piece][sq];
         else
-            mat_key(piece.color()) ^= hashKey[piece][sq];
+            mat_key[piece.color()] ^= hashKey[piece][sq];
 
         pieces[piece.color()] |= (1ULL << sq);
         bb[piece] |= (1ULL << sq);
@@ -335,12 +312,12 @@ class Board
         const bool color = piece.color();
         board[sq] = NO_PIECE;
 
-        key() ^= hashKey[piece][sq];
+        key ^= hashKey[piece][sq];
         if (pt == PieceTypes::PAWN)
-            pawn_key() ^= hashKey[piece][sq];
+            pawn_key ^= hashKey[piece][sq];
         else
         {
-            mat_key(color) ^= hashKey[piece][sq];
+            mat_key[color] ^= hashKey[piece][sq];
             if (pt == PieceTypes::ROOK && (sq == rook_sq(color, 0) || sq == rook_sq(color, 1)))
                 rook_sq(color, get_king(color) < sq) = NO_SQUARE;
         }
@@ -349,9 +326,9 @@ class Board
         bb[piece] ^= (1ULL << sq);
     }
 
-    void set_fen(const std::string fen, HistoricalState &state);
+    void set_fen(const std::string fen);
     void set_frc_side(bool color, int idx);
-    void set_dfrc(int idx, HistoricalState &state);
+    void set_dfrc(int idx);
 
     std::string fen();
 
@@ -359,7 +336,7 @@ class Board
     {
         const int from = move.get_from(), to = move.get_to();
         const Piece piece = piece_at(from);
-        return key() ^ hashKey[piece][from] ^ hashKey[piece][to] ^
+        return key ^ hashKey[piece][from] ^ hashKey[piece][to] ^
                (piece_at(to) != NO_PIECE ? hashKey[piece_at(to)][to] : 0) ^ 1;
     }
 
@@ -373,14 +350,12 @@ class Board
                              get_bb_piece(PieceTypes::KNIGHT, BLACK).count() == 2));
     }
 
-    bool is_repetition(const int ply)
+    bool is_repetition(const int ply, KeyArray &keys)
     {
         int cnt = 1;
-        HistoricalState *temp_state = state;
-        for (int i = 2; i <= game_ply && i <= half_moves(); i += 2)
+        for (int i = 2; i <= (int)keys.size() && i <= half_moves(); i += 2)
         {
-            temp_state = temp_state->prev->prev;
-            if (temp_state->key == key())
+            if (keys[keys.size() - i] == key)
             {
                 cnt++;
                 if (ply > i || cnt == 3)
@@ -390,27 +365,24 @@ class Board
         return false;
     }
 
-    bool is_draw(const int ply)
+    bool is_draw(const int ply, KeyArray &keys)
     {
         if (half_moves() < 100 || !checkers())
-            return is_material_draw() || is_repetition(ply) || half_moves() >= 100;
+            return is_material_draw() || is_repetition(ply, keys) || half_moves() >= 100;
         MoveList moves;
         return gen_legal_moves<MOVEGEN_ALL>(moves) > 0;
     }
 
-    bool has_upcoming_repetition(const int ply)
+    bool has_upcoming_repetition(const int ply, KeyArray &keys)
     {
         const Bitboard all_pieces = get_bb_color(WHITE) | get_bb_color(BLACK);
-        HistoricalState *temp_state = state->prev;
-        uint64_t b = ~(key() ^ temp_state->key);
-        for (int i = 3; i <= half_moves() && i <= game_ply; i += 2)
+        uint64_t b = ~(key ^ keys[keys.size() - 1]);
+        for (int i = 3; i <= (int)keys.size() && i <= half_moves(); i += 2)
         {
-            assert(temp_state->prev->prev);
-            temp_state = temp_state->prev->prev;
-            b ^= ~(temp_state->next->key ^ temp_state->key);
+            b ^= ~(keys[keys.size() - i] ^ keys[keys.size() - i + 1]);
             if (b)
                 continue;
-            const uint64_t key_delta = key() ^ temp_state->key;
+            const uint64_t key_delta = key ^ keys[keys.size() - i];
             int cuckoo_ind = cuckoo::hash1(key_delta);
 
             if (cuckoo::cuckoo[cuckoo_ind] != key_delta)

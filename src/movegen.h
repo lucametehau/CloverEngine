@@ -21,59 +21,57 @@
 #include <cstring>
 #include <iomanip>
 
-void Board::make_move(const Move move, HistoricalState &next_state)
-{ /// assuming move is at least pseudo-legal
+Board Board::make_move(const Move move)
+{
+    Board new_board = *this;
     Square from = move.get_from(), to = move.get_to();
     Piece piece = piece_at(from), piece_cap = piece_at(to);
 
-    memcpy(&next_state, state, sizeof(HistoricalState));
-    next_state.prev = state;
-    state->next = &next_state;
-    state = &next_state;
-    key() ^= enpas() != NO_SQUARE ? enPasKey[enpas()] : 0;
+    new_board.key ^= enpas() != NO_SQUARE ? enPasKey[enpas()] : 0;
 
-    half_moves()++;
+    new_board.half_moves()++;
 
     if (piece.type() == PieceTypes::PAWN)
-        half_moves() = 0;
+        new_board.half_moves() = 0;
 
-    captured() = NO_PIECE;
-    enpas() = NO_SQUARE;
+    new_board.captured() = NO_PIECE;
+    new_board.enpas() = NO_SQUARE;
 
     switch (move.get_type())
     {
     case NO_TYPE:
         if (piece_cap != NO_PIECE)
         {
-            half_moves() = 0;
-            erase_square(to);
+            new_board.half_moves() = 0;
+            new_board.erase_square(to);
         }
 
-        move_from_to(from, to);
+        new_board.move_from_to(from, to);
         /// moved a castle rook
-        if (piece.type() == PieceTypes::ROOK && (from == rook_sq(turn, 0) || from == rook_sq(turn, 1)))
+        if (piece.type() == PieceTypes::ROOK &&
+            (from == new_board.rook_sq(turn, 0) || from == new_board.rook_sq(turn, 1)))
         {
-            rook_sq(turn, get_king(turn) < from) = NO_SQUARE;
+            new_board.rook_sq(turn, new_board.get_king(turn) < from) = NO_SQUARE;
         }
         else if (piece.type() == PieceTypes::KING)
-            rook_sq(turn, 0) = rook_sq(turn, 1) = NO_SQUARE;
+            new_board.rook_sq(turn, 0) = new_board.rook_sq(turn, 1) = NO_SQUARE;
 
-        captured() = piece_cap;
+        new_board.captured() = piece_cap;
 
         /// double push
         if (piece.type() == PieceTypes::PAWN && (from ^ to) == 16)
         {
             if ((to % 8 && board[to - 1] == Piece(PieceTypes::PAWN, turn ^ 1)) ||
                 (to % 8 < 7 && board[to + 1] == Piece(PieceTypes::PAWN, turn ^ 1)))
-                enpas() = shift_square<NORTH>(turn, from), key() ^= enPasKey[enpas()];
+                new_board.enpas() = shift_square<NORTH>(turn, from), new_board.key ^= enPasKey[new_board.enpas()];
         }
 
         break;
     case MoveTypes::ENPASSANT: {
         const Square pos = shift_square<SOUTH>(turn, to);
-        half_moves() = 0;
-        move_from_to(from, to);
-        erase_square(pos);
+        new_board.half_moves() = 0;
+        new_board.move_from_to(from, to);
+        new_board.erase_square(pos);
     }
 
     break;
@@ -94,10 +92,10 @@ void Board::make_move(const Move move, HistoricalState &next_state)
             rTo = Squares::D1.mirror(turn);
         }
 
-        move_from_to(rFrom, rTo);
-        move_from_to(from, to);
-        captured() = NO_PIECE;
-        rook_sq(turn, 0) = rook_sq(turn, 1) = NO_SQUARE;
+        new_board.move_from_to(rFrom, rTo);
+        new_board.move_from_to(from, to);
+        new_board.captured() = NO_PIECE;
+        new_board.rook_sq(turn, 0) = new_board.rook_sq(turn, 1) = NO_SQUARE;
     }
 
     break;
@@ -105,158 +103,58 @@ void Board::make_move(const Move move, HistoricalState &next_state)
     {
         Piece prom_piece(move.get_prom() + PieceTypes::KNIGHT, turn);
 
-        pieces[turn] ^= Bitboard(from) ^ Bitboard(to);
-        bb[piece] ^= Bitboard(from);
-        bb[prom_piece] ^= Bitboard(to);
+        new_board.pieces[turn] ^= Bitboard(from) ^ Bitboard(to);
+        new_board.bb[piece] ^= Bitboard(from);
+        new_board.bb[prom_piece] ^= Bitboard(to);
 
         if (piece_cap != NO_PIECE)
-            erase_square(to);
+            new_board.erase_square(to);
 
-        board[from] = NO_PIECE;
-        board[to] = prom_piece;
-        captured() = piece_cap;
+        new_board.board[from] = NO_PIECE;
+        new_board.board[to] = prom_piece;
+        new_board.captured() = piece_cap;
 
-        key() ^= hashKey[piece][from] ^ hashKey[prom_piece][to];
-        pawn_key() ^= hashKey[piece][from];
+        new_board.key ^= hashKey[piece][from] ^ hashKey[prom_piece][to];
+        new_board.pawn_key ^= hashKey[piece][from];
     }
 
     break;
     }
 
-    if (state->rook_sq != state->prev->rook_sq)
+    if (new_board.rook_squares != rook_squares)
     {
-        key() ^= castle_rights_key(state->rook_sq) ^ castle_rights_key(state->prev->rook_sq);
+        new_board.key ^= castle_rights_key(new_board.rook_squares) ^ castle_rights_key(rook_squares);
     }
 
-    turn ^= 1;
-    ply++;
-    game_ply++;
-    key() ^= 1;
-    if (turn == WHITE)
-        move_index()++;
-    get_pinned_pieces_and_checkers();
-    get_threats(turn);
+    new_board.turn ^= 1;
+    new_board.ply++;
+    new_board.game_ply++;
+    new_board.key ^= 1;
+    if (new_board.turn == WHITE)
+        new_board.move_index()++;
+    new_board.get_pinned_pieces_and_checkers();
+    new_board.get_threats(new_board.turn);
+    return new_board;
 }
 
-void Board::undo_move(const Move move)
+Board Board::make_null_move()
 {
-    turn ^= 1;
-    ply--;
-    game_ply--;
-    Piece piece_cap = captured();
+    Board new_board = *this;
 
-    state = state->prev;
+    new_board.key ^= enpas() != NO_SQUARE ? enPasKey[enpas()] : 0;
 
-    Square from = move.get_from(), to = move.get_to();
-    Piece piece = piece_at(to);
+    new_board.captured() = NO_PIECE;
+    new_board.enpas() = NO_SQUARE;
+    new_board.turn ^= 1;
+    new_board.key ^= 1;
+    new_board.get_pinned_pieces_and_checkers();
+    new_board.get_threats(new_board.turn);
+    new_board.ply++;
+    new_board.game_ply++;
+    new_board.half_moves()++;
+    new_board.move_index()++;
 
-    switch (move.get_type())
-    {
-    case NO_TYPE:
-        pieces[turn] ^= (1ull << from) ^ (1ull << to);
-        bb[piece] ^= (1ull << from) ^ (1ull << to);
-
-        board[from] = piece;
-        board[to] = piece_cap;
-
-        if (piece_cap != NO_PIECE)
-        {
-            pieces[1 ^ turn] ^= (1ull << to);
-            bb[piece_cap] ^= (1ull << to);
-        }
-        break;
-    case MoveTypes::CASTLE: {
-        Square rFrom, rTo;
-        Piece rPiece(PieceTypes::ROOK, turn);
-        piece = Piece(PieceTypes::KING, turn);
-
-        if (to > from)
-        { // king side castle
-            rFrom = to;
-            to = Squares::G1.mirror(turn);
-            rTo = Squares::F1.mirror(turn);
-        }
-        else
-        { // queen side castle
-            rFrom = to;
-            to = Squares::C1.mirror(turn);
-            rTo = Squares::D1.mirror(turn);
-        }
-
-        pieces[turn] ^= (1ull << from) ^ (1ull << to) ^ (1ull << rFrom) ^ (1ull << rTo);
-        bb[piece] ^= (1ull << from) ^ (1ull << to);
-        bb[rPiece] ^= (1ull << rFrom) ^ (1ull << rTo);
-
-        board[to] = board[rTo] = NO_PIECE;
-        board[from] = piece;
-        board[rFrom] = rPiece;
-    }
-    break;
-    case MoveTypes::ENPASSANT: {
-        Square pos = shift_square<SOUTH>(turn, to);
-
-        piece_cap = Piece(PieceTypes::PAWN, 1 ^ turn);
-
-        pieces[turn] ^= (1ull << from) ^ (1ull << to);
-        bb[piece] ^= (1ull << from) ^ (1ull << to);
-        bb[piece_cap] ^= (1ull << pos);
-
-        pieces[1 ^ turn] ^= (1ull << pos);
-
-        board[to] = NO_PIECE;
-        board[from] = piece;
-        board[pos] = piece_cap;
-    }
-    break;
-    default: /// promotion
-    {
-        piece = Piece(PieceTypes::PAWN, turn);
-
-        pieces[turn] ^= (1ull << from) ^ (1ull << to);
-        bb[piece] ^= (1ull << from);
-        bb[Piece(move.get_prom() + PieceTypes::KNIGHT, turn)] ^= (1ull << to);
-
-        board[to] = piece_cap;
-        board[from] = piece;
-
-        if (piece_cap != NO_PIECE)
-        {
-            pieces[1 ^ turn] ^= (1ull << to);
-            bb[piece_cap] ^= (1ull << to);
-        }
-    }
-    break;
-    }
-}
-
-void Board::make_null_move(HistoricalState &next_state)
-{
-    memcpy(&next_state, state, sizeof(HistoricalState));
-    next_state.prev = state;
-    state->next = &next_state;
-    state = &next_state;
-
-    key() ^= enpas() != NO_SQUARE ? enPasKey[enpas()] : 0;
-
-    captured() = NO_PIECE;
-    enpas() = NO_SQUARE;
-    turn ^= 1;
-    key() ^= 1;
-    get_pinned_pieces_and_checkers();
-    get_threats(turn);
-    ply++;
-    game_ply++;
-    half_moves()++;
-    move_index()++;
-}
-
-void Board::undo_null_move()
-{
-    turn ^= 1;
-    ply--;
-    game_ply--;
-
-    state = state->prev;
+    return new_board;
 }
 
 inline void add_moves(MoveList &moves, int &nr_moves, Square pos, Bitboard att)
@@ -701,10 +599,8 @@ bool is_legal_dummy(Board &board, Move move)
         return is_legal(board, move);
     bool legal = false;
 
-    HistoricalState next_state;
-    board.make_move(move, next_state);
-    legal = !board.is_attacked_by(board.turn, board.get_king(board.turn ^ 1));
-    board.undo_move(move);
+    Board new_board = board.make_move(move);
+    legal = !new_board.is_attacked_by(board.turn, board.get_king(board.turn ^ 1));
     if (legal != is_legal(board, move))
     {
         board.print();

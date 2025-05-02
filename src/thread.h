@@ -59,6 +59,7 @@ class SearchThread
     std::array<uint64_t, 64 * 64> m_nodes_seached;
     std::array<StackEntry, MAX_DEPTH + 15> m_search_stack;
     StackEntry *m_stack;
+    KeyArray keys;
 
     Histories m_histories;
 
@@ -96,6 +97,7 @@ class SearchThread
     {
         m_state = ThreadStates::IDLE;
         m_thread = std::thread(&SearchThread::main_loop, this);
+        keys.reserve(1024);
     }
 
     ~SearchThread() = default;
@@ -155,23 +157,23 @@ class SearchThread
         fill_multiarray<Move, 2, KP_MOVE_SIZE>(m_kp_move, NULLMOVE);
     }
 
-    void make_move(Move move, HistoricalState &next_state)
+    void make_move(Move move, Piece piece, Piece captured, uint64_t key)
     {
-        const Piece piece = m_board.piece_at(move.get_from());
-        m_board.make_move(move, next_state);
-        NN.add_move_to_history(move, piece, m_board.captured());
+        NN.add_move_to_history(move, piece, captured);
+        keys.push_back(key);
     }
 
-    void undo_move(Move move)
+    void undo_move()
     {
-        m_board.undo_move(move);
         NN.revert_move();
+        keys.pop_back();
     }
 
   private:
-    template <bool pvNode> int quiesce(int alpha, int beta, StackEntry *stack);
+    template <bool pvNode> int quiesce(Board &board, int alpha, int beta, StackEntry *stack);
 
-    template <bool rootNode, bool pvNode, bool cutNode> int search(int alpha, int beta, int depth, StackEntry *stack);
+    template <bool rootNode, bool pvNode, bool cutNode>
+    int search(Board &board, int alpha, int beta, int depth, StackEntry *stack);
 
     void iterative_deepening();
 
