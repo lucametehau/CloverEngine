@@ -889,7 +889,7 @@ void SearchThread::start_search()
         }
     }
 #endif
-    memcpy(&m_board, &m_thread_pool->m_board, sizeof(Board));
+    memcpy(static_cast<void *>(&m_board), static_cast<const void *>(&m_thread_pool->m_board), sizeof(Board));
     NN.init(m_board);
     clear_stack();
     m_nodes = m_sel_depth = m_tb_hits = 0;

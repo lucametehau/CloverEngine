@@ -33,7 +33,8 @@ class Board
     uint16_t ply, game_ply;
     uint16_t halfMoves, moveIndex;
 
-    uint64_t key, pawn_key, mat_key[2];
+    uint64_t key, pawn_key;
+    std::array<uint64_t, 2> mat_key;
 
     std::array<Bitboard, 12> bb;
     std::array<Bitboard, 2> pieces;
@@ -41,6 +42,25 @@ class Board
     Threats m_threats;
 
     constexpr Board() = default;
+
+    Board &operator=(const Board &other)
+    {
+        turn = other.turn;
+        chess960 = other.chess960;
+        board = other.board;
+        rook_squares = other.rook_squares;
+        ply = other.ply;
+        game_ply = other.game_ply;
+        halfMoves = other.halfMoves;
+        moveIndex = other.moveIndex;
+        key = other.key;
+        pawn_key = other.pawn_key;
+        mat_key = other.mat_key;
+        bb = other.bb;
+        pieces = other.pieces;
+
+        return *this;
+    }
 
     void clear()
     {
