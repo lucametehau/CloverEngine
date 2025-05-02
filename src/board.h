@@ -43,7 +43,7 @@ class Board
 
     constexpr Board() = default;
 
-    Board cheap_copy(const Board &other)
+    void cheap_copy(const Board &other)
     {
         turn = other.turn;
         chess960 = other.chess960;
@@ -58,8 +58,6 @@ class Board
         mat_key = other.mat_key;
         bb = other.bb;
         pieces = other.pieces;
-
-        return *this;
     }
 
     void clear()

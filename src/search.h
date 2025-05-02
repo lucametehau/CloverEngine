@@ -375,7 +375,7 @@ int SearchThread::search(Board &board, int alpha, int beta, int depth, StackEntr
         }
     }
 
-    const bool in_check = (board.checkers() != 0);
+    const bool in_check = board.checkers() != 0;
     const bool enemy_has_no_threats = !board.threats().threatened_pieces;
     int raw_eval;
 
