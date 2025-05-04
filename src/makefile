@@ -2,7 +2,8 @@ SRCXX = $(wildcard *.cpp)
 SRCHEADERS = $(wildcard *.h)
 SRC = 3rdparty/Fathom/src/tbprobe.c
 OBJ = $(SRCXX:.cpp=.o) $(SRC:.c=.o)
-EXE = Clover.8.1.10
+VERSION = 8.1.10
+EXE = Clover.$(VERSION)
 EVALFILE = clover-7buckets-mse-0.95-1280-cosine-600.bin
 
 ifeq ($(CXX),)
@@ -45,7 +46,7 @@ NATIVE_FLAGS   = -mno-avx512f -march=native
 OLD_FLAGS      = -march=core2
 AVX512_FLAGS   = $(AVX2FLAGS) -mavx512f -mavx512bw -mavx512dq
 EVALFILE_FLAGS = -DEVALFILE=\"$(EVALFILE)\" -I . -IFathom
-BUILD_FLAGS    = $(EVALFILE_FLAGS) $(PEXT_FLAGS)
+BUILD_FLAGS    = $(EVALFILE_FLAGS) $(PEXT_FLAGS) -DVERSION_NAME=\"$(VERSION)\"
 
 ifeq ($(build_flag),)
 	build_flag = native

@@ -25,7 +25,7 @@
 #include <sstream>
 #include <string>
 
-const std::string VERSION = "8.1";
+const std::string VERSION = VERSION_NAME;
 
 class UCI
 {
