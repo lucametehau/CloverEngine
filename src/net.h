@@ -496,9 +496,6 @@ class Network
 
     int32_t get_output(bool stm)
     {
-
-        assert(hist_size > 0);
-        assert(reinterpret_cast<uintptr_t>(&output_history[hist_size - 1][stm * SIDE_NEURONS]) % ALIGN == 0);
         reg_type_s acc{};
         const reg_type *w = reinterpret_cast<const reg_type *>(&output_history[hist_size - 1][stm * SIDE_NEURONS]);
         const reg_type *w2 =

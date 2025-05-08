@@ -292,9 +292,6 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
     if (depth <= 0)
         return quiesce<pvNode>(alpha, beta, stack);
 
-    // std::cout << "search node " << alpha << " " << beta << " " << depth << " " << m_nodes << "\n";
-    // m_board.print();
-
     constexpr bool allNode = !pvNode && !cutNode;
     const bool nullSearch = (stack - 1)->move == NULLMOVE;
     const int original_alpha = alpha;
@@ -809,8 +806,6 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
                 noisies[nr_noisies++] = SearchMove(move, tried_count);
         }
     }
-
-    // std::cout << "so where teh fck is te problm\n";
 
     if (!played)
         return in_check ? -INF + ply : 0;
