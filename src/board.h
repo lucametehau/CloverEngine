@@ -226,6 +226,50 @@ class Board
         threats().threatened_pieces = threatened_pieces;
     }
 
+    bool sanity_check()
+    {
+        if (pieces[WHITE] & pieces[BLACK])
+        {
+            std::cerr << "pieces[WHITE] & pieces[BLACK]\n";
+            return false;
+        }
+        std::array<Bitboard, 2> temp_pieces = {0, 0};
+        for (int pa = 0; pa < 12; pa++)
+        {
+            for (int pb = pa + 1; pb < 12; pb++)
+            {
+                if (bb[pa] & bb[pb])
+                {
+                    std::cerr << "bb[" << pa << "] & bb[" << pb << "]\n";
+                    bb[pa].print();
+                    bb[pb].print();
+                    return false;
+                }
+            }
+            temp_pieces[pa / 6] |= bb[pa];
+        }
+        if (temp_pieces[WHITE] != pieces[WHITE] || temp_pieces[BLACK] != pieces[BLACK])
+        {
+            std::cerr << "pieces[WHITE] != temp_pieces[WHITE] || pieces[BLACK] != temp_pieces[BLACK]\n";
+            pieces[WHITE].print();
+            pieces[BLACK].print();
+            temp_pieces[WHITE].print();
+            temp_pieces[BLACK].print();
+            return false;
+        }
+        for (Square sq = 0; sq < 64; sq++)
+        {
+            if (board[sq] != NO_PIECE && !bb[board[sq]].has_square(sq))
+            {
+                std::cerr << "board[" << sq << "] != NO_PIECE && !bb[board[sq]].has_square(sq)\n";
+                std::cout << int(board[sq]) << " " << int(sq) << "\n";
+                bb[board[sq]].print();
+                return false;
+            }
+        }
+        return true;
+    }
+
     Bitboard get_pawn_attacks(const bool color)
     {
         const Bitboard b = get_bb_piece(PieceTypes::PAWN, color);
@@ -300,9 +344,9 @@ class Board
         return ans;
     }
 
-    void move_from_to(Square from, Square to)
+    void move_from_to(Square from, Square to, const Piece piece)
     {
-        const Piece piece = piece_at(from), pt = piece.type();
+        const Piece pt = piece.type();
         board[from] = NO_PIECE;
         board[to] = piece;
 

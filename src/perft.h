@@ -37,7 +37,7 @@ template <bool RootNode> uint64_t perft(Board &board, int depth)
         nodes += x;
         board.undo_move(move);
         if constexpr (RootNode)
-            std::cout << move.to_string() << ": " << x << "\n";
+            std::cout << move.to_string(board.chess960) << ": " << x << "\n";
     }
     return nodes;
 }

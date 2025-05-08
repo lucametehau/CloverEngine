@@ -109,9 +109,9 @@ void generateFens(SearchThread &thread_data, std::atomic<uint64_t> &total_fens_c
             MoveList moves;
             int nr_moves = thread_data.m_board.gen_legal_moves<MOVEGEN_ALL>(moves);
 
-            std::cout << "-------------------\n";
-            thread_data.m_board.print();
-            std::cout << thread_data.m_board.chess960 << "\n";
+            // std::cout << "-------------------\n";
+            // thread_data.m_board.print();
+            // std::cout << thread_data.m_board.chess960 << "\n";
 
             if (!nr_moves)
             {
@@ -127,7 +127,7 @@ void generateFens(SearchThread &thread_data, std::atomic<uint64_t> &total_fens_c
             {
                 std::uniform_int_distribution<uint32_t> rnd(0, nr_moves - 1);
                 move = moves[rnd(gn)];
-                // states->emplace_back();
+                states->emplace_back();
                 thread_data.make_move(move, states->back());
             }
             else
@@ -164,7 +164,7 @@ void generateFens(SearchThread &thread_data, std::atomic<uint64_t> &total_fens_c
                     break;
                 }
 
-                // states->emplace_back();
+                states->emplace_back();
                 thread_data.make_move(move, states->back());
             }
 

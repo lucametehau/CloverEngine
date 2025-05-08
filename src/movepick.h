@@ -146,22 +146,6 @@ class Movepick
         case Stages::STAGE_GEN_QUIETS: {
             if (!skip)
             {
-                fout << board.fen() << "\n";
-                if (board.bb[Pieces::BlackRook].count() > 2 && (board.pieces[WHITE] | board.pieces[BLACK]).count() > 21)
-                {
-                    board.print();
-                    for (int i = 0; i < 12; i++)
-                        board.bb[i].print();
-                    board.pieces[WHITE].print();
-                    board.pieces[BLACK].print();
-                    // std::cout << move.to_string() << " " << int(pt) << "\n";
-                    for (int i = 0; i <= board.ply; i++)
-                    {
-                        std::cout << (stack - i)->move.to_string() << "\n";
-                    }
-                    std::cout << int(board.rook_sq(BLACK, 0)) << " " << int(board.rook_sq(BLACK, 1)) << "\n";
-                    // exit(0);
-                }
                 nrQuiets = board.gen_legal_moves<MOVEGEN_QUIET>(moves);
                 const bool turn = board.turn, enemy = 1 ^ turn;
                 const Bitboard allPieces = board.get_bb_color(WHITE) | board.get_bb_color(BLACK);
@@ -184,21 +168,6 @@ class Movepick
 
                     if (pt != PieceTypes::KING && pt != PieceTypes::PAWN)
                     {
-                        if (pt != PieceTypes::KNIGHT && pt != PieceTypes::BISHOP && pt != PieceTypes::ROOK &&
-                            pt != PieceTypes::QUEEN)
-                        {
-                            board.print();
-                            for (int i = 0; i < 12; i++)
-                                board.bb[i].print();
-                            board.pieces[WHITE].print();
-                            board.pieces[BLACK].print();
-                            std::cout << move.to_string() << " " << int(pt) << "\n";
-                            for (int i = 0; i <= board.ply; i++)
-                            {
-                                std::cout << (stack - i)->move.to_string() << "\n";
-                            }
-                            exit(0);
-                        }
                         score += QuietKingRingAttackBonus *
                                  (attacks::genAttacksSq(allPieces, to, pt) & enemyKingRing).count();
 
