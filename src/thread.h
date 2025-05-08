@@ -88,11 +88,7 @@ class SearchThread
 #endif
 
   public:
-#ifdef GENERATE
-    SearchThread() : m_thread_id(0)
-#else
     SearchThread()
-#endif
     {
     }
 
