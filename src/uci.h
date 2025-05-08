@@ -288,13 +288,6 @@ void UCI::uci_loop()
                 }
             }
         }
-        else if (cmd == "generate")
-        {
-            int nrThreads, nrFens;
-            std::string path;
-            iss >> nrFens >> nrThreads >> path;
-            generateData(nrFens, nrThreads, path);
-        }
         else if (cmd == "show")
         {
             thread_pool.get_board().print();
@@ -368,7 +361,7 @@ void UCI::ucinewgame(uint64_t ttSize)
 void UCI::go(Info &info)
 {
 #ifndef GENERATE
-    TT->age(thread_pool.get_num_threads());
+    TT->age();
 #endif
     thread_pool.clear_board();
     thread_pool.search(info);

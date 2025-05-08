@@ -207,7 +207,9 @@ class ThreadPool
 
     void create_pool(std::size_t thread_count)
     {
+#ifndef GENERATE
         exit();
+#endif
         m_threads.clear();
         for (std::size_t i = 0; i < thread_count; i++)
             m_threads.push_back(std::make_unique<SearchThread>(this, i));

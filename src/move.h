@@ -69,7 +69,7 @@ class Move
         return move == other.move;
     }
 
-    std::string to_string(const bool chess960 = false)
+    const std::string to_string(const bool chess960 = false) const
     {
         const Square sq_to = !chess960 ? get_special_to() : get_to();
         std::string ans;

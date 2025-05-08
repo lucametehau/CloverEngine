@@ -117,7 +117,7 @@ class HashTable
 
     void save(Entry *entry, uint64_t hash, int score, int depth, int ply, int bound, Move move, int eval, bool was_pv);
 
-    void age(int nr_threads);
+    void age();
 
     int hashfull();
 };
@@ -252,7 +252,7 @@ void HashTable::save(Entry *entry, uint64_t hash, int score, int depth, int ply,
     }
 }
 
-void HashTable::age(int nr_threads)
+void HashTable::age()
 {
     generation = (generation + 1) & 63;
 }

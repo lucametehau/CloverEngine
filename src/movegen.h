@@ -19,12 +19,20 @@
 #include "search-info.h"
 #include <cassert>
 #include <cstring>
+#include <fstream>
 #include <iomanip>
 
 void Board::make_move(const Move move, HistoricalState &next_state)
 { /// assuming move is at least pseudo-legal
     Square from = move.get_from(), to = move.get_to();
     Piece piece = piece_at(from), piece_cap = piece_at(to);
+
+    // if (!sanity_check())
+    // {
+    //     print();
+    //     std::cerr << "Illegal position before make move " << move.to_string(chess960) << "\n";
+    //     exit(0);
+    // }
 
     memcpy(&next_state, state, sizeof(HistoricalState));
     next_state.prev = state;
@@ -49,7 +57,7 @@ void Board::make_move(const Move move, HistoricalState &next_state)
             erase_square(to);
         }
 
-        move_from_to(from, to);
+        move_from_to(from, to, piece);
         /// moved a castle rook
         if (piece.type() == PieceTypes::ROOK && (from == rook_sq(turn, 0) || from == rook_sq(turn, 1)))
         {
@@ -72,7 +80,7 @@ void Board::make_move(const Move move, HistoricalState &next_state)
     case MoveTypes::ENPASSANT: {
         const Square pos = shift_square<SOUTH>(turn, to);
         half_moves() = 0;
-        move_from_to(from, to);
+        move_from_to(from, to, piece);
         erase_square(pos);
     }
 
@@ -94,8 +102,13 @@ void Board::make_move(const Move move, HistoricalState &next_state)
             rTo = Squares::D1.mirror(turn);
         }
 
-        move_from_to(rFrom, rTo);
-        move_from_to(from, to);
+        move_from_to(rFrom, rTo, rPiece);
+        move_from_to(from, to, piece);
+
+        board[rFrom] = board[from] = NO_PIECE;
+        board[to] = piece;
+        board[rTo] = rPiece;
+
         captured() = NO_PIECE;
         rook_sq(turn, 0) = rook_sq(turn, 1) = NO_SQUARE;
     }
@@ -136,10 +149,24 @@ void Board::make_move(const Move move, HistoricalState &next_state)
         move_index()++;
     get_pinned_pieces_and_checkers();
     get_threats(turn);
+
+    // if (!sanity_check())
+    // {
+    //     print();
+    //     std::cerr << "Illegal position after make move " << move.to_string(chess960) << "\n";
+    //     // std::cerr << "Previous FEN: " << previous_fen << "\n";
+    //     exit(0);
+    // }
 }
 
 void Board::undo_move(const Move move)
 {
+    // if (!sanity_check())
+    // {
+    //     print();
+    //     std::cerr << "Illegal position before undo move " << move.to_string(chess960) << "\n";
+    //     exit(0);
+    // }
     turn ^= 1;
     ply--;
     game_ply--;
@@ -227,6 +254,13 @@ void Board::undo_move(const Move move)
     }
     break;
     }
+
+    // if (!sanity_check())
+    // {
+    //     print();
+    //     std::cerr << "Illegal position after undo move " << move.to_string(chess960) << "\n";
+    //     exit(0);
+    // }
 }
 
 void Board::make_null_move(HistoricalState &next_state)
@@ -248,6 +282,13 @@ void Board::make_null_move(HistoricalState &next_state)
     game_ply++;
     half_moves()++;
     move_index()++;
+
+    // if (!sanity_check())
+    // {
+    //     print();
+    //     std::cerr << "Illegal position after make null move\n";
+    //     exit(0);
+    // }
 }
 
 void Board::undo_null_move()
@@ -257,6 +298,13 @@ void Board::undo_null_move()
     game_ply--;
 
     state = state->prev;
+
+    // if (!sanity_check())
+    // {
+    //     print();
+    //     std::cerr << "Illegal position after undo null move\n";
+    //     exit(0);
+    // }
 }
 
 inline void add_moves(MoveList &moves, int &nr_moves, Square pos, Bitboard att)
@@ -275,6 +323,12 @@ inline void add_promotions(MoveList &moves, int &nr_moves, Square from, Square t
 
 template <int movegen_type> int Board::gen_legal_moves(MoveList &moves)
 {
+    // if (!sanity_check())
+    // {
+    //     print();
+    //     std::cerr << "Illegal position\n";
+    //     exit(0);
+    // }
     constexpr bool noisy_movegen = movegen_type & MOVEGEN_NOISY;
     constexpr bool quiet_movegen = movegen_type & MOVEGEN_QUIET;
 

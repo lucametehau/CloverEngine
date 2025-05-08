@@ -154,7 +154,7 @@ class Movepick
                 int m = 0;
                 for (int i = 0; i < nrQuiets; i++)
                 {
-                    const Move move = moves[i];
+                    Move move = moves[i];
                     if (move == ttMove || move == killer)
                         continue;
 
