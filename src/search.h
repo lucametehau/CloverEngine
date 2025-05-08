@@ -115,7 +115,7 @@ void SearchThread::print_pv()
     {
         for (int i = 0; i < m_pv_table_len[0]; i++)
         {
-            std::cout << m_pv_table[0][i].to_string(m_info.is_chess960()) << " ";
+            std::cout << m_pv_table[0][i].to_string(m_board.chess960) << " ";
         }
     }
 }
@@ -666,7 +666,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
             // current root move info
             if (main_thread() && printStats && m_info.get_time_elapsed() > 2500 && !m_info.is_san_mode())
             {
-                std::cout << "info depth " << depth << " currmove " << move.to_string(m_info.is_chess960())
+                std::cout << "info depth " << depth << " currmove " << move.to_string(m_board.chess960)
                           << " currmovenumber " << played << std::endl;
             }
         }

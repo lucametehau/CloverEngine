@@ -310,8 +310,7 @@ class ThreadPool
 
         if (printStats)
         {
-            std::cout << "bestmove " << best_move.to_string(m_info.is_chess960());
-            std::cout << std::endl;
+            std::cout << "bestmove " << best_move.to_string(m_board.chess960) << std::endl;
         }
     }
 };
