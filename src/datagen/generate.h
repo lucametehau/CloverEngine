@@ -16,7 +16,8 @@
 */
 
 #pragma once
-#include "search.h"
+#include "../search.h"
+#include "binpack.h"
 #include <atomic>
 #include <cmath>
 #include <ctime>
@@ -30,29 +31,16 @@ constexpr bool FRC_DATAGEN = true;
 constexpr int MIN_NODES = 5000;
 constexpr int MAX_NODES = (1 << 20);
 
-constexpr int ADJUDICATION_MAX_SCORE = 8000;
-constexpr int ADJUDICATION_DRAW_SCORE = 10;
-constexpr int ADJUDICATION_WIN_CNT = 4;
-constexpr int ADJUDICATION_DRAW_CNT = 10;
-
-struct FenData
-{
-    int score;
-    std::string fen;
-};
-
-void generateFens(SearchThread &thread_data, std::atomic<uint64_t> &total_fens_count, std::atomic<uint64_t> &num_games,
+void generate_fens(SearchThread &thread_data, std::atomic<uint64_t> &total_fens_count, std::atomic<uint64_t> &num_games,
                   uint64_t fens_limit, std::string path, uint64_t seed, uint64_t extraSeed)
 {
-    std::ofstream out(path);
-    std::mt19937_64 gn(
-        0); //(std::chrono::system_clock::now().time_since_epoch().count() + extraSeed) ^ 8257298672678ULL);
+    std::ofstream out(path, std::ios::binary);
+    std::mt19937_64 gn((std::chrono::system_clock::now().time_since_epoch().count() + extraSeed) ^ 8257298672678ULL);
     std::uniform_int_distribution<uint32_t> rnd_dfrc(0, 960 * 960);
-    std::array<FenData, 10000> fens;
+    BinpackFormat binpack;
     // std::unique_ptr<std::deque<HistoricalState>> states;
 
     Info info;
-    int gameInd = 1;
     uint64_t fens_count = 0;
 
     info.init();
@@ -72,18 +60,12 @@ void generateFens(SearchThread &thread_data, std::atomic<uint64_t> &total_fens_c
     {
         std::unique_ptr<std::deque<HistoricalState>> states;
         states = std::make_unique<std::deque<HistoricalState>>(1);
-        FenData data;
         double result = 0;
         int ply = 0;
         int nr_fens = 0;
 
-        int winCnt = 0, drawCnt = 0, idx = 0;
-
         if (FRC_DATAGEN)
-        {
-            idx = rnd_dfrc(gn) % (960 * 960);
-            thread_data.m_board.set_dfrc(idx, states->back());
-        }
+            thread_data.m_board.set_dfrc(rnd_dfrc(gn) % (960 * 960), states->back());
         else
             thread_data.m_board.set_fen(START_POS_FEN, states->back());
 
@@ -92,7 +74,8 @@ void generateFens(SearchThread &thread_data, std::atomic<uint64_t> &total_fens_c
 
         std::uniform_int_distribution<int> rnd_ply(0, 100000);
 
-        int additionalPly = rnd_ply(gn) % 2;
+        int extra_ply = rnd_ply(gn) % 2;
+        int book_ply_count = 8 + extra_ply;
 
         while (true)
         {
@@ -103,15 +86,12 @@ void generateFens(SearchThread &thread_data, std::atomic<uint64_t> &total_fens_c
             if (thread_data.m_board.is_draw(0))
             {
                 result = 0.5;
+                binpack.set_result(std::round(2 * result));
                 break;
             }
 
             MoveList moves;
             int nr_moves = thread_data.m_board.gen_legal_moves<MOVEGEN_ALL>(moves);
-
-            // std::cout << "-------------------\n";
-            // thread_data.m_board.print();
-            // std::cout << thread_data.m_board.chess960 << "\n";
 
             if (!nr_moves)
             {
@@ -119,16 +99,19 @@ void generateFens(SearchThread &thread_data, std::atomic<uint64_t> &total_fens_c
                     result = thread_data.m_board.turn == WHITE ? 0.0 : 1.0;
                 else
                     result = 0.5;
-
+                binpack.set_result(std::round(2 * result));
                 break;
             }
 
-            if (ply < 8 + additionalPly)
+            if (ply < book_ply_count)
             {
                 std::uniform_int_distribution<uint32_t> rnd(0, nr_moves - 1);
                 move = moves[rnd(gn)];
                 states->emplace_back();
                 thread_data.make_move(move, states->back());
+
+                if (ply == book_ply_count - 1)
+                    binpack.init(thread_data.m_board);
             }
             else
             {
@@ -137,57 +120,23 @@ void generateFens(SearchThread &thread_data, std::atomic<uint64_t> &total_fens_c
                 thread_data.m_state = ThreadStates::SEARCH;
                 thread_data.start_search();
 
-                score = thread_data.m_root_scores[1], move = thread_data.m_best_moves[1];
-
-                if (!thread_data.m_board.checkers() && !thread_data.m_board.is_noisy_move(move) &&
-                    abs(score) < ADJUDICATION_MAX_SCORE)
-                {
-                    data.fen = thread_data.m_board.fen();
-                    data.score = score * (thread_data.m_board.turn == WHITE ? 1 : -1);
-                    fens[nr_fens++] = data;
-                }
-
-                winCnt = (abs(score) >= ADJUDICATION_MAX_SCORE ? winCnt + 1 : 0);
-                drawCnt = (abs(score) <= ADJUDICATION_DRAW_SCORE ? drawCnt + 1 : 0);
-
-                if (winCnt >= ADJUDICATION_WIN_CNT)
-                {
-                    score *= (thread_data.m_board.turn == WHITE ? 1 : -1);
-                    result = score < 0 ? 0.0 : 1.0;
-
-                    break;
-                }
-
-                if (drawCnt >= ADJUDICATION_DRAW_CNT)
-                {
-                    result = 0.5;
-                    break;
-                }
+                score = thread_data.m_root_scores[1] * (thread_data.m_board.turn == WHITE ? 1 : -1);
+                move = thread_data.m_best_moves[1];
+                binpack.add_move(move, score);
 
                 states->emplace_back();
                 thread_data.make_move(move, states->back());
+                nr_fens++;
             }
 
             ply++;
         }
 
-        for (int i = 0; i < nr_fens; i++)
-        {
-            out << fens[i].fen << " | " << fens[i].score << " | "
-                << (result > 0.6 ? "1.0" : (result < 0.4 ? "0.0" : "0.5")) << "\n";
-        }
+        binpack.write(out);
 
         total_fens_count.fetch_add(nr_fens);
         num_games.fetch_add(1);
         fens_count += nr_fens;
-
-        /*M.lock();
-
-        sumFens = sumFens + nr_fens;
-        totalFens += nr_fens;
-        M.unlock();*/
-
-        gameInd++;
     }
 }
 #endif
@@ -201,7 +150,7 @@ void generateData(uint64_t num_fens, int num_threads, std::string rootPath, uint
     srand(time(0));
 
     for (int i = 0; i < num_threads; i++)
-        path[i] = rootPath + std::to_string(i) + ".txt";
+        path[i] = rootPath + std::to_string(i) + ".bin";
 
     std::vector<std::thread> threads(num_threads);
     thread_pool.create_pool(num_threads);
@@ -220,8 +169,8 @@ void generateData(uint64_t num_fens, int num_threads, std::string rootPath, uint
     {
         std::string pth = path[i];
         std::cout << "Starting thread " << i << std::endl;
-        // generateFens(*thread_pool.m_threads[i], total_fens_count, num_games, batch, pth, rng(gen), extraSeed);
-        t = std::thread{generateFens,
+        // generate_fens(*thread_pool.m_threads[i], total_fens_count, num_games, batch, pth, rng(gen), extraSeed);
+        t = std::thread{generate_fens,
                         std::ref(*thread_pool.m_threads[i]),
                         std::ref(total_fens_count),
                         std::ref(num_games),
@@ -235,11 +184,17 @@ void generateData(uint64_t num_fens, int num_threads, std::string rootPath, uint
     while (total_fens_count <= num_fens_atomic)
     {
         std::this_thread::sleep_for(std::chrono::seconds(1));
-        std::time_t time_elapsed = get_current_time() - startTime;
-        std::cout << "Games " << std::setw(9) << num_games << "; Fens " << std::setw(11) << total_fens_count
-                  << " ; Time elapsed: " << std::setw(9) << std::floor(time_elapsed / 1000.0) << "s ; "
-                  << "fens/s " << std::setw(9)
-                  << static_cast<uint64_t>(std::floor(1LL * total_fens_count * 1000 / time_elapsed)) << "\r";
+        std::time_t time_elapsed = (get_current_time() - startTime) / 1000;
+        uint64_t speed = static_cast<uint64_t>(total_fens_count / time_elapsed);
+        uint64_t time_left = (num_fens - total_fens_count) / speed;
+        std::cout << "Games: " << std::setw(10) << num_games << " | Fens: " << std::setw(11) << total_fens_count << " | ";
+        std::cout << "Time Elapsed: " << std::setw(4) << time_elapsed / 3600 << "h " 
+                  << (time_elapsed % 3600) / 600 << ((time_elapsed % 3600) / 60) % 10 << "min "
+                  << (time_elapsed % 60) / 10 << (time_elapsed % 60) % 10 << "s | ";
+        std::cout << "Fens/s: " << std::setw(9) << speed << " | ";
+        std::cout << "ETA: " << std::setw(4) << time_left / 3600 << "h " 
+                  << (time_left % 3600) / 600 << ((time_left % 3600) / 60) % 10 << "min "
+                  << (time_left % 60) / 10 << (time_left % 60) % 10 << "s\r";
     }
 
     for (auto &t : threads)

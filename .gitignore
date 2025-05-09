@@ -10,6 +10,7 @@ bin
 .vs
 gmon.out
 *.txt
+*.bin
 *.ilk
 *.gcda
 *.profraw
