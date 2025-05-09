@@ -28,7 +28,7 @@
 #ifdef GENERATE
 
 constexpr bool FRC_DATAGEN = true;
-constexpr int MIN_NODES = 5000;
+constexpr int MIN_NODES = 20000;
 constexpr int MAX_NODES = (1 << 20);
 
 void generate_fens(SearchThread &thread_data, std::atomic<uint64_t> &total_fens_count, std::atomic<uint64_t> &num_games,
@@ -149,8 +149,6 @@ void generateData(uint64_t num_fens, int num_threads, std::string rootPath, uint
 
     srand(time(0));
 
-    for (int i = 0; i < num_threads; i++)
-        path[i] = rootPath + std::to_string(i) + ".bin";
 
     std::vector<std::thread> threads(num_threads);
     thread_pool.create_pool(num_threads);
@@ -164,6 +162,9 @@ void generateData(uint64_t num_fens, int num_threads, std::string rootPath, uint
     std::atomic<uint64_t> total_fens_count{0}, num_games{0};
     std::atomic<uint64_t> num_fens_atomic{num_fens};
     std::time_t startTime = get_current_time();
+
+    for (int i = 0; i < num_threads; i++)
+        path[i] = rootPath + "-" + std::to_string(rng(gen)) + ".bin";
 
     for (auto &t : threads)
     {
@@ -186,7 +187,7 @@ void generateData(uint64_t num_fens, int num_threads, std::string rootPath, uint
         std::this_thread::sleep_for(std::chrono::seconds(1));
         std::time_t time_elapsed = (get_current_time() - startTime) / 1000;
         uint64_t speed = static_cast<uint64_t>(total_fens_count / time_elapsed);
-        uint64_t time_left = (num_fens - total_fens_count) / speed;
+        uint64_t time_left = std::max(0ull, num_fens - total_fens_count) / (speed + !speed);
         std::cout << "Games: " << std::setw(10) << num_games << " | Fens: " << std::setw(11) << total_fens_count << " | ";
         std::cout << "Time Elapsed: " << std::setw(4) << time_elapsed / 3600 << "h " 
                   << (time_elapsed % 3600) / 600 << ((time_elapsed % 3600) / 60) % 10 << "min "
