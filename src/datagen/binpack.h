@@ -92,7 +92,7 @@ class BinpackFormat {
     std::vector<std::pair<MarlinMove, int16_t>> moves;
 
 public:
-    constexpr BinpackFormat() = default;
+    BinpackFormat() = default;
     void init(Board& board) {
         packed_board = PackedBoard(board);
         moves.clear();
