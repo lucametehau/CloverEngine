@@ -169,7 +169,7 @@ class MeanValue
 
 inline int16_t net_index(Piece piece, Square sq, Square kingSq, bool side)
 {
-    return 64 * 12 * kingIndTable[kingSq.mirror(side)] + 64 * (piece + side * (piece >= 6 ? -6 : +6)) +
+    return 64 * (piece + side * (piece >= 6 ? -6 : +6)) +
            (sq.mirror(side) ^ (7 * ((kingSq >> 2) & 1))); // kingSq should be ^7, if kingSq&7 >= 4
 }
 
