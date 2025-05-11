@@ -132,8 +132,10 @@ void generate_fens(SearchThread &thread_data, std::atomic<uint64_t> &total_fens_
             ply++;
         }
 
-        binpack.write(out);
+        if (nr_fens == 0)
+            continue;
 
+        binpack.write(out);
         total_fens_count.fetch_add(nr_fens);
         num_games.fetch_add(1);
         fens_count += nr_fens;
