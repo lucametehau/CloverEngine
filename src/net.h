@@ -116,7 +116,7 @@ inline int16_t outputBias;
 
 inline int get_king_bucket_cache_index(const Square king_sq, const bool side)
 {
-    return KING_BUCKETS * ((king_sq & 7) >= 4); // + kingIndTable[king_sq.mirror(side)];
+    return 0;
 }
 
 enum

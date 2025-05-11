@@ -139,8 +139,8 @@ constexpr std::pair<int, int> pawnCapDirWhite[2] = {{1, -1}, {1, 1}};
 constexpr std::pair<int, int> pawnCapDirBlack[2] = {{-1, -1}, {-1, 1}};
 
 constexpr std::array<int, 64> kingIndTable = {
-    0, 1, 2, 3, 3, 2, 1, 0, 0, 1, 2, 3, 3, 2, 1, 0, 4, 4, 5, 5, 5, 5, 4, 4, 4, 4, 5, 5, 5, 5, 4, 4,
-    6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 };
 
 class MeanValue
@@ -169,8 +169,7 @@ class MeanValue
 
 inline int16_t net_index(Piece piece, Square sq, Square kingSq, bool side)
 {
-    return 64 * (piece + side * (piece >= 6 ? -6 : +6)) +
-           (sq.mirror(side) ^ (7 * ((kingSq >> 2) & 1))); // kingSq should be ^7, if kingSq&7 >= 4
+    return 64 * (piece + side * (piece >= 6 ? -6 : +6)) + (sq.mirror(side)); // kingSq should be ^7, if kingSq&7 >= 4
 }
 
 inline uint64_t castle_rights_key(MultiArray<Square, 2, 2> &rook_sq)
@@ -183,7 +182,7 @@ inline uint64_t castle_rights_key(MultiArray<Square, 2, 2> &rook_sq)
 
 inline bool recalc(Square from, Square to, bool side)
 {
-    return (from & 4) != (to & 4) || kingIndTable[from ^ (56 * !side)] != kingIndTable[to ^ (56 * !side)];
+    return false; //(from & 4) != (to & 4) || kingIndTable[from ^ (56 * !side)] != kingIndTable[to ^ (56 * !side)];
 }
 
 template <int direction> inline Square shift_square(bool color, Square sq)
