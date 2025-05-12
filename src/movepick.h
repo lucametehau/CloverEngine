@@ -168,6 +168,17 @@ class Movepick
 
                     if (pt != PieceTypes::KING && pt != PieceTypes::PAWN)
                     {
+                        if (pt < 0 || pt > PieceTypes::QUEEN) {
+                            board.print();
+                            for (int i = 0; i < 12; i++)
+                                board.bb[i].print();
+                            board.pieces[WHITE].print();
+                            board.pieces[BLACK].print();
+                            for (int i = 0; i <= board.ply; i++)
+                                std::cerr << "i: " << i << " " << stack[i].move.to_string(board.chess960) << "\n";
+                            std::cerr << "tried move " << move.to_string(board.chess960) << "\n";
+                            assert(0);
+                        }
                         score += QuietKingRingAttackBonus *
                                  (attacks::genAttacksSq(allPieces, to, pt) & enemyKingRing).count();
 
