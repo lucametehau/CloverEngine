@@ -169,7 +169,8 @@ class MeanValue
 
 inline int16_t net_index(Piece piece, Square sq, Square kingSq, bool side)
 {
-    return 64 * (piece + side * (piece >= 6 ? -6 : +6)) + (sq.mirror(side)); // kingSq should be ^7, if kingSq&7 >= 4
+    return 64 * (piece + side * (piece >= 6 ? -6 : +6)) +
+           (sq.mirror(side) ^ (7 * ((kingSq >> 2) & 1))); // kingSq should be ^7, if kingSq&7 >= 4
 }
 
 inline uint64_t castle_rights_key(MultiArray<Square, 2, 2> &rook_sq)
@@ -182,7 +183,7 @@ inline uint64_t castle_rights_key(MultiArray<Square, 2, 2> &rook_sq)
 
 inline bool recalc(Square from, Square to, bool side)
 {
-    return false; //(from & 4) != (to & 4) || kingIndTable[from ^ (56 * !side)] != kingIndTable[to ^ (56 * !side)];
+    return (from & 4) != (to & 4) || kingIndTable[from ^ (56 * !side)] != kingIndTable[to ^ (56 * !side)];
 }
 
 template <int direction> inline Square shift_square(bool color, Square sq)
