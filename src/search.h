@@ -450,7 +450,8 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
 
     if (!in_check && !nullSearch && (stack - 1)->eval != INF && m_board.captured() == NO_PIECE)
     {
-        int bonus = std::clamp(-10 * ((stack - 1)->eval + static_eval), -1000, 1000);
+        int bonus =
+            std::clamp(-EvalHistCoef * ((stack - 1)->eval + static_eval), EvalHistMin, EvalHistMax) + EvalHistMargin;
         m_histories.update_hist_move((stack - 1)->move, (stack - 1)->threats, 1 ^ turn, bonus);
     }
 
