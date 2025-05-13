@@ -439,6 +439,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
     const bool bad_static_eval = static_eval <= alpha;
 
     (stack + 1)->killer = NULLMOVE;
+    stack->threats = m_board.threats().all_threats;
 
     /// internal iterative deepening (search at reduced depth to find a ttMove) (Rebel like)
     if (pvNode && depth >= IIRPvNodeDepth && (!ttHit || ttDepth + 4 <= depth))
@@ -446,6 +447,13 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
     /// also for cut nodes
     if (cutNode && depth >= IIRCutNodeDepth && (!ttHit || ttDepth + 4 <= depth))
         depth -= IIRCutNodeReduction;
+
+    if (!in_check && !nullSearch && (stack - 1)->eval != INF && m_board.captured() == NO_PIECE)
+    {
+        int bonus =
+            std::clamp(-EvalHistCoef * ((stack - 1)->eval + static_eval), EvalHistMin, EvalHistMax) + EvalHistMargin;
+        m_histories.update_hist_move((stack - 1)->move, (stack - 1)->threats, 1 ^ turn, bonus);
+    }
 
     if constexpr (!pvNode)
     {
