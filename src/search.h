@@ -448,7 +448,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
     if (cutNode && depth >= IIRCutNodeDepth && (!ttHit || ttDepth + 4 <= depth))
         depth -= IIRCutNodeReduction;
 
-    if (!in_check && !nullSearch && (stack - 1)->eval != INF && m_board.captured() == NO_PIECE)
+    if (!stack->excluded && !in_check && !nullSearch && (stack - 1)->eval != INF && m_board.captured() == NO_PIECE)
     {
         int bonus =
             std::clamp(-EvalHistCoef * ((stack - 1)->eval + static_eval), EvalHistMin, EvalHistMax) + EvalHistMargin;
