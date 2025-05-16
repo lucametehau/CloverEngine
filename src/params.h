@@ -65,6 +65,16 @@ TUNE_PARAM(QuiesceFutilityBias, 196, 150, 250);
 
 TUNE_PARAM(NegativeImprovingMargin, -153, -300, -100);
 
+TUNE_PARAM(EvalHistCoef, 10, 0, 20);
+TUNE_PARAM(EvalHistMin, -1000, -2000, 0);
+TUNE_PARAM(EvalHistMax, 1000, 0, 2000);
+TUNE_PARAM(EvalHistMargin, 0, -500, 500);
+
+TUNE_PARAM(IIRPvNodeDepth, 3, 0, 5);
+TUNE_PARAM(IIRPvNodeReduction, 1, 1, 2);
+TUNE_PARAM(IIRCutNodeDepth, 3, 0, 5);
+TUNE_PARAM(IIRCutNodeReduction, 1, 1, 2);
+
 TUNE_PARAM(RazoringDepth, 2, 1, 5);
 TUNE_PARAM(RazoringMargin, 158, 100, 200);
 
@@ -82,11 +92,6 @@ TUNE_PARAM(NMPEvalDiv, 136, 120, 150);
 TUNE_PARAM(ProbcutMargin, 176, 100, 300);
 TUNE_PARAM(ProbcutDepth, 4, 3, 7);
 TUNE_PARAM(ProbcutReduction, 5, 3, 5);
-
-TUNE_PARAM(IIRPvNodeDepth, 3, 0, 5);
-TUNE_PARAM(IIRPvNodeReduction, 1, 1, 2);
-TUNE_PARAM(IIRCutNodeDepth, 3, 0, 5);
-TUNE_PARAM(IIRCutNodeReduction, 1, 1, 2);
 
 TUNE_PARAM(PVSSeeDepthCoef, 17, 10, 20);
 

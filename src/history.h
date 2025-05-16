@@ -68,13 +68,14 @@ class SearchMove
 class StackEntry
 { /// info to keep in the stack
   public:
-    constexpr StackEntry() : piece(NO_PIECE), move(NULLMOVE), killer(NULLMOVE), excluded(NULLMOVE), eval(0)
+    constexpr StackEntry() : piece(NO_PIECE), move(NULLMOVE), killer(NULLMOVE), excluded(NULLMOVE), eval(0), threats(0)
     {
     }
     Piece piece;
     Move move, killer, excluded;
     int eval;
     MultiArray<History<16384>, 13, 64> *cont_hist;
+    Bitboard threats;
 };
 
 class Histories
