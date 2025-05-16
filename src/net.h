@@ -125,6 +125,7 @@ enum
     ADD
 };
 
+
 INCBIN(Net, EVALFILE);
 
 void load_nnue_weights()
