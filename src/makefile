@@ -16,7 +16,6 @@ else
 	EXT = 
 endif
 
-
 WFLAGS = -Wall -g -flto
 RFLAGS = $(WFLAGS) -std=c++20 -O3 -funroll-loops
 LIBS =
