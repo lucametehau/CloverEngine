@@ -130,12 +130,18 @@ void Board::set_fen(const std::string fen, HistoricalState &next_state)
         {
             if (rook != NO_SQUARE)
             {
-                if (rook % 8 && rook % 8 != 7)
-                    chess960 = true;
                 if (rook < get_king(WHITE) && (castle_rights & 4))
+                {
                     rook_sq(WHITE, 0) = rook;
+                    if (rook % 8 && rook % 8 != 7)
+                        chess960 = true;
+                }
                 if (get_king(WHITE) < rook && (castle_rights & 8))
+                {
                     rook_sq(WHITE, 1) = rook;
+                    if (rook % 8 && rook % 8 != 7)
+                        chess960 = true;
+                }
             }
         }
         a = NO_SQUARE, b = NO_SQUARE;
@@ -151,14 +157,22 @@ void Board::set_fen(const std::string fen, HistoricalState &next_state)
         {
             if (rook != NO_SQUARE)
             {
-                if (rook % 8 && rook % 8 != 7)
-                    chess960 = true;
                 if (rook < get_king(BLACK) && (castle_rights & 1))
+                {
                     rook_sq(BLACK, 0) = rook;
+                    if (rook % 8 && rook % 8 != 7)
+                        chess960 = true;
+                }
                 if (get_king(BLACK) < rook && (castle_rights & 2))
+                {
                     rook_sq(BLACK, 1) = rook;
+                    if (rook % 8 && rook % 8 != 7)
+                        chess960 = true;
+                }
             }
         }
+        if (((castle_rights & 12) && get_king(WHITE) % 8 != 4) || ((castle_rights & 3) && get_king(BLACK) % 8 != 4))
+            chess960 = true;
     }
 
     ind++;
@@ -248,6 +262,7 @@ void Board::set_frc_side(bool color, int idx)
 void Board::set_dfrc(int idx, HistoricalState &next_state)
 {
     state = &next_state;
+    chess960 = true;
 
     ply = game_ply = 0;
     captured() = NO_PIECE;
@@ -282,8 +297,6 @@ void Board::set_dfrc(int idx, HistoricalState &next_state)
     {
         if (rook != NO_SQUARE)
         {
-            if (rook % 8 && rook % 8 != 7)
-                chess960 = true;
             if (rook < get_king(WHITE))
                 rook_sq(WHITE, 0) = rook;
             if (get_king(WHITE) < rook)
@@ -303,8 +316,6 @@ void Board::set_dfrc(int idx, HistoricalState &next_state)
     {
         if (rook != NO_SQUARE)
         {
-            if (rook % 8 && rook % 8 != 7)
-                chess960 = true;
             if (rook < get_king(BLACK))
                 rook_sq(BLACK, 0) = rook;
             if (get_king(BLACK) < rook)
