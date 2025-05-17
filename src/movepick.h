@@ -168,7 +168,8 @@ class Movepick
 
                     if (pt != PieceTypes::KING && pt != PieceTypes::PAWN)
                     {
-                        if (pt < 0 || pt > PieceTypes::QUEEN) {
+                        if (pt < 0 || pt > PieceTypes::QUEEN)
+                        {
                             board.print();
                             for (int i = 0; i < 12; i++)
                                 board.bb[i].print();
