@@ -1,6 +1,7 @@
 #pragma once
 #include "../board.h"
 #include <fstream>
+#include <deque>
 
 class PackedBoard {
     Bitboard occ;
@@ -48,6 +49,50 @@ public:
         unused = 0;
     }
 
+    Board get_board() {
+        Board board;
+        std::unique_ptr<std::deque<HistoricalState>> states;
+        states = std::make_unique<std::deque<HistoricalState>>(1);
+
+        board.state = &states->back();
+
+        board.key() = board.pawn_key() = board.mat_key(WHITE) = board.mat_key(BLACK) = 0;
+        board.ply = board.game_ply = 0;
+        board.captured() = NO_PIECE;
+
+        board.bb.fill(Bitboard(0ull));
+        board.pieces.fill(Bitboard(0ull));
+        board.board.fill(NO_PIECE);
+        for (auto c : {WHITE, BLACK}) {
+            board.rook_sq(c, 0) = board.rook_sq(c, 1) = NO_SQUARE;
+        }
+
+        int cnt = occ.count();
+        for (int i = 0; i < cnt; i++) {
+            int p = ((pieces[i >> 3] >> (4 * ((i & 7)))) & 15);
+            Square sq = occ.get_lsb_square();
+            occ ^= Bitboard(sq);
+            bool color = p & 8 ? BLACK : WHITE;
+            Piece piece(p & 7 == 6 ? PieceTypes::ROOK : Piece(p & 7), color);
+            board.place_piece_at_sq(piece, sq);
+
+            if (p & 7 == 6) {
+                if (board.rook_sq(color, 0) == NO_SQUARE && !board.get_bb_piece(PieceTypes::KING, color))
+                    board.rook_sq(color, 0) = sq;
+                else
+                    board.rook_sq(color, 1) = sq;
+            }
+        }
+        board.turn = state & 0x80 ? BLACK : WHITE;
+        board.enpas() = state & 0x7F;
+        
+        board.half_moves() = halfmove;
+        board.move_index() = fullmove;
+        board.get_pinned_pieces_and_checkers();
+        board.get_threats(board.turn);
+        return board;
+    }
+
     void set_result(uint8_t res) {
         result = res;
     }
@@ -84,6 +129,36 @@ public:
         default:
             break;
         }
+    }
+
+    Move to_move() {
+        int type = MoveTypes::NO_TYPE;
+
+        switch ((move >> 12))
+        {
+        case 4:
+            type = MoveTypes::ENPASSANT;
+            break;
+        case 8:
+            type = MoveTypes::CASTLE;
+            break;
+        case 12:
+            type = MoveTypes::KNIGHT_PROMO;
+            break;
+        case 13:
+            type = MoveTypes::BISHOP_PROMO;
+            break;
+        case 14:
+            type = MoveTypes::ROOK_PROMO;
+            break;
+        case 15:
+            type = MoveTypes::QUEEN_PROMO;
+            break;
+        
+        default:
+            break;
+        }
+        return Move(Square(move & 63), Square((move >> 6) & 63), type);
     }
 };
 
