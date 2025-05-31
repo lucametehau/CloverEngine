@@ -821,7 +821,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
     if (!bestMove && m_board.captured() == NO_PIECE && !nullSearch)
     {
         m_histories.update_cont_hist_move((stack - 1)->piece, (stack - 1)->move.get_to(), stack - 1,
-                                          getHistoryBonus(depth));
+                                          getHistoryBonus(depth) / 2);
     }
 
     // update tt only if we aren't in a singular search
