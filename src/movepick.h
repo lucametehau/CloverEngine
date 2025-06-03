@@ -283,6 +283,7 @@ bool see(Board &board, Move move, int threshold)
         occ ^= Bitboard(board.enpas());
 
     att = board.get_attackers(WHITE, occ, to) | board.get_attackers(BLACK, occ, to);
+    att &= ~board.pinned_pieces();
 
     stm = board.turn;
 
