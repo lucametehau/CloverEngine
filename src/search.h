@@ -294,6 +294,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
 
     constexpr bool allNode = !pvNode && !cutNode;
     const bool nullSearch = (stack - 1)->move == NULLMOVE;
+    const int previous_R = (stack - 1)->R;
     const int original_alpha = alpha;
     const uint64_t key = m_board.key(), pawn_key = m_board.pawn_key(), white_mat_key = m_board.mat_key(WHITE),
                    black_mat_key = m_board.mat_key(BLACK);
@@ -314,6 +315,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
 
     m_nodes++;
     m_sel_depth = std::max(m_sel_depth, ply);
+    (stack - 1)->R = 0; // reset to not have to reset in LMR
 
     m_pv_table_len[ply] = 0;
 
@@ -454,6 +456,9 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
             std::clamp(-EvalHistCoef * ((stack - 1)->eval + static_eval), EvalHistMin, EvalHistMax) + EvalHistMargin;
         m_histories.update_hist_move((stack - 1)->move, (stack - 1)->threats, 1 ^ turn, bonus);
     }
+
+    if (previous_R >= 3 && !improving_after_move && !in_check && (stack - 1)->eval != INF)
+        depth++;
 
     if constexpr (!pvNode)
     {
@@ -725,7 +730,9 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
             R /= LMRGrain;
 
             R = std::clamp(R, 1, new_depth); // clamp R
+            stack->R = R;
             score = -search<false, false, true>(-alpha - 1, -alpha, new_depth - R, stack + 1);
+            stack->R = 0;
             tried_count++;
 
             if (R > 1 && score > alpha)
