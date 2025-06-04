@@ -457,7 +457,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
         m_histories.update_hist_move((stack - 1)->move, (stack - 1)->threats, 1 ^ turn, bonus);
     }
 
-    if (previous_R >= 3 && !improving_after_move)
+    if (previous_R >= 3 && !improving_after_move && !in_check && (stack - 1)->eval != INF)
         depth++;
 
     if constexpr (!pvNode)
