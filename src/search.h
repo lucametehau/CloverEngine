@@ -459,6 +459,8 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
 
     if (previous_R >= 3 && !improving_after_move && !in_check && (stack - 1)->eval != INF)
         depth++;
+    if (previous_R >= 1 && static_eval + (stack - 1)->eval > 150 && !in_check && (stack - 1)->eval != INF)
+        depth--;
 
     if constexpr (!pvNode)
     {
