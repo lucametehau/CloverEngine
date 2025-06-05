@@ -459,8 +459,6 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
 
     if (previous_R >= 3 && !improving_after_move && !in_check && (stack - 1)->eval != INF)
         depth++;
-    if (previous_R >= 1 && static_eval + (stack - 1)->eval > 150 && !in_check && (stack - 1)->eval != INF)
-        depth--;
 
     if constexpr (!pvNode)
     {
@@ -740,6 +738,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
             if (R > 1 && score > alpha)
             {
                 new_depth += (score > best + DeeperMargin) - (score < best + new_depth);
+                new_depth += (!in_check && (stack + 1)->eval != INF && static_eval + (stack + 1)->eval > 150);
                 score = -search<false, false, !cutNode>(-alpha - 1, -alpha, new_depth - 1, stack + 1);
                 tried_count++;
             }
