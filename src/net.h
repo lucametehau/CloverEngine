@@ -521,7 +521,7 @@ class Network
             acc = reg_add32(acc, reg_madd16(reg_mullo(clamped, v2[j]), clamped));
         }
 
-        return (outputBias[output_bucket] + get_sum(acc) / Q_IN) * 400 / Q_IN_HIDDEN;
+        return (outputBias[output_bucket] + get_sum(acc) / Q_IN) * 225 / Q_IN_HIDDEN;
     }
 
     int hist_size;
