@@ -138,10 +138,9 @@ constexpr std::pair<int, int> kingDir[8] = {{-1, 0}, {0, 1}, {1, 0}, {0, -1}, {1
 constexpr std::pair<int, int> pawnCapDirWhite[2] = {{1, -1}, {1, 1}};
 constexpr std::pair<int, int> pawnCapDirBlack[2] = {{-1, -1}, {-1, 1}};
 
-constexpr std::array<int, 64> kingIndTable = {
-    0, 1, 2, 3, 3, 2, 1, 0, 0, 1, 2, 3, 3, 2, 1, 0, 4, 4, 5, 5, 5, 5, 4, 4, 4, 4, 5, 5, 5, 5, 4, 4,
-    6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
-};
+constexpr std::array<int, 64> kingIndTable = {0, 0, 1, 1, 1, 1, 0, 0, 2, 2, 3, 3, 3, 3, 2, 2, 4, 4, 4, 4, 4, 4,
+                                              4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+                                              6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6};
 
 class MeanValue
 {
