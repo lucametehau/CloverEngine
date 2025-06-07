@@ -19,6 +19,7 @@
 #include "evaluate.h"
 #include "fen.h"
 #include "history.h"
+#include "lmr_net.h"
 #include "net.h"
 #include "search-info.h"
 #include "tt.h"
@@ -59,6 +60,7 @@ class SearchThread
     std::array<uint64_t, 64 * 64> m_nodes_seached;
     std::array<StackEntry, MAX_DEPTH + 15> m_search_stack;
     StackEntry *m_stack;
+    LMRNet m_lmr_net;
 
     Histories m_histories;
 

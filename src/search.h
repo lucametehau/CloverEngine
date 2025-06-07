@@ -16,6 +16,7 @@
 */
 #pragma once
 #include "3rdparty/Fathom/src/tbprobe.h"
+#include "lmr_net.h"
 #include "movepick.h"
 #include "thread.h"
 #include "tt.h"
@@ -23,6 +24,8 @@
 #include <cmath>
 #include <fstream>
 #include <iomanip>
+
+std::ofstream fout("lmr_net.csv");
 
 template <bool checkTime> bool SearchThread::check_for_stop()
 {
@@ -691,43 +694,29 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
 
         if (depth >= 2 && played > 1 + pvNode + rootNode)
         { // first few moves we don't reduce
-            if (is_quiet)
-            {
-                R = lmr_red[std::min(63, depth)][std::min(63, played)];
-                R += LMRWasNotPV * !was_pv;
-                R += LMRImprovingM1 * (improving == -1);
-                R += LMRImproving0 * (improving == 0);
-                R -= LMRPVNode * (!rootNode && pvNode);
-                R += LMRGoodEval *
-                     (enemy_has_no_threats && !in_check &&
-                      eval - seeVal[PieceTypes::KNIGHT] >
-                          beta); // if the position is relatively quiet and eval is bigger than beta by a margin
-                R += LMREvalDifference *
-                     (enemy_has_no_threats && !in_check && static_eval - m_root_eval > EvalDifferenceReductionMargin &&
-                      ply % 2 == 0); /// the position in quiet and static eval is way bigger than root eval
-                R -= LMRRefutation * (picker.trueStage == Stages::STAGE_KILLER); // reduce for refutation moves
-                R -= LMRGivesCheck * (m_board.checkers() != 0);                  // move gives check
-                R -= LMRGrain * history / HistReductionDiv;                      // reduce based on move history
-            }
-            else if (!was_pv)
-            {
-                R = lmr_red[std::min(63, depth)][std::min(63, played)];
-                R += LMRNoisyNotImproving * (improving <= 0); // not improving
-                R += LMRBadNoisy * (enemy_has_no_threats &&
-                                    picker.trueStage == Stages::STAGE_BAD_NOISY); // if the position is relatively quiet
-                                                                                  // and the capture is "very losing"
-                R -= LMRGrain * history / CapHistReductionDiv;                    // reduce based on move history
-            }
-
-            R += LMRCutNode * cutNode;                             // reduce cutnodes aggressively
-            R -= LMRWasPVHighDepth * (was_pv && ttDepth >= depth); // reduce ex pv nodes with valuable info
-            R += LMRTTMoveNoisy * is_ttmove_noisy;                 // reduce if ttmove is noisy
-            R +=
-                LMRBadStaticEval * (enemy_has_no_threats && !in_check && static_eval + LMRBadStaticEvalMargin <= alpha);
-            R -= LMRGrain * std::abs(raw_eval - static_eval) / LMRCorrectionDivisor;
-            R += (LMRFailLowPV + LMRFailLowPVHighDepth * (ttDepth > depth)) * (was_pv && ttValue <= alpha && ttHit);
-
-            R /= LMRGrain;
+            R = m_lmr_net.predict(std::array<int, INPUT_SIZE>{depth,
+                                                              played,
+                                                              is_quiet,
+                                                              was_pv,
+                                                              improving,
+                                                              improving_after_move,
+                                                              in_check,
+                                                              enemy_has_no_threats,
+                                                              std::abs(raw_eval - static_eval),
+                                                              static_eval,
+                                                              eval,
+                                                              m_root_eval,
+                                                              is_ttmove_noisy,
+                                                              ttDepth,
+                                                              ttValue,
+                                                              depth,
+                                                              history,
+                                                              alpha,
+                                                              beta,
+                                                              m_board.checkers() != 0,
+                                                              pvNode,
+                                                              rootNode,
+                                                              cutNode});
 
             R = std::clamp(R, 1, new_depth); // clamp R
             stack->R = R;
@@ -737,9 +726,26 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
 
             if (R > 1 && score > alpha)
             {
+                // fout << depth << "," << played << "," << is_quiet << "," << was_pv << "," << improving << ","
+                //      << improving_after_move << "," << in_check << "," << enemy_has_no_threats << ","
+                //      << std::abs(raw_eval - static_eval) << "," << static_eval << "," << eval << "," << m_root_eval
+                //      << "," << is_ttmove_noisy << "," << ttDepth << "," << ttValue << "," << depth << "," << history
+                //      << "," << alpha << "," << beta << "," << (m_board.checkers() != 0) << "," << pvNode << ","
+                //      << rootNode << "," << cutNode << ",";
+                // fout << 1 << "\n";
                 new_depth += (score > best + DeeperMargin) - (score < best + new_depth);
                 score = -search<false, false, !cutNode>(-alpha - 1, -alpha, new_depth - 1, stack + 1);
                 tried_count++;
+            }
+            else
+            {
+                // fout << depth << "," << played << "," << is_quiet << "," << was_pv << "," << improving << ","
+                //      << improving_after_move << "," << in_check << "," << enemy_has_no_threats << ","
+                //      << std::abs(raw_eval - static_eval) << "," << static_eval << "," << eval << "," << m_root_eval
+                //      << "," << is_ttmove_noisy << "," << ttDepth << "," << ttValue << "," << depth << "," << history
+                //      << "," << alpha << "," << beta << "," << (m_board.checkers() != 0) << "," << pvNode << ","
+                //      << rootNode << "," << cutNode << ",";
+                // fout << R << "\n";
             }
         }
         else if (!pvNode || played > 1)
@@ -901,6 +907,18 @@ void SearchThread::print_iteration_info(bool san_mode, int multipv, int score, i
 
 void SearchThread::start_search()
 {
+    // std::cout << m_lmr_net.predict(std::array<int, INPUT_SIZE>{17, 10, 1,  0,  0,      0,  0,  1, 1, -65, -65, 60,
+    //                                                            0,  16, 23, 17, -16337, 33, 34, 0, 0, 0,   0})
+    //           << "\n";
+    // std::cout << m_lmr_net.predict(std::array<int, INPUT_SIZE>{5, 6,    1, 0, 0,    1,  0,  1, 9, -2, -2, 60,
+    //                                                            0, -100, 0, 5, 4428, 34, 35, 0, 0, 0,  0})
+    //           << "\n";
+    // std::cout << m_lmr_net.predict(std::array<int, INPUT_SIZE>{2, 3, 1,  0, 1,     1,  0,  1, 6, 24, 27, 60,
+    //                                                            0, 2, 27, 2, -5451, 32, 33, 0, 0, 0,  0})
+    //           << "\n";
+    // std::cout << m_lmr_net.predict(std::array<int, INPUT_SIZE>{17, 2,  1,  0,  0,     0,  0,  1, 1, -65, -65, 60,
+    //                                                            0,  16, 23, 17, 16822, 33, 34, 0, 0, 0,   0})
+    //           << "\n";
 #ifdef TUNE_FLAG
     if (main_thread())
     {

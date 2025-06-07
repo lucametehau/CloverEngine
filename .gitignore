@@ -5,6 +5,7 @@
 *.exe
 *.pdb
 *.pgn
+*.csv
 .vs
 bin
 .vs
