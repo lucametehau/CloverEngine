@@ -93,9 +93,9 @@
 #define ALIGN 16
 #endif
 
-constexpr int KING_BUCKETS = 7;
+constexpr int KING_BUCKETS = 1;
 constexpr int INPUT_NEURONS = 768 * KING_BUCKETS;
-constexpr int SIDE_NEURONS = 1280;
+constexpr int SIDE_NEURONS = 128;
 constexpr int HIDDEN_NEURONS = 2 * SIDE_NEURONS;
 constexpr int REG_LENGTH = sizeof(reg_type) / sizeof(int16_t);
 constexpr int NUM_REGS = SIDE_NEURONS / REG_LENGTH;
