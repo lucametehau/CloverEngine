@@ -74,7 +74,7 @@ class LMRNet
         {
             result += output[i] * l2_weights[i];
         }
-        return result;
+        return round(result);
     }
 
     std::array<float, L2_SIZE> output;
