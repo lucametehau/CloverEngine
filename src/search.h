@@ -25,7 +25,7 @@
 #include <fstream>
 #include <iomanip>
 
-std::ofstream fout("lmr_net.csv");
+std::ofstream fout("lmr_data.csv");
 
 template <bool checkTime> bool SearchThread::check_for_stop()
 {
@@ -747,25 +747,26 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
 
                 if (score > alpha)
                 {
+
                     fout << depth << "," << played << "," << is_quiet << "," << was_pv << "," << improving << ","
                          << improving_after_move << "," << in_check << "," << enemy_has_no_threats << ","
-                         << std::abs(raw_eval - static_eval) << "," << static_eval << "," << eval << "," << m_root_eval
-                         << "," << is_ttmove_noisy << "," << ttDepth << "," << ttValue << "," << depth << "," << history
-                         << "," << alpha << "," << beta << "," << (m_board.checkers() != 0) << "," << pvNode << ","
-                         << rootNode << "," << cutNode << ",";
+                         << picker.trueStage << "," << std::abs(raw_eval - static_eval) << "," << static_eval << ","
+                         << eval << "," << is_ttmove_noisy << "," << (ttDepth >= depth) << ","
+                         << (ttValue <= alpha && ttHit) << "," << history << "," << alpha << "," << beta << ","
+                         << (m_board.checkers() != 0) << "," << pvNode << "," << rootNode << "," << cutNode << ",";
                     fout << 1 << "\n";
                 }
                 tried_count++;
             }
             else
             {
-                // fout << depth << "," << played << "," << is_quiet << "," << was_pv << "," << improving << ","
-                //      << improving_after_move << "," << in_check << "," << enemy_has_no_threats << ","
-                //      << std::abs(raw_eval - static_eval) << "," << static_eval << "," << eval << "," << m_root_eval
-                //      << "," << is_ttmove_noisy << "," << ttDepth << "," << ttValue << "," << depth << "," << history
-                //      << "," << alpha << "," << beta << "," << (m_board.checkers() != 0) << "," << pvNode << ","
-                //      << rootNode << "," << cutNode << ",";
-                // fout << R << "\n";
+                fout << depth << "," << played << "," << is_quiet << "," << was_pv << "," << improving << ","
+                     << improving_after_move << "," << in_check << "," << enemy_has_no_threats << ","
+                     << picker.trueStage << "," << std::abs(raw_eval - static_eval) << "," << static_eval << "," << eval
+                     << "," << is_ttmove_noisy << "," << (ttDepth >= depth) << "," << (ttValue <= alpha && ttHit) << ","
+                     << history << "," << alpha << "," << beta << "," << (m_board.checkers() != 0) << "," << pvNode
+                     << "," << rootNode << "," << cutNode << ",";
+                fout << R << "\n";
             }
         }
         else if (!pvNode || played > 1)
