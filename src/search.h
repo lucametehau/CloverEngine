@@ -285,7 +285,7 @@ template <bool pvNode> int SearchThread::quiesce(int alpha, int beta, StackEntry
 }
 
 template <bool rootNode, bool pvNode, bool cutNode>
-int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
+int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack, bool save_data)
 {
     const int ply = m_board.ply;
 
@@ -496,7 +496,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
                 stack->cont_hist = &m_histories.cont_history[0][NO_PIECE][0];
 
                 m_board.make_null_move(next_state);
-                int score = -search<false, false, !cutNode>(-beta, -beta + 1, depth - R, stack + 1);
+                int score = -search<false, false, !cutNode>(-beta, -beta + 1, depth - R, stack + 1, save_data);
                 m_board.undo_null_move();
 
                 if (score >= beta)
@@ -528,7 +528,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
                     int score = -quiesce<false>(-probcut_beta, -probcut_beta + 1, stack + 1);
                     if (score >= probcut_beta)
                         score = -search<false, false, !cutNode>(-probcut_beta, -probcut_beta + 1,
-                                                                depth - ProbcutReduction, stack + 1);
+                                                                depth - ProbcutReduction, stack + 1, save_data);
 
                     undo_move(move);
 
@@ -651,7 +651,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
                 int rBeta = ttValue - (SEMargin + SEWasPVMargin * (!pvNode && was_pv)) * depth / 64;
 
                 stack->excluded = move;
-                int score = search<false, false, cutNode>(rBeta - 1, rBeta, (depth - 1) / 2, stack);
+                int score = search<false, false, cutNode>(rBeta - 1, rBeta, (depth - 1) / 2, stack, save_data);
                 stack->excluded = NULLMOVE;
 
                 if (score < rBeta)
@@ -735,7 +735,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
 
             R = std::clamp(R, 1, new_depth); // clamp R
             stack->R = R;
-            score = -search<false, false, true>(-alpha - 1, -alpha, new_depth - R, stack + 1);
+            score = -search<false, false, true>(-alpha - 1, -alpha, new_depth - R, stack + 1, save_data);
             stack->R = 0;
             tried_count++;
 
@@ -743,22 +743,18 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
             {
 
                 new_depth += (score > best + DeeperMargin) - (score < best + new_depth);
-                score = -search<false, false, !cutNode>(-alpha - 1, -alpha, new_depth - 1, stack + 1);
-
-                if (score > alpha)
+                for (; R >= 1; R--)
                 {
-
-                    fout << depth << "," << played << "," << is_quiet << "," << was_pv << "," << improving << ","
-                         << improving_after_move << "," << in_check << "," << enemy_has_no_threats << ","
-                         << picker.trueStage << "," << std::abs(raw_eval - static_eval) << "," << static_eval << ","
-                         << eval << "," << is_ttmove_noisy << "," << (ttDepth >= depth) << ","
-                         << (ttValue <= alpha && ttHit) << "," << history << "," << alpha << "," << beta << ","
-                         << (m_board.checkers() != 0) << "," << pvNode << "," << rootNode << "," << cutNode << ",";
-                    fout << 1 << "\n";
+                    score = -search<false, false, !cutNode>(-alpha - 1, -alpha, new_depth - R, stack + 1, false);
+                    if (score <= alpha)
+                        break; // if we fail low, we can stop
                 }
+
+                if (R < 1)
+                    R = 1;
                 tried_count++;
             }
-            else
+            if (save_data)
             {
                 fout << depth << "," << played << "," << is_quiet << "," << was_pv << "," << improving << ","
                      << improving_after_move << "," << in_check << "," << enemy_has_no_threats << ","
@@ -771,7 +767,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
         }
         else if (!pvNode || played > 1)
         {
-            score = -search<false, false, !cutNode>(-alpha - 1, -alpha, new_depth - 1, stack + 1);
+            score = -search<false, false, !cutNode>(-alpha - 1, -alpha, new_depth - 1, stack + 1, save_data);
             tried_count++;
         }
 
@@ -779,7 +775,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
         {
             if (played == 1 || score > alpha)
             {
-                score = -search<false, true, false>(-beta, -alpha, new_depth - 1, stack + 1);
+                score = -search<false, true, false>(-beta, -alpha, new_depth - 1, stack + 1, save_data);
                 tried_count++;
             }
         }
@@ -1021,7 +1017,7 @@ void SearchThread::iterative_deepening()
             {
                 depth = std::max({depth, 1, m_id_depth - 4});
                 m_sel_depth = 0;
-                m_scores[m_multipv] = search<true, true, false>(alpha, beta, depth, m_stack);
+                m_scores[m_multipv] = search<true, true, false>(alpha, beta, depth, m_stack, true);
 
                 if (must_stop())
                     break;

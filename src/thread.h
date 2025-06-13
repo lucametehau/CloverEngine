@@ -173,7 +173,8 @@ class SearchThread
   private:
     template <bool pvNode> int quiesce(int alpha, int beta, StackEntry *stack);
 
-    template <bool rootNode, bool pvNode, bool cutNode> int search(int alpha, int beta, int depth, StackEntry *stack);
+    template <bool rootNode, bool pvNode, bool cutNode>
+    int search(int alpha, int beta, int depth, StackEntry *stack, bool save_data);
 
     void iterative_deepening();
 
