@@ -403,7 +403,6 @@ TUNE_PARAM_DOUBLE(l2_weight6, -2.90534, -10.0, 10.0);
 TUNE_PARAM_DOUBLE(l2_weight7, -2.17896, -10.0, 10.0);
 TUNE_PARAM_DOUBLE(l2_bias, 2.87166, -10.0, 10.0);
 
-
 inline void print_params_for_ob()
 {
     for (auto &param : params_int)

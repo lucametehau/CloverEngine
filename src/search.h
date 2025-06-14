@@ -965,6 +965,7 @@ void SearchThread::start_search()
     // std::cout << m_lmr_net.predict(std::array<int, INPUT_SIZE>{17, 2,  1,  0,  0,     0,  0,  1, 1, -65, -65, 60,
     //                                                            0,  16, 23, 17, 16822, 33, 34, 0, 0, 0,   0})
     //           << "\n";
+    init_lmr_net();
 #ifdef TUNE_FLAG
     if (main_thread())
     {
