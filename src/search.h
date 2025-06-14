@@ -455,8 +455,8 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
 
     if (!stack->excluded && !in_check && !nullSearch && (stack - 1)->eval != INF && m_board.captured() == NO_PIECE)
     {
-        int bonus =
-            std::clamp(-EvalHistCoef * ((stack - 1)->eval + static_eval), EvalHistMin, EvalHistMax) + EvalHistMargin;
+        int bonus = std::clamp<int>(-EvalHistCoef * ((stack - 1)->eval + static_eval), EvalHistMin, EvalHistMax) +
+                    EvalHistMargin;
         m_histories.update_hist_move((stack - 1)->move, (stack - 1)->threats, 1 ^ turn, bonus);
     }
 
@@ -965,6 +965,7 @@ void SearchThread::start_search()
     // std::cout << m_lmr_net.predict(std::array<int, INPUT_SIZE>{17, 2,  1,  0,  0,     0,  0,  1, 1, -65, -65, 60,
     //                                                            0,  16, 23, 17, 16822, 33, 34, 0, 0, 0,   0})
     //           << "\n";
+    init_lmr_net();
 #ifdef TUNE_FLAG
     if (main_thread())
     {
