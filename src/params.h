@@ -83,6 +83,7 @@ TUNE_PARAM(SNMPMargin, 88, 75, 100);
 TUNE_PARAM(SNMPImproving, 18, 10, 25);
 TUNE_PARAM(SNMPImprovingAfterMove, 30, 1, 60);
 TUNE_PARAM(SNMPCutNode, 30, 1, 60);
+TUNE_PARAM(SNMPBase, 20, 0, 50);
 
 TUNE_PARAM(NMPEvalMargin, 32, 20, 40);
 TUNE_PARAM(NMPReduction, 4, 3, 5);
