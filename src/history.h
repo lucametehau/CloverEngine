@@ -69,7 +69,7 @@ class StackEntry
 { /// info to keep in the stack
   public:
     constexpr StackEntry()
-        : piece(NO_PIECE), move(NULLMOVE), killer(NULLMOVE), excluded(NULLMOVE), eval(0), threats(0), R(0)
+        : piece(NO_PIECE), move(NULLMOVE), killer(NULLMOVE), excluded(NULLMOVE), eval(0), R(0), threats(0)
     {
     }
     Piece piece;
