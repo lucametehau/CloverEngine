@@ -498,6 +498,10 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
 
                 if (score >= beta)
                     return abs(score) > MATE ? beta : score; /// don't trust mate scores
+                else if (previous_R >= 3 && score < beta + 100)
+                {
+                    depth++;
+                }
             }
 
             // probcut
