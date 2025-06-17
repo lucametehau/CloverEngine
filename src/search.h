@@ -658,6 +658,8 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
                     return rBeta; // multicut
                 else if (ttValue >= beta || ttValue <= alpha)
                     ex = -1 - !pvNode; // negative extensions
+                else if (cutNode)
+                    ex = -2;
             }
             else if (in_check)
                 ex = 1;
