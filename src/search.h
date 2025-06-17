@@ -656,7 +656,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
                          (!pvNode && !is_ttmove_noisy && rBeta - score > SETripleExtensionsMargin);
                 else if (rBeta >= beta)
                     return rBeta; // multicut
-                else if (ttValue >= beta || ttValue <= alpha)
+                else if (ttValue >= beta)
                     ex = -1 - !pvNode; // negative extensions
                 else if (cutNode)
                     ex = -2;
