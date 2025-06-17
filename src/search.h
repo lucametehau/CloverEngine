@@ -752,6 +752,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
         {
             if (played == 1 || score > alpha)
             {
+                new_depth += (score > best + DeeperMargin);
                 score = -search<false, true, false>(-beta, -alpha, new_depth - 1, stack + 1);
                 tried_count++;
             }
