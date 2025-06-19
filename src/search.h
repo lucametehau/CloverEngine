@@ -236,7 +236,7 @@ template <bool pvNode> int SearchThread::quiesce(int alpha, int beta, StackEntry
             }
 
             // ignore moves with bad see
-            if (!see(m_board, move, 0))
+            if (!see(m_board, move, -70))
                 continue;
 
             // if in check, we only search one move
