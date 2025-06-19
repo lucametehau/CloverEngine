@@ -283,6 +283,9 @@ class Movepick
                 if (move == tt_move)
                     continue;
 
+                if (move.is_promo() && move.get_prom() + PieceTypes::KNIGHT != PieceTypes::QUEEN)
+                    continue;
+
                 moves[m] = move;
 
                 const Piece piece = board.piece_at(move.get_from()), cap = board.get_captured_type(move);
@@ -390,8 +393,6 @@ class Movepick
         default:
             assert(0);
         }
-
-        assert(0);
 
         return NULLMOVE;
     }

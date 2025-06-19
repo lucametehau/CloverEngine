@@ -220,23 +220,22 @@ template <bool pvNode> int SearchThread::quiesce(int alpha, int beta, StackEntry
     while ((move = qs_movepicker.get_next_move(m_histories, stack, m_board, !in_check, true)))
     {
         played++;
-        if (played == 4)
-            break;
+
         if (played > 1)
         {
             // futility pruning
             if (futility_base > -MATE)
             {
                 const int futility_value = futility_base + seeVal[m_board.get_captured_type(move)];
-                if (!move.is_promo() && futility_value <= alpha)
+                if (!move.is_promo() && futility_value <= alpha && !see(m_board, move, 0))
                 {
                     best = std::max(best, futility_value);
                     continue;
                 }
             }
 
-            // ignore moves with bad see
-            if (!see(m_board, move, 0))
+            // skip moves with bad SEE
+            if (!see(m_board, move, -70))
                 continue;
 
             // if in check, we only search one move
