@@ -370,9 +370,6 @@ class Movepick
                              score_threats(threats_p, threats_bn, threats_r, pt, to);
                 }
 
-                if (move == kp_move)
-                    score += KPMoveBonus;
-
                 scores[m++] = score;
             }
 
