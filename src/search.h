@@ -228,7 +228,7 @@ template <bool pvNode> int SearchThread::quiesce(int alpha, int beta, StackEntry
             if (futility_base > -MATE)
             {
                 const int futility_value = futility_base + seeVal[m_board.get_captured_type(move)];
-                if (!move.is_promo() && futility_value <= alpha && !see(m_board, move, 0))
+                if (!move.is_promo() && futility_value <= alpha)
                 {
                     best = std::max(best, futility_value);
                     continue;
@@ -236,7 +236,7 @@ template <bool pvNode> int SearchThread::quiesce(int alpha, int beta, StackEntry
             }
 
             // ignore moves with bad see
-            if (!see(m_board, move, -70))
+            if (!see(m_board, move, 0))
                 continue;
 
             // if in check, we only search one move
