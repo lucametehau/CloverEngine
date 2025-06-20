@@ -219,14 +219,12 @@ template <bool pvNode> int SearchThread::quiesce(int alpha, int beta, StackEntry
 
     while ((move = qs_movepicker.get_next_move(m_histories, stack, m_board, !in_check)))
     {
-        if (qs_movepicker.stage == Stages::STAGE_QS_NOISY && !see(m_board, move, 0))
-            continue;
-        
         played++;
+
         if (played == 4)
             break;
 
-        if (best > -MATE)
+        if (played > 1)
         {
             // futility pruning
             if (futility_base > -MATE)
@@ -240,8 +238,8 @@ template <bool pvNode> int SearchThread::quiesce(int alpha, int beta, StackEntry
             }
 
             // skip moves with bad SEE
-            // if (!see(m_board, move, -70))
-            //     continue;
+            if (!see(m_board, move, -70))
+                continue;
 
             // if in check, we only search one move
             if (in_check)
