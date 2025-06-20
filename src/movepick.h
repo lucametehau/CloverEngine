@@ -33,11 +33,18 @@ enum Stages : int
     STAGE_QUIETS,
     STAGE_PRE_BAD_NOISY,
     STAGE_BAD_NOISY,
+
+    // QS stages
     STAGE_QS_TTMOVE,
     STAGE_QS_GEN_NOISY,
     STAGE_QS_NOISY,
     STAGE_QS_GEN_QUIETS,
-    STAGE_QS_QUIETS
+    STAGE_QS_QUIETS,
+
+    // Probcut stages
+    STAGE_PC_TTMOVE,
+    STAGE_PC_GEN_NOISY,
+    STAGE_PC_NOISY,
 }; /// move picker stages
 
 bool see(Board &board, Move move, int threshold);
@@ -86,6 +93,18 @@ class Movepick
         threats_r = threats.threats_pieces[PieceTypes::ROOK] | threats_bn;
     }
 
+    // Probcut Movepicker
+    Movepick(const Move tt_move, const int threshold, const Threats threats) : tt_move(tt_move), threshold(threshold)
+    {
+        stage = STAGE_PC_TTMOVE;
+        nrNoisy = 0;
+        all_threats = threats.all_threats;
+        threats_p = threats.threats_pieces[PieceTypes::PAWN];
+        threats_bn =
+            threats.threats_pieces[PieceTypes::KNIGHT] | threats.threats_pieces[PieceTypes::BISHOP] | threats_p;
+        threats_r = threats.threats_pieces[PieceTypes::ROOK] | threats_bn;
+    }
+
     void get_best_move(int offset, int nrMoves, MoveList &moves, std::array<int, MAX_MOVES> &scores)
     {
         int ind = offset;
@@ -98,7 +117,7 @@ class Movepick
         std::swap(moves[ind], moves[offset]);
     }
 
-    Move get_next_move(Histories &histories, StackEntry *stack, Board &board, bool skip, bool noisy_movepicker)
+    Move get_next_move(Histories &histories, StackEntry *stack, Board &board, bool skip)
     {
         switch (stage)
         {
@@ -152,7 +171,7 @@ class Movepick
             if (skip)
             { /// no need to go through quiets
                 stage = Stages::STAGE_PRE_BAD_NOISY;
-                return get_next_move(histories, stack, board, skip, noisy_movepicker);
+                return get_next_move(histories, stack, board, skip);
             }
             stage++;
         case Stages::STAGE_KILLER:
@@ -252,8 +271,6 @@ class Movepick
             }
         }
         case Stages::STAGE_PRE_BAD_NOISY: {
-            if (noisy_movepicker)
-                return NULLMOVE;
             index = 0;
             stage++;
         }
@@ -265,9 +282,7 @@ class Movepick
             return NULLMOVE;
         }
 
-        /*
-        Here begin the QS stages.
-        */
+        // Here begin the QS stages.
         case Stages::STAGE_QS_TTMOVE: {
             stage++;
 
@@ -386,6 +401,51 @@ class Movepick
             {
                 get_best_move(index, nrQuiets, moves, scores);
                 return moves[index++];
+            }
+
+            return NULLMOVE;
+        }
+
+        // Here begin the Probcut stages.
+        case Stages::STAGE_PC_TTMOVE: {
+            stage++;
+
+            if (tt_move && is_legal(board, tt_move))
+                return tt_move;
+        }
+        case Stages::STAGE_PC_GEN_NOISY: {
+            nrNoisy = board.gen_legal_moves<MOVEGEN_NOISY>(moves);
+            int m = 0;
+            for (int i = 0; i < nrNoisy; i++)
+            {
+                const Move move = moves[i];
+                if (move == tt_move)
+                    continue;
+
+                if (move.is_promo() && move.get_prom() + PieceTypes::KNIGHT != PieceTypes::QUEEN)
+                    continue;
+
+                moves[m] = move;
+
+                const Piece piece = board.piece_at(move.get_from()), cap = board.get_captured_type(move);
+                const Square to = move.get_to();
+                int score = GoodNoisyValueCoef * seeVal[cap];
+                score += histories.get_cap_hist(piece, to, cap);
+                scores[m++] = score;
+            }
+
+            nrNoisy = m;
+            index = 0;
+            stage++;
+        }
+        case Stages::STAGE_PC_NOISY: {
+            while (index < nrNoisy)
+            {
+                get_best_move(index, nrNoisy, moves, scores);
+                if (see(board, moves[index], threshold))
+                    return moves[index++];
+                else
+                    index++;
             }
 
             return NULLMOVE;

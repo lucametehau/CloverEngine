@@ -217,17 +217,22 @@ template <bool pvNode> int SearchThread::quiesce(int alpha, int beta, StackEntry
     Move move;
     int played = 0;
 
-    while ((move = qs_movepicker.get_next_move(m_histories, stack, m_board, !in_check, true)))
+    while ((move = qs_movepicker.get_next_move(m_histories, stack, m_board, !in_check)))
     {
+        if (qs_movepicker.stage == Stages::STAGE_QS_NOISY && !see(m_board, move, 0))
+            continue;
+        
         played++;
+        if (played == 4)
+            break;
 
-        if (played > 1)
+        if (best > -MATE)
         {
             // futility pruning
             if (futility_base > -MATE)
             {
                 const int futility_value = futility_base + seeVal[m_board.get_captured_type(move)];
-                if (!move.is_promo() && futility_value <= alpha && !see(m_board, move, 0))
+                if (!move.is_promo() && futility_value <= alpha)
                 {
                     best = std::max(best, futility_value);
                     continue;
@@ -235,8 +240,8 @@ template <bool pvNode> int SearchThread::quiesce(int alpha, int beta, StackEntry
             }
 
             // skip moves with bad SEE
-            if (!see(m_board, move, -70))
-                continue;
+            // if (!see(m_board, move, -70))
+            //     continue;
 
             // if in check, we only search one move
             if (in_check)
@@ -515,10 +520,10 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
                                         see(m_board, ttMove, probcut_beta - static_eval)
                                     ? ttMove
                                     : NULLMOVE,
-                                NULLMOVE, NULLMOVE, probcut_beta - static_eval, m_board.threats());
+                                probcut_beta - static_eval, m_board.threats());
 
                 Move move;
-                while ((move = picker.get_next_move(m_histories, stack, m_board, true, true)) != NULLMOVE)
+                while ((move = picker.get_next_move(m_histories, stack, m_board, true)) != NULLMOVE)
                 {
                     if (move == stack->excluded)
                         continue;
@@ -558,7 +563,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
 
     Move move;
 
-    while ((move = picker.get_next_move(m_histories, stack, m_board, skip, false)) != NULLMOVE)
+    while ((move = picker.get_next_move(m_histories, stack, m_board, skip)) != NULLMOVE)
     {
         if constexpr (rootNode)
         {
