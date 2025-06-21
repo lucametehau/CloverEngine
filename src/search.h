@@ -219,16 +219,11 @@ template <bool pvNode> int SearchThread::quiesce(int alpha, int beta, StackEntry
 
     while ((move = qs_movepicker.get_next_move(m_histories, stack, m_board, !in_check)))
     {
-        played++;
-
-        if (played == 4)
+        if (played == 3)
             break;
 
-        if (played > 1)
+        if (played)
         {
-            if (!see(m_board, move, -70))
-                continue;
-
             // futility pruning
             if (futility_base > -MATE)
             {
@@ -240,10 +235,11 @@ template <bool pvNode> int SearchThread::quiesce(int alpha, int beta, StackEntry
                 }
             }
 
-            // if in check, we only search one move
-            if (in_check)
-                break;
+            if (!see(m_board, move, -70))
+                continue;
         }
+        played++;
+
         // update stack info
         TT->prefetch(m_board.speculative_next_key(move));
         stack->move = move;
@@ -280,7 +276,7 @@ template <bool pvNode> int SearchThread::quiesce(int alpha, int beta, StackEntry
         }
     }
 
-    if (in_check && best == -INF)
+    if (in_check && played == 0)
         return -INF + ply;
 
     // store info in transposition table
