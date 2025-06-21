@@ -226,6 +226,9 @@ template <bool pvNode> int SearchThread::quiesce(int alpha, int beta, StackEntry
 
         if (played > 1)
         {
+            if (!see(m_board, move, -70))
+                continue;
+
             // futility pruning
             if (futility_base > -MATE)
             {
@@ -236,10 +239,6 @@ template <bool pvNode> int SearchThread::quiesce(int alpha, int beta, StackEntry
                     continue;
                 }
             }
-
-            // skip moves with bad SEE
-            if (!see(m_board, move, -70))
-                continue;
 
             // if in check, we only search one move
             if (in_check)
