@@ -219,7 +219,7 @@ template <bool pvNode> int SearchThread::quiesce(int alpha, int beta, StackEntry
 
     while ((move = qs_movepicker.get_next_move(m_histories, stack, m_board, !in_check)))
     {
-        if (!see(m_board, move, 0))
+        if (qs_movepicker.stage == Stages::STAGE_QS_NOISY && !see(m_board, move, 0))
         {
             continue;
         }
