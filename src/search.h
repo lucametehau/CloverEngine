@@ -285,7 +285,7 @@ template <bool pvNode> int SearchThread::quiesce(int alpha, int beta, StackEntry
         return -INF + ply;
 
     // store info in transposition table
-    ttBound = best >= beta ? TTBounds::LOWER : (best > original_alpha ? TTBounds::EXACT : TTBounds::UPPER);
+    ttBound = best >= beta ? TTBounds::LOWER : TTBounds::UPPER;
     TT->save(entry, key, best, 0, ply, ttBound, bestMove, raw_eval, was_pv);
 
     return best;
