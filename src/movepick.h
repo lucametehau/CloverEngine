@@ -33,6 +33,18 @@ enum Stages : int
     STAGE_QUIETS,
     STAGE_PRE_BAD_NOISY,
     STAGE_BAD_NOISY,
+
+    // QS stages
+    STAGE_QS_TTMOVE,
+    STAGE_QS_GEN_NOISY,
+    STAGE_QS_NOISY,
+    STAGE_QS_GEN_QUIETS,
+    STAGE_QS_QUIETS,
+
+    // Probcut stages
+    STAGE_PC_TTMOVE,
+    STAGE_PC_GEN_NOISY,
+    STAGE_PC_NOISY,
 }; /// move picker stages
 
 bool see(Board &board, Move move, int threshold);
@@ -43,7 +55,7 @@ class Movepick
     int stage, trueStage;
 
   private:
-    Move ttMove, killer, kp_move;
+    Move tt_move, killer, kp_move;
     int nrNoisy, nrQuiets, nrBadNoisy;
     int index;
 
@@ -55,12 +67,37 @@ class Movepick
     std::array<int, MAX_MOVES> scores;
 
   public:
-    Movepick(const Move ttMove, const Move killer, const Move kp_move, const int threshold, const Threats threats)
-        : ttMove(ttMove), killer(killer != ttMove ? killer : NULLMOVE),
-          kp_move(kp_move != killer && kp_move != ttMove ? kp_move : NULLMOVE), threshold(threshold)
+    // Normal Movepicker, used in PVS search.
+    Movepick(const Move tt_move, const Move killer, const Move kp_move, const int threshold, const Threats threats)
+        : tt_move(tt_move), killer(killer != tt_move ? killer : NULLMOVE),
+          kp_move(kp_move != killer && kp_move != tt_move ? kp_move : NULLMOVE), threshold(threshold)
     {
         stage = STAGE_TTMOVE;
         nrNoisy = nrQuiets = nrBadNoisy = 0;
+        all_threats = threats.all_threats;
+        threats_p = threats.threats_pieces[PieceTypes::PAWN];
+        threats_bn =
+            threats.threats_pieces[PieceTypes::KNIGHT] | threats.threats_pieces[PieceTypes::BISHOP] | threats_p;
+        threats_r = threats.threats_pieces[PieceTypes::ROOK] | threats_bn;
+    }
+
+    // QS Movepicker
+    Movepick(const Move tt_move, const Threats threats) : tt_move(tt_move)
+    {
+        stage = STAGE_QS_TTMOVE;
+        nrNoisy = nrQuiets = 0;
+        all_threats = threats.all_threats;
+        threats_p = threats.threats_pieces[PieceTypes::PAWN];
+        threats_bn =
+            threats.threats_pieces[PieceTypes::KNIGHT] | threats.threats_pieces[PieceTypes::BISHOP] | threats_p;
+        threats_r = threats.threats_pieces[PieceTypes::ROOK] | threats_bn;
+    }
+
+    // Probcut Movepicker
+    Movepick(const Move tt_move, const int threshold, const Threats threats) : tt_move(tt_move), threshold(threshold)
+    {
+        stage = STAGE_PC_TTMOVE;
+        nrNoisy = 0;
         all_threats = threats.all_threats;
         threats_p = threats.threats_pieces[PieceTypes::PAWN];
         threats_bn =
@@ -80,7 +117,7 @@ class Movepick
         std::swap(moves[ind], moves[offset]);
     }
 
-    Move get_next_move(Histories &histories, StackEntry *stack, Board &board, bool skip, bool noisyPicker)
+    Move get_next_move(Histories &histories, StackEntry *stack, Board &board, bool skip)
     {
         switch (stage)
         {
@@ -88,9 +125,9 @@ class Movepick
             trueStage = Stages::STAGE_TTMOVE;
             stage++;
 
-            if (ttMove && is_legal(board, ttMove))
+            if (tt_move && is_legal(board, tt_move))
             {
-                return ttMove;
+                return tt_move;
             }
         case Stages::STAGE_GEN_NOISY: {
             nrNoisy = board.gen_legal_moves<MOVEGEN_NOISY>(moves);
@@ -98,7 +135,7 @@ class Movepick
             for (int i = 0; i < nrNoisy; i++)
             {
                 const Move move = moves[i];
-                if (move == ttMove || move == killer)
+                if (move == tt_move || move == killer)
                     continue;
 
                 if (move.is_promo() && move.get_prom() + PieceTypes::KNIGHT != PieceTypes::QUEEN)
@@ -134,7 +171,7 @@ class Movepick
             if (skip)
             { /// no need to go through quiets
                 stage = Stages::STAGE_PRE_BAD_NOISY;
-                return get_next_move(histories, stack, board, skip, noisyPicker);
+                return get_next_move(histories, stack, board, skip);
             }
             stage++;
         case Stages::STAGE_KILLER:
@@ -155,7 +192,7 @@ class Movepick
                 for (int i = 0; i < nrQuiets; i++)
                 {
                     Move move = moves[i];
-                    if (move == ttMove || move == killer)
+                    if (move == tt_move || move == killer)
                         continue;
 
                     moves[m] = move;
@@ -221,7 +258,7 @@ class Movepick
 
             stage++;
         }
-        case Stages::STAGE_QUIETS:
+        case Stages::STAGE_QUIETS: {
             trueStage = Stages::STAGE_QUIETS;
             if (!skip && index < nrQuiets)
             {
@@ -232,25 +269,190 @@ class Movepick
             {
                 stage++;
             }
-        case Stages::STAGE_PRE_BAD_NOISY:
-            if (noisyPicker)
-            {
-                return NULLMOVE;
-            }
+        }
+        case Stages::STAGE_PRE_BAD_NOISY: {
             index = 0;
             stage++;
-        case Stages::STAGE_BAD_NOISY:
+        }
+        case Stages::STAGE_BAD_NOISY: {
             trueStage = Stages::STAGE_BAD_NOISY;
+            // don't sort bad noisies
             if (index < nrBadNoisy)
-            {
                 return badNoisy[index++];
-            }
             return NULLMOVE;
+        }
+
+        // Here begin the QS stages.
+        case Stages::STAGE_QS_TTMOVE: {
+            stage++;
+
+            if (tt_move && is_legal(board, tt_move))
+                return tt_move;
+        }
+        case Stages::STAGE_QS_GEN_NOISY: {
+            nrNoisy = board.gen_legal_moves<MOVEGEN_NOISY>(moves);
+            int m = 0;
+            for (int i = 0; i < nrNoisy; i++)
+            {
+                const Move move = moves[i];
+                if (move == tt_move)
+                    continue;
+
+                if (move.is_promo() && move.get_prom() + PieceTypes::KNIGHT != PieceTypes::QUEEN)
+                    continue;
+
+                moves[m] = move;
+
+                const Piece piece = board.piece_at(move.get_from()), cap = board.get_captured_type(move);
+                const Square to = move.get_to();
+                int score = GoodNoisyValueCoef * seeVal[cap];
+                score += histories.get_cap_hist(piece, to, cap);
+                scores[m++] = score;
+            }
+
+            nrNoisy = m;
+            index = 0;
+            stage++;
+        }
+        case Stages::STAGE_QS_NOISY: {
+            if (index < nrNoisy)
+            {
+                get_best_move(index, nrNoisy, moves, scores);
+                return moves[index++];
+            }
+            if (skip) // we are done with noisies
+                return NULLMOVE;
+            stage++;
+        }
+        case Stages::STAGE_QS_GEN_QUIETS: {
+            nrQuiets = board.gen_legal_moves<MOVEGEN_QUIET>(moves);
+            const bool turn = board.turn, enemy = 1 ^ turn;
+            const Bitboard allPieces = board.get_bb_color(WHITE) | board.get_bb_color(BLACK);
+            const Bitboard enemyKingRing = attacks::kingRingMask[board.get_king(enemy)];
+
+            int m = 0;
+            for (int i = 0; i < nrQuiets; i++)
+            {
+                Move move = moves[i];
+                if (move == tt_move)
+                    continue;
+
+                moves[m] = move;
+                const Square from = move.get_from(), to = move.get_to();
+                const Piece piece = board.piece_at(from), pt = piece.type();
+                int score = histories.get_history_movepick(move, piece, all_threats, turn, stack);
+
+                if (pt == PieceTypes::PAWN) // pawn push, generally good?
+                    score += QuietPawnPushBonus;
+
+                if (pt != PieceTypes::KING && pt != PieceTypes::PAWN)
+                {
+                    if (pt < 0 || pt > PieceTypes::QUEEN)
+                    {
+                        board.print();
+                        for (int i = 0; i < 12; i++)
+                            board.bb[i].print();
+                        board.pieces[WHITE].print();
+                        board.pieces[BLACK].print();
+                        for (int i = 0; i <= board.ply; i++)
+                            std::cerr << "i: " << i << " " << stack[i].move.to_string(board.chess960) << "\n";
+                        std::cerr << "tried move " << move.to_string(board.chess960) << "\n";
+                        assert(0);
+                    }
+                    score +=
+                        QuietKingRingAttackBonus * (attacks::genAttacksSq(allPieces, to, pt) & enemyKingRing).count();
+
+                    auto score_threats = [&](Bitboard threats_p, Bitboard threats_bn, Bitboard threats_r, Piece pt,
+                                             Square to) {
+                        if (threats_p.has_square(to))
+                            return QuietPawnAttackedCoef * seeVal[pt];
+                        if (pt >= PieceTypes::ROOK && threats_bn.has_square(to))
+                            return 16384;
+                        if (pt == PieceTypes::QUEEN && threats_r.has_square(to))
+                            return 16384;
+                        return 0;
+                    };
+
+                    auto score_threats_dodged = [&](Bitboard threats_p, Bitboard threats_bn, Bitboard threats_r,
+                                                    Piece pt, Square from) {
+                        if (threats_p.has_square(from))
+                            return QuietPawnAttackedDodgeCoef * seeVal[pt];
+                        if (pt >= PieceTypes::ROOK && threats_bn.has_square(from))
+                            return 16384;
+                        if (pt == PieceTypes::QUEEN && threats_r.has_square(from))
+                            return 16384;
+                        return 0;
+                    };
+
+                    score += score_threats_dodged(threats_p, threats_bn, threats_r, pt, from) -
+                             score_threats(threats_p, threats_bn, threats_r, pt, to);
+                }
+
+                scores[m++] = score;
+            }
+
+            nrQuiets = m;
+            index = 0;
+
+            stage++;
+        }
+        case Stages::STAGE_QS_QUIETS: {
+            if (index < nrQuiets)
+            {
+                get_best_move(index, nrQuiets, moves, scores);
+                return moves[index++];
+            }
+
+            return NULLMOVE;
+        }
+
+        // Here begin the Probcut stages.
+        case Stages::STAGE_PC_TTMOVE: {
+            stage++;
+
+            if (tt_move && is_legal(board, tt_move))
+                return tt_move;
+        }
+        case Stages::STAGE_PC_GEN_NOISY: {
+            nrNoisy = board.gen_legal_moves<MOVEGEN_NOISY>(moves);
+            int m = 0;
+            for (int i = 0; i < nrNoisy; i++)
+            {
+                const Move move = moves[i];
+                if (move == tt_move)
+                    continue;
+
+                if (move.is_promo() && move.get_prom() + PieceTypes::KNIGHT != PieceTypes::QUEEN)
+                    continue;
+
+                moves[m] = move;
+
+                const Piece piece = board.piece_at(move.get_from()), cap = board.get_captured_type(move);
+                const Square to = move.get_to();
+                int score = GoodNoisyValueCoef * seeVal[cap];
+                score += histories.get_cap_hist(piece, to, cap);
+                scores[m++] = score;
+            }
+
+            nrNoisy = m;
+            index = 0;
+            stage++;
+        }
+        case Stages::STAGE_PC_NOISY: {
+            while (index < nrNoisy)
+            {
+                get_best_move(index, nrNoisy, moves, scores);
+                if (see(board, moves[index], threshold))
+                    return moves[index++];
+                else
+                    index++;
+            }
+
+            return NULLMOVE;
+        }
         default:
             assert(0);
         }
-
-        assert(0);
 
         return NULLMOVE;
     }
