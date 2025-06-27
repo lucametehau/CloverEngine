@@ -69,13 +69,15 @@ class StackEntry
 { /// info to keep in the stack
   public:
     constexpr StackEntry()
-        : piece(NO_PIECE), move(NULLMOVE), killer(NULLMOVE), excluded(NULLMOVE), eval(0), R(0), threats(0)
+        : piece(NO_PIECE), move(NULLMOVE), killer(NULLMOVE), excluded(NULLMOVE), eval(0), R(0), was_pv(false),
+          threats(0)
     {
     }
     Piece piece;
     Move move, killer, excluded;
     int eval;
     int R; // reduction
+    bool was_pv;
     MultiArray<History<16384>, 13, 64> *cont_hist;
     Bitboard threats;
 };

@@ -169,6 +169,8 @@ template <bool pvNode> int SearchThread::quiesce(int alpha, int beta, StackEntry
         }
     }
 
+    stack->was_pv = was_pv;
+
     HistoricalState next_state;
     const bool in_check = m_board.checkers() != 0;
     int futility_base;
@@ -836,6 +838,10 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
     if (!played)
         return in_check ? -INF + ply : 0;
 
+    if (!bestMove)
+        stack->was_pv |= (stack - 1)->was_pv;
+
+    // if previous move caused a fail low, give bonus to it
     if (!bestMove && m_board.captured() == NO_PIECE && !nullSearch)
     {
         m_histories.update_cont_hist_move((stack - 1)->piece, (stack - 1)->move.get_to(), stack - 1,
@@ -847,12 +853,16 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
     if (!stack->excluded)
     {
         ttBound = best >= beta ? TTBounds::LOWER : (best > original_alpha ? TTBounds::EXACT : TTBounds::UPPER);
+
+        // update corrhist
         if ((ttBound == TTBounds::UPPER || !m_board.is_noisy_move(bestMove)) && !in_check &&
             !(ttBound == TTBounds::LOWER && best <= static_eval) &&
             !(ttBound == TTBounds::UPPER && best >= static_eval))
             m_histories.update_corr_hist(turn, pawn_key, white_mat_key, black_mat_key, stack, depth,
                                          best - static_eval);
-        TT->save(entry, key, best, depth, ply, ttBound, bestMove, raw_eval, was_pv);
+
+        // update tt
+        TT->save(entry, key, best, depth, ply, ttBound, bestMove, raw_eval, stack->was_pv);
     }
 
     return best;
