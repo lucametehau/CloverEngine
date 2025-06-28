@@ -707,7 +707,6 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
                 R += LMRWasNotPV * !was_pv;
                 R += LMRImprovingM1 * (improving == -1);
                 R += LMRImproving0 * (improving == 0);
-                R -= LMRPVNode * (!rootNode && pvNode);
                 R += LMRGoodEval *
                      (enemy_has_no_threats && !in_check &&
                       eval - seeVal[PieceTypes::KNIGHT] >
@@ -729,6 +728,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
                 R -= LMRGrain * history / CapHistReductionDiv;                    // reduce based on move history
             }
 
+            R -= LMRPVNode * (!rootNode && pvNode);                // reduce pv nodes
             R += LMRCutNode * cutNode;                             // reduce cutnodes aggressively
             R -= LMRWasPVHighDepth * (was_pv && ttDepth >= depth); // reduce ex pv nodes with valuable info
             R += LMRTTMoveNoisy * is_ttmove_noisy;                 // reduce if ttmove is noisy
