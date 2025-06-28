@@ -705,8 +705,6 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
             {
                 R = lmr_red[std::min(63, depth)][std::min(63, played)];
                 R += LMRWasNotPV * !was_pv;
-                R += LMRImprovingM1 * (improving == -1);
-                R += LMRImproving0 * (improving == 0);
                 R += LMRGoodEval *
                      (enemy_has_no_threats && !in_check &&
                       eval - seeVal[PieceTypes::KNIGHT] >
@@ -721,13 +719,14 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
             else if (!was_pv)
             {
                 R = lmr_red[std::min(63, depth)][std::min(63, played)];
-                R += LMRNoisyNotImproving * (improving <= 0); // not improving
                 R += LMRBadNoisy * (enemy_has_no_threats &&
                                     picker.trueStage == Stages::STAGE_BAD_NOISY); // if the position is relatively quiet
                                                                                   // and the capture is "very losing"
                 R -= LMRGrain * history / CapHistReductionDiv;                    // reduce based on move history
             }
 
+            R += LMRImprovingM1 * (improving == -1);               // reduce if really not improving
+            R += LMRImproving0 * (improving == 0);                 // reduce if not improving
             R -= LMRPVNode * (!rootNode && pvNode);                // reduce pv nodes
             R += LMRCutNode * cutNode;                             // reduce cutnodes aggressively
             R -= LMRWasPVHighDepth * (was_pv && ttDepth >= depth); // reduce ex pv nodes with valuable info
