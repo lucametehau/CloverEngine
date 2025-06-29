@@ -144,7 +144,7 @@ template <bool pvNode> int SearchThread::quiesce(int alpha, int beta, StackEntry
 
     const uint64_t key = m_board.key();
     const bool turn = m_board.turn;
-    int score = INF, best = -INF, original_alpha = alpha;
+    int score = INF, best = -INF;
     int ttBound = NONE;
     Move bestMove = NULLMOVE, ttMove = NULLMOVE;
 
