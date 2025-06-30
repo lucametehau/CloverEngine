@@ -716,7 +716,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
                 R -= LMRGivesCheck * (m_board.checkers() != 0);                  // move gives check
                 R -= LMRGrain * history / HistReductionDiv;                      // reduce based on move history
             }
-            else if (!was_pv)
+            else
             {
                 R = lmr_red[std::min(63, depth)][std::min(63, played)];
                 R += LMRBadNoisy * (enemy_has_no_threats &&
