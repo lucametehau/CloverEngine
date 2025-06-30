@@ -83,6 +83,7 @@ TUNE_PARAM(SNMPMargin, 88, 75, 100);
 TUNE_PARAM(SNMPImproving, 18, 10, 25);
 TUNE_PARAM(SNMPImprovingAfterMove, 30, 1, 60);
 TUNE_PARAM(SNMPCutNode, 30, 1, 60);
+TUNE_PARAM(SNMPBase, 0, 0, 50);
 
 TUNE_PARAM(NMPEvalMargin, 32, 20, 40);
 TUNE_PARAM(NMPReduction, 4, 3, 5);
@@ -95,11 +96,11 @@ TUNE_PARAM(ProbcutReduction, 5, 3, 5);
 
 TUNE_PARAM(PVSSeeDepthCoef, 17, 10, 20);
 
-TUNE_PARAM(MoveloopHistDiv, 14272, 8192, 17000);
+TUNE_PARAM(MoveloopHistDiv, 14272, 1, 17000);
 
-TUNE_PARAM(FPDepth, 10, 5, 10);
-TUNE_PARAM(FPBias, 96, 90, 120);
-TUNE_PARAM(FPMargin, 98, 90, 120);
+TUNE_PARAM(FPDepth, 10, 5, 15);
+TUNE_PARAM(FPBias, 96, 0, 150);
+TUNE_PARAM(FPMargin, 98, 0, 150);
 
 TUNE_PARAM(LMPDepth, 7, 5, 10);
 TUNE_PARAM(LMPBias, 1, -1, 5);
@@ -112,7 +113,10 @@ TUNE_PARAM(SEEPruningQuietMargin, 70, 60, 90);
 TUNE_PARAM(SEEPruningNoisyDepth, 8, 5, 10);
 TUNE_PARAM(SEEPruningNoisyMargin, 13, 5, 25);
 TUNE_PARAM(SEENoisyHistDiv, 271, 128, 512);
-TUNE_PARAM(FPNoisyDepth, 8, 5, 10);
+TUNE_PARAM(FPNoisyDepth, 8, 5, 15);
+
+TUNE_PARAM(FPNoisyBias, 96, 0, 150);
+TUNE_PARAM(FPNoisyMargin, 98, 0, 150);
 
 TUNE_PARAM(SEDepth, 5, 4, 8);
 TUNE_PARAM(SEMargin, 45, 32, 64);
@@ -147,12 +151,14 @@ TUNE_PARAM(HistReductionDiv, 8463, 7000, 10000);
 TUNE_PARAM(CapHistReductionDiv, 4158, 2048, 8192);
 TUNE_PARAM(LMRBadStaticEvalMargin, 244, 150, 300);
 TUNE_PARAM(LMRCorrectionDivisor, 52, 25, 75);
-TUNE_PARAM(DeeperMargin, 80, 40, 80);
+TUNE_PARAM(DeeperMargin, 80, 0, 150);
+TUNE_PARAM(PVDeeperMargin, 80, 0, 150);
 
 TUNE_PARAM(RootSeeDepthCoef, 8, 5, 20);
 
 TUNE_PARAM(AspirationWindowsDepth, 6, 4, 10);
 TUNE_PARAM(AspirationWindosValue, 7, 5, 20);
+TUNE_PARAM(AspirationWindowsDivisor, 10000, 1, 20000);
 TUNE_PARAM(AspirationWindowExpandMargin, 24, 10, 100);
 TUNE_PARAM(AspirationWindowExpandBias, 1, 0, 10);
 
@@ -178,15 +184,19 @@ TUNE_PARAM_DOUBLE(LMRQuietDiv, 2.575107162151004, 1.50, 2.70);
 
 // movepicker constants
 TUNE_PARAM(GoodNoisyValueCoef, 10, 1, 20);
-TUNE_PARAM(QuietHistCoef, 1, 1, 4);
-TUNE_PARAM(QuietContHist1, 2, 1, 2);
-TUNE_PARAM(QuietContHist2, 2, 1, 2);
-TUNE_PARAM(QuietContHist4, 1, 1, 2);
+TUNE_PARAM(QuietHistCoef, 1024, 1, 3072);
+TUNE_PARAM(QuietContHist1, 2048, 1, 3072);
+TUNE_PARAM(QuietContHist2, 2048, 1, 3072);
+TUNE_PARAM(QuietContHist4, 1024, 1, 3072);
 TUNE_PARAM(QuietPawnAttackedCoef, 34, 20, 50);
 TUNE_PARAM(QuietPawnAttackedDodgeCoef, 36, 20, 50);
-TUNE_PARAM(QuietPawnPushBonus, 9027, 8000, 9500);
-TUNE_PARAM(QuietKingRingAttackBonus, 3509, 3000, 4000);
+TUNE_PARAM(QuietPawnPushBonus, 9027, 1, 16000);
+TUNE_PARAM(QuietKingRingAttackBonus, 3509, 1, 5000);
 TUNE_PARAM(KPMoveBonus, 9114, 5000, 20000);
+TUNE_PARAM(ThreatCoef1, 16384, 0, 32768);
+TUNE_PARAM(ThreatCoef2, 16384, 0, 32768);
+TUNE_PARAM(ThreatCoef3, 16384, 0, 32768);
+TUNE_PARAM(ThreatCoef4, 16384, 0, 32768);
 
 // eval constants
 TUNE_PARAM(EvalScaleBias, 720, 600, 800);
@@ -200,6 +210,14 @@ TUNE_PARAM(HistoryUpdateMinDepth, 4, 2, 6);
 TUNE_PARAM(HistoryMalusMargin, 327, 250, 500);
 TUNE_PARAM(HistoryMalusBias, 337, 200, 600);
 TUNE_PARAM(HistoryMalusMax, 2564, 1800, 3000);
+
+TUNE_PARAM(FailLowContHistCoef, 64, 0, 256);
+TUNE_PARAM(FailLowHistCoef, 64, 0, 256);
+
+// corrhist constants
+TUNE_PARAM(CorrHistPawn, 1024, 0, 2048);
+TUNE_PARAM(CorrHistMat, 1024, 0, 2048);
+TUNE_PARAM(CorrHistCont, 1024, 0, 2048);
 
 // universal constants
 TUNE_PARAM(SeeValPawn, 92, 80, 120);

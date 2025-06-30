@@ -73,14 +73,14 @@ else ifneq ($(findstring generate, $(build_flag)),)
 endif
 
 %.o: %.cpp
-	$(CXX) $(BUILD_FLAGS) $(RFLAGS) -o $@ -c $<
+	$(CXX) $(BUILD_FLAGS) $(RFLAGS) -DTUNE_FLAG -o $@ -c $<
 
 # Fathom moment
 %.o: %.c
-	$(CXX) $(BUILD_FLAGS) $(RFLAGS) -o $@ -c $<
+	$(CXX) $(BUILD_FLAGS) $(RFLAGS) -DTUNE_FLAG -o $@ -c $<
 
 make: $(OBJ)
-	$(CXX) $(OBJ) $(RFLAGS) $(LIBS) $(BUILD_FLAGS) -o $(EXE)$(EXT)
+	$(CXX) $(OBJ) $(RFLAGS) $(LIBS) $(BUILD_FLAGS) -DTUNE_FLAG -o $(EXE)$(EXT)
 	make format
 
 ifeq ($(OS),Windows_NT)
