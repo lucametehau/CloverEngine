@@ -669,6 +669,17 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
                 else if (ttValue >= beta || ttValue <= alpha)
                     ex = -1 - !pvNode; // negative extensions
             }
+            else if (!stack->excluded && !played && depth >= SEDepth && eval >= beta)
+            {
+                int rBeta = beta - 2 * depth;
+
+                stack->excluded = move;
+                int score = search<false, false, cutNode>(rBeta - 1, rBeta, (depth - 1) / 2, stack);
+                stack->excluded = NULLMOVE;
+
+                if (score < rBeta)
+                    ex = 1;
+            }
             else if (in_check)
                 ex = 1;
         }
