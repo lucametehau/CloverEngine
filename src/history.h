@@ -206,10 +206,11 @@ class Histories
                                    StackEntry *stack) const
     {
         const Square to = move.get_to();
-        return QuietHistCoef * get_hist(move.get_from(), to, move.get_from_to(), turn, threats) +
-               QuietContHist1 * get_cont_hist(piece, to, stack, 1) +
-               QuietContHist2 * get_cont_hist(piece, to, stack, 2) +
-               QuietContHist4 * get_cont_hist(piece, to, stack, 4);
+        return (QuietHistCoef * get_hist(move.get_from(), to, move.get_from_to(), turn, threats) +
+                QuietContHist1 * get_cont_hist(piece, to, stack, 1) +
+                QuietContHist2 * get_cont_hist(piece, to, stack, 2) +
+                QuietContHist4 * get_cont_hist(piece, to, stack, 4)) /
+               1024;
     }
 
     void update_cap_hist_move(const Piece piece, const Square to, const int cap, const int16_t bonus)
@@ -231,11 +232,12 @@ class Histories
     const int get_corrected_eval(const int eval, const bool turn, const uint64_t pawn_key, const uint64_t white_mat_key,
                                  const uint64_t black_mat_key, StackEntry *stack) const
     {
-        int correction = get_corr_hist(turn, pawn_key) + get_mat_corr_hist(turn, WHITE, white_mat_key) +
-                         get_mat_corr_hist(turn, BLACK, black_mat_key);
+        int correction = CorrHistPawn * get_corr_hist(turn, pawn_key) +
+                         CorrHistMat * get_mat_corr_hist(turn, WHITE, white_mat_key) +
+                         CorrHistMat * get_mat_corr_hist(turn, BLACK, black_mat_key);
         if ((stack - 1)->move && (stack - 2)->move)
-            correction += get_cont_corr_hist(stack);
-        return eval + correction / 16;
+            correction += CorrHistCont * get_cont_corr_hist(stack);
+        return eval + correction / (16 * 1024);
     }
 };
 
