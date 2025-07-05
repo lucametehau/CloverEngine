@@ -462,8 +462,8 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
 
     if (!stack->excluded && !in_check && !nullSearch && (stack - 1)->eval != INF && m_board.captured() == NO_PIECE)
     {
-        int bonus =
-            std::clamp(-EvalHistCoef * ((stack - 1)->eval + static_eval), EvalHistMin, EvalHistMax) + EvalHistMargin;
+        int bonus = std::clamp<int>(-EvalHistCoef * ((stack - 1)->eval + static_eval), EvalHistMin, EvalHistMax) +
+                    EvalHistMargin;
         m_histories.update_hist_move((stack - 1)->move, (stack - 1)->threats, 1 ^ turn, bonus);
     }
 
@@ -486,7 +486,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
             /// static null move pruning (don't prune when having a mate line, again stability)
             auto snmp_margin = [&](int depth, int improving, bool improving_after_move, bool is_cutnode) {
                 return (SNMPMargin - SNMPImproving * improving) * depth -
-                       SNMPImprovingAfterMove * improving_after_move - SNMPCutNode * is_cutnode;
+                       SNMPImprovingAfterMove * improving_after_move - SNMPCutNode * is_cutnode + SNMPBase;
             };
             if (depth <= SNMPDepth && eval > beta && eval < MATE && (!ttMove || is_ttmove_noisy) &&
                 eval - snmp_margin(depth - enemy_has_no_threats, improving, improving_after_move, cutNode) > beta)
@@ -637,7 +637,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
 
                     // futility pruning for noisy moves
                     auto noisy_futility_margin = [&](int depth, Piece captured) {
-                        return FPBias + seeVal[captured] + FPMargin * depth;
+                        return FPNoisyBias + seeVal[captured] + FPNoisyMargin * depth;
                     };
                     if (depth <= FPNoisyDepth && !in_check &&
                         static_eval + noisy_futility_margin(depth + is_ttmove_noisy, m_board.get_captured_type(move)) <=
@@ -705,8 +705,6 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
             {
                 R = lmr_red[std::min(63, depth)][std::min(63, played)];
                 R += LMRWasNotPV * !was_pv;
-                R += LMRImprovingM1 * (improving == -1);
-                R += LMRImproving0 * (improving == 0);
                 R += LMRGoodEval *
                      (enemy_has_no_threats && !in_check &&
                       eval - seeVal[PieceTypes::KNIGHT] >
@@ -718,16 +716,17 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
                 R -= LMRGivesCheck * (m_board.checkers() != 0);                  // move gives check
                 R -= LMRGrain * history / HistReductionDiv;                      // reduce based on move history
             }
-            else if (!was_pv)
+            else
             {
                 R = lmr_red[std::min(63, depth)][std::min(63, played)];
-                R += LMRNoisyNotImproving * (improving <= 0); // not improving
                 R += LMRBadNoisy * (enemy_has_no_threats &&
                                     picker.trueStage == Stages::STAGE_BAD_NOISY); // if the position is relatively quiet
                                                                                   // and the capture is "very losing"
                 R -= LMRGrain * history / CapHistReductionDiv;                    // reduce based on move history
             }
 
+            R += LMRImprovingM1 * (improving == -1);               // reduce if really not improving
+            R += LMRImproving0 * (improving == 0);                 // reduce if not improving
             R -= LMRPVNode * (!rootNode && pvNode);                // reduce pv nodes
             R += LMRCutNode * cutNode;                             // reduce cutnodes aggressively
             R -= LMRWasPVHighDepth * (was_pv && ttDepth >= depth); // reduce ex pv nodes with valuable info
@@ -762,7 +761,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
         {
             if (played == 1 || score > alpha)
             {
-                new_depth += (score > best + DeeperMargin);
+                new_depth += (score > best + PVDeeperMargin);
                 score = -search<false, true, false>(-beta, -alpha, new_depth - 1, stack + 1);
                 tried_count++;
             }
@@ -839,8 +838,9 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
     if (!bestMove && m_board.captured() == NO_PIECE && !nullSearch)
     {
         m_histories.update_cont_hist_move((stack - 1)->piece, (stack - 1)->move.get_to(), stack - 1,
-                                          getHistoryBonus(depth) / 2);
-        m_histories.update_hist_move((stack - 1)->move, (stack - 1)->threats, 1 ^ turn, getHistoryBonus(depth) / 2);
+                                          getHistoryBonus(depth) * FailLowContHistCoef / 128);
+        m_histories.update_hist_move((stack - 1)->move, (stack - 1)->threats, 1 ^ turn,
+                                     getHistoryBonus(depth) * FailLowHistCoef / 128);
     }
 
     // update tt only if we aren't in a singular search
@@ -976,7 +976,7 @@ void SearchThread::iterative_deepening()
     {
         for (m_multipv = 1; m_multipv <= m_info.get_multipv(); m_multipv++)
         {
-            int window = AspirationWindosValue + m_root_scores[1] * m_root_scores[1] / 10000;
+            int window = AspirationWindosValue + m_root_scores[1] * m_root_scores[1] / AspirationWindowsDivisor;
             if (m_id_depth >= AspirationWindowsDepth)
             {
                 alpha = std::max(-INF, m_scores[m_multipv] - window);

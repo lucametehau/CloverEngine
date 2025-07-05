@@ -221,24 +221,24 @@ class Movepick
                                  (attacks::genAttacksSq(allPieces, to, pt) & enemyKingRing).count();
 
                         auto score_threats = [&](Bitboard threats_p, Bitboard threats_bn, Bitboard threats_r, Piece pt,
-                                                 Square to) {
+                                                 Square to) -> int {
                             if (threats_p.has_square(to))
                                 return QuietPawnAttackedCoef * seeVal[pt];
                             if (pt >= PieceTypes::ROOK && threats_bn.has_square(to))
-                                return 16384;
+                                return ThreatCoef1;
                             if (pt == PieceTypes::QUEEN && threats_r.has_square(to))
-                                return 16384;
+                                return ThreatCoef2;
                             return 0;
                         };
 
                         auto score_threats_dodged = [&](Bitboard threats_p, Bitboard threats_bn, Bitboard threats_r,
-                                                        Piece pt, Square from) {
+                                                        Piece pt, Square from) -> int {
                             if (threats_p.has_square(from))
                                 return QuietPawnAttackedDodgeCoef * seeVal[pt];
                             if (pt >= PieceTypes::ROOK && threats_bn.has_square(from))
-                                return 16384;
+                                return ThreatCoef3;
                             if (pt == PieceTypes::QUEEN && threats_r.has_square(from))
-                                return 16384;
+                                return ThreatCoef4;
                             return 0;
                         };
 
@@ -363,24 +363,24 @@ class Movepick
                         QuietKingRingAttackBonus * (attacks::genAttacksSq(allPieces, to, pt) & enemyKingRing).count();
 
                     auto score_threats = [&](Bitboard threats_p, Bitboard threats_bn, Bitboard threats_r, Piece pt,
-                                             Square to) {
+                                             Square to) -> int {
                         if (threats_p.has_square(to))
                             return QuietPawnAttackedCoef * seeVal[pt];
                         if (pt >= PieceTypes::ROOK && threats_bn.has_square(to))
-                            return 16384;
+                            return ThreatCoef1;
                         if (pt == PieceTypes::QUEEN && threats_r.has_square(to))
-                            return 16384;
+                            return ThreatCoef2;
                         return 0;
                     };
 
                     auto score_threats_dodged = [&](Bitboard threats_p, Bitboard threats_bn, Bitboard threats_r,
-                                                    Piece pt, Square from) {
+                                                    Piece pt, Square from) -> int {
                         if (threats_p.has_square(from))
                             return QuietPawnAttackedDodgeCoef * seeVal[pt];
                         if (pt >= PieceTypes::ROOK && threats_bn.has_square(from))
-                            return 16384;
+                            return ThreatCoef3;
                         if (pt == PieceTypes::QUEEN && threats_r.has_square(from))
-                            return 16384;
+                            return ThreatCoef4;
                         return 0;
                     };
 
