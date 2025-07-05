@@ -669,7 +669,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
                 else if (ttValue >= beta || ttValue <= alpha)
                     ex = -1 - !pvNode; // negative extensions
             }
-            else if (!stack->excluded && !played && depth >= SEDepth && eval >= beta)
+            else if (!stack->excluded && !played && !ttMove && depth >= SEDepth && eval >= beta)
             {
                 int rBeta = beta - 2 * depth;
 
