@@ -232,6 +232,14 @@ class Histories
                 get_cont_corr_hist(stack, 3).update(bonus);
             if ((stack - 4)->move)
                 get_cont_corr_hist(stack, 4).update(bonus);
+            if ((stack - 5)->move)
+                get_cont_corr_hist(stack, 5).update(bonus);
+            if ((stack - 6)->move)
+                get_cont_corr_hist(stack, 6).update(bonus);
+            if ((stack - 7)->move)
+                get_cont_corr_hist(stack, 7).update(bonus);
+            if ((stack - 8)->move)
+                get_cont_corr_hist(stack, 8).update(bonus);
         }
     }
 
@@ -248,7 +256,15 @@ class Histories
             if ((stack - 3)->move)
                 correction += CorrHistCont3 * get_cont_corr_hist(stack, 3);
             if ((stack - 4)->move)
-                correction += CorrHistCont3 * get_cont_corr_hist(stack, 4);
+                correction += CorrHistCont4 * get_cont_corr_hist(stack, 4);
+            if ((stack - 5)->move)
+                correction += CorrHistCont5 * get_cont_corr_hist(stack, 5);
+            if ((stack - 6)->move)
+                correction += CorrHistCont6 * get_cont_corr_hist(stack, 6);
+            if ((stack - 7)->move)
+                correction += CorrHistCont7 * get_cont_corr_hist(stack, 7);
+            if ((stack - 8)->move)
+                correction += CorrHistCont8 * get_cont_corr_hist(stack, 8);
         }
         return eval + correction / (16 * 1024);
     }

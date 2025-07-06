@@ -218,6 +218,11 @@ TUNE_PARAM(CorrHistPawn, 974, 0, 2048);
 TUNE_PARAM(CorrHistMat, 1133, 0, 2048);
 TUNE_PARAM(CorrHistCont2, 882, 0, 2048);
 TUNE_PARAM(CorrHistCont3, 882, 0, 2048);
+TUNE_PARAM(CorrHistCont4, 882, 0, 2048);
+TUNE_PARAM(CorrHistCont5, 882, 0, 2048);
+TUNE_PARAM(CorrHistCont6, 882, 0, 2048);
+TUNE_PARAM(CorrHistCont7, 882, 0, 2048);
+TUNE_PARAM(CorrHistCont8, 882, 0, 2048);
 
 // universal constants
 TUNE_PARAM(SeeValPawn, 93, 80, 120);
