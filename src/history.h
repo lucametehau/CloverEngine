@@ -224,8 +224,13 @@ class Histories
         get_corr_hist(turn, pawn_key).update(bonus);
         get_mat_corr_hist(turn, WHITE, white_mat_key).update(bonus);
         get_mat_corr_hist(turn, BLACK, black_mat_key).update(bonus);
-        if ((stack - 1)->move && (stack - 2)->move)
-            get_cont_corr_hist(stack, 2).update(bonus);
+        if ((stack - 1)->move)
+        {
+            if ((stack - 2)->move)
+                get_cont_corr_hist(stack, 2).update(bonus);
+            if ((stack - 3)->move)
+                get_cont_corr_hist(stack, 3).update(bonus);
+        }
     }
 
     const int get_corrected_eval(const int eval, const bool turn, const uint64_t pawn_key, const uint64_t white_mat_key,
@@ -234,8 +239,13 @@ class Histories
         int correction = CorrHistPawn * get_corr_hist(turn, pawn_key) +
                          CorrHistMat * get_mat_corr_hist(turn, WHITE, white_mat_key) +
                          CorrHistMat * get_mat_corr_hist(turn, BLACK, black_mat_key);
-        if ((stack - 1)->move && (stack - 2)->move)
-            correction += CorrHistCont * get_cont_corr_hist(stack, 2);
+        if ((stack - 1)->move)
+        {
+            if ((stack - 2)->move)
+                correction += CorrHistCont2 * get_cont_corr_hist(stack, 2);
+            if ((stack - 3)->move)
+                correction += CorrHistCont3 * get_cont_corr_hist(stack, 3);
+        }
         return eval + correction / (16 * 1024);
     }
 };
