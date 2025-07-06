@@ -276,11 +276,9 @@ class Network
                 regs[i] = reg_load(&reg_in[i]);
 
             const reg_type *reg1 = reinterpret_cast<const reg_type *>(&input_weights1[offset]);
-            for (int i = 0; i < UNROLL_LENGTH; i++)
-                regs[i] = reg_sub16(regs[i], reg1[i]);
             const reg_type *reg2 = reinterpret_cast<const reg_type *>(&input_weights2[offset]);
             for (int i = 0; i < UNROLL_LENGTH; i++)
-                regs[i] = reg_add16(regs[i], reg2[i]);
+                regs[i] = reg_add16(regs[i], reg_sub16(reg2[i], reg1[i]));
 
             if constexpr (sub3)
             {
