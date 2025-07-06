@@ -230,6 +230,8 @@ class Histories
                 get_cont_corr_hist(stack, 2).update(bonus);
             if ((stack - 3)->move)
                 get_cont_corr_hist(stack, 3).update(bonus);
+            if ((stack - 4)->move)
+                get_cont_corr_hist(stack, 4).update(bonus);
         }
     }
 
@@ -245,6 +247,8 @@ class Histories
                 correction += CorrHistCont2 * get_cont_corr_hist(stack, 2);
             if ((stack - 3)->move)
                 correction += CorrHistCont3 * get_cont_corr_hist(stack, 3);
+            if ((stack - 4)->move)
+                correction += CorrHistCont3 * get_cont_corr_hist(stack, 4);
         }
         return eval + correction / (16 * 1024);
     }
