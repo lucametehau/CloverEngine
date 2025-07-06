@@ -77,6 +77,7 @@ class StackEntry
     int eval;
     int R; // reduction
     MultiArray<History<16384>, 13, 64> *cont_hist;
+    MultiArray<CorrectionHistory, 13, 64> *cont_corr_hist;
     Bitboard threats;
 };
 
@@ -87,10 +88,10 @@ class Histories
     MultiArray<History<16384>, 12, 64, 7> cap_hist;
     MultiArray<CorrectionHistory, 2, CORR_HIST_SIZE> corr_hist;
     MultiArray<CorrectionHistory, 2, 2, CORR_HIST_SIZE> mat_corr_hist;
-    MultiArray<CorrectionHistory, 12, 64, 12, 64> cont_corr_hist;
 
   public:
     MultiArray<History<16384>, 2, 13, 64, 13, 64> cont_history;
+    MultiArray<CorrectionHistory, 13, 64, 13, 64> cont_corr_hist;
 
   public:
     void clear_history()
@@ -100,7 +101,7 @@ class Histories
         fill_multiarray<History<16384>, 2, 13, 64, 13, 64>(cont_history, 0);
         fill_multiarray<CorrectionHistory, 2, CORR_HIST_SIZE>(corr_hist, CorrectionHistory(0));
         fill_multiarray<CorrectionHistory, 2, 2, CORR_HIST_SIZE>(mat_corr_hist, CorrectionHistory(0));
-        fill_multiarray<CorrectionHistory, 12, 64, 12, 64>(cont_corr_hist, CorrectionHistory(0));
+        fill_multiarray<CorrectionHistory, 13, 64, 13, 64>(cont_corr_hist, CorrectionHistory(0));
     }
 
     Histories()
@@ -160,16 +161,14 @@ class Histories
         return mat_corr_hist[turn][side][mat_key & CORR_HIST_MASK];
     }
 
-    CorrectionHistory &get_cont_corr_hist(StackEntry *stack)
+    CorrectionHistory &get_cont_corr_hist(StackEntry *stack, const int delta)
     {
-        return cont_corr_hist[(stack - 1)->piece][(stack - 1)->move.get_to()][(stack - 2)->piece]
-                             [(stack - 2)->move.get_to()];
+        return (*(stack - delta)->cont_corr_hist)[(stack - 1)->piece][(stack - 1)->move.get_to()];
     }
 
-    const CorrectionHistory get_cont_corr_hist(StackEntry *stack) const
+    const CorrectionHistory get_cont_corr_hist(StackEntry *stack, const int delta) const
     {
-        return cont_corr_hist[(stack - 1)->piece][(stack - 1)->move.get_to()][(stack - 2)->piece]
-                             [(stack - 2)->move.get_to()];
+        return (*(stack - delta)->cont_corr_hist)[(stack - 1)->piece][(stack - 1)->move.get_to()];
     }
 
     void update_cont_hist_move(const Piece piece, const Square to, StackEntry *stack, const int16_t bonus)
@@ -226,7 +225,7 @@ class Histories
         get_mat_corr_hist(turn, WHITE, white_mat_key).update(bonus);
         get_mat_corr_hist(turn, BLACK, black_mat_key).update(bonus);
         if ((stack - 1)->move && (stack - 2)->move)
-            get_cont_corr_hist(stack).update(bonus);
+            get_cont_corr_hist(stack, 2).update(bonus);
     }
 
     const int get_corrected_eval(const int eval, const bool turn, const uint64_t pawn_key, const uint64_t white_mat_key,
@@ -236,7 +235,7 @@ class Histories
                          CorrHistMat * get_mat_corr_hist(turn, WHITE, white_mat_key) +
                          CorrHistMat * get_mat_corr_hist(turn, BLACK, black_mat_key);
         if ((stack - 1)->move && (stack - 2)->move)
-            correction += CorrHistCont * get_cont_corr_hist(stack);
+            correction += CorrHistCont * get_cont_corr_hist(stack, 2);
         return eval + correction / (16 * 1024);
     }
 };
