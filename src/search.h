@@ -563,6 +563,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
                     -see_depth_coef * depth, m_board.threats());
 
     Move move;
+    bool is_likely_fail_low = ttHit && ttDepth >= depth - 3 && ttBound == TTBounds::UPPER;
 
     while ((move = picker.get_next_move(m_histories, stack, m_board, skip)) != NULLMOVE)
     {
@@ -675,7 +676,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
             else if (in_check)
                 ex = 1;
         }
-        else if (allNode && played >= 1 && ttDepth >= depth - 3 && ttBound == TTBounds::UPPER)
+        else if (allNode && played >= 1 && is_likely_fail_low)
             ex = -1;
 
         /// update stack info
@@ -795,14 +796,14 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
                 {
                     const int bonus = getHistoryBonus(depth + bad_static_eval + (cutNode && depth <= 3));
                     const int malus = getHistoryMalus(depth + bad_static_eval + (cutNode && depth <= 3) + allNode);
-                    if (!m_board.is_noisy_move(bestMove))
+                    if (!m_board.is_noisy_move(move))
                     {
-                        stack->killer = bestMove;
-                        m_kp_move[turn][m_board.king_pawn_key() & KP_MOVE_MASK] = bestMove;
+                        stack->killer = move;
+                        m_kp_move[turn][m_board.king_pawn_key() & KP_MOVE_MASK] = move;
                         if (nr_quiets || depth >= HistoryUpdateMinDepth)
-                            m_histories.update_hist_quiet_move(bestMove, m_board.piece_at(bestMove.get_from()),
+                            m_histories.update_hist_quiet_move(move, m_board.piece_at(move.get_from()),
                                                                m_board.threats().all_threats, turn, stack,
-                                                               bonus * tried_count);
+                                                               bonus * (tried_count + is_likely_fail_low));
                         for (int i = 0; i < nr_quiets; i++)
                         {
                             const auto [move, tried_count] = quiets[i];
@@ -813,8 +814,8 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
                     }
                     else
                     {
-                        m_histories.update_cap_hist_move(m_board.piece_at(bestMove.get_from()), bestMove.get_to(),
-                                                         m_board.get_captured_type(bestMove), bonus * tried_count);
+                        m_histories.update_cap_hist_move(m_board.piece_at(move.get_from()), move.get_to(),
+                                                         m_board.get_captured_type(move), bonus * tried_count);
                     }
                     for (int i = 0; i < nr_noisies; i++)
                     {
