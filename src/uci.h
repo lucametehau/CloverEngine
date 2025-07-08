@@ -133,6 +133,7 @@ void UCI::uci_loop()
                     }
                 }
             }
+            TT->set_piece_count(thread_pool.get_board().get_piece_count());
         }
         else if (cmd == "ucinewgame")
         {

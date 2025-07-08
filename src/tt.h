@@ -36,8 +36,9 @@ struct Entry
     int16_t score;
     int16_t eval;
     Move move;
+    uint8_t piece_count;
 
-    Entry() : hash(0), about(0), score(0), eval(0), move(NULLMOVE)
+    Entry() : hash(0), about(0), score(0), eval(0), move(NULLMOVE), piece_count(0)
     {
     }
 
@@ -78,12 +79,16 @@ struct Entry
     {
         return (64 + tt_generation - generation()) & 63;
     }
+
+    bool has_more_pieces(const int piece_count) const
+    {
+        return this->piece_count > piece_count;
+    }
 };
 
 struct Bucket
 {
     std::array<Entry, BUCKET_COUNT> entries;
-    char padding[2];
 
     Bucket()
     {
@@ -91,13 +96,14 @@ struct Bucket
     }
 };
 
-static_assert(sizeof(Bucket) == 32);
+static_assert(sizeof(Bucket) == 36);
 
 class HashTable
 {
   public:
     Bucket *table;
     uint64_t buckets;
+    int piece_count;
 
   private:
     int generation = 0;
@@ -115,9 +121,12 @@ class HashTable
 
     Entry *probe(const uint64_t hash, bool &ttHit);
 
-    void save(Entry *entry, uint64_t hash, int score, int depth, int ply, int bound, Move move, int eval, bool was_pv);
+    void save(Entry *entry, uint64_t hash, int score, int depth, int ply, int bound, Move move, int eval, bool was_pv,
+              uint8_t piece_count);
 
     void age();
+
+    void set_piece_count(int piece_count);
 
     int hashfull();
 };
@@ -129,6 +138,7 @@ HashTable *TT; /// shared hash table
 HashTable::HashTable()
 {
     buckets = 0;
+    piece_count = 32;
 }
 
 HashTable::~HashTable()
@@ -227,7 +237,7 @@ Entry *HashTable::probe(const uint64_t hash, bool &ttHit)
 }
 
 void HashTable::save(Entry *entry, uint64_t hash, int score, int depth, int ply, int bound, Move move, int eval,
-                     bool was_pv)
+                     bool was_pv, uint8_t piece_count)
 {
     if (score != VALUE_NONE)
     {
@@ -243,18 +253,24 @@ void HashTable::save(Entry *entry, uint64_t hash, int score, int depth, int ply,
         entry->move = move;
 
     if (bound == TTBounds::EXACT || hash16 != entry->hash || entry->generation_diff(generation) ||
-        depth + 3 + 2 * was_pv >= entry->depth())
+        depth + 3 + 2 * was_pv >= entry->depth() || entry->has_more_pieces(piece_count))
     {
         entry->hash = hash16;
         entry->score = score;
         entry->eval = eval;
         entry->about = uint16_t(bound | (depth << 2) | (was_pv << 9) | (generation << 10));
+        entry->piece_count = piece_count;
     }
 }
 
 void HashTable::age()
 {
     generation = (generation + 1) & 63;
+}
+
+void HashTable::set_piece_count(int piece_count)
+{
+    piece_count = piece_count;
 }
 
 int HashTable::hashfull()

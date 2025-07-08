@@ -128,6 +128,11 @@ class Board
         return get_bb_piece(piece_type, WHITE) | get_bb_piece(piece_type, BLACK);
     }
 
+    uint8_t get_piece_count() const
+    {
+        return (get_bb_color(WHITE) | get_bb_color(BLACK)).count();
+    }
+
     Bitboard diagonal_sliders(const bool color)
     {
         return get_bb_piece(PieceTypes::BISHOP, color) | get_bb_piece(PieceTypes::QUEEN, color);

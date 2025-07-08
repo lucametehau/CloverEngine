@@ -203,7 +203,7 @@ template <bool pvNode> int SearchThread::quiesce(int alpha, int beta, StackEntry
         if (abs(best) < MATE && abs(beta) < MATE)
             best = (best + beta) / 2;
         if (!ttHit)
-            TT->save(entry, key, best, 0, ply, TTBounds::LOWER, NULLMOVE, raw_eval, was_pv);
+            TT->save(entry, key, best, 0, ply, TTBounds::LOWER, NULLMOVE, raw_eval, was_pv, m_board.get_piece_count());
         return best;
     }
 
@@ -287,7 +287,7 @@ template <bool pvNode> int SearchThread::quiesce(int alpha, int beta, StackEntry
 
     // store info in transposition table
     ttBound = best >= beta ? TTBounds::LOWER : TTBounds::UPPER;
-    TT->save(entry, key, best, 0, ply, ttBound, bestMove, raw_eval, was_pv);
+    TT->save(entry, key, best, 0, ply, ttBound, bestMove, raw_eval, was_pv, m_board.get_piece_count());
 
     return best;
 }
@@ -385,7 +385,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
 
             if (ttBound & (score >= beta ? TTBounds::LOWER : TTBounds::UPPER))
             {
-                TT->save(entry, key, score, MAX_DEPTH, 0, ttBound, NULLMOVE, 0, was_pv);
+                TT->save(entry, key, score, MAX_DEPTH, 0, ttBound, NULLMOVE, 0, was_pv, 0);
                 return score;
             }
         }
@@ -409,7 +409,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
             raw_eval = evaluate(m_board, NN);
             stack->eval = eval =
                 m_histories.get_corrected_eval(raw_eval, turn, pawn_key, white_mat_key, black_mat_key, stack);
-            TT->save(entry, key, VALUE_NONE, 0, ply, 0, NULLMOVE, raw_eval, was_pv);
+            TT->save(entry, key, VALUE_NONE, 0, ply, 0, NULLMOVE, raw_eval, was_pv, m_board.get_piece_count());
         }
     }
     else
@@ -545,7 +545,8 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
                     if (score >= probcut_beta)
                     {
                         if (!stack->excluded)
-                            TT->save(entry, key, score, depth - 3, ply, TTBounds::LOWER, move, raw_eval, was_pv);
+                            TT->save(entry, key, score, depth - 3, ply, TTBounds::LOWER, move, raw_eval, was_pv,
+                                     m_board.get_piece_count());
                         return score;
                     }
                 }
@@ -856,7 +857,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
             !(ttBound == TTBounds::UPPER && best >= static_eval))
             m_histories.update_corr_hist(turn, pawn_key, white_mat_key, black_mat_key, stack, depth,
                                          best - static_eval);
-        TT->save(entry, key, best, depth, ply, ttBound, bestMove, raw_eval, was_pv);
+        TT->save(entry, key, best, depth, ply, ttBound, bestMove, raw_eval, was_pv, m_board.get_piece_count());
     }
 
     return best;
