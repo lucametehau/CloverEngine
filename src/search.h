@@ -703,38 +703,38 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
         uint64_t nodes_previously = m_nodes;
         int score = -INF, tried_count = 0;
 
+        // late move reductions
         if (depth >= 2 && played > 1 + pvNode + rootNode)
-        { // first few moves we don't reduce
+        {
+            R = lmr_red[std::min(63, depth)][std::min(63, played)];
             if (is_quiet)
             {
-                R = lmr_red[std::min(63, depth)][std::min(63, played)];
                 R += LMRWasNotPV * !was_pv;
-                R += LMRGoodEval *
-                     (enemy_has_no_threats && !in_check &&
-                      eval - seeVal[PieceTypes::KNIGHT] >
-                          beta); // if the position is relatively quiet and eval is bigger than beta by a margin
-                R += LMREvalDifference *
-                     (enemy_has_no_threats && !in_check && static_eval - m_root_eval > EvalDifferenceReductionMargin &&
-                      ply % 2 == 0); /// the position in quiet and static eval is way bigger than root eval
-                R -= LMRRefutation * (picker.trueStage == Stages::STAGE_KILLER); // reduce for refutation moves
-                R -= LMRGivesCheck * (m_board.checkers() != 0);                  // move gives check
-                R -= LMRGrain * history / HistReductionDiv;                      // reduce based on move history
+                R -= LMRGivesCheck * (m_board.checkers() != 0); // move gives check
+                R -= LMRGrain * history / HistReductionDiv;     // reduce based on move history
             }
             else
             {
-                R = lmr_red[std::min(63, depth)][std::min(63, played)];
-                R += LMRBadNoisy * (enemy_has_no_threats &&
-                                    picker.trueStage == Stages::STAGE_BAD_NOISY); // if the position is relatively quiet
-                                                                                  // and the capture is "very losing"
-                R -= LMRGrain * history / CapHistReductionDiv;                    // reduce based on move history
+                R -= LMRGrain * history / CapHistReductionDiv; // reduce based on move history
             }
 
-            R += LMRImprovingM1 * (improving == -1);               // reduce if really not improving
-            R += LMRImproving0 * (improving == 0);                 // reduce if not improving
-            R -= LMRPVNode * (!rootNode && pvNode);                // reduce pv nodes
-            R += LMRCutNode * cutNode;                             // reduce cutnodes aggressively
-            R -= LMRWasPVHighDepth * (was_pv && ttDepth >= depth); // reduce ex pv nodes with valuable info
-            R += LMRTTMoveNoisy * is_ttmove_noisy;                 // reduce if ttmove is noisy
+            R += LMRGoodEval *
+                 (enemy_has_no_threats && !in_check &&
+                  eval - seeVal[PieceTypes::KNIGHT] >
+                      beta); // if the position is relatively quiet and eval is bigger than beta by a margin
+            R += LMREvalDifference *
+                 (enemy_has_no_threats && !in_check && static_eval - m_root_eval > EvalDifferenceReductionMargin &&
+                  ply % 2 == 0); /// the position in quiet and static eval is way bigger than root eval
+            R -= LMRRefutation * (is_quiet && picker.trueStage == Stages::STAGE_KILLER); // reduce for refutation moves
+            R += LMRBadNoisy * (enemy_has_no_threats &&
+                                picker.trueStage == Stages::STAGE_BAD_NOISY); // if the position is relatively quiet
+                                                                              // and the capture is "very losing"
+            R += LMRImprovingM1 * (improving == -1);                          // reduce if really not improving
+            R += LMRImproving0 * (improving == 0);                            // reduce if not improving
+            R -= LMRPVNode * (!rootNode && pvNode);                           // reduce pv nodes
+            R += LMRCutNode * cutNode;                                        // reduce cutnodes aggressively
+            R -= LMRWasPVHighDepth * (was_pv && ttDepth >= depth);            // reduce ex pv nodes with valuable info
+            R += LMRTTMoveNoisy * is_ttmove_noisy;                            // reduce if ttmove is noisy
             R +=
                 LMRBadStaticEval * (enemy_has_no_threats && !in_check && static_eval + LMRBadStaticEvalMargin <= alpha);
             R -= LMRGrain * std::abs(raw_eval - static_eval) / LMRCorrectionDivisor;
