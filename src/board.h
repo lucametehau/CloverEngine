@@ -27,7 +27,7 @@ class HistoricalState
     Piece captured;
     uint16_t halfMoves, moveIndex;
     Bitboard checkers, pinnedPieces;
-    uint64_t key, pawn_key, mat_key[2];
+    uint64_t key, pawn_key, mat_key[2], minor_key;
     Threats threats;
 
     HistoricalState *prev;
@@ -82,6 +82,11 @@ class Board
     {
         return state->mat_key[color];
     }
+    uint64_t &minor_key()
+    {
+        return state->minor_key;
+    }
+
     Bitboard &checkers()
     {
         return state->checkers;
@@ -90,6 +95,7 @@ class Board
     {
         return state->pinnedPieces;
     }
+
     Square &enpas()
     {
         return state->enPas;
@@ -350,11 +356,17 @@ class Board
         board[from] = NO_PIECE;
         board[to] = piece;
 
-        key() ^= hashKey[piece][from] ^ hashKey[piece][to];
+        const uint64_t hash_delta = hashKey[piece][from] ^ hashKey[piece][to];
+
+        key() ^= hash_delta;
         if (pt == PieceTypes::PAWN)
-            pawn_key() ^= hashKey[piece][from] ^ hashKey[piece][to];
+            pawn_key() ^= hash_delta;
         else
-            mat_key(piece.color()) ^= hashKey[piece][from] ^ hashKey[piece][to];
+        {
+            mat_key(piece.color()) ^= hash_delta;
+            if (pt <= PieceTypes::BISHOP)
+                minor_key() ^= hash_delta;
+        }
 
         pieces[piece.color()] ^= (1ull << from) ^ (1ull << to);
         bb[piece] ^= (1ULL << from) ^ (1ull << to);
@@ -367,7 +379,11 @@ class Board
         if (piece.type() == PieceTypes::PAWN)
             pawn_key() ^= hashKey[piece][sq];
         else
+        {
             mat_key(piece.color()) ^= hashKey[piece][sq];
+            if (piece.type() <= PieceTypes::BISHOP)
+                minor_key() ^= hashKey[piece][sq];
+        }
 
         pieces[piece.color()] |= (1ULL << sq);
         bb[piece] |= (1ULL << sq);
@@ -387,6 +403,8 @@ class Board
             mat_key(color) ^= hashKey[piece][sq];
             if (pt == PieceTypes::ROOK && (sq == rook_sq(color, 0) || sq == rook_sq(color, 1)))
                 rook_sq(color, get_king(color) < sq) = NO_SQUARE;
+            else if (pt <= PieceTypes::BISHOP)
+                minor_key() ^= hashKey[piece][sq];
         }
 
         pieces[color] ^= (1ull << sq);
