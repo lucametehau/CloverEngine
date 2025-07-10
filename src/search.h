@@ -363,7 +363,11 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
         {
             if (score != VALUE_NONE && ttDepth >= depth &&
                 (ttBound & (score >= beta ? TTBounds::LOWER : TTBounds::UPPER)))
+            {
+                if (!m_board.is_noisy_move(ttMove) && ttMove && score >= beta)
+                    m_histories.update_hist_move(ttMove, m_board.threats().all_threats, turn, getHistoryBonus(depth));
                 return score;
+            }
         }
     }
 
