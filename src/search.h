@@ -612,7 +612,10 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
 
                     // late move pruning
                     if (new_depth <= LMPDepth && played >= (LMPBias + new_depth * new_depth) / (2 - improving))
+                    {
                         skip = 1;
+                        continue;
+                    }
 
                     // history pruning
                     auto history_margin = [&](int depth) { return -HistoryPruningMargin * depth; };
