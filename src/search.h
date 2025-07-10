@@ -451,6 +451,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
     const bool is_ttmove_noisy = ttMove && m_board.is_noisy_move(ttMove);
     const bool bad_static_eval = static_eval <= alpha;
 
+    (stack + 2)->cutoff_cnt = 0;
     (stack + 1)->killer = NULLMOVE;
     stack->threats = m_board.threats().all_threats;
 
@@ -733,6 +734,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
                 LMRBadStaticEval * (enemy_has_no_threats && !in_check && static_eval + LMRBadStaticEvalMargin <= alpha);
             R -= LMRGrain * std::abs(raw_eval - static_eval) / LMRCorrectionDivisor;
             R += (LMRFailLowPV + LMRFailLowPVHighDepth * (ttDepth > depth)) * (was_pv && ttValue <= alpha && ttHit);
+            R += LMRCutoffCount * (stack->cutoff_cnt > 3); // reduce if we had a lot of cutoffs
 
             R /= LMRGrain;
 
@@ -789,6 +791,8 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
                 {
                     const int bonus = getHistoryBonus(depth + bad_static_eval + (cutNode && depth <= 3));
                     const int malus = getHistoryMalus(depth + bad_static_eval + (cutNode && depth <= 3) + allNode);
+
+                    stack->cutoff_cnt++;
                     if (!m_board.is_noisy_move(bestMove))
                     {
                         stack->killer = bestMove;
