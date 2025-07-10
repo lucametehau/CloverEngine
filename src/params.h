@@ -89,6 +89,7 @@ TUNE_PARAM(NMPEvalMargin, 32, 20, 40);
 TUNE_PARAM(NMPReduction, 4, 3, 5);
 TUNE_PARAM(NMPDepthDiv, 3, 3, 5);
 TUNE_PARAM(NMPEvalDiv, 134, 120, 150);
+TUNE_PARAM(NMPHindsightMargin, 100, 1, 200);
 
 TUNE_PARAM(ProbcutMargin, 182, 100, 300);
 TUNE_PARAM(ProbcutDepth, 4, 3, 7);
