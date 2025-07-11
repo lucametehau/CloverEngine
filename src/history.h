@@ -143,22 +143,22 @@ class Histories
         return cap_hist[piece][to][cap];
     }
 
-    CorrectionHistory &get_corr_hist(const bool turn, const uint64_t pawn_key)
+    CorrectionHistory &get_corr_hist(const bool turn, const Key pawn_key)
     {
         return corr_hist[turn][pawn_key & CORR_HIST_MASK];
     }
 
-    const CorrectionHistory get_corr_hist(const bool turn, const uint64_t pawn_key) const
+    const CorrectionHistory get_corr_hist(const bool turn, const Key pawn_key) const
     {
         return corr_hist[turn][pawn_key & CORR_HIST_MASK];
     }
 
-    CorrectionHistory &get_mat_corr_hist(const bool turn, const bool side, const uint64_t mat_key)
+    CorrectionHistory &get_mat_corr_hist(const bool turn, const bool side, const Key mat_key)
     {
         return mat_corr_hist[turn][side][mat_key & CORR_HIST_MASK];
     }
 
-    const CorrectionHistory get_mat_corr_hist(const bool turn, const bool side, const uint64_t mat_key) const
+    const CorrectionHistory get_mat_corr_hist(const bool turn, const bool side, const Key mat_key) const
     {
         return mat_corr_hist[turn][side][mat_key & CORR_HIST_MASK];
     }
@@ -219,8 +219,8 @@ class Histories
         get_cap_hist(piece, to, cap).update(bonus);
     }
 
-    void update_corr_hist(const bool turn, const uint64_t pawn_key, const uint64_t white_mat_key,
-                          const uint64_t black_mat_key, StackEntry *stack, const int depth, const int delta)
+    void update_corr_hist(const bool turn, const Key pawn_key, const Key white_mat_key, const Key black_mat_key,
+                          StackEntry *stack, const int depth, const int delta)
     {
         const int bonus = std::clamp(delta * depth / 8, -256, 256);
         get_corr_hist(turn, pawn_key).update(bonus);
@@ -237,8 +237,8 @@ class Histories
         }
     }
 
-    const int get_corrected_eval(const int eval, const bool turn, const uint64_t pawn_key, const uint64_t white_mat_key,
-                                 const uint64_t black_mat_key, StackEntry *stack) const
+    const int get_corrected_eval(const int eval, const bool turn, const Key pawn_key, const Key white_mat_key,
+                                 const Key black_mat_key, StackEntry *stack) const
     {
         int correction = CorrHistPawn * get_corr_hist(turn, pawn_key) +
                          CorrHistMat * get_mat_corr_hist(turn, WHITE, white_mat_key) +

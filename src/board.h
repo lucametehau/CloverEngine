@@ -27,7 +27,7 @@ class HistoricalState
     Piece captured;
     uint16_t halfMoves, moveIndex;
     Bitboard checkers, pinnedPieces;
-    uint64_t key, pawn_key, mat_key[2];
+    Key key, pawn_key, mat_key[2];
     Threats threats;
 
     HistoricalState *prev;
@@ -65,20 +65,20 @@ class Board
         }
     }
 
-    uint64_t &key()
+    Key &key()
     {
         return state->key;
     }
-    uint64_t &pawn_key()
+    Key &pawn_key()
     {
         return state->pawn_key;
     }
-    uint64_t king_pawn_key()
+    Key king_pawn_key()
     {
         return state->pawn_key ^ hashKey[Pieces::WhiteKing][get_king(WHITE)] ^
                hashKey[Pieces::BlackKing][get_king(BLACK)];
     }
-    uint64_t &mat_key(const bool color)
+    Key &mat_key(const bool color)
     {
         return state->mat_key[color];
     }
@@ -350,11 +350,12 @@ class Board
         board[from] = NO_PIECE;
         board[to] = piece;
 
-        key() ^= hashKey[piece][from] ^ hashKey[piece][to];
+        const Key hash_delta = hashKey[piece][from] ^ hashKey[piece][to];
+        key() ^= hash_delta;
         if (pt == PieceTypes::PAWN)
-            pawn_key() ^= hashKey[piece][from] ^ hashKey[piece][to];
+            pawn_key() ^= hash_delta;
         else
-            mat_key(piece.color()) ^= hashKey[piece][from] ^ hashKey[piece][to];
+            mat_key(piece.color()) ^= hash_delta;
 
         pieces[piece.color()] ^= (1ull << from) ^ (1ull << to);
         bb[piece] ^= (1ULL << from) ^ (1ull << to);
@@ -399,7 +400,7 @@ class Board
 
     std::string fen();
 
-    uint64_t speculative_next_key(const Move move)
+    Key speculative_next_key(const Move move)
     {
         const int from = move.get_from(), to = move.get_to();
         const Piece piece = piece_at(from);
@@ -446,7 +447,7 @@ class Board
     {
         const Bitboard all_pieces = get_bb_color(WHITE) | get_bb_color(BLACK);
         HistoricalState *temp_state = state->prev;
-        uint64_t b = ~(key() ^ temp_state->key);
+        Key b = ~(key() ^ temp_state->key);
         for (int i = 3; i <= half_moves() && i <= game_ply; i += 2)
         {
             assert(temp_state->prev->prev);
@@ -454,7 +455,7 @@ class Board
             b ^= ~(temp_state->next->key ^ temp_state->key);
             if (b)
                 continue;
-            const uint64_t key_delta = key() ^ temp_state->key;
+            const Key key_delta = key() ^ temp_state->key;
             int cuckoo_ind = cuckoo::hash1(key_delta);
 
             if (cuckoo::cuckoo[cuckoo_ind] != key_delta)

@@ -62,9 +62,11 @@ void fill_multiarray(MultiArray<typename MultiArray_impl<T, sizes...>::type, siz
         fill_multiarray<T, sizes...>(array[i], value);
 }
 
+typedef uint64_t Key;
+
 struct Threats
 {
-    Bitboard threats_pieces[4];
+    std::array<Bitboard, 4> threats_pieces;
     Bitboard all_threats;
     Bitboard threatened_pieces;
 };
@@ -122,10 +124,10 @@ constexpr int STACK_SIZE = MAX_DEPTH + 5;
 inline const std::string START_POS_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 inline std::map<char, Piece> cod;
-inline MultiArray<uint64_t, 12, 64> hashKey;
-inline MultiArray<uint64_t, 2, 2> castleKey;
-inline std::array<uint64_t, 64> enPasKey;
-inline std::array<uint64_t, 16> castleKeyModifier;
+inline MultiArray<Key, 12, 64> hashKey;
+inline MultiArray<Key, 2, 2> castleKey;
+inline std::array<Key, 64> enPasKey;
+inline std::array<Key, 16> castleKeyModifier;
 
 inline MultiArray<Bitboard, 64, 64> between_mask, line_mask;
 
@@ -173,7 +175,7 @@ inline int16_t net_index(Piece piece, Square sq, Square kingSq, bool side)
            (sq.mirror(side) ^ (7 * ((kingSq >> 2) & 1))); // kingSq should be ^7, if kingSq&7 >= 4
 }
 
-inline uint64_t castle_rights_key(MultiArray<Square, 2, 2> &rook_sq)
+inline Key castle_rights_key(MultiArray<Square, 2, 2> &rook_sq)
 {
     return (castleKey[BLACK][0] * (rook_sq[BLACK][0] != NO_SQUARE)) ^
            (castleKey[BLACK][1] * (rook_sq[BLACK][1] != NO_SQUARE)) ^
@@ -211,9 +213,9 @@ inline void init_defs()
     cod['R'] = Pieces::WhiteRook, cod['Q'] = Pieces::WhiteQueen, cod['K'] = Pieces::WhiteKing;
 
     /// zobrist keys
-    for (Piece i = Pieces::BlackPawn; i <= Pieces::WhiteKing; i++)
+    for (auto i = Pieces::BlackPawn; i <= Pieces::WhiteKing; i++)
     {
-        for (Square j = 0; j < 64; j++)
+        for (auto j = Squares::A1; j <= Squares::H8; j++)
             hashKey[i][j] = rng(gen);
     }
 

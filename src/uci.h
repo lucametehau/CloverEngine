@@ -339,37 +339,21 @@ void UCI::go(std::istringstream &iss, Info &info)
     while (iss >> param)
     {
         if (param == "binc" && turn == BLACK)
-        {
             iss >> inc;
-        }
         else if (param == "winc" && turn == WHITE)
-        {
             iss >> inc;
-        }
         else if (param == "wtime" && turn == WHITE)
-        {
             iss >> time;
-        }
         else if (param == "btime" && turn == BLACK)
-        {
             iss >> time;
-        }
         else if (param == "movetime")
-        {
             iss >> movetime;
-        }
         else if (param == "depth")
-        {
             iss >> depth;
-        }
         else if (param == "nodes")
-        {
             iss >> nodes;
-        }
         else if (param == "san")
-        {
             info.set_san_mode();
-        }
     }
 
     if (movetime != -1)

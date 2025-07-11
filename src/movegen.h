@@ -23,7 +23,7 @@
 #include <iomanip>
 
 void Board::make_move(const Move move, HistoricalState &next_state)
-{ /// assuming move is at least pseudo-legal
+{
     Square from = move.get_from(), to = move.get_to();
     Piece piece = piece_at(from), piece_cap = piece_at(to);
 
@@ -685,10 +685,10 @@ bool is_legal(Board &board, Move move)
     {
         if (from != king || board.checkers())
             return 0;
-        bool side = (to > from); /// queen side or king side
+        bool side = to > from;
 
         if (board.rook_sq(us, side) != NO_SQUARE)
-        { /// can i castle
+        {
             const Square rFrom = to, rTo = (side ? Squares::F1 : Squares::D1).mirror(us);
             to = (side ? Squares::G1 : Squares::C1).mirror(us);
             Bitboard mask = between_mask[from][to] | Bitboard(to);

@@ -142,7 +142,7 @@ template <bool pvNode> int SearchThread::quiesce(int alpha, int beta, StackEntry
     if (check_for_stop<false>())
         return evaluate(m_board, NN);
 
-    const uint64_t key = m_board.key();
+    const Key key = m_board.key();
     const bool turn = m_board.turn;
     int score = INF, best = -INF;
     int ttBound = NONE;
@@ -307,8 +307,8 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
     const bool nullSearch = (stack - 1)->move == NULLMOVE;
     const int previous_R = (stack - 1)->R;
     const int original_alpha = alpha;
-    const uint64_t key = m_board.key(), pawn_key = m_board.pawn_key(), white_mat_key = m_board.mat_key(WHITE),
-                   black_mat_key = m_board.mat_key(BLACK);
+    const Key key = m_board.key(), pawn_key = m_board.pawn_key(), white_mat_key = m_board.mat_key(WHITE),
+              black_mat_key = m_board.mat_key(BLACK);
     const bool turn = m_board.turn;
 
     std::array<SearchMove, 32> noisies, quiets;
