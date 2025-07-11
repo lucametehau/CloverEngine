@@ -169,7 +169,7 @@ class Movepick
                 }
             }
             if (skip)
-            { /// no need to go through quiets
+            {
                 stage = Stages::STAGE_PRE_BAD_NOISY;
                 return get_next_move(histories, stack, board, skip);
             }

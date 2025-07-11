@@ -23,7 +23,7 @@
 #include <iomanip>
 
 void Board::make_move(const Move move, HistoricalState &next_state)
-{ /// assuming move is at least pseudo-legal
+{
     Square from = move.get_from(), to = move.get_to();
     Piece piece = piece_at(from), piece_cap = piece_at(to);
 
@@ -86,18 +86,16 @@ void Board::make_move(const Move move, HistoricalState &next_state)
 
     break;
     case MoveTypes::CASTLE: {
-        Square rFrom, rTo;
+        Square rFrom = to, rTo;
         Piece rPiece(PieceTypes::ROOK, turn);
 
         if (to > from)
-        { // king side castle
-            rFrom = to;
+        {
             to = Squares::G1.mirror(turn);
             rTo = Squares::F1.mirror(turn);
         }
         else
-        { // queen side castle
-            rFrom = to;
+        {
             to = Squares::C1.mirror(turn);
             rTo = Squares::D1.mirror(turn);
         }
@@ -137,9 +135,7 @@ void Board::make_move(const Move move, HistoricalState &next_state)
     }
 
     if (state->rook_sq != state->prev->rook_sq)
-    {
         key() ^= castle_rights_key(state->rook_sq) ^ castle_rights_key(state->prev->rook_sq);
-    }
 
     turn ^= 1;
     ply++;
@@ -193,19 +189,17 @@ void Board::undo_move(const Move move)
         }
         break;
     case MoveTypes::CASTLE: {
-        Square rFrom, rTo;
+        Square rFrom = to, rTo;
         Piece rPiece(PieceTypes::ROOK, turn);
         piece = Piece(PieceTypes::KING, turn);
 
         if (to > from)
-        { // king side castle
-            rFrom = to;
+        {
             to = Squares::G1.mirror(turn);
             rTo = Squares::F1.mirror(turn);
         }
         else
-        { // queen side castle
-            rFrom = to;
+        {
             to = Squares::C1.mirror(turn);
             rTo = Squares::D1.mirror(turn);
         }
@@ -602,11 +596,6 @@ template <int movegen_type> int Board::gen_legal_moves(MoveList &moves)
     return nrMoves;
 }
 
-bool isNoisyMove(Board &board, const Move move)
-{
-    return move.is_promo() || move.get_type() == MoveTypes::ENPASSANT || board.is_capture(move);
-}
-
 bool is_pseudo_legal(Board &board, Move move)
 {
     if (!move)
@@ -690,10 +679,10 @@ bool is_legal(Board &board, Move move)
     {
         if (from != king || board.checkers())
             return 0;
-        bool side = (to > from); /// queen side or king side
+        bool side = to > from;
 
         if (board.rook_sq(us, side) != NO_SQUARE)
-        { /// can i castle
+        {
             const Square rFrom = to, rTo = (side ? Squares::F1 : Squares::D1).mirror(us);
             to = (side ? Squares::G1 : Squares::C1).mirror(us);
             Bitboard mask = between_mask[from][to] | Bitboard(to);
@@ -745,28 +734,6 @@ bool is_legal(Board &board, Move move)
     return board.checkers().count() == 2
                ? false
                : (board.checkers() | between_mask[king][board.checkers().get_lsb_square()]).has_square(to);
-}
-
-bool is_legal_dummy(Board &board, Move move)
-{
-    if (!is_pseudo_legal(board, move))
-        return 0;
-    if (move.get_type() == MoveTypes::CASTLE)
-        return is_legal(board, move);
-    bool legal = false;
-
-    HistoricalState next_state;
-    board.make_move(move, next_state);
-    legal = !board.is_attacked_by(board.turn, board.get_king(board.turn ^ 1));
-    board.undo_move(move);
-    if (legal != is_legal(board, move))
-    {
-        board.print();
-        std::cout << move.to_string(board.chess960) << " " << legal << " " << is_legal_slow(board, move) << " "
-                  << is_legal(board, move) << "\n";
-        exit(0);
-    }
-    return legal;
 }
 
 Move parse_move_string(Board &board, std::string moveStr, Info &info)

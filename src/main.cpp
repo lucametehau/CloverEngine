@@ -98,6 +98,8 @@ int main(int argc, char **argv)
         return 0;
     }
 
+#ifndef GENERATE
     uci.uci_loop();
+#endif
     return 0;
 }

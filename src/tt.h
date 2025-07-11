@@ -192,14 +192,14 @@ uint64_t mul_hi(const uint64_t a, const uint64_t b)
     return (static_cast<uint128_t>(a) * static_cast<uint128_t>(b)) >> 64;
 }
 
-void HashTable::prefetch(const uint64_t hash)
+void HashTable::prefetch(const Key hash)
 {
     const uint64_t ind = mul_hi(hash, buckets);
     Bucket *bucket = table + ind;
     __builtin_prefetch(bucket);
 }
 
-Entry *HashTable::probe(const uint64_t hash, bool &ttHit)
+Entry *HashTable::probe(const Key hash, bool &ttHit)
 {
     const uint64_t ind = mul_hi(hash, buckets);
     Entry *bucket = table[ind].entries.data();
@@ -226,8 +226,7 @@ Entry *HashTable::probe(const uint64_t hash, bool &ttHit)
     return bucket + idx;
 }
 
-void HashTable::save(Entry *entry, uint64_t hash, int score, int depth, int ply, int bound, Move move, int eval,
-                     bool was_pv)
+void HashTable::save(Entry *entry, Key hash, int score, int depth, int ply, int bound, Move move, int eval, bool was_pv)
 {
     if (score != VALUE_NONE)
     {

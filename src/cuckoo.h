@@ -25,14 +25,14 @@ namespace cuckoo
 constexpr int CUCKOO_SIZE = (1 << 13);
 constexpr int CUCKOO_MASK = CUCKOO_SIZE - 1;
 
-inline std::array<uint64_t, CUCKOO_SIZE> cuckoo;
+inline std::array<Key, CUCKOO_SIZE> cuckoo;
 inline std::array<Move, CUCKOO_SIZE> cuckoo_move;
 
-inline int hash1(const uint64_t key)
+inline int hash1(const Key key)
 {
     return key & CUCKOO_MASK;
 }
-inline int hash2(const uint64_t key)
+inline int hash2(const Key key)
 {
     return (key >> 16) & CUCKOO_MASK;
 }
@@ -51,7 +51,7 @@ inline void init()
                 if (attacks::genAttacksSq(Bitboard(0ull), from, piece.type()).has_square(to))
                 {
                     Move move = Move(from, to, NO_TYPE);
-                    uint64_t key = hashKey[piece][from] ^ hashKey[piece][to] ^ 1;
+                    Key key = hashKey[piece][from] ^ hashKey[piece][to] ^ 1;
                     int cuckoo_ind = hash1(key);
                     while (true)
                     {

@@ -244,6 +244,11 @@ class ThreadPool
                 thread->wait_for_finish();
         }
     }
+    void clear_info()
+    {
+        for (auto &thread : m_threads)
+            thread->m_nodes = thread->m_tb_hits = 0;
+    }
     void clear_history()
     {
         for (auto &thread : m_threads)
