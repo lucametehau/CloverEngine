@@ -371,6 +371,7 @@ void UCI::go(std::istringstream &iss, Info &info)
     info.set_depth(depth);
     TT->age();
     thread_pool.clear_board();
+    thread_pool.clear_info();
     thread_pool.search(info);
 }
 

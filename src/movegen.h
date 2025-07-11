@@ -86,18 +86,16 @@ void Board::make_move(const Move move, HistoricalState &next_state)
 
     break;
     case MoveTypes::CASTLE: {
-        Square rFrom, rTo;
+        Square rFrom = to, rTo;
         Piece rPiece(PieceTypes::ROOK, turn);
 
         if (to > from)
-        { // king side castle
-            rFrom = to;
+        {
             to = Squares::G1.mirror(turn);
             rTo = Squares::F1.mirror(turn);
         }
         else
-        { // queen side castle
-            rFrom = to;
+        {
             to = Squares::C1.mirror(turn);
             rTo = Squares::D1.mirror(turn);
         }
@@ -137,9 +135,7 @@ void Board::make_move(const Move move, HistoricalState &next_state)
     }
 
     if (state->rook_sq != state->prev->rook_sq)
-    {
         key() ^= castle_rights_key(state->rook_sq) ^ castle_rights_key(state->prev->rook_sq);
-    }
 
     turn ^= 1;
     ply++;
@@ -193,19 +189,17 @@ void Board::undo_move(const Move move)
         }
         break;
     case MoveTypes::CASTLE: {
-        Square rFrom, rTo;
+        Square rFrom = to, rTo;
         Piece rPiece(PieceTypes::ROOK, turn);
         piece = Piece(PieceTypes::KING, turn);
 
         if (to > from)
-        { // king side castle
-            rFrom = to;
+        {
             to = Squares::G1.mirror(turn);
             rTo = Squares::F1.mirror(turn);
         }
         else
-        { // queen side castle
-            rFrom = to;
+        {
             to = Squares::C1.mirror(turn);
             rTo = Squares::D1.mirror(turn);
         }
