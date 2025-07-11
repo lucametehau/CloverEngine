@@ -556,14 +556,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
         }
     }
 
-#ifndef TUNE_FLAG
-    constexpr int see_depth_coef = rootNode ? RootSeeDepthCoef : PVSSeeDepthCoef;
-#else
-    int see_depth_coef = rootNode ? RootSeeDepthCoef : PVSSeeDepthCoef;
-#endif
-
-    Movepick picker(ttMove, stack->killer, m_kp_move[turn][m_board.king_pawn_key() & KP_MOVE_MASK],
-                    -see_depth_coef * depth, m_board.threats());
+    Movepick picker(ttMove, stack->killer, m_kp_move[turn][m_board.king_pawn_key() & KP_MOVE_MASK], m_board.threats());
 
     Move move;
 
