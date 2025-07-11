@@ -161,7 +161,7 @@ class Movepick
             while (index < nrNoisy)
             {
                 get_best_move(index, nrNoisy, moves, scores);
-                if (see(board, moves[index], -scores[index] / 24))
+                if (see(board, moves[index], -scores[index] / 16))
                     return moves[index++];
                 else
                 {
