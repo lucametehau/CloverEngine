@@ -602,11 +602,6 @@ template <int movegen_type> int Board::gen_legal_moves(MoveList &moves)
     return nrMoves;
 }
 
-bool isNoisyMove(Board &board, const Move move)
-{
-    return move.is_promo() || move.get_type() == MoveTypes::ENPASSANT || board.is_capture(move);
-}
-
 bool is_pseudo_legal(Board &board, Move move)
 {
     if (!move)
@@ -745,28 +740,6 @@ bool is_legal(Board &board, Move move)
     return board.checkers().count() == 2
                ? false
                : (board.checkers() | between_mask[king][board.checkers().get_lsb_square()]).has_square(to);
-}
-
-bool is_legal_dummy(Board &board, Move move)
-{
-    if (!is_pseudo_legal(board, move))
-        return 0;
-    if (move.get_type() == MoveTypes::CASTLE)
-        return is_legal(board, move);
-    bool legal = false;
-
-    HistoricalState next_state;
-    board.make_move(move, next_state);
-    legal = !board.is_attacked_by(board.turn, board.get_king(board.turn ^ 1));
-    board.undo_move(move);
-    if (legal != is_legal(board, move))
-    {
-        board.print();
-        std::cout << move.to_string(board.chess960) << " " << legal << " " << is_legal_slow(board, move) << " "
-                  << is_legal(board, move) << "\n";
-        exit(0);
-    }
-    return legal;
 }
 
 Move parse_move_string(Board &board, std::string moveStr, Info &info)
