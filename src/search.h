@@ -555,6 +555,29 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
             }
         }
     }
+    else if (!in_check)
+    {
+        /// null move pruning (when last move wasn't null, we still have non pawn material, we have a good position)
+        if (!nullSearch && !stack->excluded && enemy_has_no_threats && m_board.has_non_pawn_material(turn) &&
+            eval >= beta + NMPEvalMargin * (depth <= 3) && eval >= static_eval)
+        {
+            int R = NMPReduction + depth / NMPDepthDiv + (eval - beta) / NMPEvalDiv + improving + is_ttmove_noisy;
+
+            stack->move = NULLMOVE;
+            stack->piece = NO_PIECE;
+            stack->cont_hist = &m_histories.cont_history[0][NO_PIECE][0];
+            stack->cont_corr_hist = &m_histories.cont_corr_hist[NO_PIECE][0];
+
+            m_board.make_null_move(next_state);
+            int score = -search<false, false, !cutNode>(-beta, -beta + 1, depth - R, stack + 1);
+            m_board.undo_null_move();
+
+            if (score >= beta)
+                return abs(score) > MATE ? beta : score; /// don't trust mate scores
+            else if (previous_R && abs(score) < MATE && score < beta - NMPHindsightMargin)
+                depth++;
+        }
+    }
 
 #ifndef TUNE_FLAG
     constexpr int see_depth_coef = rootNode ? RootSeeDepthCoef : PVSSeeDepthCoef;
