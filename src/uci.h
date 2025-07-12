@@ -118,7 +118,7 @@ class UCI
              {"UCI_Chess960", "check", "false", "", "",
               [&](std::istringstream &iss) {
                   std::string value;
-                  iss >> value;
+                  iss >> value >> value;
                   info.set_chess960(value == "true");
               }}},
         };
