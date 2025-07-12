@@ -1,14 +1,11 @@
-SRCXX = $(wildcard *.cpp)
+SRCXX = $(wildcard *.cpp) 3rdparty/Fathom/src/tbprobe.cpp
 SRCHEADERS = $(wildcard *.h)
-SRC = 3rdparty/Fathom/src/tbprobe.c
 OBJ = $(SRCXX:.cpp=.o) $(SRC:.c=.o)
-VERSION = 8.2.1
+VERSION = 8.2.2
 EXE = Clover.$(VERSION)
 EVALFILE = clover-7buckets-mse-0.95-1280-cosine-600.nnue
 
-ifeq ($(CXX),)
-    CXX = g++
-endif
+CXX = clang++
 
 ifeq ($(OS), Windows_NT)
 	EXT = .exe
@@ -17,7 +14,7 @@ else
 endif
 
 
-WFLAGS = -Wall -g -flto
+WFLAGS = -Wall -g -v -fuse-ld=lld -flto #-fno-omit-frame-pointer -fno-strict-aliasing -fno-exceptions -fno-rtti -fvisibility=hidden
 RFLAGS = $(WFLAGS) -std=c++20 -O3 -funroll-loops
 LIBS =
 RM_CMD = 
@@ -33,19 +30,18 @@ ifneq ($(findstring __BMI2__, $(FLAGS)),)
 endif
 
 ifeq ($(EXT), .exe)
-	RFLAGS += -static -static-libgcc -static-libstdc++
-	LIBS += -pthread
+	RFLAGS += -static -Wl,--stack,16777216
 	RM_CMD = powershell "rm -Force *.o, 3rdparty/Fathom/src/tbprobe.o"
 else
-	LIBS += -lpthread
+	LIBS += -lpthread -Wl,-z,stack-size=16777216
 	RM_CMD = rm -f $(OBJ)
 endif
 
 AVX2_FLAGS     = -march=core-avx2
 NATIVE_FLAGS   = -mno-avx512f -march=native
 OLD_FLAGS      = -march=core2
-AVX512_FLAGS   = $(AVX2FLAGS) -mavx512f -mavx512bw -mavx512dq
-EVALFILE_FLAGS = -DEVALFILE=\"$(EVALFILE)\" -I . -IFathom
+AVX512_FLAGS   = $(AVX2_FLAGS) -mavx512f -mavx512bw -mavx512dq
+EVALFILE_FLAGS = -DEVALFILE=\"$(EVALFILE)\" -I . -I3rdparty/Fathom/src
 BUILD_FLAGS    = $(EVALFILE_FLAGS) $(PEXT_FLAGS) -DVERSION_NAME=\"$(VERSION)\"
 
 ifeq ($(build_flag),)
@@ -73,10 +69,6 @@ else ifneq ($(findstring generate, $(build_flag)),)
 endif
 
 %.o: %.cpp
-	$(CXX) $(BUILD_FLAGS) $(RFLAGS) -o $@ -c $<
-
-# Fathom moment
-%.o: %.c
 	$(CXX) $(BUILD_FLAGS) $(RFLAGS) -o $@ -c $<
 
 make: $(OBJ)
