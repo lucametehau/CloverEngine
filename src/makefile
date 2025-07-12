@@ -2,12 +2,12 @@ SRCXX = $(wildcard *.cpp)
 SRCHEADERS = $(wildcard *.h)
 SRC = 3rdparty/Fathom/src/tbprobe.c
 OBJ = $(SRCXX:.cpp=.o) $(SRC:.c=.o)
-VERSION = 8.2
+VERSION = 8.2.1
 EXE = Clover.$(VERSION)
 EVALFILE = clover-7buckets-mse-0.95-1280-cosine-600.nnue
 
 ifeq ($(CXX),)
-    CXX = g++
+    CXX = clang++
 endif
 
 ifeq ($(OS), Windows_NT)
@@ -17,7 +17,7 @@ else
 endif
 
 
-WFLAGS = -Wall -g -flto
+WFLAGS = -Wall -flto
 RFLAGS = $(WFLAGS) -std=c++20 -O3 -funroll-loops
 LIBS =
 RM_CMD = 
