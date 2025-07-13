@@ -186,12 +186,6 @@ void HashTable::init(uint64_t size, int nr_threads)
     }
 }
 
-uint64_t mul_hi(const uint64_t a, const uint64_t b)
-{
-    using uint128_t = unsigned __int128;
-    return (static_cast<uint128_t>(a) * static_cast<uint128_t>(b)) >> 64;
-}
-
 void HashTable::prefetch(const Key hash)
 {
     const uint64_t ind = mul_hi(hash, buckets);

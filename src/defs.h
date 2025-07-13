@@ -183,6 +183,12 @@ inline Key castle_rights_key(MultiArray<Square, 2, 2> &rook_sq)
            (castleKey[WHITE][1] * (rook_sq[WHITE][1] != NO_SQUARE));
 }
 
+uint64_t mul_hi(const uint64_t a, const uint64_t b)
+{
+    using uint128_t = unsigned __int128;
+    return (static_cast<uint128_t>(a) * static_cast<uint128_t>(b)) >> 64;
+}
+
 inline bool recalc(Square from, Square to, bool side)
 {
     return (from & 4) != (to & 4) || kingIndTable[from ^ (56 * !side)] != kingIndTable[to ^ (56 * !side)];

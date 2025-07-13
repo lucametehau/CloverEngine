@@ -19,6 +19,7 @@
 #include "defs.h"
 #include "evaluate.h"
 #include "history.h"
+#include "move_fraction.h"
 #include "movegen.h"
 #include <cassert>
 
@@ -65,12 +66,15 @@ class Movepick
 
     MoveList moves, badNoisy;
     std::array<int, MAX_MOVES> scores;
+    MoveFractionEntry *move_fraction_entry;
 
   public:
     // Normal Movepicker, used in PVS search.
-    Movepick(const Move tt_move, const Move killer, const Move kp_move, const int threshold, const Threats threats)
+    Movepick(const Move tt_move, const Move killer, const Move kp_move, const int threshold, const Threats threats,
+             MoveFractionEntry *move_fraction_entry)
         : tt_move(tt_move), killer(killer != tt_move ? killer : NULLMOVE),
-          kp_move(kp_move != killer && kp_move != tt_move ? kp_move : NULLMOVE), threshold(threshold)
+          kp_move(kp_move != killer && kp_move != tt_move ? kp_move : NULLMOVE), threshold(threshold),
+          move_fraction_entry(move_fraction_entry)
     {
         stage = STAGE_TTMOVE;
         nrNoisy = nrQuiets = nrBadNoisy = 0;
@@ -149,6 +153,7 @@ class Movepick
                 const Square to = move.get_to();
                 int score = GoodNoisyValueCoef * seeVal[cap];
                 score += histories.get_cap_hist(piece, to, cap);
+                score += move_fraction_entry ? move_fraction_entry->score_move(move) : 0;
                 scores[m++] = score;
             }
 
@@ -248,6 +253,8 @@ class Movepick
 
                     if (move == kp_move)
                         score += KPMoveBonus;
+
+                    score += move_fraction_entry ? move_fraction_entry->score_move(move) : 0;
 
                     scores[m++] = score;
                 }

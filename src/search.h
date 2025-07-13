@@ -562,8 +562,9 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
     int see_depth_coef = rootNode ? RootSeeDepthCoef : PVSSeeDepthCoef;
 #endif
 
+    MoveFractionEntry *move_fraction_entry = ply <= MOVE_FRACTION_PLY ? m_move_fraction_table.get_entry(key) : nullptr;
     Movepick picker(ttMove, stack->killer, m_kp_move[turn][m_board.king_pawn_key() & KP_MOVE_MASK],
-                    -see_depth_coef * depth, m_board.threats());
+                    -see_depth_coef * depth, m_board.threats(), move_fraction_entry);
 
     Move move;
 
@@ -770,7 +771,9 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
         }
 
         undo_move(move);
-        m_nodes_seached[move.get_from_to()] += m_nodes - nodes_previously;
+        m_nodes_searched[move.get_from_to()] += m_nodes - nodes_previously;
+        if (move_fraction_entry)
+            move_fraction_entry->add_move(move, m_nodes - nodes_previously);
 
         if (must_stop()) // stop search
             return best;
@@ -1045,7 +1048,7 @@ void SearchThread::iterative_deepening()
                     TimeManagerScoreMin, TimeManagerScoreMax); /// adjust time based on score change
                 m_best_move_cnt = (m_best_moves[1] == last_best_move ? m_best_move_cnt + 1 : 1);
                 /// adjust time based on how many nodes from the total searched nodes were used for the best move
-                nodesSearchedPercentage = 1.0 * m_nodes_seached[m_best_moves[1].get_from_to()] / m_nodes;
+                nodesSearchedPercentage = 1.0 * m_nodes_searched[m_best_moves[1].get_from_to()] / m_nodes;
                 nodesSearchedPercentage =
                     TimeManagerNodesSearchedMaxPercentage - TimeManagerNodesSearchedCoef * nodesSearchedPercentage;
                 bestMoveStreak =

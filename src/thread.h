@@ -19,6 +19,7 @@
 #include "evaluate.h"
 #include "fen.h"
 #include "history.h"
+#include "move_fraction.h"
 #include "net.h"
 #include "search-info.h"
 #include "tt.h"
@@ -56,11 +57,12 @@ class SearchThread
     std::array<int, MAX_DEPTH + 5> m_pv_table_len;
     MultiArray<Move, MAX_DEPTH + 5, 2 * MAX_DEPTH + 5> m_pv_table;
     MultiArray<Move, 2, KP_MOVE_SIZE> m_kp_move;
-    std::array<uint64_t, 64 * 64> m_nodes_seached;
+    std::array<uint64_t, 64 * 64> m_nodes_searched;
     std::array<StackEntry, MAX_DEPTH + 15> m_search_stack;
     StackEntry *m_stack;
 
     Histories m_histories;
+    MoveFractionTable m_move_fraction_table;
 
     int m_time_check_count;
     int m_best_move_cnt;
@@ -146,7 +148,7 @@ class SearchThread
     void clear_stack()
     {
         m_pv_table_len.fill(0);
-        m_nodes_seached.fill(0);
+        m_nodes_searched.fill(0);
         fill_multiarray<Move, MAX_DEPTH + 5, 2 * MAX_DEPTH + 5>(m_pv_table, NULLMOVE);
     }
     void clear_history()
