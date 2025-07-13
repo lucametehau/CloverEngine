@@ -49,7 +49,7 @@ class MoveFractionEntry
         for (int i = 0; i < nr_moves; i++)
         {
             if (moves[i] == move)
-                return 600.0 * move_nodes[i] / total_nodes * std::log(total_nodes);
+                return 600.0 * std::sqrtf(1.0 * move_nodes[i] / total_nodes) * std::log(total_nodes);
         }
         return 0;
     }
