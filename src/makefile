@@ -5,7 +5,7 @@ VERSION = 8.2.2
 EXE = Clover.$(VERSION)
 EVALFILE = clover-7buckets-mse-0.95-1280-cosine-600.nnue
 
-CXX := clang++ #?????
+override CXX := clang++ #?????
 
 ifeq ($(OS), Windows_NT)
 	EXT = .exe
