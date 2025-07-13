@@ -49,7 +49,7 @@ class MoveFractionEntry
         for (int i = 0; i < nr_moves; i++)
         {
             if (moves[i] == move)
-                return 16.0 * move_nodes[i] / total_nodes * std::log(total_nodes);
+                return 600.0 * move_nodes[i] / total_nodes * std::log(total_nodes);
         }
         return 0;
     }
@@ -62,7 +62,7 @@ class MoveFractionEntry
         for (int i : idxs)
         {
             std::cout << moves[i].to_string() << ": " << move_nodes[i] * 100.0 / total_nodes << "% of the "
-                      << total_nodes << " searched nodes\n";
+                      << total_nodes << " searched nodes; score of " << score_move(moves[i]) << "\n";
         }
         std::cout << std::endl;
     }
