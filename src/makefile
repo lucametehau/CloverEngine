@@ -5,7 +5,7 @@ VERSION = 8.2.2
 EXE = Clover.$(VERSION)
 EVALFILE = clover-7buckets-mse-0.95-1280-cosine-600.nnue
 
-CXX = clang++
+CXX := clang++ #?????
 
 ifeq ($(OS), Windows_NT)
 	EXT = .exe
@@ -14,7 +14,7 @@ else
 endif
 
 
-WFLAGS = -Wall -g -fuse-ld=lld -flto -fno-omit-frame-pointer -fno-strict-aliasing -fno-exceptions -fno-rtti -fvisibility=hidden
+WFLAGS = -Wall -g -fuse-ld=lld -flto #-fno-omit-frame-pointer -fno-strict-aliasing -fno-exceptions -fno-rtti -fvisibility=hidden
 RFLAGS = $(WFLAGS) -std=c++20 -O3 -funroll-loops
 LIBS =
 RM_CMD = 
