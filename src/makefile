@@ -14,8 +14,8 @@ else
 endif
 
 
-WFLAGS = -Wall -g -fuse-ld=lld -flto #-fno-omit-frame-pointer -fno-strict-aliasing -fno-exceptions -fno-rtti -fvisibility=hidden
-RFLAGS = $(WFLAGS) -std=c++20 -O3 -funroll-loops
+WFLAGS = -Wall -g -fuse-ld=lld -flto -fomit-frame-pointer -fstrict-aliasing -fno-exceptions -fno-rtti -fvisibility=hidden
+RFLAGS = $(WFLAGS) -std=c++23 -O3 -funroll-loops
 LIBS =
 RM_CMD = 
 
