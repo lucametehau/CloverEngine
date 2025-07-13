@@ -1,6 +1,6 @@
 SRCXX = $(wildcard *.cpp) 3rdparty/Fathom/src/tbprobe.cpp
 SRCHEADERS = $(wildcard *.h)
-OBJ = $(SRCXX:.cpp=.o) $(SRC:.c=.o)
+OBJ = $(SRCXX:.cpp=.o)
 VERSION = 8.2.2
 EXE = Clover.$(VERSION)
 EVALFILE = clover-7buckets-mse-0.95-1280-cosine-600.nnue
