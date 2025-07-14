@@ -791,8 +791,10 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
                     update_pv(ply, move);
                 if (alpha >= beta)
                 {
-                    const int bonus = getHistoryBonus(depth + bad_static_eval + (cutNode && depth <= 3));
-                    const int malus = getHistoryMalus(depth + bad_static_eval + (cutNode && depth <= 3) + allNode);
+                    const int bonus =
+                        getHistoryBonus(depth + bad_static_eval + (cutNode && depth <= 3)) - 15 * (played - 1);
+                    const int malus = getHistoryMalus(depth + bad_static_eval + (cutNode && depth <= 3) + allNode) -
+                                      15 * (played - 1);
 
                     stack->cutoff_cnt++;
                     if (!m_board.is_noisy_move(bestMove))
