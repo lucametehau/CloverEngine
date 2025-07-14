@@ -4,7 +4,7 @@ SRC = 3rdparty/Fathom/src/tbprobe.c
 OBJ = $(SRCXX:.cpp=.o) $(SRC:.c=.o)
 VERSION = 8.2.2
 EXE = Clover.$(VERSION)
-EVALFILE = clover-512hl-hm-v4.nnue
+EVALFILE = clover-512hl-hm-wdl0.4.nnue
 
 ifeq ($(CXX),)
     CXX = g++
