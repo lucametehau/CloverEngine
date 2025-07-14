@@ -185,7 +185,7 @@ inline Key castle_rights_key(MultiArray<Square, 2, 2> &rook_sq)
 
 inline bool recalc(Square from, Square to, bool side)
 {
-    return (from & 4) != (to & 4) || kingIndTable[from ^ (56 * !side)] != kingIndTable[to ^ (56 * !side)];
+    return kingIndTable[from ^ (56 * !side)] != kingIndTable[to ^ (56 * !side)];
 }
 
 template <int direction> inline Square shift_square(bool color, Square sq)
