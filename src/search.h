@@ -361,7 +361,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
         was_pv |= entry->was_pv();
         if constexpr (!pvNode)
         {
-            if (score != VALUE_NONE && ttDepth >= depth &&
+            if (score != VALUE_NONE && ttDepth >= depth - (previous_R && score >= beta) &&
                 (ttBound & (score >= beta ? TTBounds::LOWER : TTBounds::UPPER)))
                 return score;
         }
