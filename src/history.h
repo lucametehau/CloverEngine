@@ -92,7 +92,7 @@ class Histories
     MultiArray<CorrectionHistory, 2, 2, CORR_HIST_SIZE> mat_corr_hist;
 
   public:
-    MultiArray<History<16384>, 2, 13, 64, 13, 64> cont_history;
+    MultiArray<History<16384>, 2, 2, 13, 64, 13, 64> cont_history;
     MultiArray<CorrectionHistory, 13, 64, 13, 64> cont_corr_hist;
 
   public:
@@ -100,7 +100,7 @@ class Histories
     {
         fill_multiarray<History<16384>, 2, 2, 2, 64 * 64>(hist, 0);
         fill_multiarray<History<16384>, 12, 64, 7>(cap_hist, 0);
-        fill_multiarray<History<16384>, 2, 13, 64, 13, 64>(cont_history, 0);
+        fill_multiarray<History<16384>, 2, 2, 13, 64, 13, 64>(cont_history, 0);
         fill_multiarray<CorrectionHistory, 2, CORR_HIST_SIZE>(corr_hist, CorrectionHistory(0));
         fill_multiarray<CorrectionHistory, 2, 2, CORR_HIST_SIZE>(mat_corr_hist, CorrectionHistory(0));
         fill_multiarray<CorrectionHistory, 13, 64, 13, 64>(cont_corr_hist, CorrectionHistory(0));
