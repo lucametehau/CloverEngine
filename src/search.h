@@ -426,6 +426,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
     }
 
     const int static_eval = stack->eval;
+    const int complexity = std::abs(raw_eval - static_eval);
     const auto eval_diff = [&]() {
         if ((stack - 2)->eval != INF)
             return static_eval - (stack - 2)->eval;
@@ -486,12 +487,15 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
             }
 
             /// static null move pruning (don't prune when having a mate line, again stability)
-            auto snmp_margin = [&](int depth, int improving, bool improving_after_move, bool is_cutnode) {
+            auto snmp_margin = [&](int depth, int improving, bool improving_after_move, bool is_cutnode,
+                                   int complexity) {
                 return (SNMPMargin - SNMPImproving * improving) * depth -
-                       SNMPImprovingAfterMove * improving_after_move - SNMPCutNode * is_cutnode + SNMPBase;
+                       SNMPImprovingAfterMove * improving_after_move - SNMPCutNode * is_cutnode + complexity / 2 +
+                       SNMPBase;
             };
             if (depth <= SNMPDepth && eval > beta && eval < MATE && (!ttMove || is_ttmove_noisy) &&
-                eval - snmp_margin(depth - enemy_has_no_threats, improving, improving_after_move, cutNode) > beta)
+                eval - snmp_margin(depth - enemy_has_no_threats, improving, improving_after_move, cutNode, complexity) >
+                    beta)
                 return beta > -MATE ? (eval + beta) / 2 : eval;
 
             /// null move pruning (when last move wasn't null, we still have non pawn material, we have a good position)
