@@ -84,6 +84,7 @@ TUNE_PARAM(SNMPImproving, 18, 10, 25);
 TUNE_PARAM(SNMPImprovingAfterMove, 24, 1, 60);
 TUNE_PARAM(SNMPCutNode, 25, 1, 60);
 TUNE_PARAM(SNMPBase, 1, 0, 50);
+TUNE_PARAM(SNMPComplexityCoef, 512, 512, 2048);
 
 TUNE_PARAM(NMPEvalMargin, 32, 20, 40);
 TUNE_PARAM(NMPReduction, 4, 3, 5);
