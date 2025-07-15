@@ -490,7 +490,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
             auto snmp_margin = [&](int depth, int improving, bool improving_after_move, bool is_cutnode,
                                    int complexity) {
                 return (SNMPMargin - SNMPImproving * improving) * depth -
-                       SNMPImprovingAfterMove * improving_after_move - SNMPCutNode * is_cutnode + complexity / 2 +
+                       SNMPImprovingAfterMove * improving_after_move - SNMPCutNode * is_cutnode + complexity * SNMPComplexityCoef / 1024 +
                        SNMPBase;
             };
             if (depth <= SNMPDepth && eval > beta && eval < MATE && (!ttMove || is_ttmove_noisy) &&
@@ -738,7 +738,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
             R += LMRTTMoveNoisy * is_ttmove_noisy;                            // reduce if ttmove is noisy
             R +=
                 LMRBadStaticEval * (enemy_has_no_threats && !in_check && static_eval + LMRBadStaticEvalMargin <= alpha);
-            R -= LMRGrain * std::abs(raw_eval - static_eval) / LMRCorrectionDivisor;
+            R -= LMRGrain * complexity / LMRCorrectionDivisor;
             R += (LMRFailLowPV + LMRFailLowPVHighDepth * (ttDepth > depth)) * (was_pv && ttValue <= alpha && ttHit);
             R += LMRCutoffCount * (stack->cutoff_cnt > 3); // reduce if we had a lot of cutoffs
 
