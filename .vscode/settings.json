@@ -74,6 +74,7 @@
         "queue": "cpp",
         "ranges": "cpp",
         "span": "cpp",
-        "filesystem": "cpp"
+        "filesystem": "cpp",
+        "numeric": "cpp"
     }
 }
