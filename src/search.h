@@ -606,7 +606,8 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
             {
                 if (is_quiet)
                 {
-                    history = m_histories.get_history_search(move, piece, m_board.threats().all_threats, turn, stack);
+                    history = m_histories.get_history_search(move, piece, m_board.threats().all_threats, turn, stack,
+                                                             pawn_key);
 
                     // approximately the new depth for the next search
                     int new_depth = std::max(0, depth - lmr_red[std::min(63, depth)][std::min(63, played)] / LMRGrain +
