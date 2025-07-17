@@ -469,18 +469,15 @@ template <int movegen_type> int Board::gen_legal_moves(MoveList &moves)
             if constexpr (quiet_movegen)
             {
                 /// single pawn push
-                b2 = Bitboard(shift_square<NORTH>(color, sq)) & quietMask & line_mask[king][sq];
-                if (b2)
+                const Square sq_push = shift_square<NORTH>(color, sq);
+                if ((quietMask & line_mask[king][sq]).has_square(sq_push))
                 {
-                    const Square sq2 = b2.get_lsb_square();
-                    moves[nrMoves++] = Move(sq, sq2, NO_TYPE);
+                    moves[nrMoves++] = Move(sq, sq_push, NO_TYPE);
 
                     /// double pawn push
-                    b3 = Bitboard(shift_square<NORTH>(color, sq2)) & quietMask & line_mask[king][sq];
-                    if (b3 && sq2 / 8 == rank3)
-                    {
-                        moves[nrMoves++] = Move(sq, b3.get_lsb_square(), NO_TYPE);
-                    }
+                    const Square sq_double_push = shift_square<NORTH>(color, sq_push);
+                    if (quietMask.has_square(sq_double_push) && sq_push / 8 == rank3)
+                        moves[nrMoves++] = Move(sq, sq_double_push, NO_TYPE);
                 }
             }
         }
