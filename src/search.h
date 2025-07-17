@@ -490,8 +490,8 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
             auto snmp_margin = [&](int depth, int improving, bool improving_after_move, bool is_cutnode,
                                    int complexity) {
                 return (SNMPMargin - SNMPImproving * improving) * depth -
-                       SNMPImprovingAfterMove * improving_after_move - SNMPCutNode * is_cutnode + complexity * SNMPComplexityCoef / 1024 +
-                       SNMPBase;
+                       SNMPImprovingAfterMove * improving_after_move - SNMPCutNode * is_cutnode +
+                       complexity * SNMPComplexityCoef / 1024 + SNMPBase;
             };
             if (depth <= SNMPDepth && eval > beta && eval < MATE && (!ttMove || is_ttmove_noisy) &&
                 eval - snmp_margin(depth - enemy_has_no_threats, improving, improving_after_move, cutNode, complexity) >
@@ -606,7 +606,8 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
             {
                 if (is_quiet)
                 {
-                    history = m_histories.get_history_search(move, piece, m_board.threats().all_threats, turn, stack);
+                    history = m_histories.get_history_search(move, piece, m_board.threats().all_threats, turn, stack,
+                                                             pawn_key);
 
                     // approximately the new depth for the next search
                     int new_depth = std::max(0, depth - lmr_red[std::min(63, depth)][std::min(63, played)] / LMRGrain +
@@ -805,13 +806,13 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
                         m_kp_move[turn][m_board.king_pawn_key() & KP_MOVE_MASK] = bestMove;
                         if (nr_quiets || depth >= HistoryUpdateMinDepth)
                             m_histories.update_hist_quiet_move(bestMove, m_board.piece_at(bestMove.get_from()),
-                                                               m_board.threats().all_threats, turn, stack,
+                                                               m_board.threats().all_threats, turn, stack, pawn_key,
                                                                bonus * tried_count);
                         for (int i = 0; i < nr_quiets; i++)
                         {
                             const auto [move, tried_count] = quiets[i];
                             m_histories.update_hist_quiet_move(move, m_board.piece_at(move.get_from()),
-                                                               m_board.threats().all_threats, turn, stack,
+                                                               m_board.threats().all_threats, turn, stack, pawn_key,
                                                                malus * tried_count);
                         }
                     }

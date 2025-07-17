@@ -187,6 +187,7 @@ class Movepick
                 const bool turn = board.turn, enemy = 1 ^ turn;
                 const Bitboard allPieces = board.get_bb_color(WHITE) | board.get_bb_color(BLACK);
                 const Bitboard enemyKingRing = attacks::kingRingMask[board.get_king(enemy)];
+                const Key pawn_key = board.pawn_key();
 
                 int m = 0;
                 for (int i = 0; i < nrQuiets; i++)
@@ -198,7 +199,7 @@ class Movepick
                     moves[m] = move;
                     const Square from = move.get_from(), to = move.get_to();
                     const Piece piece = board.piece_at(from), pt = piece.type();
-                    int score = histories.get_history_movepick(move, piece, all_threats, turn, stack);
+                    int score = histories.get_history_movepick(move, piece, all_threats, turn, stack, pawn_key);
 
                     if (pt == PieceTypes::PAWN) // pawn push, generally good?
                         score += QuietPawnPushBonus;
@@ -329,6 +330,7 @@ class Movepick
             const bool turn = board.turn, enemy = 1 ^ turn;
             const Bitboard allPieces = board.get_bb_color(WHITE) | board.get_bb_color(BLACK);
             const Bitboard enemyKingRing = attacks::kingRingMask[board.get_king(enemy)];
+            const Key pawn_key = board.pawn_key();
 
             int m = 0;
             for (int i = 0; i < nrQuiets; i++)
@@ -340,7 +342,7 @@ class Movepick
                 moves[m] = move;
                 const Square from = move.get_from(), to = move.get_to();
                 const Piece piece = board.piece_at(from), pt = piece.type();
-                int score = histories.get_history_movepick(move, piece, all_threats, turn, stack);
+                int score = histories.get_history_movepick(move, piece, all_threats, turn, stack, pawn_key);
 
                 if (pt == PieceTypes::PAWN) // pawn push, generally good?
                     score += QuietPawnPushBonus;
