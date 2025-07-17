@@ -91,7 +91,8 @@ enum
     NORTHEAST = 9,
     NORTHWEST = 7,
     SOUTHEAST = -7,
-    SOUTHWEST = -9
+    SOUTHWEST = -9,
+    SOUTHSOUTH = -16,
 };
 
 enum

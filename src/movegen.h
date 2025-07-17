@@ -343,15 +343,17 @@ template <int movegen_type> int Board::gen_legal_moves(MoveList &moves)
     if constexpr (quiet_movegen)
         add_moves(moves, nrMoves, king, b1 & empty);
 
-    Bitboard notPinned = ~pinned, capMask(0ull), quietMask(0ull);
+    Bitboard capMask(0ull), quietMask(0ull);
     int cnt = checkers().count();
 
+    // double check, only king moves are legal
     if (cnt == 2)
-    { /// double check, only king moves are legal
+    {
         return nrMoves;
     }
+    // only once check
     else if (cnt == 1)
-    { /// one check
+    {
         Square sq = checkers().get_lsb_square();
         const Piece pt = piece_type_at(sq);
 
@@ -361,7 +363,7 @@ template <int movegen_type> int Board::gen_legal_moves(MoveList &moves)
             if (pt == PieceTypes::PAWN && enpas() != NO_SQUARE &&
                 checkers() == Bitboard(shift_square<NORTH>(enemy, enpas())))
             {
-                mask = attacks::pawnAttacksMask[enemy][enpas()] & notPinned & our_pawns;
+                mask = attacks::pawnAttacksMask[enemy][enpas()] & ~pinned & our_pawns;
                 while (mask)
                     moves[nrMoves++] = Move(mask.get_square_pop(), enpas(), MoveTypes::ENPASSANT);
             }
@@ -380,8 +382,8 @@ template <int movegen_type> int Board::gen_legal_moves(MoveList &moves)
             if (enpas() != NO_SQUARE)
             {
                 Square ep = enpas(), sq2 = shift_square<SOUTH>(color, ep);
-                b2 = attacks::pawnAttacksMask[enemy][ep] & get_bb_piece(PieceTypes::PAWN, color);
-                b1 = b2 & notPinned;
+                b2 = attacks::pawnAttacksMask[enemy][ep] & our_pawns;
+                b1 = b2 & ~pinned;
                 while (b1)
                 {
                     b = b1.lsb();
@@ -469,18 +471,15 @@ template <int movegen_type> int Board::gen_legal_moves(MoveList &moves)
             if constexpr (quiet_movegen)
             {
                 /// single pawn push
-                b2 = Bitboard(shift_square<NORTH>(color, sq)) & quietMask & line_mask[king][sq];
-                if (b2)
+                const Square sq_push = shift_square<NORTH>(color, sq);
+                if ((quietMask & line_mask[king][sq]).has_square(sq_push))
                 {
-                    const Square sq2 = b2.get_lsb_square();
-                    moves[nrMoves++] = Move(sq, sq2, NO_TYPE);
+                    moves[nrMoves++] = Move(sq, sq_push, NO_TYPE);
 
                     /// double pawn push
-                    b3 = Bitboard(shift_square<NORTH>(color, sq2)) & quietMask & line_mask[king][sq];
-                    if (b3 && sq2 / 8 == rank3)
-                    {
-                        moves[nrMoves++] = Move(sq, b3.get_lsb_square(), NO_TYPE);
-                    }
+                    const Square sq_double_push = shift_square<NORTH>(color, sq_push);
+                    if (quietMask.has_square(sq_double_push) && sq_push / 8 == rank3)
+                        moves[nrMoves++] = Move(sq, sq_double_push, NO_TYPE);
                 }
             }
         }
@@ -534,7 +533,8 @@ template <int movegen_type> int Board::gen_legal_moves(MoveList &moves)
     }
 
     int fileA = (color == WHITE ? 0 : 7), fileH = 7 - fileA;
-    b1 = our_pawns & notPinned & ~rank_mask[rank7];
+    our_pawns &= ~pinned; /// remove pinned pawns from our pawns
+    b1 = our_pawns & ~rank_mask[rank7];
 
     if constexpr (quiet_movegen)
     {
@@ -549,8 +549,8 @@ template <int movegen_type> int Board::gen_legal_moves(MoveList &moves)
         }
         while (b3)
         {
-            Square sq = b3.get_square_pop(), sq2 = shift_square<SOUTH>(color, sq);
-            moves[nrMoves++] = Move(shift_square<SOUTH>(color, sq2), sq, NO_TYPE);
+            Square sq = b3.get_square_pop();
+            moves[nrMoves++] = Move(shift_square<SOUTHSOUTH>(color, sq), sq, NO_TYPE);
         }
     }
 
@@ -571,7 +571,7 @@ template <int movegen_type> int Board::gen_legal_moves(MoveList &moves)
             moves[nrMoves++] = Move(shift_square<SOUTHWEST>(color, sq), sq, NO_TYPE);
         }
 
-        b1 = our_pawns & notPinned & rank_mask[rank7];
+        b1 = our_pawns & rank_mask[rank7];
         b2 = shift_mask<NORTH>(color, b1) & quietMask;
         while (b2)
         {
