@@ -190,8 +190,8 @@ class Board
             att_mask = attacks::genAttacksKnight(pieces.get_square_pop());
             att |= att_mask;
             threats().threats_pieces[PieceTypes::KNIGHT] |= att_mask;
-            threatened_pieces |= att & our_pieces;
         }
+        threatened_pieces |= att & our_pieces;
 
         all ^= Bitboard(get_king(color));
 
@@ -201,8 +201,8 @@ class Board
             att_mask = attacks::genAttacksBishop(all, pieces.get_square_pop());
             att |= att_mask;
             threats().threats_pieces[PieceTypes::BISHOP] |= att_mask;
-            threatened_pieces |= att & our_pieces;
         }
+        threatened_pieces |= att & our_pieces;
 
         our_pieces ^= get_bb_piece(PieceTypes::ROOK, color);
 
@@ -212,14 +212,12 @@ class Board
             att_mask = attacks::genAttacksRook(all, pieces.get_square_pop());
             att |= att_mask;
             threats().threats_pieces[PieceTypes::ROOK] |= att_mask;
-            threatened_pieces |= att & our_pieces;
         }
+        threatened_pieces |= att & our_pieces;
 
         pieces = get_bb_piece(PieceTypes::QUEEN, enemy);
         while (pieces)
-        {
             att |= attacks::genAttacksQueen(all, pieces.get_square_pop());
-        }
 
         att |= attacks::genAttacksKing(get_king(enemy));
         threats().all_threats = att;
