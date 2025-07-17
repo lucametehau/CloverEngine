@@ -638,12 +638,15 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
                 else
                 {
                     history = m_histories.get_cap_hist(piece, to, m_board.get_captured_type(move));
+                    // new depth for the next search
+                    int new_depth = std::max(0, depth - lmr_red[std::min(63, depth)][std::min(63, played)] / LMRGrain);
+
                     // see pruning for noisy moves
                     auto noisy_see_pruning_margin = [&](int depth, int history) {
                         return -SEEPruningNoisyMargin * depth * depth - history / SEENoisyHistDiv;
                     };
-                    if (depth <= SEEPruningNoisyDepth && !in_check && picker.trueStage > Stages::STAGE_GOOD_NOISY &&
-                        !see(m_board, move, noisy_see_pruning_margin(depth + bad_static_eval, history)))
+                    if (new_depth <= SEEPruningNoisyDepth && !in_check && picker.trueStage > Stages::STAGE_GOOD_NOISY &&
+                        !see(m_board, move, noisy_see_pruning_margin(new_depth + bad_static_eval, history)))
                         continue;
 
                     // futility pruning for noisy moves
