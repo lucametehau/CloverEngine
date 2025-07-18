@@ -15,8 +15,15 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include "cuckoo.h"
+#include "net.h"
 #include "perft.h"
+
+#ifndef GENERATE
 #include "uci.h"
+#else
+#include "datagen/generate.h"
+#endif
+
 #include <cstring>
 #include <iostream>
 #include <string>
@@ -28,12 +35,12 @@ int main(int argc, char **argv)
     cuckoo::init();
     load_nnue_weights();
 
-    UCI uci;
-
     if (argc > 1)
     {
+#ifndef GENERATE
         if (!strncmp(argv[1], "bench", 5))
         {
+            UCI uci;
             int depth = -1;
             if (argc > 2)
             {
@@ -43,7 +50,7 @@ int main(int argc, char **argv)
             uci.bench(depth);
             return 0;
         }
-#ifdef GENERATE
+#else
         std::map<std::string, std::string> args;
         for (int i = 1; i < argc; i++)
         {
@@ -99,6 +106,7 @@ int main(int argc, char **argv)
     }
 
 #ifndef GENERATE
+    UCI uci;
     uci.uci_loop();
 #endif
     return 0;

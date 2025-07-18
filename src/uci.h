@@ -16,7 +16,6 @@
 */
 #pragma once
 #include "3rdparty/Fathom/src/tbprobe.h"
-#include "datagen/generate.h"
 #include "movegen.h"
 #include "perft.h"
 #include "search.h"
