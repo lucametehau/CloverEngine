@@ -500,7 +500,8 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
 
             /// null move pruning (when last move wasn't null, we still have non pawn material, we have a good position)
             if (!nullSearch && !stack->excluded && enemy_has_no_threats && m_board.has_non_pawn_material(turn) &&
-                eval >= beta + NMPEvalMargin * (depth <= 3) && eval >= static_eval)
+                eval >= beta + NMPEvalMargin * (depth <= 3) && eval >= static_eval &&
+                static_eval + 15 * depth - 100 >= beta)
             {
                 int R = NMPReduction + depth / NMPDepthDiv + (eval - beta) / NMPEvalDiv + improving + is_ttmove_noisy;
 
