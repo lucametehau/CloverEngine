@@ -28,7 +28,7 @@ class Info
 
     void init()
     {
-        m_timeset = m_san_mode = m_chess960 = false;
+        m_timeset = m_san_mode = false;
         m_nodes = m_min_nodes = m_max_nodes = -1;
         m_depth = MAX_DEPTH;
         m_start_time = get_current_time();
