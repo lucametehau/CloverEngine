@@ -20,16 +20,24 @@
 #include "binpack.h"
 #include <atomic>
 #include <cmath>
+#include <csignal>
 #include <ctime>
 #include <fstream>
 #include <thread>
 #include <vector>
+
 
 #ifdef GENERATE
 
 constexpr bool FRC_DATAGEN = true;
 constexpr int MIN_NODES = 20000;
 constexpr int MAX_NODES = (1 << 20);
+
+std::atomic<bool> stop_requested{false};
+
+void handle_sigint(int) {
+    stop_requested = true;
+}
 
 void generate_fens(SearchThread &thread_data, std::atomic<uint64_t> &total_fens_count, std::atomic<uint64_t> &num_games,
                   uint64_t fens_limit, std::string path, uint64_t seed, uint64_t extraSeed)
@@ -56,7 +64,7 @@ void generate_fens(SearchThread &thread_data, std::atomic<uint64_t> &total_fens_
 
     thread_data.m_board.chess960 = FRC_DATAGEN;
 
-    while (fens_count < fens_limit)
+    while (fens_count < fens_limit && !stop_requested)
     {
         std::unique_ptr<std::deque<HistoricalState>> states;
         states = std::make_unique<std::deque<HistoricalState>>(1);
@@ -139,6 +147,8 @@ void generate_fens(SearchThread &thread_data, std::atomic<uint64_t> &total_fens_
         total_fens_count.fetch_add(nr_fens);
         num_games.fetch_add(1);
         fens_count += nr_fens;
+        
+        if (stop_requested) break;
     }
 }
 #endif
@@ -146,6 +156,7 @@ void generate_fens(SearchThread &thread_data, std::atomic<uint64_t> &total_fens_
 void generateData(uint64_t num_fens, int num_threads, std::string rootPath, uint64_t extraSeed = 0)
 {
 #ifdef GENERATE
+    std::signal(SIGINT, handle_sigint);
     printStats = false;
     std::array<std::string, 100> path;
 
@@ -184,7 +195,7 @@ void generateData(uint64_t num_fens, int num_threads, std::string rootPath, uint
         i++;
     }
 
-    while (total_fens_count <= num_fens_atomic)
+    while (total_fens_count <= num_fens_atomic && !stop_requested)
     {
         std::this_thread::sleep_for(std::chrono::seconds(1));
         std::time_t time_elapsed = (get_current_time() - startTime) / 1000;
