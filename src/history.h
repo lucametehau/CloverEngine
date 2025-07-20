@@ -221,7 +221,8 @@ class Histories
     {
         const Square to = move.get_to();
         return get_hist(move.get_from(), to, move.get_from_to(), turn, threats) + get_cont_hist(piece, to, stack, 1) +
-               get_cont_hist(piece, to, stack, 2) + get_cont_hist(piece, to, stack, 4);
+               get_cont_hist(piece, to, stack, 2) + get_cont_hist(piece, to, stack, 4) +
+               get_pawn_hist(piece, to, pawn_key);
     }
 
     const int get_history_movepick(const Move move, const Piece piece, const Bitboard threats, const bool turn,

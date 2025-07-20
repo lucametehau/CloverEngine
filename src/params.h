@@ -96,8 +96,6 @@ TUNE_PARAM(ProbcutMargin, 182, 100, 300);
 TUNE_PARAM(ProbcutDepth, 4, 3, 7);
 TUNE_PARAM(ProbcutReduction, 5, 3, 5);
 
-TUNE_PARAM(PVSSeeDepthCoef, 18, 10, 20);
-
 TUNE_PARAM(MoveloopHistDiv, 13813, 1, 17000);
 
 TUNE_PARAM(FPDepth, 10, 5, 15);
@@ -155,8 +153,6 @@ TUNE_PARAM(LMRBadStaticEvalMargin, 234, 150, 300);
 TUNE_PARAM(LMRCorrectionDivisor, 50, 25, 75);
 TUNE_PARAM(DeeperMargin, 70, 0, 150);
 TUNE_PARAM(PVDeeperMargin, 74, 0, 150);
-
-TUNE_PARAM(RootSeeDepthCoef, 7, 5, 20);
 
 TUNE_PARAM(AspirationWindowsDepth, 6, 4, 10);
 TUNE_PARAM(AspirationWindosValue, 7, 5, 20);

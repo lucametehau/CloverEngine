@@ -68,9 +68,9 @@ class Movepick
 
   public:
     // Normal Movepicker, used in PVS search.
-    Movepick(const Move tt_move, const Move killer, const Move kp_move, const int threshold, const Threats threats)
+    Movepick(const Move tt_move, const Move killer, const Move kp_move, const Threats threats)
         : tt_move(tt_move), killer(killer != tt_move ? killer : NULLMOVE),
-          kp_move(kp_move != killer && kp_move != tt_move ? kp_move : NULLMOVE), threshold(threshold)
+          kp_move(kp_move != killer && kp_move != tt_move ? kp_move : NULLMOVE)
     {
         stage = STAGE_TTMOVE;
         nrNoisy = nrQuiets = nrBadNoisy = 0;
@@ -161,7 +161,7 @@ class Movepick
             while (index < nrNoisy)
             {
                 get_best_move(index, nrNoisy, moves, scores);
-                if (see(board, moves[index], threshold))
+                if (see(board, moves[index], -scores[index] / 24))
                     return moves[index++];
                 else
                 {
