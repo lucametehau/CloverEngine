@@ -120,7 +120,7 @@ void generate_fens(SearchThread &thread_data, std::atomic<uint64_t> &total_fens_
                 std::uniform_int_distribution<uint32_t> rnd(0, nr_moves - 1);
                 move = moves[rnd(gn)];
                 states->emplace_back();
-                thread_data.make_move(move, states->back());
+                thread_data.m_board.make_move(move, states->back());
                 seed_out << move.to_string(FRC_DATAGEN) << " ";
 
                 if (ply == book_ply_count - 1) {
@@ -140,7 +140,7 @@ void generate_fens(SearchThread &thread_data, std::atomic<uint64_t> &total_fens_
                 binpack.add_move(move, score);
 
                 states->emplace_back();
-                thread_data.make_move(move, states->back());
+                thread_data.m_board.make_move(move, states->back());
                 nr_fens++;
             }
 
