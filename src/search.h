@@ -986,11 +986,13 @@ void SearchThread::iterative_deepening()
     MoveList moves;
     int nr_moves = m_board.gen_legal_moves<MOVEGEN_ALL>(moves);
 
-    if (nr_moves) {
+    if (nr_moves)
+    {
         m_best_moves[1] = moves[0];
         m_root_scores[1] = 0;
     }
-    else {
+    else
+    {
         m_root_scores[1] = INF + 69;
     }
 
