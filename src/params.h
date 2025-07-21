@@ -107,7 +107,7 @@ TUNE_PARAM(FPMargin, 87, 0, 150);
 TUNE_PARAM(LMPDepth, 7, 5, 10);
 TUNE_PARAM(LMPBias, 1, -1, 5);
 
-TUNE_PARAM(HistoryPruningDepth, 2, 2, 5);
+TUNE_PARAM(HistoryPruningDepth, 3, 2, 5);
 TUNE_PARAM(HistoryPruningMargin, 4379, 2048, 6144);
 
 TUNE_PARAM(SEEPruningQuietDepth, 8, 5, 10);
