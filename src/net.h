@@ -108,8 +108,6 @@ constexpr int Q_IN = 255;
 constexpr int Q_HIDDEN = 64;
 constexpr int Q_IN_HIDDEN = Q_IN * Q_HIDDEN;
 
-static int mxx = 0;
-
 const reg_type zero{};
 const reg_type one = reg_set1(Q_IN);
 
@@ -375,11 +373,6 @@ class Network
                                recalc(move.get_from(), move.get_special_to(), piece.color()),
                            {0, 0}};
         hist_size++;
-        if (hist_size > mxx)
-        {
-            mxx = hist_size;
-            std::cout << hist_size << "\n";
-        }
     }
 
     void revert_move()

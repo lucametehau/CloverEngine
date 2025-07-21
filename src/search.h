@@ -994,6 +994,7 @@ void SearchThread::iterative_deepening()
     else
     {
         m_root_scores[1] = INF + 69;
+        return; // no legal moves, return immediately
     }
 
     for (m_id_depth = 1; m_id_depth <= limitDepth; m_id_depth++)
