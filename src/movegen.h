@@ -470,7 +470,7 @@ template <int movegen_type> int Board::gen_legal_moves(MoveList &moves)
                          king == kingTo) &&
                         (!((all ^ Bitboard(king)) & (between_mask[rook][rookTo] | Bitboard(rookTo))) ||
                          rook == rookTo) &&
-                        !get_attackers(enemy, all ^ Bitboard(rook), king))
+                        !(pinned & Bitboard(rook)))
                     {
                         moves[nrMoves++] = Move(king, rook, MoveTypes::CASTLE);
                     }
@@ -485,7 +485,7 @@ template <int movegen_type> int Board::gen_legal_moves(MoveList &moves)
                          king == kingTo) &&
                         (!((all ^ Bitboard(king)) & (between_mask[rook][rookTo] | Bitboard(rookTo))) ||
                          rook == rookTo) &&
-                        !get_attackers(enemy, all ^ Bitboard(rook), king))
+                        !(pinned & Bitboard(rook)))
                     {
                         moves[nrMoves++] = Move(king, rook, MoveTypes::CASTLE);
                     }
