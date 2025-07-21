@@ -81,9 +81,9 @@ class StackEntry
     int eval;
     int R;          // reduction
     int cutoff_cnt; // number of cutoffs in the current search
-    MultiArray<History<16384>, 13, 64> *cont_hist;
-    MultiArray<History<16384>, 13, 64, 6> *noisy_cont_hist;
-    MultiArray<CorrectionHistory, 13, 64> *cont_corr_hist;
+    MultiArray<History<16384>, 12, 64> *cont_hist;
+    MultiArray<History<16384>, 12, 64, 6> *noisy_cont_hist;
+    MultiArray<CorrectionHistory, 12, 64> *cont_corr_hist;
     Bitboard threats;
 };
 
@@ -97,9 +97,9 @@ class Histories
     MultiArray<CorrectionHistory, 2, 2, CORR_HIST_SIZE> mat_corr_hist;
 
   public:
-    MultiArray<History<16384>, 2, 13, 64, 13, 64> cont_history;
-    MultiArray<History<16384>, 13, 64, 13, 64, 6> noisy_cont_history;
-    MultiArray<CorrectionHistory, 13, 64, 13, 64> cont_corr_hist;
+    MultiArray<History<16384>, 2, 12, 64, 12, 64> cont_history;
+    MultiArray<History<16384>, 12, 64, 12, 64, 6> noisy_cont_history;
+    MultiArray<CorrectionHistory, 12, 64, 12, 64> cont_corr_hist;
 
   public:
     void clear_history()
@@ -107,11 +107,11 @@ class Histories
         fill_multiarray<History<16384>, 2, 2, 2, 64 * 64>(hist, 0);
         fill_multiarray<History<16384>, 12, 64, 7>(cap_hist, 0);
         fill_multiarray<History<16384>, PAWN_HIST_SIZE, 12, 64>(pawn_hist, 0);
-        fill_multiarray<History<16384>, 2, 13, 64, 13, 64>(cont_history, 0);
-        fill_multiarray<History<16384>, 13, 64, 13, 64, 6>(noisy_cont_history, 0);
+        fill_multiarray<History<16384>, 2, 12, 64, 12, 64>(cont_history, 0);
+        fill_multiarray<History<16384>, 12, 64, 12, 64, 6>(noisy_cont_history, 0);
         fill_multiarray<CorrectionHistory, 2, CORR_HIST_SIZE>(corr_hist, CorrectionHistory(0));
         fill_multiarray<CorrectionHistory, 2, 2, CORR_HIST_SIZE>(mat_corr_hist, CorrectionHistory(0));
-        fill_multiarray<CorrectionHistory, 13, 64, 13, 64>(cont_corr_hist, CorrectionHistory(0));
+        fill_multiarray<CorrectionHistory, 12, 64, 12, 64>(cont_corr_hist, CorrectionHistory(0));
     }
 
     Histories()
