@@ -214,7 +214,7 @@ class Movepick
                             board.pieces[WHITE].print();
                             board.pieces[BLACK].print();
                             for (int i = 0; i <= board.ply; i++)
-                                std::cerr << "i: " << i << " " << stack[i].move.to_string(board.chess960) << "\n";
+                                std::cerr << "i: " << i << " " << (stack - i)->move.to_string(board.chess960) << "\n";
                             std::cerr << "tried move " << move.to_string(board.chess960) << "\n";
                             assert(0);
                         }
@@ -357,7 +357,7 @@ class Movepick
                         board.pieces[WHITE].print();
                         board.pieces[BLACK].print();
                         for (int i = 0; i <= board.ply; i++)
-                            std::cerr << "i: " << i << " " << stack[i].move.to_string(board.chess960) << "\n";
+                            std::cerr << "i: " << i << " " << (stack - i)->move.to_string(board.chess960) << "\n";
                         std::cerr << "tried move " << move.to_string(board.chess960) << "\n";
                         assert(0);
                     }

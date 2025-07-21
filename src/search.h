@@ -983,6 +983,20 @@ void SearchThread::iterative_deepening()
     int last_root_score = 0;
     Move last_best_move = NULLMOVE;
 
+    MoveList moves;
+    int nr_moves = m_board.gen_legal_moves<MOVEGEN_ALL>(moves);
+
+    if (nr_moves)
+    {
+        m_best_moves[1] = moves[0];
+        m_root_scores[1] = 0;
+    }
+    else
+    {
+        m_root_scores[1] = INF + 69;
+        return; // no legal moves, return immediately
+    }
+
     for (m_id_depth = 1; m_id_depth <= limitDepth; m_id_depth++)
     {
         for (m_multipv = 1; m_multipv <= m_info.get_multipv(); m_multipv++)
