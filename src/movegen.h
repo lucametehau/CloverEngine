@@ -31,6 +31,12 @@ void Board::make_move(const Move move, HistoricalState &next_state)
     // {
     //     print();
     //     std::cerr << "Illegal position before make move " << move.to_string(chess960) << "\n";
+    //     std::cerr << fen() << "\n";
+    //     std::cerr << turn << " " << chess960 << "\n";
+    //     for (int i = 0; i < 12; i++)
+    //         bb[i].print();
+    //     pieces[WHITE].print();
+    //     pieces[BLACK].print();
     //     exit(0);
     // }
 
@@ -150,17 +156,29 @@ void Board::make_move(const Move move, HistoricalState &next_state)
     // {
     //     print();
     //     std::cerr << "Illegal position after make move " << move.to_string(chess960) << "\n";
-    //     // std::cerr << "Previous FEN: " << previous_fen << "\n";
+    //     std::cerr << fen() << "\n";
+    //     std::cerr << turn << " " << chess960 << "\n";
+    //     for (int i = 0; i < 12; i++)
+    //         bb[i].print();
+    //     pieces[WHITE].print();
+    //     pieces[BLACK].print();
     //     exit(0);
     // }
 }
 
 void Board::undo_move(const Move move)
 {
+
     // if (!sanity_check())
     // {
     //     print();
     //     std::cerr << "Illegal position before undo move " << move.to_string(chess960) << "\n";
+    //     std::cerr << fen() << "\n";
+    //     std::cerr << turn << " " << chess960 << "\n";
+    //     for (int i = 0; i < 12; i++)
+    //         bb[i].print();
+    //     pieces[WHITE].print();
+    //     pieces[BLACK].print();
     //     exit(0);
     // }
     turn ^= 1;
@@ -253,6 +271,12 @@ void Board::undo_move(const Move move)
     // {
     //     print();
     //     std::cerr << "Illegal position after undo move " << move.to_string(chess960) << "\n";
+    //     std::cerr << fen() << "\n";
+    //     std::cerr << turn << " " << chess960 << "\n";
+    //     for (int i = 0; i < 12; i++)
+    //         bb[i].print();
+    //     pieces[WHITE].print();
+    //     pieces[BLACK].print();
     //     exit(0);
     // }
 }
@@ -280,7 +304,8 @@ void Board::make_null_move(HistoricalState &next_state)
     // if (!sanity_check())
     // {
     //     print();
-    //     std::cerr << "Illegal position after make null move\n";
+    //     std::cerr << "Illegal position after make move nullmove\n";
+    //     std::cerr << fen() << "\n";
     //     exit(0);
     // }
 }
@@ -296,7 +321,13 @@ void Board::undo_null_move()
     // if (!sanity_check())
     // {
     //     print();
-    //     std::cerr << "Illegal position after undo null move\n";
+    //     std::cerr << "Illegal position after undo make move nullmove \n";
+    //     std::cerr << fen() << "\n";
+    //     std::cerr << turn << " " << chess960 << "\n";
+    //     for (int i = 0; i < 12; i++)
+    //         bb[i].print();
+    //     pieces[WHITE].print();
+    //     pieces[BLACK].print();
     //     exit(0);
     // }
 }
@@ -317,10 +348,16 @@ inline void add_promotions(MoveList &moves, int &nr_moves, Square from, Square t
 
 template <int movegen_type> int Board::gen_legal_moves(MoveList &moves)
 {
+
     // if (!sanity_check())
     // {
     //     print();
-    //     std::cerr << "Illegal position\n";
+    //     std::cerr << fen() << "\n";
+    //     std::cerr << turn << " " << chess960 << "\n";
+    //     for (int i = 0; i < 12; i++)
+    //         bb[i].print();
+    //     pieces[WHITE].print();
+    //     pieces[BLACK].print();
     //     exit(0);
     // }
     constexpr bool noisy_movegen = movegen_type & MOVEGEN_NOISY;
