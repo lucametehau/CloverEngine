@@ -125,10 +125,8 @@ class Movepick
             trueStage = Stages::STAGE_TTMOVE;
             stage++;
 
-            if (tt_move && is_legal(board, tt_move))
-            {
+            if (is_legal(board, tt_move))
                 return tt_move;
-            }
         case Stages::STAGE_GEN_NOISY: {
             nrNoisy = board.gen_legal_moves<MOVEGEN_NOISY>(moves);
             int m = 0;
@@ -178,7 +176,7 @@ class Movepick
             trueStage = Stages::STAGE_KILLER;
             stage++;
 
-            if (!skip && killer && is_legal(board, killer))
+            if (!skip && is_legal(board, killer))
                 return killer;
         case Stages::STAGE_GEN_QUIETS: {
             if (!skip)
@@ -201,12 +199,11 @@ class Movepick
                     const Piece piece = board.piece_at(from), pt = piece.type();
                     int score = histories.get_history_movepick(move, piece, all_threats, turn, stack, pawn_key);
 
-                    if (pt == PieceTypes::PAWN) // pawn push, generally good?
-                        score += QuietPawnPushBonus;
+                    score += QuietPawnPushBonus * (pt == PieceTypes::PAWN); // pawn push, generally good
 
                     if (pt != PieceTypes::KING && pt != PieceTypes::PAWN)
                     {
-                        if (pt < 0 || pt > PieceTypes::QUEEN)
+                        [[unlikely]] if (pt < 0 || pt > PieceTypes::QUEEN)
                         {
                             board.print();
                             for (int i = 0; i < 12; i++)
@@ -247,9 +244,7 @@ class Movepick
                                  score_threats(threats_p, threats_bn, threats_r, pt, to);
                     }
 
-                    if (move == kp_move)
-                        score += KPMoveBonus;
-
+                    score += KPMoveBonus * (move == kp_move); // KP move bonus
                     scores[m++] = score;
                 }
 
@@ -287,7 +282,7 @@ class Movepick
         case Stages::STAGE_QS_TTMOVE: {
             stage++;
 
-            if (tt_move && is_legal(board, tt_move))
+            if (is_legal(board, tt_move))
                 return tt_move;
         }
         case Stages::STAGE_QS_GEN_NOISY: {
@@ -321,7 +316,8 @@ class Movepick
                 get_best_move(index, nrNoisy, moves, scores);
                 return moves[index++];
             }
-            if (skip) // we are done with noisies
+            // we are done with noisies
+            if (skip)
                 return NULLMOVE;
             stage++;
         }
@@ -344,12 +340,11 @@ class Movepick
                 const Piece piece = board.piece_at(from), pt = piece.type();
                 int score = histories.get_history_movepick(move, piece, all_threats, turn, stack, pawn_key);
 
-                if (pt == PieceTypes::PAWN) // pawn push, generally good?
-                    score += QuietPawnPushBonus;
+                score += QuietPawnPushBonus * (pt == PieceTypes::PAWN); // pawn push, generally good
 
                 if (pt != PieceTypes::KING && pt != PieceTypes::PAWN)
                 {
-                    if (pt < 0 || pt > PieceTypes::QUEEN)
+                    [[unlikely]] if (pt < 0 || pt > PieceTypes::QUEEN)
                     {
                         board.print();
                         for (int i = 0; i < 12; i++)
@@ -412,7 +407,7 @@ class Movepick
         case Stages::STAGE_PC_TTMOVE: {
             stage++;
 
-            if (tt_move && is_legal(board, tt_move))
+            if (is_legal(board, tt_move))
                 return tt_move;
         }
         case Stages::STAGE_PC_GEN_NOISY: {

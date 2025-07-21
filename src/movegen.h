@@ -445,7 +445,7 @@ template <int movegen_type> int Board::gen_legal_moves(MoveList &moves)
                 /// castle queen side
                 if (rook_sq(color, 0) != NO_SQUARE)
                 {
-                    if (!(attacked & Bitboard(7ULL << (king - 2))) && !(all & Bitboard(7ULL << (king - 3))))
+                    if (!(attacked & (7ULL << (king - 2))) && !(all & (7ULL << (king - 3))))
                     {
                         moves[nrMoves++] = Move(king, king - 4, MoveTypes::CASTLE);
                     }
@@ -453,7 +453,7 @@ template <int movegen_type> int Board::gen_legal_moves(MoveList &moves)
                 /// castle king side
                 if (rook_sq(color, 1) != NO_SQUARE)
                 {
-                    if (!(attacked & Bitboard(7ULL << king)) && !(all & Bitboard(3ULL << (king + 1))))
+                    if (!(attacked & (7ULL << king)) && !(all & (3ULL << (king + 1))))
                     {
                         moves[nrMoves++] = Move(king, king + 3, MoveTypes::CASTLE);
                     }
@@ -733,9 +733,9 @@ bool is_legal(Board &board, Move move)
             {
                 if (!side)
                 {
-                    return !(all & Bitboard(7ULL << (from - 3)));
+                    return !(all & (7ULL << (from - 3)));
                 }
-                return !(all & Bitboard(3ULL << (from + 1)));
+                return !(all & (3ULL << (from + 1)));
             }
             if ((!((all ^ Bitboard(rFrom)) & (between_mask[from][to] | Bitboard(to))) || from == to) &&
                 (!((all ^ Bitboard(from)) & (between_mask[rFrom][rTo] | Bitboard(rTo))) || rFrom == rTo))
