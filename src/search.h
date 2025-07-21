@@ -250,6 +250,7 @@ template <bool pvNode> int SearchThread::quiesce(int alpha, int beta, StackEntry
         stack->move = move;
         stack->piece = m_board.piece_at(move.get_from());
         stack->cont_hist = &m_histories.cont_history[!m_board.is_noisy_move(move)][stack->piece][move.get_to()];
+        stack->noisy_cont_hist = &m_histories.noisy_cont_history[stack->piece][move.get_to()];
         stack->cont_corr_hist = &m_histories.cont_corr_hist[stack->piece][move.get_to()];
 
         make_move(move, next_state);
@@ -508,6 +509,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
                 stack->move = NULLMOVE;
                 stack->piece = NO_PIECE;
                 stack->cont_hist = &m_histories.cont_history[0][NO_PIECE][0];
+                stack->noisy_cont_hist = &m_histories.noisy_cont_history[NO_PIECE][0];
                 stack->cont_corr_hist = &m_histories.cont_corr_hist[NO_PIECE][0];
 
                 m_board.make_null_move(next_state);
@@ -539,6 +541,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
                     stack->move = move;
                     stack->piece = m_board.piece_at(move.get_from());
                     stack->cont_hist = &m_histories.cont_history[0][stack->piece][move.get_to()];
+                    stack->noisy_cont_hist = &m_histories.noisy_cont_history[stack->piece][move.get_to()];
                     stack->cont_corr_hist = &m_histories.cont_corr_hist[stack->piece][move.get_to()];
 
                     make_move(move, next_state);
@@ -638,7 +641,8 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
                 }
                 else
                 {
-                    history = m_histories.get_cap_hist(piece, to, m_board.get_captured_type(move));
+                    const Piece captured = m_board.get_captured_type(move);
+                    history = m_histories.get_noisy_history(piece, to, captured, stack);
                     // see pruning for noisy moves
                     auto noisy_see_pruning_margin = [&](int depth, int history) {
                         return -SEEPruningNoisyMargin * depth * depth - history / SEENoisyHistDiv;
@@ -652,8 +656,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
                         return FPNoisyBias + seeVal[captured] + FPNoisyMargin * depth;
                     };
                     if (depth <= FPNoisyDepth && !in_check &&
-                        static_eval + noisy_futility_margin(depth + is_ttmove_noisy, m_board.get_captured_type(move)) <=
-                            alpha)
+                        static_eval + noisy_futility_margin(depth + is_ttmove_noisy, captured) <= alpha)
                         continue;
                 }
             }
@@ -692,6 +695,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
         stack->move = move;
         stack->piece = piece;
         stack->cont_hist = &m_histories.cont_history[is_quiet][piece][to];
+        stack->noisy_cont_hist = &m_histories.noisy_cont_history[piece][to];
         stack->cont_corr_hist = &m_histories.cont_corr_hist[piece][to];
 
         make_move(move, next_state);
@@ -819,14 +823,15 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
                     }
                     else
                     {
-                        m_histories.update_cap_hist_move(m_board.piece_at(bestMove.get_from()), bestMove.get_to(),
-                                                         m_board.get_captured_type(bestMove), bonus * tried_count);
+                        m_histories.update_hist_noisy_move(m_board.piece_at(bestMove.get_from()), bestMove.get_to(),
+                                                           m_board.get_captured_type(bestMove), stack,
+                                                           bonus * tried_count);
                     }
                     for (int i = 0; i < nr_noisies; i++)
                     {
                         const auto [move, tried_count] = noisies[i];
-                        m_histories.update_cap_hist_move(m_board.piece_at(move.get_from()), move.get_to(),
-                                                         m_board.get_captured_type(move), malus * tried_count);
+                        m_histories.update_hist_noisy_move(m_board.piece_at(move.get_from()), move.get_to(),
+                                                           m_board.get_captured_type(move), stack, malus * tried_count);
                     }
                     break;
                 }
@@ -959,6 +964,7 @@ void SearchThread::start_search()
     for (int i = 1; i <= 10; i++)
     {
         (m_stack - i)->cont_hist = &m_histories.cont_history[0][NO_PIECE][0];
+        (m_stack - i)->noisy_cont_hist = &m_histories.noisy_cont_history[NO_PIECE][0];
         (m_stack - i)->cont_corr_hist = &m_histories.cont_corr_hist[NO_PIECE][0];
         (m_stack - i)->eval = INF;
         (m_stack - i)->move = NULLMOVE;

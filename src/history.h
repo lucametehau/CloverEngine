@@ -82,6 +82,7 @@ class StackEntry
     int R;          // reduction
     int cutoff_cnt; // number of cutoffs in the current search
     MultiArray<History<16384>, 13, 64> *cont_hist;
+    MultiArray<History<16384>, 13, 64, 6> *noisy_cont_hist;
     MultiArray<CorrectionHistory, 13, 64> *cont_corr_hist;
     Bitboard threats;
 };
@@ -97,6 +98,7 @@ class Histories
 
   public:
     MultiArray<History<16384>, 2, 13, 64, 13, 64> cont_history;
+    MultiArray<History<16384>, 13, 64, 13, 64, 6> noisy_cont_history;
     MultiArray<CorrectionHistory, 13, 64, 13, 64> cont_corr_hist;
 
   public:
@@ -106,6 +108,7 @@ class Histories
         fill_multiarray<History<16384>, 12, 64, 7>(cap_hist, 0);
         fill_multiarray<History<16384>, PAWN_HIST_SIZE, 12, 64>(pawn_hist, 0);
         fill_multiarray<History<16384>, 2, 13, 64, 13, 64>(cont_history, 0);
+        fill_multiarray<History<16384>, 13, 64, 13, 64, 6>(noisy_cont_history, 0);
         fill_multiarray<CorrectionHistory, 2, CORR_HIST_SIZE>(corr_hist, CorrectionHistory(0));
         fill_multiarray<CorrectionHistory, 2, 2, CORR_HIST_SIZE>(mat_corr_hist, CorrectionHistory(0));
         fill_multiarray<CorrectionHistory, 13, 64, 13, 64>(cont_corr_hist, CorrectionHistory(0));
@@ -136,6 +139,18 @@ class Histories
     const History<16384> get_cont_hist(const Piece piece, const Square to, StackEntry *stack, const int delta) const
     {
         return (*(stack - delta)->cont_hist)[piece][to];
+    }
+
+    History<16384> &get_noisy_cont_hist(const Piece piece, const Square to, const Piece cap, StackEntry *stack,
+                                        const int delta)
+    {
+        return (*(stack - delta)->noisy_cont_hist)[piece][to][cap];
+    }
+
+    const History<16384> get_noisy_cont_hist(const Piece piece, const Square to, const Piece cap, StackEntry *stack,
+                                             const int delta) const
+    {
+        return (*(stack - delta)->noisy_cont_hist)[piece][to][cap];
     }
 
     History<16384> &get_cap_hist(const Piece piece, const Square to, const int cap)
@@ -239,6 +254,19 @@ class Histories
     void update_cap_hist_move(const Piece piece, const Square to, const int cap, const int16_t bonus)
     {
         get_cap_hist(piece, to, cap).update(bonus);
+    }
+
+    void update_hist_noisy_move(const Piece piece, const Square to, const Piece cap, StackEntry *&stack,
+                                const int16_t bonus)
+    {
+        update_cap_hist_move(piece, to, cap, bonus);
+        if ((stack - 1)->move)
+            get_noisy_cont_hist(piece, to, cap, stack, 1).update(bonus);
+    }
+
+    int get_noisy_history(const Piece piece, const Square to, const Piece cap, StackEntry *stack) const
+    {
+        return get_cap_hist(piece, to, cap) + get_noisy_cont_hist(piece, to, cap, stack, 1);
     }
 
     void update_corr_hist(const bool turn, const Key pawn_key, const Key white_mat_key, const Key black_mat_key,
