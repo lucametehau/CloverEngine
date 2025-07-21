@@ -43,7 +43,7 @@ void generate_fens(SearchThread &thread_data, std::atomic<uint64_t> &total_fens_
                   uint64_t fens_limit, std::string path, uint64_t seed, uint64_t extraSeed)
 {
     std::ofstream out(path, std::ios::binary);
-    // std::ofstream seed_out("seed_" + path);
+    std::ofstream seed_out("seed_" + path);
     std::mt19937_64 gn((std::chrono::system_clock::now().time_since_epoch().count() + extraSeed) ^ 8257298672678ULL);
     std::uniform_int_distribution<uint32_t> rnd_dfrc(0, 960 * 960);
     BinpackFormat binpack;
@@ -76,7 +76,7 @@ void generate_fens(SearchThread &thread_data, std::atomic<uint64_t> &total_fens_
         if (FRC_DATAGEN) {
             int idx = rnd_dfrc(gn) % (960 * 960);
             thread_data.m_board.set_dfrc(idx, states->back());
-            // seed_out << idx << ":";
+            seed_out << idx << ":";
         }
         else
             thread_data.m_board.set_fen(START_POS_FEN, states->back());
@@ -121,11 +121,11 @@ void generate_fens(SearchThread &thread_data, std::atomic<uint64_t> &total_fens_
                 move = moves[rnd(gn)];
                 states->emplace_back();
                 thread_data.m_board.make_move(move, states->back());
-                // seed_out << move.to_string(FRC_DATAGEN) << " ";
+                seed_out << move.to_string(FRC_DATAGEN) << " ";
 
                 if (ply == book_ply_count - 1) {
                     binpack.init(thread_data.m_board);
-                    // seed_out << "\n";
+                    seed_out << "\n";
                 }
             }
             else
