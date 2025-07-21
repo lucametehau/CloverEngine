@@ -266,7 +266,7 @@ class Histories
 
     int get_noisy_history(const Piece piece, const Square to, const Piece cap, StackEntry *stack) const
     {
-        return get_cap_hist(piece, to, cap) + get_noisy_cont_hist(piece, to, cap, stack, 1);
+        return get_cap_hist(piece, to, cap) + get_noisy_cont_hist(piece, to, cap, stack, 1) / 2;
     }
 
     void update_corr_hist(const bool turn, const Key pawn_key, const Key white_mat_key, const Key black_mat_key,
