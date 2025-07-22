@@ -94,12 +94,14 @@ class Info
         m_san_mode = true;
     }
 
-    void set_time(std::time_t time, std::time_t inc)
+    void set_time(std::time_t time, std::time_t inc, int ply)
     {
         std::time_t time_with_inc = time + 40 * inc;
         m_timeset = true;
         m_soft_limit = std::min<int>(time_with_inc * TMCoef1, time * TMCoef2);
         m_hard_limit = std::min<int>(m_soft_limit * TMCoef3, time * TMCoef4);
+        if (ply < 20)
+            m_soft_limit *= 1.5;
     }
 
     void set_movetime(std::time_t time)

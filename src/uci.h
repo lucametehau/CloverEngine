@@ -363,7 +363,7 @@ void UCI::go(std::istringstream &iss, Info &info)
     {
         const int MOVE_OVERHEAD = 100; // idk
         time -= MOVE_OVERHEAD;
-        info.set_time(time, inc);
+        info.set_time(time, inc, thread_pool.get_board().game_ply);
     }
 
     info.set_nodes(nodes);
