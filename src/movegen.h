@@ -673,17 +673,11 @@ bool is_pseudo_legal(Board &board, Move move)
         if (from / 8 == 1 || from / 8 == 6)
             push |= shift_mask<NORTH>(color, push) & ~occ;
 
-        return (rank_to != 0 && rank_to != 7) && t == NO_TYPE && ((att & enemy) | push).has_square(to);
+        return (rank_to != 0 && rank_to != 7) && t == MoveTypes::NO_TYPE && ((att & enemy) | push).has_square(to);
     }
 
-    if (t != NO_TYPE)
-        return false;
-
-    /// check for normal moves
-    if (pt != PieceTypes::KING)
-        return attacks::genAttacksSq(occ, from, pt).has_square(to);
-
-    return attacks::kingBBAttacks[from].has_square(to);
+    // check for normal moves
+    return t == MoveTypes::NO_TYPE && attacks::genAttacksSq(occ, from, pt).has_square(to);
 }
 
 bool is_legal_slow(Board &board, Move move)
@@ -705,7 +699,7 @@ bool is_legal_slow(Board &board, Move move)
 bool is_legal(Board &board, Move move)
 {
     if (!is_pseudo_legal(board, move))
-        return 0;
+        return false;
 
     const bool us = board.turn, enemy = 1 ^ us;
     const Square king = board.get_king(us);
@@ -715,28 +709,19 @@ bool is_legal(Board &board, Move move)
     if (move.get_type() == MoveTypes::CASTLE)
     {
         if (from != king || board.checkers())
-            return 0;
+            return false;
         bool side = to > from;
 
         if (board.rook_sq(us, side) != NO_SQUARE)
         {
             const Square rFrom = to, rTo = (side ? Squares::F1 : Squares::D1).mirror(us);
             to = (side ? Squares::G1 : Squares::C1).mirror(us);
-            Bitboard mask = between_mask[from][to] | Bitboard(to);
 
-            while (mask)
-            {
-                if (board.is_attacked_by(enemy, mask.get_square_pop()))
-                    return 0;
-            }
+            if (board.threats().all_threats & (between_mask[from][to] | Bitboard(to)))
+                return false;
             if (!board.chess960)
-            {
-                if (!side)
-                {
-                    return !(all & (7ULL << (from - 3)));
-                }
-                return !(all & (3ULL << (from + 1)));
-            }
+                return side ? !(all & (3ULL << (from + 1))) : !(all & (7ULL << (from - 3)));
+
             if ((!((all ^ Bitboard(rFrom)) & (between_mask[from][to] | Bitboard(to))) || from == to) &&
                 (!((all ^ Bitboard(from)) & (between_mask[rFrom][rTo] | Bitboard(rTo))) || rFrom == rTo))
             {
@@ -805,25 +790,11 @@ Move parse_move_string(Board &board, std::string moveStr, Info &info)
             if (move.is_promo())
             {
                 int prom = move.get_prom() + PieceTypes::KNIGHT;
-                if (prom == PieceTypes::ROOK && moveStr[4] == 'r')
-                {
+                if (piece_char[prom] == moveStr[4])
                     return move;
-                }
-                else if (prom == PieceTypes::BISHOP && moveStr[4] == 'b')
-                {
-                    return move;
-                }
-                else if (prom == PieceTypes::QUEEN && moveStr[4] == 'q')
-                {
-                    return move;
-                }
-                else if (prom == PieceTypes::KNIGHT && moveStr[4] == 'n')
-                {
-                    return move;
-                }
-                continue;
             }
-            return move;
+            else
+                return move;
         }
     }
 
