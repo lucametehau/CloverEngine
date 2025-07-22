@@ -230,14 +230,6 @@ void UCI::uci_loop()
         {
             uci();
         }
-        else if (cmd == "checkmove")
-        {
-            std::string moveStr;
-            iss >> moveStr;
-            Move move = parse_move_string(thread_pool.get_board(), moveStr, info);
-            std::cout << is_legal(thread_pool.get_board(), move) << " " << is_legal_slow(thread_pool.get_board(), move)
-                      << "\n";
-        }
         else if (cmd == "printparams")
         {
 #ifdef TUNE_FLAG
@@ -280,14 +272,6 @@ void UCI::uci_loop()
                 total += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
             }
             std::cout << eval << " evaluation and " << total / N << "ns\n";
-        }
-        else if (cmd == "see")
-        {
-            std::string move_string;
-            int threshold;
-            iss >> move_string >> threshold;
-            Move move = parse_move_string(thread_pool.get_board(), move_string, info);
-            std::cout << see(thread_pool.get_board(), move, threshold) << std::endl;
         }
     }
 }

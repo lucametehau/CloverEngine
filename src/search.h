@@ -213,11 +213,11 @@ template <bool pvNode> int SearchThread::quiesce(int alpha, int beta, StackEntry
 
     alpha = std::max(alpha, best);
 
-    Movepick qs_movepicker(!in_check && see(m_board, ttMove, 0) ? ttMove : NULLMOVE, m_board.threats());
+    Movepick qs_movepicker(!in_check && see(m_board, ttMove, 0) ? ttMove : NULLMOVE, m_board.threats(), !in_check);
     Move move;
     int played = 0;
 
-    while ((move = qs_movepicker.get_next_move(m_histories, stack, m_board, !in_check)))
+    while ((move = qs_movepicker.get_next_move(m_histories, stack, m_board)))
     {
         if (qs_movepicker.stage == Stages::STAGE_QS_NOISY && !see(m_board, move, 0))
         {
@@ -316,7 +316,6 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
     uint16_t nr_noisies = 0;
 
     int played = 0;
-    bool skip = 0;
     int best = -INF;
     Move bestMove = NULLMOVE;
 
@@ -531,7 +530,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
                                 probcut_beta - static_eval, m_board.threats());
 
                 Move move;
-                while ((move = picker.get_next_move(m_histories, stack, m_board, true)) != NULLMOVE)
+                while ((move = picker.get_next_move(m_histories, stack, m_board)) != NULLMOVE)
                 {
                     if (move == stack->excluded)
                         continue;
@@ -572,7 +571,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
 
     Move move;
 
-    while ((move = picker.get_next_move(m_histories, stack, m_board, skip)) != NULLMOVE)
+    while ((move = picker.get_next_move(m_histories, stack, m_board)) != NULLMOVE)
     {
         if constexpr (rootNode)
         {
@@ -617,17 +616,17 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
                     // futility pruning
                     auto futility_margin = [&](int depth) { return FPBias + FPMargin * depth; };
                     if (new_depth <= FPDepth && !in_check && static_eval + futility_margin(new_depth) <= alpha)
-                        skip = 1;
+                        picker.skip_quiets();
 
                     // late move pruning
                     if (new_depth <= LMPDepth && played >= (LMPBias + new_depth * new_depth) / (2 - improving))
-                        skip = 1;
+                        picker.skip_quiets();
 
                     // history pruning
                     auto history_margin = [&](int depth) { return -HistoryPruningMargin * depth; };
                     if (depth <= HistoryPruningDepth && bad_static_eval && history < history_margin(depth))
                     {
-                        skip = 1;
+                        picker.skip_quiets();
                         continue;
                     }
 

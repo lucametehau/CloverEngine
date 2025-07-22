@@ -147,8 +147,7 @@ void Board::make_move(const Move move, HistoricalState &next_state)
     ply++;
     game_ply++;
     key() ^= 1;
-    if (turn == WHITE)
-        move_index()++;
+    move_index() += turn == WHITE;
     get_pinned_pieces_and_checkers();
     get_threats(turn);
 
@@ -365,7 +364,7 @@ template <int movegen_type> int Board::gen_legal_moves(MoveList &moves)
 
     int nrMoves = 0;
     const bool color = turn, enemy = color ^ 1;
-    int rank7 = (color == WHITE ? 6 : 1), rank3 = (color == WHITE ? 2 : 5);
+    const int rank7 = color == WHITE ? 6 : 1, rank3 = color == WHITE ? 2 : 5;
     const Square king = get_king(color);
     Bitboard our_pawns = get_bb_piece(PieceTypes::PAWN, color);
     Bitboard mask, us = get_bb_color(color), them = get_bb_color(enemy);
@@ -787,13 +786,7 @@ Move parse_move_string(Board &board, std::string moveStr, Info &info)
         Move move = moves[i];
         if (move.get_from() == from && move.get_to() == to)
         {
-            if (move.is_promo())
-            {
-                int prom = move.get_prom() + PieceTypes::KNIGHT;
-                if (piece_char[prom] == moveStr[4])
-                    return move;
-            }
-            else
+            if (!move.is_promo() || piece_char[move.get_prom() + PieceTypes::KNIGHT] == moveStr[4])
                 return move;
         }
     }

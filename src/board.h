@@ -303,11 +303,6 @@ class Board
         return (move.get_type() && move.get_type() != MoveTypes::CASTLE) || is_capture(move);
     }
 
-    bool is_attacked_by(const bool color, const Square sq)
-    {
-        return get_attackers(color, get_bb_color(WHITE) | get_bb_color(BLACK), sq);
-    }
-
     void make_move(const Move move, HistoricalState &state);
     void undo_move(const Move move);
     void make_null_move(HistoricalState &state);
