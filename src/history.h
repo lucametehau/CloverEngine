@@ -248,16 +248,17 @@ class Histories
     {
         const Square from = move.get_from();
         const Square to = move.get_to();
-        return get_hist(from, to, move.get_from_to(), turn, threats) + get_from_hist(from, turn, threats) / 4 +
-               get_to_hist(to, turn, threats) / 4 + get_cont_hist(piece, to, stack, 1) +
+        return get_hist(from, to, move.get_from_to(), turn, threats) + get_cont_hist(piece, to, stack, 1) +
                get_cont_hist(piece, to, stack, 2) + get_cont_hist(piece, to, stack, 4);
     }
 
     const int get_history_movepick(const Move move, const Piece piece, const Bitboard threats, const bool turn,
                                    StackEntry *stack, const Key pawn_key) const
     {
+        const Square from = move.get_from();
         const Square to = move.get_to();
-        return (QuietHistCoef * get_hist(move.get_from(), to, move.get_from_to(), turn, threats) +
+        return (QuietHistCoef * get_hist(from, to, move.get_from_to(), turn, threats) +
+                256 * get_from_hist(from, turn, threats) + 256 * get_to_hist(to, turn, threats) +
                 QuietContHist1 * get_cont_hist(piece, to, stack, 1) +
                 QuietContHist2 * get_cont_hist(piece, to, stack, 2) +
                 QuietContHist4 * get_cont_hist(piece, to, stack, 4) +
