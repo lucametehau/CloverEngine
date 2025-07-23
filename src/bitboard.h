@@ -120,20 +120,17 @@ class Bitboard
         return *this;
     }
 
-    Bitboard &set_bit(Square sq)
+    void set_bit(Square sq)
     {
         bb |= (1ull << sq);
-        return *this;
     }
-    Bitboard &erase_bit(Square sq)
+    void erase_bit(Square sq)
     {
         bb &= ~(1ull << sq);
-        return *this;
     }
-    Bitboard &toggle_bit(Square sq)
+    void toggle_bit(Square sq)
     {
         bb ^= (1ull << sq);
-        return *this;
     }
 
     void print()

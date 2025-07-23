@@ -264,6 +264,7 @@ void Board::set_dfrc(int idx, HistoricalState &next_state)
     state = &next_state;
     chess960 = true;
 
+    key() = pawn_key() = mat_key(WHITE) = mat_key(BLACK) = 0;
     ply = game_ply = 0;
     captured() = NO_PIECE;
 

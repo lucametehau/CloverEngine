@@ -320,10 +320,4 @@ inline Bitboard genAttacksSq(Bitboard blockers, Square sq, Piece pt)
     return Bitboard(0ull);
 }
 
-/// same as the below one, only difference is that b is known
-inline Bitboard getPawnAttacks(int color, Bitboard b)
-{
-    const int fileA = color == WHITE ? 0 : 7, fileH = 7 - fileA;
-    return shift_mask<NORTHWEST>(color, b & ~file_mask[fileA]) | shift_mask<NORTHEAST>(color, b & ~file_mask[fileH]);
-}
 }; // namespace attacks
