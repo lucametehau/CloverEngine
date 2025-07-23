@@ -33,6 +33,12 @@ constexpr bool FRC_DATAGEN = true;
 constexpr int MIN_NODES = 20000;
 constexpr int MAX_NODES = (1 << 20);
 
+constexpr bool ADJ_ENABLED = true;
+constexpr int ADJ_WIN_THRESHOLD = 2000;
+constexpr int ADJ_WIN_PLIES = 4;
+constexpr int ADJ_DRAW_THRESHOLD = 10;
+constexpr int ADJ_DRAW_PLIES = 12;
+
 std::atomic<bool> stop_requested{false};
 
 void handle_sigint(int) {
@@ -89,6 +95,8 @@ void generate_fens(SearchThread &thread_data, std::atomic<uint64_t> &total_fens_
         int extra_ply = rnd_ply(gn) % 2;
         int book_ply_count = 8 + extra_ply;
 
+        int win_cnt = 0, draw_cnt = 0;
+
         while (true)
         {
             Move move;
@@ -137,7 +145,24 @@ void generate_fens(SearchThread &thread_data, std::atomic<uint64_t> &total_fens_
 
                 score = thread_data.m_root_scores[1] * (thread_data.m_board.turn == WHITE ? 1 : -1);
                 move = thread_data.m_best_moves[1];
+
                 binpack.add_move(move, score);
+
+                if constexpr (ADJ_ENABLED)
+                {
+                    win_cnt = abs(score) >= ADJ_WIN_THRESHOLD ? win_cnt + 1 : 0;
+                    draw_cnt = abs(score) <= ADJ_DRAW_THRESHOLD ? draw_cnt + 1 : 0;
+
+                    if (win_cnt >= ADJ_WIN_PLIES) {
+                        binpack.set_result(std::round(2 * (score < 0 ? 0.0 : 1.0)));
+                        break;
+                    }
+
+                    if (draw_cnt >= ADJ_DRAW_PLIES) {
+                        binpack.set_result(1);
+                        break;
+                    }
+                }
 
                 states->emplace_back();
                 thread_data.m_board.make_move(move, states->back());
