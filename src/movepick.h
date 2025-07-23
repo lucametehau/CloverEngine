@@ -65,7 +65,7 @@ class Movepick
     MoveList moves, badNoisy;
     std::array<int, MAX_MOVES> scores;
 
-    bool skip_quiets;
+    bool skip_quiets_flag;
 
   public:
     // Normal Movepicker, used in PVS search.
@@ -80,7 +80,7 @@ class Movepick
         threats_bn =
             threats.threats_pieces[PieceTypes::KNIGHT] | threats.threats_pieces[PieceTypes::BISHOP] | threats_p;
         threats_r = threats.threats_pieces[PieceTypes::ROOK] | threats_bn;
-        skip_quiets = false;
+        skip_quiets_flag = false;
     }
 
     // QS Movepicker
@@ -93,7 +93,7 @@ class Movepick
         threats_bn =
             threats.threats_pieces[PieceTypes::KNIGHT] | threats.threats_pieces[PieceTypes::BISHOP] | threats_p;
         threats_r = threats.threats_pieces[PieceTypes::ROOK] | threats_bn;
-        skip_quiets = !in_check;
+        skip_quiets_flag = !in_check;
     }
 
     // Probcut Movepicker
@@ -106,12 +106,12 @@ class Movepick
         threats_bn =
             threats.threats_pieces[PieceTypes::KNIGHT] | threats.threats_pieces[PieceTypes::BISHOP] | threats_p;
         threats_r = threats.threats_pieces[PieceTypes::ROOK] | threats_bn;
-        skip_quiets = true;
+        skip_quiets_flag = true;
     }
 
     void skip_quiets()
     {
-        skip_quiets = true;
+        skip_quiets_flag = true;
     }
 
     void get_best_move(int offset, int nrMoves, MoveList &moves, std::array<int, MAX_MOVES> &scores)
@@ -175,7 +175,7 @@ class Movepick
                     badNoisy[nrBadNoisy++] = moves[index++];
                 }
             }
-            if (skip_quiets)
+            if (skip_quiets_flag)
             {
                 stage = Stages::STAGE_PRE_BAD_NOISY;
                 return get_next_move(histories, stack, board);
@@ -185,10 +185,10 @@ class Movepick
             trueStage = Stages::STAGE_KILLER;
             stage++;
 
-            if (!skip_quiets && is_legal(board, killer))
+            if (!skip_quiets_flag && is_legal(board, killer))
                 return killer;
         case Stages::STAGE_GEN_QUIETS: {
-            if (!skip_quiets)
+            if (!skip_quiets_flag)
             {
                 nrQuiets = board.gen_legal_moves<MOVEGEN_QUIET>(moves);
                 const bool turn = board.turn, enemy = 1 ^ turn;
@@ -265,7 +265,7 @@ class Movepick
         }
         case Stages::STAGE_QUIETS: {
             trueStage = Stages::STAGE_QUIETS;
-            if (!skip_quiets && index < nrQuiets)
+            if (!skip_quiets_flag && index < nrQuiets)
             {
                 get_best_move(index, nrQuiets, moves, scores);
                 return moves[index++];
@@ -326,7 +326,7 @@ class Movepick
                 return moves[index++];
             }
             // we are done with noisies
-            if (skip_quiets)
+            if (skip_quiets_flag)
                 return NULLMOVE;
             stage++;
         }

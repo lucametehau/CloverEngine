@@ -46,42 +46,42 @@ class ThreadPool;
 class SearchThread
 {
   public:
-    Info m_info;
+    Info info;
 
-    MoveList m_best_moves;
-    std::array<int, MAX_MOVES> m_scores, m_root_scores;
-    std::array<MeanValue, 100> m_values;
+    MoveList best_moves;
+    std::array<int, MAX_MOVES> scores, root_scores;
+    std::array<MeanValue, 100> values;
 
   private:
-    std::array<int, MAX_DEPTH + 5> m_pv_table_len;
-    MultiArray<Move, MAX_DEPTH + 5, 2 * MAX_DEPTH + 5> m_pv_table;
-    MultiArray<Move, 2, KP_MOVE_SIZE> m_kp_move;
-    std::array<uint64_t, 64 * 64> m_nodes_seached;
-    std::array<StackEntry, MAX_DEPTH + 15> m_search_stack;
-    StackEntry *m_stack;
+    std::array<int, MAX_DEPTH + 5> pv_table_len;
+    MultiArray<Move, MAX_DEPTH + 5, 2 * MAX_DEPTH + 5> pv_table;
+    MultiArray<Move, 2, KP_MOVE_SIZE> kp_move;
+    std::array<uint64_t, 64 * 64> nodes_seached;
+    std::array<StackEntry, MAX_DEPTH + 15> search_stack;
+    StackEntry *stack;
 
-    Histories m_histories;
+    Histories histories;
 
-    int m_time_check_count;
-    int m_best_move_cnt;
-    int m_multipv;
-    int m_id_depth, m_sel_depth;
-    int m_root_eval;
+    int time_check_count;
+    int best_move_cnt;
+    int multipv;
+    int id_depth, sel_depth;
+    int root_eval;
 
   public:
-    uint64_t m_tb_hits;
-    int64_t m_nodes;
-    int m_completed_depth;
-    Board m_board;
+    uint64_t tb_hits;
+    int64_t nodes;
+    int completed_depth;
+    Board board;
     Network NN;
 
   public:
-    ThreadPool *m_thread_pool;
-    int m_thread_id;
-    std::mutex m_mutex;
-    std::thread m_thread;
-    std::condition_variable m_cv;
-    std::atomic<ThreadState> m_state{ThreadStates::IDLE};
+    ThreadPool *thread_pool;
+    int thread_id;
+    std::mutex mutex;
+    std::thread thread;
+    std::condition_variable cv;
+    std::atomic<ThreadState> state{ThreadStates::IDLE};
 
 #ifdef GENERATE
     HashTable *TT;
@@ -92,10 +92,10 @@ class SearchThread
     {
     }
 
-    SearchThread(ThreadPool *thread_pool, int thread_id) : m_thread_pool(thread_pool), m_thread_id(thread_id)
+    SearchThread(ThreadPool *thread_pool, int thread_id) : thread_pool(thread_pool), thread_id(thread_id)
     {
-        m_state = ThreadStates::IDLE;
-        m_thread = std::thread(&SearchThread::main_loop, this);
+        state = ThreadStates::IDLE;
+        thread = std::thread(&SearchThread::main_loop, this);
     }
 
     ~SearchThread() = default;
@@ -103,68 +103,68 @@ class SearchThread
   public:
     bool main_thread()
     {
-        return m_thread_id == 0;
+        return thread_id == 0;
     }
     bool must_stop()
     {
-        return m_state & (ThreadStates::STOP | ThreadStates::EXIT);
+        return state & (ThreadStates::STOP | ThreadStates::EXIT);
     }
 
     void wait_for_finish()
     {
-        std::unique_lock<std::mutex> lock(m_mutex);
-        m_cv.wait(lock, [&] { return !(m_state & ThreadStates::SEARCH); });
+        std::unique_lock<std::mutex> lock(mutex);
+        cv.wait(lock, [&] { return !(state & ThreadStates::SEARCH); });
     }
 
     void start_search();
 
     void main_loop()
     {
-        while (!(m_state & ThreadStates::EXIT))
+        while (!(state & ThreadStates::EXIT))
         {
-            std::unique_lock<std::mutex> lock(m_mutex);
-            m_cv.wait(lock, [&] { return m_state & ThreadStates::SEARCH; });
+            std::unique_lock<std::mutex> lock(mutex);
+            cv.wait(lock, [&] { return state & ThreadStates::SEARCH; });
 
-            if (m_state & ThreadStates::EXIT)
+            if (state & ThreadStates::EXIT)
                 return;
 
             start_search();
-            m_state &= ~ThreadStates::SEARCH;
-            m_cv.notify_all();
+            state &= ~ThreadStates::SEARCH;
+            cv.notify_all();
         }
     }
 
     void exit()
     {
-        m_state = ThreadStates::EXIT | ThreadStates::SEARCH | ThreadStates::STOP;
-        m_cv.notify_all();
-        if (m_thread.joinable())
-            m_thread.join();
+        state = ThreadStates::EXIT | ThreadStates::SEARCH | ThreadStates::STOP;
+        cv.notify_all();
+        if (thread.joinable())
+            thread.join();
     }
 
   public:
     void clear_stack()
     {
-        m_pv_table_len.fill(0);
-        m_nodes_seached.fill(0);
-        fill_multiarray<Move, MAX_DEPTH + 5, 2 * MAX_DEPTH + 5>(m_pv_table, NULLMOVE);
+        pv_table_len.fill(0);
+        nodes_seached.fill(0);
+        fill_multiarray<Move, MAX_DEPTH + 5, 2 * MAX_DEPTH + 5>(pv_table, NULLMOVE);
     }
     void clear_history()
     {
-        m_histories.clear_history();
-        fill_multiarray<Move, 2, KP_MOVE_SIZE>(m_kp_move, NULLMOVE);
+        histories.clear_history();
+        fill_multiarray<Move, 2, KP_MOVE_SIZE>(kp_move, NULLMOVE);
     }
 
     void make_move(Move move, HistoricalState &next_state)
     {
-        const Piece piece = m_board.piece_at(move.get_from());
-        m_board.make_move(move, next_state);
-        NN.add_move_to_history(move, piece, m_board.captured());
+        const Piece piece = board.piece_at(move.get_from());
+        board.make_move(move, next_state);
+        NN.add_move_to_history(move, piece, board.captured());
     }
 
     void undo_move(Move move)
     {
-        m_board.undo_move(move);
+        board.undo_move(move);
         NN.revert_move();
     }
 
@@ -185,16 +185,16 @@ class SearchThread
 
     int draw_score()
     {
-        return 1 - (m_nodes & 2);
+        return 1 - (nodes & 2);
     }
 };
 
 class ThreadPool
 {
   public:
-    std::vector<std::unique_ptr<SearchThread>> m_threads;
-    Info m_info;
-    Board m_board;
+    std::vector<std::unique_ptr<SearchThread>> threads;
+    Info info;
+    Board board;
 
     ThreadPool()
     {
@@ -210,14 +210,14 @@ class ThreadPool
 #ifndef GENERATE
         exit();
 #endif
-        m_threads.clear();
+        threads.clear();
         for (std::size_t i = 0; i < thread_count; i++)
-            m_threads.push_back(std::make_unique<SearchThread>(this, i));
+            threads.push_back(std::make_unique<SearchThread>(this, i));
     }
 
     std::size_t get_num_threads()
     {
-        return m_threads.size();
+        return threads.size();
     }
 
     void is_ready()
@@ -228,72 +228,72 @@ class ThreadPool
 
     void stop()
     {
-        for (auto &thread : m_threads)
-            thread->m_state |= ThreadStates::STOP;
+        for (auto &thread : threads)
+            thread->state |= ThreadStates::STOP;
     }
     void exit()
     {
-        for (auto &thread : m_threads)
+        for (auto &thread : threads)
             thread->exit();
     }
     void wait_for_finish(bool main_as_well = true)
     {
-        for (auto &thread : m_threads)
+        for (auto &thread : threads)
         {
-            if (main_as_well || thread != m_threads.front())
+            if (main_as_well || thread != threads.front())
                 thread->wait_for_finish();
         }
     }
     void clear_info()
     {
-        for (auto &thread : m_threads)
-            thread->m_nodes = thread->m_tb_hits = 0;
+        for (auto &thread : threads)
+            thread->nodes = thread->tb_hits = 0;
     }
     void clear_history()
     {
-        for (auto &thread : m_threads)
+        for (auto &thread : threads)
             thread->clear_history();
     }
     void clear_board()
     {
-        m_board.clear();
+        board.clear();
     }
 
     Board &get_board()
     {
-        return m_board;
+        return board;
     }
 
     uint64_t get_nodes()
     {
         uint64_t nodes = 0;
-        for (auto &thread : m_threads)
-            nodes += thread->m_nodes;
+        for (auto &thread : threads)
+            nodes += thread->nodes;
         return nodes;
     }
 
     uint64_t get_tbhits()
     {
         uint64_t tbhits = 0;
-        for (auto &thread : m_threads)
-            tbhits += thread->m_tb_hits;
+        for (auto &thread : threads)
+            tbhits += thread->tb_hits;
         return tbhits;
     }
 
-    void search(Info info)
+    void search(Info _info)
     {
-        m_info = info;
+        info = _info;
         stop();
         wait_for_finish();
-        for (auto &thread : m_threads)
+        for (auto &thread : threads)
         {
-            thread->m_state &= ~ThreadStates::STOP;
-            std::lock_guard<std::mutex> lock(thread->m_mutex);
-            thread->m_state |= ThreadStates::SEARCH;
+            thread->state &= ~ThreadStates::STOP;
+            std::lock_guard<std::mutex> lock(thread->mutex);
+            thread->state |= ThreadStates::SEARCH;
         }
-        for (auto &thread : m_threads)
+        for (auto &thread : threads)
         {
-            thread->m_cv.notify_all();
+            thread->cv.notify_all();
         }
     }
 
@@ -302,22 +302,22 @@ class ThreadPool
         int best_score = 0;
         Move best_move = NULLMOVE;
 
-        int bestDepth = m_threads.front()->m_completed_depth;
-        best_score = m_threads.front()->m_root_scores[1];
-        best_move = m_threads.front()->m_best_moves[1];
-        for (std::size_t i = 1; i < m_threads.size(); i++)
+        int bestDepth = threads.front()->completed_depth;
+        best_score = threads.front()->root_scores[1];
+        best_move = threads.front()->best_moves[1];
+        for (std::size_t i = 1; i < threads.size(); i++)
         {
-            if (m_threads[i]->m_root_scores[1] > best_score && m_threads[i]->m_completed_depth >= bestDepth)
+            if (threads[i]->root_scores[1] > best_score && threads[i]->completed_depth >= bestDepth)
             {
-                best_score = m_threads[i]->m_root_scores[1];
-                best_move = m_threads[i]->m_best_moves[1];
-                bestDepth = m_threads[i]->m_completed_depth;
+                best_score = threads[i]->root_scores[1];
+                best_move = threads[i]->best_moves[1];
+                bestDepth = threads[i]->completed_depth;
             }
         }
 
         if (printStats)
         {
-            std::cout << "bestmove " << best_move.to_string(m_board.chess960) << std::endl;
+            std::cout << "bestmove " << best_move.to_string(board.chess960) << std::endl;
         }
     }
 };

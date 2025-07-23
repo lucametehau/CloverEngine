@@ -14,124 +14,124 @@ inline std::time_t get_current_time()
 class Info
 {
   private:
-    std::time_t m_start_time;
-    std::time_t m_recommended_soft_limit, m_soft_limit, m_hard_limit;
-    int m_depth, m_multipv;
-    int64_t m_nodes, m_min_nodes, m_max_nodes;
+    std::time_t start_time;
+    std::time_t recommended_soft_limit, soft_limit, hard_limit;
+    int depth, multipv;
+    int64_t nodes_lim, min_nodes, max_nodes;
 
-    bool m_timeset, m_san_mode, m_chess960;
+    bool timeset, san_mode, chess960;
 
   public:
-    Info() : m_depth(MAX_DEPTH), m_multipv(1), m_nodes(-1), m_min_nodes(-1), m_max_nodes(-1), m_chess960(false)
+    Info() : depth(MAX_DEPTH), multipv(1), nodes_lim(-1), min_nodes(-1), max_nodes(-1), chess960(false)
     {
     }
 
     void init()
     {
-        m_timeset = m_san_mode = false;
-        m_nodes = m_min_nodes = m_max_nodes = -1;
-        m_depth = MAX_DEPTH;
-        m_start_time = get_current_time();
+        timeset = san_mode = false;
+        nodes_lim = min_nodes = max_nodes = -1;
+        depth = MAX_DEPTH;
+        start_time = get_current_time();
     }
 
     int get_depth_limit() const
     {
-        return m_depth;
+        return depth;
     }
     int get_multipv() const
     {
-        return m_multipv;
+        return multipv;
     }
     bool is_san_mode() const
     {
-        return m_san_mode;
+        return san_mode;
     }
     bool is_chess960() const
     {
-        return m_chess960;
+        return chess960;
     }
 
     void set_soft_limit(std::time_t time)
     {
-        m_soft_limit = time;
+        soft_limit = time;
     }
     void set_recommended_soft_limit(float coef)
     {
-        m_recommended_soft_limit = m_soft_limit * coef;
+        recommended_soft_limit = soft_limit * coef;
     }
     void set_hard_limit(std::time_t time)
     {
-        m_hard_limit = time;
+        hard_limit = time;
     }
 
     void set_nodes(int64_t nodes)
     {
-        m_nodes = nodes;
+        nodes_lim = nodes;
     }
     void set_min_nodes(int64_t nodes)
     {
-        m_min_nodes = nodes;
+        min_nodes = nodes;
     }
     void set_max_nodes(int64_t nodes)
     {
-        m_max_nodes = nodes;
+        max_nodes = nodes;
     }
 
-    void set_depth(int depth)
+    void set_depth(int _depth)
     {
-        m_depth = depth;
+        depth = _depth;
     }
-    void set_multipv(int multipv)
+    void set_multipv(int _multipv)
     {
-        m_multipv = multipv;
+        multipv = _multipv;
     }
-    void set_chess960(bool chess960)
+    void set_chess960(bool _chess960)
     {
-        m_chess960 = chess960;
+        chess960 = _chess960;
     }
     void set_san_mode()
     {
-        m_san_mode = true;
+        san_mode = true;
     }
 
     void set_time(std::time_t time, std::time_t inc)
     {
         std::time_t time_with_inc = time + 40 * inc;
-        m_timeset = true;
-        m_soft_limit = std::min<int>(time_with_inc * TMCoef1, time * TMCoef2);
-        m_hard_limit = std::min<int>(m_soft_limit * TMCoef3, time * TMCoef4);
+        timeset = true;
+        soft_limit = std::min<int>(time_with_inc * TMCoef1, time * TMCoef2);
+        hard_limit = std::min<int>(soft_limit * TMCoef3, time * TMCoef4);
     }
 
     void set_movetime(std::time_t time)
     {
-        m_timeset = true;
-        m_soft_limit = -1;
-        m_hard_limit = time;
+        timeset = true;
+        soft_limit = -1;
+        hard_limit = time;
     }
 
     std::time_t get_time_elapsed() const
     {
-        return get_current_time() - m_start_time;
+        return get_current_time() - start_time;
     }
 
     bool soft_limit_passed() const
     {
-        return m_timeset && m_soft_limit != -1 && get_time_elapsed() >= m_recommended_soft_limit;
+        return timeset && soft_limit != -1 && get_time_elapsed() >= recommended_soft_limit;
     }
     bool hard_limit_passed() const
     {
-        return m_timeset && get_time_elapsed() >= m_hard_limit;
+        return timeset && get_time_elapsed() >= hard_limit;
     }
     bool min_nodes_passed(int64_t nodes) const
     {
-        return m_min_nodes != -1 && nodes >= m_min_nodes;
+        return min_nodes != -1 && nodes >= min_nodes;
     }
     bool max_nodes_passed(int64_t nodes) const
     {
-        return m_max_nodes != -1 && nodes >= m_max_nodes;
+        return max_nodes != -1 && nodes >= max_nodes;
     }
     bool nodes_limit_passed(int64_t nodes) const
     {
-        return m_nodes != -1 && nodes >= m_nodes;
+        return nodes_lim != -1 && nodes >= nodes_lim;
     }
 };

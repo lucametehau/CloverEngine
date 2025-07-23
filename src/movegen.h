@@ -724,7 +724,7 @@ bool is_legal(Board &board, Move move)
             if ((!((all ^ Bitboard(rFrom)) & (between_mask[from][to] | Bitboard(to))) || from == to) &&
                 (!((all ^ Bitboard(from)) & (between_mask[rFrom][rTo] | Bitboard(rTo))) || rFrom == rTo))
             {
-                return !board.get_attackers(enemy, all ^ Bitboard(rFrom), from);
+                return !board.pinned_pieces().has_square(rFrom);
             }
             return 0;
         }
