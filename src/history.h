@@ -248,8 +248,8 @@ class Histories
     {
         const Square from = move.get_from();
         const Square to = move.get_to();
-        return get_hist(from, to, move.get_from_to(), turn, threats) + get_from_hist(from, turn, threats) / 2 +
-               get_to_hist(to, turn, threats) / 2 + get_cont_hist(piece, to, stack, 1) +
+        return get_hist(from, to, move.get_from_to(), turn, threats) + get_from_hist(from, turn, threats) / 4 +
+               get_to_hist(to, turn, threats) / 4 + get_cont_hist(piece, to, stack, 1) +
                get_cont_hist(piece, to, stack, 2) + get_cont_hist(piece, to, stack, 4);
     }
 
