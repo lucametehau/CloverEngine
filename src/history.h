@@ -90,6 +90,7 @@ class Histories
 {
   private:
     MultiArray<History<16384>, 2, 2, 2, 64 * 64> hist;
+    MultiArray<History<16384>, 2, 2, 64> square_hist;
     MultiArray<History<16384>, 12, 64, 7> cap_hist;
     MultiArray<History<16384>, PAWN_HIST_SIZE, 12, 64> pawn_hist;
     MultiArray<CorrectionHistory, 2, CORR_HIST_SIZE> corr_hist;
@@ -103,6 +104,7 @@ class Histories
     void clear_history()
     {
         fill_multiarray<History<16384>, 2, 2, 2, 64 * 64>(hist, 0);
+        fill_multiarray<History<16384>, 2, 2, 64>(square_hist, 0);
         fill_multiarray<History<16384>, 12, 64, 7>(cap_hist, 0);
         fill_multiarray<History<16384>, PAWN_HIST_SIZE, 12, 64>(pawn_hist, 0);
         fill_multiarray<History<16384>, 2, 13, 64, 13, 64>(cont_history, 0);
@@ -126,6 +128,16 @@ class Histories
                                   const Bitboard threats) const
     {
         return hist[turn][!threats.has_square(from)][!threats.has_square(to)][from_to];
+    }
+
+    History<16384> &get_square_hist(const Square square, const bool turn, const Bitboard threats)
+    {
+        return square_hist[turn][!threats.has_square(square)][square];
+    }
+
+    const History<16384> get_square_hist(const Square square, const bool turn, const Bitboard threats) const
+    {
+        return square_hist[turn][!threats.has_square(square)][square];
     }
 
     History<16384> &get_cont_hist(const Piece piece, const Square to, StackEntry *stack, const int delta)
@@ -200,7 +212,11 @@ class Histories
 
     void update_hist_move(const Move move, const Bitboard threats, const bool turn, const int16_t bonus)
     {
-        get_hist(move.get_from(), move.get_to(), move.get_from_to(), turn, threats).update(bonus);
+        const Square from = move.get_from();
+        const Square to = move.get_to();
+        get_hist(from, to, move.get_from_to(), turn, threats).update(bonus);
+        get_square_hist(from, turn, threats).update(bonus);
+        get_square_hist(to, turn, threats).update(bonus);
     }
 
     void update_pawn_hist_move(const Piece piece, const Square to, const Key pawn_key, const int16_t bonus)
@@ -219,8 +235,10 @@ class Histories
     const int get_history_search(const Move move, const Piece piece, const Bitboard threats, const bool turn,
                                  StackEntry *stack, const Key pawn_key) const
     {
+        const Square from = move.get_from();
         const Square to = move.get_to();
-        return get_hist(move.get_from(), to, move.get_from_to(), turn, threats) + get_cont_hist(piece, to, stack, 1) +
+        return get_hist(from, to, move.get_from_to(), turn, threats) + get_square_hist(from, turn, threats) / 2 +
+               get_square_hist(to, turn, threats) / 2 + get_cont_hist(piece, to, stack, 1) +
                get_cont_hist(piece, to, stack, 2) + get_cont_hist(piece, to, stack, 4);
     }
 
