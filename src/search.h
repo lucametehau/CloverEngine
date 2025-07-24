@@ -493,7 +493,8 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
                        complexity * SNMPComplexityCoef / 1024 + SNMPBase;
             };
             if (depth <= SNMPDepth && eval > beta && eval < MATE && (!ttMove || is_ttmove_noisy) &&
-                eval - snmp_margin(depth - enemy_has_no_threats, improving, improving_after_move, cutNode, complexity) >
+                eval - snmp_margin(depth - enemy_has_no_threats - !!previous_R, improving, improving_after_move,
+                                   cutNode, complexity) >
                     beta)
                 return beta > -MATE ? (eval + beta) / 2 : eval;
 
