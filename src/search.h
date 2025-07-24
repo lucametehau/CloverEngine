@@ -558,6 +558,17 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
             }
         }
     }
+    else
+    {
+        /// static null move pruning (don't prune when having a mate line, again stability)
+        auto snmp_pv_margin = [&](int depth, int improving, bool improving_after_move, int complexity) {
+            return (SNMPMargin - SNMPImproving * improving) * depth - SNMPImprovingAfterMove * improving_after_move +
+                   complexity * SNMPComplexityCoef / 1024 + SNMPBase;
+        };
+        if (!in_check && depth <= SNMPDepth && eval > beta && eval < MATE && (!ttMove || is_ttmove_noisy) &&
+            eval - snmp_pv_margin(depth - enemy_has_no_threats, improving, improving_after_move, complexity) > beta)
+            depth--;
+    }
 
 #ifndef TUNE_FLAG
     constexpr int see_depth_coef = rootNode ? RootSeeDepthCoef : PVSSeeDepthCoef;
