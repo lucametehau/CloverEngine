@@ -213,7 +213,7 @@ template <bool pvNode> int SearchThread::quiesce(int alpha, int beta, StackEntry
 
     alpha = std::max(alpha, best);
 
-    Movepick qs_movepicker(!in_check && see(board, ttMove, 0) ? ttMove : NULLMOVE, board.threats(), in_check);
+    Movepick qs_movepicker(!in_check && ttMove && see(board, ttMove, 0) ? ttMove : NULLMOVE, board.threats(), in_check);
     Move move;
     int played = 0;
 

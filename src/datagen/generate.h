@@ -47,6 +47,7 @@ void generate_fens(SearchThread &thread_data, std::atomic<uint64_t> &total_fens_
     std::mt19937_64 gn((std::chrono::system_clock::now().time_since_epoch().count() + extraSeed) ^ 8257298672678ULL);
     std::uniform_int_distribution<uint32_t> rnd_dfrc(0, 960 * 960);
     BinpackFormat binpack;
+    // std::unique_ptr<std::deque<HistoricalState>> states;
 
     Info info;
     uint64_t fens_count = 0;
@@ -156,6 +157,105 @@ void generate_fens(SearchThread &thread_data, std::atomic<uint64_t> &total_fens_
         
         if (stop_requested) break;
     }
+}
+#endif
+
+
+#ifdef GENERATE
+
+void play_datagen_game(uint64_t dfrc_index, std::vector<std::string> &moves)
+{
+    Info info;
+
+    thread_pool.create_pool(1);
+    thread_pool.threads[0]->thread_id = 0;
+
+    auto &thread_data = *thread_pool.threads[0];
+
+    info.init();
+    info.set_chess960(FRC_DATAGEN);
+    info.set_min_nodes(MIN_NODES);
+    info.set_max_nodes(MAX_NODES);
+
+    thread_data.TT = new HashTable();
+    thread_data.TT->init(4 * MB);
+    thread_data.info = info;
+
+    thread_data.board.chess960 = FRC_DATAGEN;
+
+    std::unique_ptr<std::deque<HistoricalState>> states;
+    states = std::make_unique<std::deque<HistoricalState>>(1);
+    double result = 0;
+    int ply = 0;
+    int nr_fens = 0;
+    int nr_moves;
+
+    thread_data.board.set_dfrc(dfrc_index, states->back());
+
+    thread_data.clear_history();
+    thread_data.clear_stack();
+
+    std::cout << dfrc_index << "\n";
+
+    for (auto &move : moves) {
+        states->emplace_back();
+        thread_data.board.make_move(parse_move_string(thread_data.board, move, info), states->back());
+        thread_data.board.print();
+        std::cout << move << std::endl;
+    }
+
+    // MoveList pos_moves;
+    // int nr_moves = thread_data.board.gen_legal_moves<MOVEGEN_ALL>(pos_moves);
+
+    // for (int i = 0; i < nr_moves; i++)
+    // {
+    //     std::cout << pos_moves[i].to_string(thread_data.board.chess960) << "\n";
+    // }
+
+    thread_data.board.print();
+
+    while (true)
+    {
+        Move move;
+        int score;
+
+        // game over checking
+        if (thread_data.board.is_draw(0))
+        {
+            result = 0.5;
+            break;
+        }
+
+        MoveList moves;
+        nr_moves = thread_data.board.gen_legal_moves<MOVEGEN_ALL>(moves);
+
+        if (!nr_moves)
+        {
+            if (thread_data.board.checkers())
+                result = thread_data.board.turn == WHITE ? 0.0 : 1.0;
+            else
+                result = 0.5;
+            break;
+        }
+
+        thread_data.TT->age();
+        thread_data.board.clear();
+        thread_data.state = ThreadStates::SEARCH;
+        thread_data.start_search();
+
+        score = thread_data.root_scores[1] * (thread_data.board.turn == WHITE ? 1 : -1);
+        move = thread_data.best_moves[1];
+
+        thread_data.board.print();
+        std::cout << move.to_string(true) << " " << score << std::endl;
+
+        states->emplace_back();
+        thread_data.board.make_move(move, states->back());
+        nr_fens++;
+        ply++;
+    }
+    
+    std::cout << "Result: " << result << " | Fens: " << nr_fens << std::endl;
 }
 #endif
 
