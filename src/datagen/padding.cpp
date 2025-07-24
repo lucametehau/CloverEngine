@@ -3,6 +3,7 @@
 #include <vector>
 #include <fstream>
 #include <filesystem>
+#include "binpack.h"
 
 int main(int argc, char* argv[]) {
     if (argc != 3) {

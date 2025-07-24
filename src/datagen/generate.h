@@ -84,6 +84,8 @@ void generate_fens(SearchThread &thread_data, std::atomic<uint64_t> &total_fens_
         thread_data.clear_history();
         thread_data.clear_stack();
 
+        thread_data.TT->init(4 * MB, 1);
+
         std::uniform_int_distribution<int> rnd_ply(0, 100000);
 
         int extra_ply = rnd_ply(gn) % 2;
@@ -190,10 +192,11 @@ void play_datagen_game(uint64_t dfrc_index, std::vector<std::string> &moves)
     int nr_fens = 0;
     int nr_moves;
 
-    thread_data.board.set_dfrc(dfrc_index, states->back());
-
     thread_data.clear_history();
     thread_data.clear_stack();
+
+    thread_data.board.set_dfrc(dfrc_index, states->back());
+
 
     std::cout << dfrc_index << "\n";
 
@@ -203,6 +206,8 @@ void play_datagen_game(uint64_t dfrc_index, std::vector<std::string> &moves)
         thread_data.board.print();
         std::cout << move << std::endl;
     }
+
+    thread_data.board.set_fen("bqr1k1rn/ppbp1ppp/2p3n1/4p3/P7/2PP3P/1P2PPP1/BRNQKBRN w GBgc - 0 1", states->back());
 
     // MoveList pos_moves;
     // int nr_moves = thread_data.board.gen_legal_moves<MOVEGEN_ALL>(pos_moves);
