@@ -158,7 +158,7 @@ TUNE_PARAM(PVDeeperMargin, 74, 0, 150);
 
 TUNE_PARAM(RootSeeDepthCoef, 7, 5, 20);
 
-TUNE_PARAM(AspirationWindowsDepth, 6, 4, 10);
+TUNE_PARAM(AspirationWindowsDepth, 3, 4, 10);
 TUNE_PARAM(AspirationWindosValue, 7, 5, 20);
 TUNE_PARAM(AspirationWindowsDivisor, 10613, 1, 20000);
 TUNE_PARAM(AspirationWindowExpandMargin, 18, 10, 100);
