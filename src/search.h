@@ -615,7 +615,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
                     // futility pruning
                     auto futility_margin = [&](int depth) { return FPBias + FPMargin * depth; };
                     if (new_depth <= FPDepth && !in_check &&
-                        static_eval + futility_margin(new_depth) + history / 128 <= alpha)
+                        static_eval + futility_margin(new_depth) + history / 64 <= alpha)
                         picker.skip_quiets();
 
                     // late move pruning
