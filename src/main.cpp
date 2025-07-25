@@ -51,6 +51,25 @@ int main(int argc, char **argv)
             return 0;
         }
 #else
+        if (!strncmp(argv[1], "replay", 6))
+        {
+            printStats = false;
+            std::string line;
+            std::getline(std::cin, line);
+            auto pos = line.find(':');
+            int dfrc_index = std::stoi(line.substr(0, pos));
+            std::vector<std::string> moves;
+            while (pos != std::string::npos)
+            {
+                auto j = pos + 1;
+                pos = line.find(' ', j);
+                std::string move_str = line.substr(j, pos - j);
+                moves.push_back(move_str);
+            }
+            play_datagen_game(dfrc_index, moves);
+            return 0;
+        }
+
         std::map<std::string, std::string> args;
         for (int i = 1; i < argc; i++)
         {

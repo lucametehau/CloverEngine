@@ -139,7 +139,8 @@ HashTable::~HashTable()
 void HashTable::init(uint64_t size, int nr_threads)
 {
     generation = 0;
-    std::cout << "info string initializing TT with " << size << " bytes and " << nr_threads << " threads" << std::endl;
+    // std::cout << "info string initializing TT with " << size << " bytes and " << nr_threads << " threads" <<
+    // std::endl;
     if (size < sizeof(Bucket))
     {
         if (buckets != 0)
@@ -161,7 +162,7 @@ void HashTable::init(uint64_t size, int nr_threads)
         table = static_cast<Bucket *>(std::malloc(buckets * sizeof(Bucket)));
     }
 
-    std::cout << "info string declared " << buckets << " TT buckets" << std::endl;
+    // std::cout << "info string declared " << buckets << " TT buckets" << std::endl;
 
     // ugly, I know
     if (nr_threads < 1)

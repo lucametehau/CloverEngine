@@ -205,7 +205,7 @@ void Board::set_fen(const std::string fen, HistoricalState &next_state)
 
 void Board::set_frc_side(bool color, int idx)
 {
-    Square ind = color == WHITE ? Squares::A1 : Squares::A8;
+    Square ind = Squares::A1.mirror(color);
 
     place_piece_at_sq(Piece(PieceTypes::BISHOP, color), ind + 1 + (idx % 4) * 2);
     idx /= 4;
@@ -249,6 +249,8 @@ void Board::set_frc_side(bool color, int idx)
             if (cnt == 0 || cnt == 2)
             {
                 place_piece_at_sq(Piece(PieceTypes::ROOK, color), i);
+                rook_sq(color, cnt / 2) = i;
+                key() ^= castleKey[color][cnt / 2];
             }
             else
             {
@@ -283,47 +285,6 @@ void Board::set_dfrc(int idx, HistoricalState &next_state)
 
     turn = WHITE;
     key() ^= turn;
-
-    Square a = NO_SQUARE, b = NO_SQUARE;
-    for (Square i = Squares::A1; i <= Squares::H1; i++)
-    {
-        if (piece_at(i) == Pieces::WhiteRook)
-        {
-            a = b;
-            b = i;
-        }
-    }
-
-    for (auto &rook : {a, b})
-    {
-        if (rook != NO_SQUARE)
-        {
-            if (rook < get_king(WHITE))
-                rook_sq(WHITE, 0) = rook;
-            if (get_king(WHITE) < rook)
-                rook_sq(WHITE, 1) = rook;
-        }
-    }
-    a = NO_SQUARE, b = NO_SQUARE;
-    for (Square i = Squares::A8; i <= Squares::H8; i++)
-    {
-        if (piece_at(i) == Pieces::BlackRook)
-        {
-            b = a;
-            a = i;
-        }
-    }
-    for (auto &rook : {a, b})
-    {
-        if (rook != NO_SQUARE)
-        {
-            if (rook < get_king(BLACK))
-                rook_sq(BLACK, 0) = rook;
-            if (get_king(BLACK) < rook)
-                rook_sq(BLACK, 1) = rook;
-        }
-    }
-
     enpas() = NO_SQUARE;
     half_moves() = 0;
     move_index() = 1;
