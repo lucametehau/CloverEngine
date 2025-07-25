@@ -30,7 +30,7 @@
 #ifdef GENERATE
 
 constexpr bool FRC_DATAGEN = true;
-constexpr int MIN_NODES = 20000;
+constexpr int MIN_NODES = 5000;
 constexpr int MAX_NODES = (1 << 20);
 
 std::atomic<bool> stop_requested{false};
