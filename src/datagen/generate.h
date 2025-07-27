@@ -84,7 +84,7 @@ void generate_fens(SearchThread &thread_data, std::atomic<uint64_t> &total_fens_
         thread_data.clear_history();
         thread_data.clear_stack();
 
-        thread_data.TT->init(4 * MB, 1);
+        // thread_data.TT->init(4 * MB, 1);
 
         std::uniform_int_distribution<int> rnd_ply(0, 100000);
 
