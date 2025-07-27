@@ -76,6 +76,9 @@ public:
             if ((piece & 0x7) == 6)
                 std::cout << "castle rook at " << int(squares[i]) << std::endl;
         }
+
+        board.half_moves() = 0;
+        board.move_index() = 1;
         std::cout << int(result) << std::endl;
     }
 

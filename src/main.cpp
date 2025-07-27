@@ -15,6 +15,7 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include "cuckoo.h"
+#include "datagen/padding.h"
 #include "net.h"
 #include "perft.h"
 
@@ -48,6 +49,18 @@ int main(int argc, char **argv)
                 depth = stoi(s);
             }
             uci.bench(depth);
+            return 0;
+        }
+
+        if (!strncmp(argv[1], "pad", 3))
+        {
+            UCI uci;
+            int err = pad(argc - 1, argv + 1);
+            if (err)
+            {
+                std::cout << "Error!\n";
+                return 1;
+            }
             return 0;
         }
 #else
