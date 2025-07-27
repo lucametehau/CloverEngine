@@ -45,7 +45,7 @@ void generate_fens(SearchThread &thread_data, std::atomic<uint64_t> &total_fens_
     std::ofstream out(path, std::ios::binary);
     std::ofstream seed_out("seed_" + path);
     std::mt19937_64 gn((std::chrono::system_clock::now().time_since_epoch().count() + extraSeed) ^ 8257298672678ULL);
-    std::uniform_int_distribution<uint32_t> rnd_dfrc(0, 960 * 960);
+    std::uniform_int_distribution<uint32_t> rnd_dfrc(0, 960 * 960 - 1);
     BinpackFormat binpack;
     // std::unique_ptr<std::deque<HistoricalState>> states;
 
@@ -74,7 +74,7 @@ void generate_fens(SearchThread &thread_data, std::atomic<uint64_t> &total_fens_
         int nr_fens = 0;
 
         if (FRC_DATAGEN) {
-            int idx = rnd_dfrc(gn) % (960 * 960);
+            int idx = rnd_dfrc(gn);
             thread_data.board.set_dfrc(idx, states->back());
             seed_out << idx << ":";
         }
@@ -135,7 +135,7 @@ void generate_fens(SearchThread &thread_data, std::atomic<uint64_t> &total_fens_
                 thread_data.TT->age();
                 thread_data.board.clear();
                 thread_data.state = ThreadStates::SEARCH;
-                thread_data.start_search();
+                // thread_data.start_search();
 
                 score = thread_data.root_scores[1] * (thread_data.board.turn == WHITE ? 1 : -1);
                 move = thread_data.best_moves[1];
