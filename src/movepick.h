@@ -148,9 +148,9 @@ class Movepick
         {
         case Stages::STAGE_TTMOVE: {
             trueStage = Stages::STAGE_TTMOVE;
+            stage++;
 #ifdef GENERATE
             nr_all = board.gen_legal_moves<MOVEGEN_ALL>(all_moves);
-            stage++;
 
             bool legal1 = is_legal(board, tt_move), legal2 = is_move_legal(tt_move);
 
