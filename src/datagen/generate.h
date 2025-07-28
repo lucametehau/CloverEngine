@@ -34,6 +34,12 @@ constexpr int MIN_NODES = 5000;
 constexpr int MAX_NODES = (1 << 20);
 constexpr int ADJ_OPENING_THRESHOLD = 400;
 
+constexpr int DO_ADJ = true;
+constexpr int ADJ_WIN_PLY_THRESHOLD = 4;
+constexpr int ADJ_WIN_SCORE_THRESHOLD = 2000;
+constexpr int ADJ_DRAW_PLY_THRESHOLD = 10;
+constexpr int ADJ_DRAW_SCORE_THRESHOLD = 20;
+
 std::atomic<bool> stop_requested{false};
 
 void handle_sigint(int) {
@@ -104,6 +110,7 @@ void generate_fens(SearchThread &thread_data, std::atomic<uint64_t> &total_fens_
 
             MoveList moves;
             int nr_moves = thread_data.board.gen_legal_moves<MOVEGEN_ALL>(moves);
+            int win_count = 0, draw_count = 0;
 
             if (!nr_moves)
             {
@@ -137,12 +144,27 @@ void generate_fens(SearchThread &thread_data, std::atomic<uint64_t> &total_fens_
                 score = thread_data.root_scores[1] * (thread_data.board.turn == WHITE ? 1 : -1);
                 move = thread_data.best_moves[1];
 
+
                 // too big score out of book
                 if (ply == book_ply_count && abs(score) >= ADJ_OPENING_THRESHOLD) {
                     break;
                 }
 
                 binpack.add_move(move, score);
+
+                if constexpr (DO_ADJ) {
+                    win_count = abs(score) >= ADJ_WIN_SCORE_THRESHOLD ? win_count + 1 : 0;
+                    draw_count = abs(score) <= ADJ_DRAW_SCORE_THRESHOLD ? draw_count + 1 : 0;
+
+                    if (win_count == ADJ_WIN_PLY_THRESHOLD) {
+                        binpack.set_result(score < 0 ? 0 : 2);
+                        break;
+                    }
+                    if (draw_count == ADJ_DRAW_PLY_THRESHOLD) {
+                        binpack.set_result(1);
+                        break;
+                    }
+                }
 
                 states->emplace_back();
                 thread_data.board.make_move(move, states->back());
