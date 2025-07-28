@@ -29,7 +29,7 @@
 
 #ifdef GENERATE
 
-constexpr bool FRC_DATAGEN = true;
+constexpr bool FRC_DATAGEN = false;
 constexpr int MIN_NODES = 5000;
 constexpr int MAX_NODES = (1 << 20);
 constexpr int ADJ_OPENING_THRESHOLD = 400;
@@ -46,13 +46,12 @@ void handle_sigint(int) {
     stop_requested = true;
 }
 
-void generate_fens(SearchThread &thread_data, std::atomic<uint64_t> &total_fens_count, std::atomic<uint64_t> &num_games,
-                  uint64_t fens_limit, std::string path, uint64_t seed, uint64_t extraSeed)
+void generate_fens(SearchThread &thread_data, std::atomic<uint64_t> &total_fens_count, std::atomic<uint64_t> &num_games, uint64_t fens_limit, std::string path)
 {
     std::ofstream out(path, std::ios::binary);
     std::ofstream seed_out("seed_" + path);
-    std::mt19937_64 gn((std::chrono::system_clock::now().time_since_epoch().count() + extraSeed) ^ 8257298672678ULL);
-    std::uniform_int_distribution<uint32_t> rnd_dfrc(0, 960 * 960);
+    std::mt19937_64 gn(std::chrono::system_clock::now().time_since_epoch().count() ^ thread_data.thread_id);
+    std::uniform_int_distribution<uint32_t> rnd_dfrc(0, 960 * 960 - 1);
     BinpackFormat binpack;
     // std::unique_ptr<std::deque<HistoricalState>> states;
 
@@ -66,6 +65,7 @@ void generate_fens(SearchThread &thread_data, std::atomic<uint64_t> &total_fens_
 
     std::mutex M;
 
+    thread_data.thread_id = 0;
     thread_data.TT = new HashTable();
     thread_data.TT->init(4 * MB);
     thread_data.info = info;
@@ -78,8 +78,8 @@ void generate_fens(SearchThread &thread_data, std::atomic<uint64_t> &total_fens_
         states = std::make_unique<std::deque<HistoricalState>>(1);
         int ply = 0;
 
-        if (FRC_DATAGEN) {
-            int idx = rnd_dfrc(gn) % (960 * 960);
+        if constexpr (FRC_DATAGEN) {
+            int idx = rnd_dfrc(gn);
             thread_data.board.set_dfrc(idx, states->back());
             seed_out << idx << ":";
         }
@@ -300,8 +300,6 @@ void generateData(uint64_t num_fens, int num_threads, std::string rootPath, uint
 
     std::vector<std::thread> threads(num_threads);
     thread_pool.create_pool(num_threads);
-    for (auto &t : thread_pool.threads)
-        t->thread_id = 0;
     uint64_t batch = num_fens / num_threads;
     std::size_t i = 0;
 
@@ -318,15 +316,13 @@ void generateData(uint64_t num_fens, int num_threads, std::string rootPath, uint
     {
         std::string pth = path[i];
         std::cout << "Starting thread " << i << std::endl;
-        // generate_fens(*thread_pool.threads[i], total_fens_count, num_games, batch, pth, rng(gen), extraSeed);
+        // generate_fens(*thread_pool.threads[i], total_fens_count, num_games, batch, pth);
         t = std::thread{generate_fens,
                         std::ref(*thread_pool.threads[i]),
                         std::ref(total_fens_count),
                         std::ref(num_games),
                         batch,
-                        pth,
-                        rng(gen),
-                        extraSeed};
+                        pth};
         i++;
     }
 
