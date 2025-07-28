@@ -67,6 +67,11 @@ class Movepick
 
     bool skip_quiets_flag;
 
+#ifdef GENERATE
+    MoveList all_moves;
+    int nr_all;
+#endif
+
   public:
     // Normal Movepicker, used in PVS search.
     Movepick(const Move tt_move, const Move killer, const Move kp_move, const int threshold, const Threats threats)
@@ -128,14 +133,49 @@ class Movepick
 
     Move get_next_move(Histories &histories, StackEntry *stack, Board &board)
     {
+#ifdef GENERATE
+        auto is_move_legal = [&](Move move) {
+            for (int i = 0; i < nr_all; i++)
+            {
+                if (all_moves[i] == move)
+                    return true;
+            }
+            return false;
+        };
+#endif
+
         switch (stage)
         {
-        case Stages::STAGE_TTMOVE:
+        case Stages::STAGE_TTMOVE: {
             trueStage = Stages::STAGE_TTMOVE;
             stage++;
+#ifdef GENERATE
+            nr_all = board.gen_legal_moves<MOVEGEN_ALL>(all_moves);
 
+            bool legal1 = is_legal(board, tt_move), legal2 = is_move_legal(tt_move);
+
+            if (legal1 != legal2)
+            {
+                std::cout << legal1 << " " << legal2 << "\n";
+                std::cout << tt_move.to_string(board.chess960) << "\n";
+                board.print();
+                for (int i = 0; i < 12; i++)
+                    board.bb[i].print();
+                board.pieces[WHITE].print();
+                board.pieces[BLACK].print();
+                for (int i = 0; i < nr_all; i++)
+                    std::cout << all_moves[i].to_string(board.chess960) << " ";
+                std::cout << "\n";
+                exit(0);
+            }
+
+            if (legal1)
+                return tt_move;
+#else
             if (is_legal(board, tt_move))
                 return tt_move;
+#endif
+        }
         case Stages::STAGE_GEN_NOISY: {
             nrNoisy = board.gen_legal_moves<MOVEGEN_NOISY>(moves);
             int m = 0;
@@ -181,12 +221,35 @@ class Movepick
                 return get_next_move(histories, stack, board);
             }
             stage++;
-        case Stages::STAGE_KILLER:
+        case Stages::STAGE_KILLER: {
             trueStage = Stages::STAGE_KILLER;
             stage++;
 
+#ifdef GENERATE
+            bool legal1 = is_legal(board, killer), legal2 = is_move_legal(killer);
+
+            if (legal1 != legal2)
+            {
+                std::cout << legal1 << " " << legal2 << "\n";
+                std::cout << killer.to_string(board.chess960) << "\n";
+                board.print();
+                for (int i = 0; i < 12; i++)
+                    board.bb[i].print();
+                board.pieces[WHITE].print();
+                board.pieces[BLACK].print();
+                for (int i = 0; i < nr_all; i++)
+                    std::cout << all_moves[i].to_string(board.chess960) << " ";
+                std::cout << "\n";
+                exit(0);
+            }
+
+            if (!skip_quiets_flag && legal1)
+                return killer;
+#else
             if (!skip_quiets_flag && is_legal(board, killer))
                 return killer;
+#endif
+        }
         case Stages::STAGE_GEN_QUIETS: {
             if (!skip_quiets_flag)
             {
@@ -290,9 +353,32 @@ class Movepick
         // Here begin the QS stages.
         case Stages::STAGE_QS_TTMOVE: {
             stage++;
+#ifdef GENERATE
+            nr_all = board.gen_legal_moves<MOVEGEN_ALL>(all_moves);
 
+            bool legal1 = is_legal(board, tt_move), legal2 = is_move_legal(tt_move);
+
+            if (legal1 != legal2)
+            {
+                std::cout << legal1 << " " << legal2 << "\n";
+                std::cout << tt_move.to_string(board.chess960) << "\n";
+                board.print();
+                for (int i = 0; i < 12; i++)
+                    board.bb[i].print();
+                board.pieces[WHITE].print();
+                board.pieces[BLACK].print();
+                for (int i = 0; i < nr_all; i++)
+                    std::cout << all_moves[i].to_string(board.chess960) << " ";
+                std::cout << "\n";
+                exit(0);
+            }
+
+            if (legal1)
+                return tt_move;
+#else
             if (is_legal(board, tt_move))
                 return tt_move;
+#endif
         }
         case Stages::STAGE_QS_GEN_NOISY: {
             nrNoisy = board.gen_legal_moves<MOVEGEN_NOISY>(moves);
@@ -415,9 +501,32 @@ class Movepick
         // Here begin the Probcut stages.
         case Stages::STAGE_PC_TTMOVE: {
             stage++;
+#ifdef GENERATE
+            nr_all = board.gen_legal_moves<MOVEGEN_ALL>(all_moves);
 
+            bool legal1 = is_legal(board, tt_move), legal2 = is_move_legal(tt_move);
+
+            if (legal1 != legal2)
+            {
+                std::cout << legal1 << " " << legal2 << "\n";
+                std::cout << tt_move.to_string(board.chess960) << "\n";
+                board.print();
+                for (int i = 0; i < 12; i++)
+                    board.bb[i].print();
+                board.pieces[WHITE].print();
+                board.pieces[BLACK].print();
+                for (int i = 0; i < nr_all; i++)
+                    std::cout << all_moves[i].to_string(board.chess960) << " ";
+                std::cout << "\n";
+                exit(0);
+            }
+
+            if (legal1)
+                return tt_move;
+#else
             if (is_legal(board, tt_move))
                 return tt_move;
+#endif
         }
         case Stages::STAGE_PC_GEN_NOISY: {
             nrNoisy = board.gen_legal_moves<MOVEGEN_NOISY>(moves);
