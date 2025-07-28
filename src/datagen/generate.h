@@ -312,7 +312,7 @@ void generateData(uint64_t num_fens, int num_threads, std::string rootPath, uint
     {
         std::this_thread::sleep_for(std::chrono::seconds(1));
         std::time_t time_elapsed = (get_current_time() - startTime) / 1000;
-        uint64_t speed = static_cast<uint64_t>(total_fens_count / (time_elapsed + !time_elapsed);
+        uint64_t speed = static_cast<uint64_t>(total_fens_count / (time_elapsed + !time_elapsed));
         uint64_t time_left = std::max<uint64_t>(0ull, num_fens - total_fens_count) / (speed + !speed);
         std::cout << "Games: " << std::setw(10) << num_games << " | Fens: " << std::setw(11) << total_fens_count << " | ";
         std::cout << "Time Elapsed: " << std::setw(4) << time_elapsed / 3600 << "h " 
