@@ -707,29 +707,25 @@ bool is_legal(Board &board, Move move)
 
     if (move.get_type() == MoveTypes::CASTLE)
     {
-        if (from != king || board.checkers())
-            return false;
         bool side = to > from;
+        if (from != king || to != board.rook_sq(us, side) || board.checkers())
+            return false;
 
-        if (board.rook_sq(us, side) != NO_SQUARE)
+        const Square rFrom = to, rTo = (side ? Squares::F1 : Squares::D1).mirror(us);
+        to = (side ? Squares::G1 : Squares::C1).mirror(us);
+
+        if (board.threats().all_threats & (between_mask[from][to] | Bitboard(to)))
+            return false;
+        if (!board.chess960)
+            return side ? !(all & (3ULL << (from + 1))) : !(all & (7ULL << (from - 3)));
+
+        if ((!((all ^ Bitboard(rFrom)) & (between_mask[from][to] | Bitboard(to))) || from == to) &&
+            (!((all ^ Bitboard(from)) & (between_mask[rFrom][rTo] | Bitboard(rTo))) || rFrom == rTo))
         {
-            const Square rFrom = to, rTo = (side ? Squares::F1 : Squares::D1).mirror(us);
-            to = (side ? Squares::G1 : Squares::C1).mirror(us);
-
-            if (board.threats().all_threats & (between_mask[from][to] | Bitboard(to)))
-                return false;
-            if (!board.chess960)
-                return side ? !(all & (3ULL << (from + 1))) : !(all & (7ULL << (from - 3)));
-
-            if ((!((all ^ Bitboard(rFrom)) & (between_mask[from][to] | Bitboard(to))) || from == to) &&
-                (!((all ^ Bitboard(from)) & (between_mask[rFrom][rTo] | Bitboard(rTo))) || rFrom == rTo))
-            {
-                return !board.pinned_pieces().has_square(rFrom);
-            }
-            return 0;
+            return !board.pinned_pieces().has_square(rFrom);
         }
 
-        return 0;
+        return false;
     }
 
     if (move.get_type() == MoveTypes::ENPASSANT)
