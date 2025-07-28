@@ -56,16 +56,21 @@ class Movepick
 
   private:
     Move tt_move, killer, kp_move;
-    int nrNoisy, nrQuiets, nrBadNoisy, nr_all;
+    int nrNoisy, nrQuiets, nrBadNoisy;
     int index;
 
     Bitboard all_threats, threats_p, threats_bn, threats_r;
     int threshold;
 
-    MoveList moves, badNoisy, all_moves;
+    MoveList moves, badNoisy;
     std::array<int, MAX_MOVES> scores;
 
     bool skip_quiets_flag;
+
+#ifdef GENERATE
+    MoveList all_moves;
+    int nr_all;
+#endif
 
   public:
     // Normal Movepicker, used in PVS search.
@@ -128,6 +133,7 @@ class Movepick
 
     Move get_next_move(Histories &histories, StackEntry *stack, Board &board)
     {
+#ifdef GENERATE
         auto is_move_legal = [&](Move move) {
             for (int i = 0; i < nr_all; i++)
             {
@@ -136,11 +142,13 @@ class Movepick
             }
             return false;
         };
+#endif
 
         switch (stage)
         {
         case Stages::STAGE_TTMOVE: {
             trueStage = Stages::STAGE_TTMOVE;
+#ifdef GENERATE
             nr_all = board.gen_legal_moves<MOVEGEN_ALL>(all_moves);
             stage++;
 
@@ -163,6 +171,10 @@ class Movepick
 
             if (legal1)
                 return tt_move;
+#else
+            if (is_legal(board, tt_move))
+                return tt_move;
+#endif
         }
         case Stages::STAGE_GEN_NOISY: {
             nrNoisy = board.gen_legal_moves<MOVEGEN_NOISY>(moves);
@@ -213,6 +225,7 @@ class Movepick
             trueStage = Stages::STAGE_KILLER;
             stage++;
 
+#ifdef GENERATE
             bool legal1 = is_legal(board, killer), legal2 = is_move_legal(killer);
 
             if (legal1 != legal2)
@@ -232,6 +245,10 @@ class Movepick
 
             if (!skip_quiets_flag && legal1)
                 return killer;
+#else
+            if (!skip_quiets_flag && is_legal(board, killer))
+                return killer;
+#endif
         }
         case Stages::STAGE_GEN_QUIETS: {
             if (!skip_quiets_flag)
@@ -336,6 +353,7 @@ class Movepick
         // Here begin the QS stages.
         case Stages::STAGE_QS_TTMOVE: {
             stage++;
+#ifdef GENERATE
             nr_all = board.gen_legal_moves<MOVEGEN_ALL>(all_moves);
 
             bool legal1 = is_legal(board, tt_move), legal2 = is_move_legal(tt_move);
@@ -357,6 +375,10 @@ class Movepick
 
             if (legal1)
                 return tt_move;
+#else
+            if (is_legal(board, tt_move))
+                return tt_move;
+#endif
         }
         case Stages::STAGE_QS_GEN_NOISY: {
             nrNoisy = board.gen_legal_moves<MOVEGEN_NOISY>(moves);
@@ -479,6 +501,7 @@ class Movepick
         // Here begin the Probcut stages.
         case Stages::STAGE_PC_TTMOVE: {
             stage++;
+#ifdef GENERATE
             nr_all = board.gen_legal_moves<MOVEGEN_ALL>(all_moves);
 
             bool legal1 = is_legal(board, tt_move), legal2 = is_move_legal(tt_move);
@@ -500,6 +523,10 @@ class Movepick
 
             if (legal1)
                 return tt_move;
+#else
+            if (is_legal(board, tt_move))
+                return tt_move;
+#endif
         }
         case Stages::STAGE_PC_GEN_NOISY: {
             nrNoisy = board.gen_legal_moves<MOVEGEN_NOISY>(moves);
