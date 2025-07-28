@@ -30,8 +30,9 @@
 #ifdef GENERATE
 
 constexpr bool FRC_DATAGEN = true;
-constexpr int MIN_NODES = 20000;
+constexpr int MIN_NODES = 5000;
 constexpr int MAX_NODES = (1 << 20);
+constexpr int ADJ_OPENING_THRESHOLD = 400;
 
 std::atomic<bool> stop_requested{false};
 
@@ -69,9 +70,7 @@ void generate_fens(SearchThread &thread_data, std::atomic<uint64_t> &total_fens_
     {
         std::unique_ptr<std::deque<HistoricalState>> states;
         states = std::make_unique<std::deque<HistoricalState>>(1);
-        double result = 0;
         int ply = 0;
-        int nr_fens = 0;
 
         if (FRC_DATAGEN) {
             int idx = rnd_dfrc(gn) % (960 * 960);
@@ -99,8 +98,7 @@ void generate_fens(SearchThread &thread_data, std::atomic<uint64_t> &total_fens_
             // game over checking
             if (thread_data.board.is_draw(0))
             {
-                result = 0.5;
-                binpack.set_result(std::round(2 * result));
+                binpack.set_result(1);
                 break;
             }
 
@@ -110,10 +108,9 @@ void generate_fens(SearchThread &thread_data, std::atomic<uint64_t> &total_fens_
             if (!nr_moves)
             {
                 if (thread_data.board.checkers())
-                    result = thread_data.board.turn == WHITE ? 0.0 : 1.0;
+                    binpack.set_result(thread_data.board.turn == WHITE ? 0 : 2);
                 else
-                    result = 0.5;
-                binpack.set_result(std::round(2 * result));
+                    binpack.set_result(1);
                 break;
             }
 
@@ -139,23 +136,28 @@ void generate_fens(SearchThread &thread_data, std::atomic<uint64_t> &total_fens_
 
                 score = thread_data.root_scores[1] * (thread_data.board.turn == WHITE ? 1 : -1);
                 move = thread_data.best_moves[1];
+
+                // too big score out of book
+                if (ply == book_ply_count && abs(score) >= ADJ_OPENING_THRESHOLD) {
+                    break;
+                }
+
                 binpack.add_move(move, score);
 
                 states->emplace_back();
                 thread_data.board.make_move(move, states->back());
-                nr_fens++;
             }
 
             ply++;
         }
 
-        if (nr_fens == 0)
+        if (binpack.size() == 0)
             continue;
 
         binpack.write(out);
-        total_fens_count.fetch_add(nr_fens);
+        total_fens_count.fetch_add(binpack.size());
         num_games.fetch_add(1);
-        fens_count += nr_fens;
+        fens_count += binpack.size();
         
         if (stop_requested) break;
     }
@@ -310,7 +312,7 @@ void generateData(uint64_t num_fens, int num_threads, std::string rootPath, uint
     {
         std::this_thread::sleep_for(std::chrono::seconds(1));
         std::time_t time_elapsed = (get_current_time() - startTime) / 1000;
-        uint64_t speed = static_cast<uint64_t>(total_fens_count / time_elapsed);
+        uint64_t speed = static_cast<uint64_t>(total_fens_count / (time_elapsed + !time_elapsed);
         uint64_t time_left = std::max<uint64_t>(0ull, num_fens - total_fens_count) / (speed + !speed);
         std::cout << "Games: " << std::setw(10) << num_games << " | Fens: " << std::setw(11) << total_fens_count << " | ";
         std::cout << "Time Elapsed: " << std::setw(4) << time_elapsed / 3600 << "h " 

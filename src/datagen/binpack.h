@@ -138,6 +138,10 @@ public:
         packed_board.set_result(res);
     }
 
+    int size() {
+        return moves.size();
+    }
+
     void write(std::ofstream& file) {
         file.write(reinterpret_cast<const char*>(&packed_board), sizeof(PackedBoard));
         file.write(reinterpret_cast<const char*>(moves.data()), moves.size() * sizeof(std::pair<MarlinMove, int16_t>));
