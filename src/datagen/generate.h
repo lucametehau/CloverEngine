@@ -34,7 +34,7 @@ constexpr int MIN_NODES = 5000;
 constexpr int MAX_NODES = (1 << 20);
 constexpr int ADJ_OPENING_THRESHOLD = 400;
 
-constexpr int DO_ADJ = true;
+constexpr bool DO_ADJ = true;
 constexpr int ADJ_WIN_PLY_THRESHOLD = 4;
 constexpr int ADJ_WIN_SCORE_THRESHOLD = 2000;
 constexpr int ADJ_DRAW_PLY_THRESHOLD = 10;
@@ -53,7 +53,6 @@ void generate_fens(SearchThread &thread_data, std::atomic<uint64_t> &total_fens_
     std::mt19937_64 gn(std::chrono::system_clock::now().time_since_epoch().count() ^ thread_data.thread_id);
     std::uniform_int_distribution<uint32_t> rnd_dfrc(0, 960 * 960 - 1);
     BinpackFormat binpack;
-    // std::unique_ptr<std::deque<HistoricalState>> states;
 
     Info info;
     uint64_t fens_count = 0;
@@ -95,6 +94,7 @@ void generate_fens(SearchThread &thread_data, std::atomic<uint64_t> &total_fens_
 
         int extra_ply = rnd_ply(gn) % 2;
         int book_ply_count = 8 + extra_ply;
+        int win_count = 0, draw_count = 0;
 
         while (true)
         {
@@ -110,7 +110,6 @@ void generate_fens(SearchThread &thread_data, std::atomic<uint64_t> &total_fens_
 
             MoveList moves;
             int nr_moves = thread_data.board.gen_legal_moves<MOVEGEN_ALL>(moves);
-            int win_count = 0, draw_count = 0;
 
             if (!nr_moves)
             {
@@ -184,10 +183,6 @@ void generate_fens(SearchThread &thread_data, std::atomic<uint64_t> &total_fens_
         if (stop_requested) break;
     }
 }
-#endif
-
-
-#ifdef GENERATE
 
 void play_datagen_game(uint64_t dfrc_index, std::vector<std::string> &moves)
 {
@@ -286,14 +281,11 @@ void play_datagen_game(uint64_t dfrc_index, std::vector<std::string> &moves)
     
     std::cout << "Result: " << result << " | Fens: " << nr_fens << std::endl;
 }
-#endif
 
 void generateData(uint64_t num_fens, int num_threads, std::string rootPath, uint64_t extraSeed = 0)
 {
-#ifdef GENERATE
     std::signal(SIGINT, handle_sigint);
     printStats = false;
-    std::array<std::string, 100> path;
 
     srand(time(0));
 
@@ -305,6 +297,7 @@ void generateData(uint64_t num_fens, int num_threads, std::string rootPath, uint
 
     std::mt19937 gen(time(0));
     std::uniform_int_distribution<uint64_t> rng;
+    std::vector<std::string> path(num_threads);
     std::atomic<uint64_t> total_fens_count{0}, num_games{0};
     std::atomic<uint64_t> num_fens_atomic{num_fens};
     std::time_t startTime = get_current_time();
@@ -316,13 +309,7 @@ void generateData(uint64_t num_fens, int num_threads, std::string rootPath, uint
     {
         std::string pth = path[i];
         std::cout << "Starting thread " << i << std::endl;
-        // generate_fens(*thread_pool.threads[i], total_fens_count, num_games, batch, pth);
-        t = std::thread{generate_fens,
-                        std::ref(*thread_pool.threads[i]),
-                        std::ref(total_fens_count),
-                        std::ref(num_games),
-                        batch,
-                        pth};
+        t = std::thread{generate_fens, std::ref(*thread_pool.threads[i]), std::ref(total_fens_count), std::ref(num_games), batch, pth};
         i++;
     }
 
