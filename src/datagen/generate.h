@@ -110,6 +110,7 @@ void generate_fens(SearchThread &thread_data, std::atomic<uint64_t> &total_fens_
 
             MoveList moves;
             int nr_moves = thread_data.board.gen_legal_moves<MOVEGEN_ALL>(moves);
+            int win_count = 0, draw_count = 0;
 
             if (!nr_moves)
             {
