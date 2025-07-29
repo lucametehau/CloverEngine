@@ -133,7 +133,7 @@ class Movepick
 
     Move get_next_move(Histories &histories, StackEntry *stack, Board &board)
     {
-#ifdef GENERATE
+#ifdef false
         auto is_move_legal = [&](Move move) {
             for (int i = 0; i < nr_all; i++)
             {
@@ -149,7 +149,7 @@ class Movepick
         case Stages::STAGE_TTMOVE: {
             trueStage = Stages::STAGE_TTMOVE;
             stage++;
-#ifdef GENERATE
+#ifdef false
             nr_all = board.gen_legal_moves<MOVEGEN_ALL>(all_moves);
 
             bool legal1 = is_legal(board, tt_move), legal2 = is_move_legal(tt_move);
@@ -225,7 +225,7 @@ class Movepick
             trueStage = Stages::STAGE_KILLER;
             stage++;
 
-#ifdef GENERATE
+#ifdef false
             bool legal1 = is_legal(board, killer), legal2 = is_move_legal(killer);
 
             if (legal1 != legal2)
@@ -353,7 +353,7 @@ class Movepick
         // Here begin the QS stages.
         case Stages::STAGE_QS_TTMOVE: {
             stage++;
-#ifdef GENERATE
+#ifdef false
             nr_all = board.gen_legal_moves<MOVEGEN_ALL>(all_moves);
 
             bool legal1 = is_legal(board, tt_move), legal2 = is_move_legal(tt_move);
@@ -501,7 +501,7 @@ class Movepick
         // Here begin the Probcut stages.
         case Stages::STAGE_PC_TTMOVE: {
             stage++;
-#ifdef GENERATE
+#ifdef false
             nr_all = board.gen_legal_moves<MOVEGEN_ALL>(all_moves);
 
             bool legal1 = is_legal(board, tt_move), legal2 = is_move_legal(tt_move);
