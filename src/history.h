@@ -244,7 +244,7 @@ class Histories
     void update_corr_hist(const bool turn, const Key pawn_key, const Key white_mat_key, const Key black_mat_key,
                           StackEntry *stack, const int depth, const int delta)
     {
-        const int bonus = std::clamp(delta * depth / 8, -256, 256);
+        const int bonus = std::clamp(delta * depth / 4, -256, 256);
         get_corr_hist(turn, pawn_key).update(bonus);
         get_mat_corr_hist(turn, WHITE, white_mat_key).update(bonus);
         get_mat_corr_hist(turn, BLACK, black_mat_key).update(bonus);
