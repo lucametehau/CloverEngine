@@ -27,7 +27,7 @@ class HistoricalState
     Piece captured;
     uint16_t halfMoves, moveIndex;
     Bitboard checkers, pinnedPieces;
-    Key key, pawn_key, mat_key[2];
+    Key key, pawn_key, mat_key[2], major_key;
     Threats threats;
 
     HistoricalState *prev;
@@ -81,6 +81,10 @@ class Board
     Key &mat_key(const bool color)
     {
         return state->mat_key[color];
+    }
+    Key &major_key()
+    {
+        return state->major_key;
     }
     Bitboard &checkers()
     {
@@ -224,50 +228,6 @@ class Board
         threats().threatened_pieces = threatened_pieces;
     }
 
-    bool sanity_check()
-    {
-        if (pieces[WHITE] & pieces[BLACK])
-        {
-            std::cerr << "pieces[WHITE] & pieces[BLACK]\n";
-            return false;
-        }
-        std::array<Bitboard, 2> temp_pieces = {0, 0};
-        for (int pa = 0; pa < 12; pa++)
-        {
-            for (int pb = pa + 1; pb < 12; pb++)
-            {
-                if (bb[pa] & bb[pb])
-                {
-                    std::cerr << "bb[" << pa << "] & bb[" << pb << "]\n";
-                    bb[pa].print();
-                    bb[pb].print();
-                    return false;
-                }
-            }
-            temp_pieces[pa / 6] |= bb[pa];
-        }
-        if (temp_pieces[WHITE] != pieces[WHITE] || temp_pieces[BLACK] != pieces[BLACK])
-        {
-            std::cerr << "pieces[WHITE] != temp_pieces[WHITE] || pieces[BLACK] != temp_pieces[BLACK]\n";
-            pieces[WHITE].print();
-            pieces[BLACK].print();
-            temp_pieces[WHITE].print();
-            temp_pieces[BLACK].print();
-            return false;
-        }
-        for (Square sq = 0; sq < 64; sq++)
-        {
-            if (board[sq] != NO_PIECE && !bb[board[sq]].has_square(sq))
-            {
-                std::cerr << "board[" << sq << "] != NO_PIECE && !bb[board[sq]].has_square(sq)\n";
-                std::cout << int(board[sq]) << " " << int(sq) << "\n";
-                bb[board[sq]].print();
-                return false;
-            }
-        }
-        return true;
-    }
-
     Bitboard get_pawn_attacks(const bool color)
     {
         const Bitboard b = get_bb_piece(PieceTypes::PAWN, color);
@@ -348,7 +308,11 @@ class Board
         if (pt == PieceTypes::PAWN)
             pawn_key() ^= hash_delta;
         else
+        {
             mat_key(piece.color()) ^= hash_delta;
+            if (pt >= PieceTypes::ROOK)
+                major_key() ^= hash_delta;
+        }
 
         pieces[piece.color()] ^= (1ull << from) ^ (1ull << to);
         bb[piece] ^= (1ULL << from) ^ (1ull << to);
@@ -356,12 +320,17 @@ class Board
 
     void place_piece_at_sq(Piece piece, Square sq)
     {
+        const Piece pt = piece.type();
         board[sq] = piece;
         key() ^= hashKey[piece][sq];
-        if (piece.type() == PieceTypes::PAWN)
+        if (pt == PieceTypes::PAWN)
             pawn_key() ^= hashKey[piece][sq];
         else
+        {
             mat_key(piece.color()) ^= hashKey[piece][sq];
+            if (pt >= PieceTypes::ROOK)
+                major_key() ^= hashKey[piece][sq];
+        }
 
         pieces[piece.color()].set_bit(sq);
         bb[piece].set_bit(sq);
@@ -379,6 +348,8 @@ class Board
         else
         {
             mat_key(color) ^= hashKey[piece][sq];
+            if (pt >= PieceTypes::ROOK)
+                major_key() ^= hashKey[piece][sq];
             if (pt == PieceTypes::ROOK && (sq == rook_sq(color, 0) || sq == rook_sq(color, 1)))
                 rook_sq(color, get_king(color) < sq) = NO_SQUARE;
         }

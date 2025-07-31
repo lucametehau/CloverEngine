@@ -220,6 +220,7 @@ TUNE_PARAM(FailLowHistCoef, 79, 0, 256);
 // corrhist constants
 TUNE_PARAM(CorrHistPawn, 974, 0, 2048);
 TUNE_PARAM(CorrHistMat, 1133, 0, 2048);
+TUNE_PARAM(CorrHistMajor, 900, 0, 2048);
 TUNE_PARAM(CorrHistCont2, 882, 0, 2048);
 TUNE_PARAM(CorrHistCont3, 882, 0, 2048);
 
