@@ -434,7 +434,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
         return 0;
     }();
 
-    const auto improving = [&]() {
+    auto improving = [&]() {
         if (in_check || eval_diff == 0)
             return 0;
         if (eval_diff > 0)
@@ -471,6 +471,9 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
 
     if (previous_R >= 3 && !improving_after_move && !in_check && (stack - 1)->eval != INF)
         depth += 1 + bad_static_eval;
+
+    if (static_eval != INF && static_eval >= beta)
+        improving = 1;
 
     if constexpr (!pvNode)
     {
