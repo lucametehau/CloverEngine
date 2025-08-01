@@ -558,7 +558,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
             }
 
             // ????
-            if (ttHit && ttBound == TTBounds::LOWER && ttDepth >= depth / 2)
+            if (ttHit && ttBound == TTBounds::LOWER && ttDepth >= depth / 2 && cutNode)
             {
                 Movepick picker(ttMove, stack->killer, kp_move[turn][board.king_pawn_key() & KP_MOVE_MASK], 0,
                                 board.threats());
