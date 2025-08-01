@@ -587,11 +587,11 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
                     if (score >= beta)
                     {
                         beat_beta_count++;
-                        if (beat_beta_count == 3)
+                        if (beat_beta_count == 2)
                             return beta;
                     }
 
-                    if (played == 8)
+                    if (played == 6)
                         break;
                 }
             }
