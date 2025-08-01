@@ -558,7 +558,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
             }
 
             // ????
-            if (ttHit && ttBound == TTBounds::LOWER && ttDepth >= depth / 2 && cutNode)
+            if (eval >= beta && static_eval + 15 * depth - 100 >= beta && cutNode)
             {
                 Movepick picker(ttMove, stack->killer, kp_move[turn][board.king_pawn_key() & KP_MOVE_MASK], 0,
                                 board.threats());
@@ -586,11 +586,11 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
                     if (score >= beta)
                     {
                         beat_beta_count++;
-                        if (beat_beta_count >= 3)
+                        if (beat_beta_count == 3)
                             return beta;
                     }
 
-                    if (played == 10)
+                    if (played == 8)
                         break;
                 }
             }
