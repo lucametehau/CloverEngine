@@ -556,6 +556,44 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
                     }
                 }
             }
+
+            // ????
+            if (ttHit && ttBound == TTBounds::LOWER && ttDepth >= depth / 2)
+            {
+                Movepick picker(ttMove, stack->killer, kp_move[turn][board.king_pawn_key() & KP_MOVE_MASK], 0,
+                                board.threats());
+
+                int beat_beta_count = 0;
+                int played = 0;
+                Move move;
+                while ((move = picker.get_next_move(histories, stack, board)) != NULLMOVE)
+                {
+                    /// update stack info
+                    TT->prefetch(board.speculative_next_key(move));
+                    stack->move = move;
+                    stack->piece = board.piece_at(move.get_from());
+                    stack->cont_hist = &histories.cont_history[!board.is_noisy_move(move)][stack->piece][move.get_to()];
+                    stack->cont_corr_hist = &histories.cont_corr_hist[stack->piece][move.get_to()];
+
+                    make_move(move, next_state);
+                    played++;
+
+                    int R = depth / 2; // ??
+                    int score = -search<false, false, !cutNode>(-beta, -beta + 1, depth - R, stack);
+
+                    undo_move(move);
+
+                    if (score >= beta)
+                    {
+                        beat_beta_count++;
+                        if (beat_beta_count >= 3)
+                            return beta;
+                    }
+
+                    if (played == 10)
+                        break;
+                }
+            }
         }
     }
 
