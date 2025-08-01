@@ -646,11 +646,12 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
                         continue;
 
                     // futility pruning for noisy moves
-                    auto noisy_futility_margin = [&](int depth, Piece captured) {
-                        return FPNoisyBias + seeVal[captured] + FPNoisyMargin * depth;
+                    auto noisy_futility_margin = [&](int depth, Piece captured, int history) {
+                        return FPNoisyBias + seeVal[captured] + FPNoisyMargin * depth + history / 32;
                     };
                     if (depth <= FPNoisyDepth && !in_check &&
-                        static_eval + noisy_futility_margin(depth + is_ttmove_noisy, board.get_captured_type(move)) <=
+                        static_eval + noisy_futility_margin(depth + is_ttmove_noisy, board.get_captured_type(move),
+                                                            history) <=
                             alpha)
                         continue;
                 }
