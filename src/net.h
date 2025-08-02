@@ -99,6 +99,7 @@ constexpr int KING_BUCKETS = 1;
 constexpr int INPUT_NEURONS = 768 * KING_BUCKETS;
 constexpr int SIDE_NEURONS = 256;
 constexpr int HIDDEN_NEURONS = 2 * SIDE_NEURONS;
+constexpr int OUTPUT_NEURONS = 8;
 constexpr int REG_LENGTH = sizeof(reg_type) / sizeof(int16_t);
 constexpr int NUM_REGS = SIDE_NEURONS / REG_LENGTH;
 constexpr int BUCKET_UNROLL = 128;
@@ -115,11 +116,11 @@ struct NNUE
 {
     alignas(ALIGN) int16_t input_weights[INPUT_NEURONS * SIDE_NEURONS];
     alignas(ALIGN) int16_t input_biases[SIDE_NEURONS];
-    alignas(ALIGN) int16_t output_weights[HIDDEN_NEURONS];
-    int16_t output_bias;
+    alignas(ALIGN) int16_t output_weights[HIDDEN_NEURONS * OUTPUT_NEURONS];
+    alignas(ALIGN) int16_t output_biases[OUTPUT_NEURONS];
 };
 
-const NNUE *nnue;
+alignas(ALIGN) const NNUE *nnue;
 
 inline int get_king_bucket_cache_index(const Square king_sq, const bool side)
 {
@@ -436,14 +437,15 @@ class Network
         }
     }
 
-    int32_t get_output(bool stm)
+    int32_t get_output(bool stm, int output_bucket)
     {
         reg_type_s acc{};
         const reg_type *w = reinterpret_cast<const reg_type *>(&output_history[hist_size - 1][stm * SIDE_NEURONS]);
         const reg_type *w2 =
             reinterpret_cast<const reg_type *>(&output_history[hist_size - 1][(stm ^ 1) * SIDE_NEURONS]);
-        const reg_type *v = reinterpret_cast<const reg_type *>(nnue->output_weights);
-        const reg_type *v2 = reinterpret_cast<const reg_type *>(&nnue->output_weights[SIDE_NEURONS]);
+        const reg_type *v = reinterpret_cast<const reg_type *>(&nnue->output_weights[output_bucket * HIDDEN_NEURONS]);
+        const reg_type *v2 =
+            reinterpret_cast<const reg_type *>(&nnue->output_weights[output_bucket * HIDDEN_NEURONS + SIDE_NEURONS]);
         reg_type clamped;
 
         for (int j = 0; j < NUM_REGS; j++)
@@ -454,7 +456,7 @@ class Network
             acc = reg_add32(acc, reg_madd16(reg_mullo(clamped, v2[j]), clamped));
         }
 
-        return (nnue->output_bias + get_sum(acc) / Q_IN) * 225 / Q_IN_HIDDEN;
+        return (nnue->output_biases[output_bucket] + get_sum(acc) / Q_IN) * 225 / Q_IN_HIDDEN;
     }
 
     int hist_size;

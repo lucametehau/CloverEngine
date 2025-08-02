@@ -146,6 +146,12 @@ class Board
                (attacks::genAttacksKing(sq) & get_bb_piece(PieceTypes::KING, color));
     }
 
+    int get_output_bucket()
+    {
+        const int count = (get_bb_color(WHITE) | get_bb_color(BLACK)).count();
+        return (count - 2) / 4;
+    }
+
     void get_pinned_pieces_and_checkers()
     {
         const bool enemy = turn ^ 1;

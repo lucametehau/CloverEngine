@@ -41,7 +41,7 @@ int evaluate(Board &board, Network &NN)
 {
     NN.bring_up_to_date(board);
 
-    int eval = NN.get_output(board.turn);
+    int eval = NN.get_output(board.turn, board.get_output_bucket());
     eval = eval * scale(board) / 1024;
     return eval;
 }
