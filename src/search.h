@@ -326,6 +326,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
     nodes++;
     sel_depth = std::max(sel_depth, ply);
     (stack - 1)->R = 0; // reset to not have to reset in LMR
+    stack->lmr_streak = previous_R ? (stack - 1)->lmr_streak + 1 : 0;
 
     pv_table_len[ply] = 0;
 
@@ -745,6 +746,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
             R -= LMRGrain * complexity / LMRCorrectionDivisor;
             R += (LMRFailLowPV + LMRFailLowPVHighDepth * (ttDepth > depth)) * (was_pv && ttValue <= alpha && ttHit);
             R += LMRCutoffCount * (stack->cutoff_cnt > 3); // reduce if we had a lot of cutoffs
+            R += 1024 * (stack->lmr_streak > 2);
 
             R /= LMRGrain;
 
