@@ -2,7 +2,7 @@ SRCXX = $(wildcard *.cpp)
 SRCHEADERS = $(wildcard *.h)
 SRC = 3rdparty/Fathom/src/tbprobe.c
 OBJ = $(SRCXX:.cpp=.o) $(SRC:.c=.o)
-VERSION = 8.2.9
+VERSION = 8.2.10
 EXE = Clover.$(VERSION)
 EVALFILE = clover-net.nnue
 
