@@ -30,7 +30,7 @@
 #ifdef GENERATE
 
 constexpr bool FRC_DATAGEN = false;
-constexpr int MIN_NODES = 5000;
+constexpr int MIN_NODES = 20000;
 constexpr int MAX_NODES = (1 << 20);
 constexpr int ADJ_OPENING_THRESHOLD = 400;
 
@@ -38,7 +38,7 @@ constexpr bool DO_ADJ = true;
 constexpr int ADJ_WIN_PLY_THRESHOLD = 4;
 constexpr int ADJ_WIN_SCORE_THRESHOLD = 2000;
 constexpr int ADJ_DRAW_PLY_THRESHOLD = 10;
-constexpr int ADJ_DRAW_SCORE_THRESHOLD = 20;
+constexpr int ADJ_DRAW_SCORE_THRESHOLD = 10;
 
 std::atomic<bool> stop_requested{false};
 
@@ -46,11 +46,11 @@ void handle_sigint(int) {
     stop_requested = true;
 }
 
-void generate_fens(SearchThread &thread_data, std::atomic<uint64_t> &total_fens_count, std::atomic<uint64_t> &num_games, uint64_t fens_limit, std::string path)
+void generate_fens(SearchThread &white_thread_data, SearchThread &black_thread_data, std::atomic<uint64_t> &total_fens_count, std::atomic<uint64_t> &num_games, uint64_t fens_limit, std::string path)
 {
     std::ofstream out(path, std::ios::binary);
     std::ofstream seed_out("seed_" + path);
-    std::mt19937_64 gn(std::chrono::system_clock::now().time_since_epoch().count() ^ thread_data.thread_id);
+    std::mt19937_64 gn(std::chrono::system_clock::now().time_since_epoch().count() ^ white_thread_data.thread_id);
     std::uniform_int_distribution<uint32_t> rnd_dfrc(0, 960 * 960 - 1);
     BinpackFormat binpack;
 
@@ -62,39 +62,46 @@ void generate_fens(SearchThread &thread_data, std::atomic<uint64_t> &total_fens_
     info.set_min_nodes(MIN_NODES);
     info.set_max_nodes(MAX_NODES);
 
-    std::mutex M;
+    std::vector<SearchThread*> threads{&black_thread_data, &white_thread_data};
 
-    thread_data.thread_id = 0;
-    thread_data.TT = new HashTable();
-    thread_data.TT->init(4 * MB);
-    thread_data.info = info;
+    for (auto &thread_data : threads) {
+        thread_data->thread_id = 0;
+        thread_data->TT = new HashTable();
+        thread_data->TT->init(4 * MB);
+        thread_data->info = info;
+        thread_data->board.chess960 = FRC_DATAGEN;
+    }
 
-    thread_data.board.chess960 = FRC_DATAGEN;
 
     while (fens_count < fens_limit && !stop_requested)
     {
-        std::unique_ptr<std::deque<HistoricalState>> states;
-        states = std::make_unique<std::deque<HistoricalState>>(1);
+        std::unique_ptr<std::deque<HistoricalState>> states[2];
+        for (auto color : {WHITE, BLACK})
+            states[color] = std::make_unique<std::deque<HistoricalState>>(1);
         int ply = 0;
 
         if constexpr (FRC_DATAGEN) {
             int idx = rnd_dfrc(gn);
-            thread_data.board.set_dfrc(idx, states->back());
+            for (auto color : {WHITE, BLACK})
+                threads[color]->board.set_dfrc(idx, states[color]->back());
             seed_out << idx << ":";
         }
-        else
-            thread_data.board.set_fen(START_POS_FEN, states->back());
+        else {   
+            for (auto color : {WHITE, BLACK})
+                threads[color]->board.set_fen(START_POS_FEN, states[color]->back());
+        }
 
-        thread_data.clear_history();
-        thread_data.clear_stack();
-
-        // thread_data.TT->init(4 * MB, 1);
+        for (auto color : {WHITE, BLACK}) {
+            threads[color]->clear_history();
+            threads[color]->clear_stack();
+        }
 
         std::uniform_int_distribution<int> rnd_ply(0, 100000);
 
         int extra_ply = rnd_ply(gn) % 2;
         int book_ply_count = 8 + extra_ply;
         int win_count = 0, draw_count = 0;
+        bool turn = WHITE;
 
         while (true)
         {
@@ -102,19 +109,19 @@ void generate_fens(SearchThread &thread_data, std::atomic<uint64_t> &total_fens_
             int score;
 
             // game over checking
-            if (thread_data.board.is_draw(0))
+            if (threads[turn]->board.is_draw(0))
             {
                 binpack.set_result(1);
                 break;
             }
 
             MoveList moves;
-            int nr_moves = thread_data.board.gen_legal_moves<MOVEGEN_ALL>(moves);
+            int nr_moves = threads[turn]->board.gen_legal_moves<MOVEGEN_ALL>(moves);
 
             if (!nr_moves)
             {
-                if (thread_data.board.checkers())
-                    binpack.set_result(thread_data.board.turn == WHITE ? 0 : 2);
+                if (threads[turn]->board.checkers())
+                    binpack.set_result(threads[turn]->board.turn == WHITE ? 0 : 2);
                 else
                     binpack.set_result(1);
                 break;
@@ -124,24 +131,26 @@ void generate_fens(SearchThread &thread_data, std::atomic<uint64_t> &total_fens_
             {
                 std::uniform_int_distribution<uint32_t> rnd(0, nr_moves - 1);
                 move = moves[rnd(gn)];
-                states->emplace_back();
-                thread_data.board.make_move(move, states->back());
+                for (auto color : {WHITE, BLACK}) {
+                    states[color]->emplace_back();
+                    threads[color]->board.make_move(move, states[color]->back());
+                }
                 seed_out << move.to_string(FRC_DATAGEN) << " ";
 
                 if (ply == book_ply_count - 1) {
-                    binpack.init(thread_data.board);
+                    binpack.init(threads[turn]->board);
                     seed_out << "\n";
                 }
             }
             else
             {
-                thread_data.TT->age();
-                thread_data.board.clear();
-                thread_data.state = ThreadStates::SEARCH;
-                thread_data.start_search();
+                threads[turn]->TT->age();
+                threads[turn]->board.clear();
+                threads[turn]->state = ThreadStates::SEARCH;
+                threads[turn]->start_search();
 
-                score = thread_data.root_scores[1] * (thread_data.board.turn == WHITE ? 1 : -1);
-                move = thread_data.best_moves[1];
+                score = threads[turn]->root_scores[1] * (turn == WHITE ? 1 : -1);
+                move = threads[turn]->best_moves[1];
 
 
                 // too big score out of book
@@ -165,11 +174,14 @@ void generate_fens(SearchThread &thread_data, std::atomic<uint64_t> &total_fens_
                     }
                 }
 
-                states->emplace_back();
-                thread_data.board.make_move(move, states->back());
+                for (auto color : {WHITE, BLACK}) {
+                    states[color]->emplace_back();
+                    threads[color]->board.make_move(move, states[color]->back());
+                }
             }
 
             ply++;
+            turn ^= 1;
         }
 
         if (binpack.size() == 0)
@@ -291,7 +303,7 @@ void generateData(uint64_t num_fens, int num_threads, std::string rootPath, uint
 
 
     std::vector<std::thread> threads(num_threads);
-    thread_pool.create_pool(num_threads);
+    thread_pool.create_pool(2 * num_threads);
     uint64_t batch = num_fens / num_threads;
     std::size_t i = 0;
 
@@ -307,10 +319,10 @@ void generateData(uint64_t num_fens, int num_threads, std::string rootPath, uint
 
     for (auto &t : threads)
     {
-        std::string pth = path[i];
-        std::cout << "Starting thread " << i << std::endl;
-        t = std::thread{generate_fens, std::ref(*thread_pool.threads[i]), std::ref(total_fens_count), std::ref(num_games), batch, pth};
-        i++;
+        std::string pth = path[i / 2];
+        std::cout << "Starting threads " << i << ", " << i + 1 << std::endl;
+        t = std::thread{generate_fens, std::ref(*thread_pool.threads[i]), std::ref(*thread_pool.threads[i + 1]), std::ref(total_fens_count), std::ref(num_games), batch, pth};
+        i += 2;
     }
 
     while (total_fens_count <= num_fens_atomic)
