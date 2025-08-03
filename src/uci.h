@@ -230,14 +230,6 @@ void UCI::uci_loop()
         {
             uci();
         }
-        else if (cmd == "checkmove")
-        {
-            std::string moveStr;
-            iss >> moveStr;
-            Move move = parse_move_string(thread_pool.get_board(), moveStr, info);
-            std::cout << is_legal(thread_pool.get_board(), move) << " " << is_legal_slow(thread_pool.get_board(), move)
-                      << "\n";
-        }
         else if (cmd == "printparams")
         {
 #ifdef TUNE_FLAG
@@ -281,13 +273,20 @@ void UCI::uci_loop()
             }
             std::cout << eval << " evaluation and " << total / N << "ns\n";
         }
-        else if (cmd == "see")
+        else if (cmd == "legalcheck")
         {
-            std::string move_string;
-            int threshold;
-            iss >> move_string >> threshold;
-            Move move = parse_move_string(thread_pool.get_board(), move_string, info);
-            std::cout << see(thread_pool.get_board(), move, threshold) << std::endl;
+            for (int i = 0; i < 32768; i++)
+            {
+                Move move(i);
+                if (is_legal(thread_pool.get_board(), move) != is_legal_slow(thread_pool.get_board(), move))
+                {
+                    std::cout << is_legal(thread_pool.get_board(), move) << ", "
+                              << is_legal_slow(thread_pool.get_board(), move) << "\n";
+                    std::cout << move.to_string(thread_pool.get_board().chess960) << " " << int(move.get_type()) << " "
+                              << i << "\n";
+                    exit(0);
+                }
+            }
         }
     }
 }
@@ -329,7 +328,7 @@ void UCI::go(std::istringstream &iss, Info &info)
 {
     int depth = MAX_DEPTH, movetime = -1;
     int time = -1, inc = 0;
-    int64_t nodes = -1;
+    int64_t nodes = -1, min_nodes = -1, max_nodes = -1;
     bool turn = thread_pool.get_board().turn;
     info.init();
 
@@ -351,6 +350,10 @@ void UCI::go(std::istringstream &iss, Info &info)
             iss >> depth;
         else if (param == "nodes")
             iss >> nodes;
+        else if (param == "min_nodes")
+            iss >> min_nodes;
+        else if (param == "max_nodes")
+            iss >> max_nodes;
         else if (param == "san")
             info.set_san_mode();
     }
@@ -367,6 +370,8 @@ void UCI::go(std::istringstream &iss, Info &info)
     }
 
     info.set_nodes(nodes);
+    info.set_min_nodes(min_nodes);
+    info.set_max_nodes(max_nodes);
     info.set_depth(depth);
     TT->age();
     thread_pool.clear_board();

@@ -24,6 +24,9 @@ class Move
 
   public:
     constexpr Move() = default;
+    constexpr Move(uint16_t m) : move(m)
+    {
+    }
     constexpr Move(Square from, Square to, MoveType type) : move(from | (to << 6) | (type << 12))
     {
     }

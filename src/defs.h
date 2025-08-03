@@ -256,18 +256,18 @@ inline void init_defs()
                     Bitboard mask2(0ull);
                     while (inside_board(x, y))
                     {
-                        mask2 |= Bitboard(Square(x, y));
+                        mask2.set_bit(Square(x, y));
                         x += kingDir[i].first, y += kingDir[i].second;
                     }
                     x = rank, y = file;
                     while (inside_board(x, y))
                     {
-                        mask2 |= Bitboard(Square(x, y));
+                        mask2.set_bit(Square(x, y));
                         x += kingDir[d].first, y += kingDir[d].second;
                     }
                     line_mask[Square(rank, file)][Square(r, f)] = mask | mask2;
 
-                    mask |= Bitboard(Square(r, f));
+                    mask.set_bit(Square(r, f));
                 }
             }
         }

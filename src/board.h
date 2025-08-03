@@ -179,7 +179,7 @@ class Board
     {
         const bool enemy = 1 ^ color;
         Bitboard our_pieces = get_bb_color(color) ^ get_bb_piece(PieceTypes::PAWN, color);
-        Bitboard att = attacks::getPawnAttacks(enemy, get_bb_piece(PieceTypes::PAWN, enemy));
+        Bitboard att = get_pawn_attacks(enemy);
         Bitboard threatened_pieces = att & our_pieces;
         Bitboard pieces, att_mask;
         Bitboard all = get_bb_color(WHITE) | get_bb_color(BLACK);
@@ -199,7 +199,7 @@ class Board
         }
         threatened_pieces |= att & our_pieces;
 
-        all ^= Bitboard(get_king(color));
+        all.toggle_bit(get_king(color));
 
         pieces = get_bb_piece(PieceTypes::BISHOP, enemy);
         while (pieces)
@@ -277,7 +277,7 @@ class Board
     Bitboard get_pawn_attacks(const bool color)
     {
         const Bitboard b = get_bb_piece(PieceTypes::PAWN, color);
-        const int fileA = color == WHITE ? 0 : 7, fileH = 7 - fileA;
+        const int fileA = 7 * !color, fileH = 7 - fileA;
         return shift_mask<NORTHWEST>(color, b & ~file_mask[fileA]) |
                shift_mask<NORTHEAST>(color, b & ~file_mask[fileH]);
     }
@@ -307,11 +307,6 @@ class Board
     bool is_noisy_move(const Move move)
     {
         return (move.get_type() && move.get_type() != MoveTypes::CASTLE) || is_capture(move);
-    }
-
-    bool is_attacked_by(const bool color, const Square sq)
-    {
-        return get_attackers(color, get_bb_color(WHITE) | get_bb_color(BLACK), sq);
     }
 
     void make_move(const Move move, HistoricalState &state);
@@ -374,8 +369,8 @@ class Board
         else
             mat_key(piece.color()) ^= hashKey[piece][sq];
 
-        pieces[piece.color()] |= (1ULL << sq);
-        bb[piece] |= (1ULL << sq);
+        pieces[piece.color()].set_bit(sq);
+        bb[piece].set_bit(sq);
     }
 
     void erase_square(Square sq)
@@ -394,8 +389,8 @@ class Board
                 rook_sq(color, get_king(color) < sq) = NO_SQUARE;
         }
 
-        pieces[color] ^= (1ull << sq);
-        bb[piece] ^= (1ULL << sq);
+        pieces[color].toggle_bit(sq);
+        bb[piece].toggle_bit(sq);
     }
 
     void set_fen(const std::string fen, HistoricalState &state);

@@ -147,8 +147,7 @@ void Board::make_move(const Move move, HistoricalState &next_state)
     ply++;
     game_ply++;
     key() ^= 1;
-    if (turn == WHITE)
-        move_index()++;
+    move_index() += turn == WHITE;
     get_pinned_pieces_and_checkers();
     get_threats(turn);
 
@@ -365,7 +364,7 @@ template <int movegen_type> int Board::gen_legal_moves(MoveList &moves)
 
     int nrMoves = 0;
     const bool color = turn, enemy = color ^ 1;
-    int rank7 = (color == WHITE ? 6 : 1), rank3 = (color == WHITE ? 2 : 5);
+    const int rank7 = color == WHITE ? 6 : 1, rank3 = color == WHITE ? 2 : 5;
     const Square king = get_king(color);
     Bitboard our_pawns = get_bb_piece(PieceTypes::PAWN, color);
     Bitboard mask, us = get_bb_color(color), them = get_bb_color(enemy);
@@ -445,7 +444,7 @@ template <int movegen_type> int Board::gen_legal_moves(MoveList &moves)
                 /// castle queen side
                 if (rook_sq(color, 0) != NO_SQUARE)
                 {
-                    if (!(attacked & Bitboard(7ULL << (king - 2))) && !(all & Bitboard(7ULL << (king - 3))))
+                    if (!(attacked & (7ULL << (king - 2))) && !(all & (7ULL << (king - 3))))
                     {
                         moves[nrMoves++] = Move(king, king - 4, MoveTypes::CASTLE);
                     }
@@ -453,7 +452,7 @@ template <int movegen_type> int Board::gen_legal_moves(MoveList &moves)
                 /// castle king side
                 if (rook_sq(color, 1) != NO_SQUARE)
                 {
-                    if (!(attacked & Bitboard(7ULL << king)) && !(all & Bitboard(3ULL << (king + 1))))
+                    if (!(attacked & (7ULL << king)) && !(all & (3ULL << (king + 1))))
                     {
                         moves[nrMoves++] = Move(king, king + 3, MoveTypes::CASTLE);
                     }
@@ -470,7 +469,7 @@ template <int movegen_type> int Board::gen_legal_moves(MoveList &moves)
                          king == kingTo) &&
                         (!((all ^ Bitboard(king)) & (between_mask[rook][rookTo] | Bitboard(rookTo))) ||
                          rook == rookTo) &&
-                        !get_attackers(enemy, all ^ Bitboard(rook), king))
+                        !(pinned & Bitboard(rook)))
                     {
                         moves[nrMoves++] = Move(king, rook, MoveTypes::CASTLE);
                     }
@@ -485,7 +484,7 @@ template <int movegen_type> int Board::gen_legal_moves(MoveList &moves)
                          king == kingTo) &&
                         (!((all ^ Bitboard(king)) & (between_mask[rook][rookTo] | Bitboard(rookTo))) ||
                          rook == rookTo) &&
-                        !get_attackers(enemy, all ^ Bitboard(rook), king))
+                        !(pinned & Bitboard(rook)))
                     {
                         moves[nrMoves++] = Move(king, rook, MoveTypes::CASTLE);
                     }
@@ -673,17 +672,11 @@ bool is_pseudo_legal(Board &board, Move move)
         if (from / 8 == 1 || from / 8 == 6)
             push |= shift_mask<NORTH>(color, push) & ~occ;
 
-        return (rank_to != 0 && rank_to != 7) && t == NO_TYPE && ((att & enemy) | push).has_square(to);
+        return (rank_to != 0 && rank_to != 7) && t == MoveTypes::NO_TYPE && ((att & enemy) | push).has_square(to);
     }
 
-    if (t != NO_TYPE)
-        return false;
-
-    /// check for normal moves
-    if (pt != PieceTypes::KING)
-        return attacks::genAttacksSq(occ, from, pt).has_square(to);
-
-    return attacks::kingBBAttacks[from].has_square(to);
+    // check for normal moves
+    return t == MoveTypes::NO_TYPE && attacks::genAttacksSq(occ, from, pt).has_square(to);
 }
 
 bool is_legal_slow(Board &board, Move move)
@@ -705,7 +698,7 @@ bool is_legal_slow(Board &board, Move move)
 bool is_legal(Board &board, Move move)
 {
     if (!is_pseudo_legal(board, move))
-        return 0;
+        return false;
 
     const bool us = board.turn, enemy = 1 ^ us;
     const Square king = board.get_king(us);
@@ -714,38 +707,25 @@ bool is_legal(Board &board, Move move)
 
     if (move.get_type() == MoveTypes::CASTLE)
     {
-        if (from != king || board.checkers())
-            return 0;
         bool side = to > from;
+        if (from != king || to != board.rook_sq(us, side) || board.checkers())
+            return false;
 
-        if (board.rook_sq(us, side) != NO_SQUARE)
+        const Square rFrom = to, rTo = (side ? Squares::F1 : Squares::D1).mirror(us);
+        to = (side ? Squares::G1 : Squares::C1).mirror(us);
+
+        if (board.threats().all_threats & (between_mask[from][to] | Bitboard(to)))
+            return false;
+        if (!board.chess960)
+            return side ? !(all & (3ULL << (from + 1))) : !(all & (7ULL << (from - 3)));
+
+        if ((!((all ^ Bitboard(rFrom)) & (between_mask[from][to] | Bitboard(to))) || from == to) &&
+            (!((all ^ Bitboard(from)) & (between_mask[rFrom][rTo] | Bitboard(rTo))) || rFrom == rTo))
         {
-            const Square rFrom = to, rTo = (side ? Squares::F1 : Squares::D1).mirror(us);
-            to = (side ? Squares::G1 : Squares::C1).mirror(us);
-            Bitboard mask = between_mask[from][to] | Bitboard(to);
-
-            while (mask)
-            {
-                if (board.is_attacked_by(enemy, mask.get_square_pop()))
-                    return 0;
-            }
-            if (!board.chess960)
-            {
-                if (!side)
-                {
-                    return !(all & Bitboard(7ULL << (from - 3)));
-                }
-                return !(all & Bitboard(3ULL << (from + 1)));
-            }
-            if ((!((all ^ Bitboard(rFrom)) & (between_mask[from][to] | Bitboard(to))) || from == to) &&
-                (!((all ^ Bitboard(from)) & (between_mask[rFrom][rTo] | Bitboard(rTo))) || rFrom == rTo))
-            {
-                return !board.get_attackers(enemy, all ^ Bitboard(rFrom), from);
-            }
-            return 0;
+            return !board.pinned_pieces().has_square(rFrom);
         }
 
-        return 0;
+        return false;
     }
 
     if (move.get_type() == MoveTypes::ENPASSANT)
@@ -802,28 +782,8 @@ Move parse_move_string(Board &board, std::string moveStr, Info &info)
         Move move = moves[i];
         if (move.get_from() == from && move.get_to() == to)
         {
-            if (move.is_promo())
-            {
-                int prom = move.get_prom() + PieceTypes::KNIGHT;
-                if (prom == PieceTypes::ROOK && moveStr[4] == 'r')
-                {
-                    return move;
-                }
-                else if (prom == PieceTypes::BISHOP && moveStr[4] == 'b')
-                {
-                    return move;
-                }
-                else if (prom == PieceTypes::QUEEN && moveStr[4] == 'q')
-                {
-                    return move;
-                }
-                else if (prom == PieceTypes::KNIGHT && moveStr[4] == 'n')
-                {
-                    return move;
-                }
-                continue;
-            }
-            return move;
+            if (!move.is_promo() || piece_char[move.get_prom() + PieceTypes::KNIGHT] == moveStr[4])
+                return move;
         }
     }
 
