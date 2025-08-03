@@ -95,6 +95,7 @@
 
 INCBIN(Net, EVALFILE);
 
+
 constexpr int KING_BUCKETS = 1;
 constexpr int INPUT_NEURONS = 768 * KING_BUCKETS;
 constexpr int SIDE_NEURONS = 1024;
