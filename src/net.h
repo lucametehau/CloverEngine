@@ -62,7 +62,7 @@
 #define reg_madd16 _mm256_madd_epi16
 #define reg_load _mm256_load_si256
 #define reg_save _mm256_store_si256
-#define ALIGN 32
+#define ALIGN 64
 #elif defined(__SSE2__) || defined(__AVX__)
 #define reg_type __m128i
 #define reg_type_s __m128i
@@ -76,7 +76,7 @@
 #define reg_madd16 _mm_madd_epi16
 #define reg_load _mm_load_si128
 #define reg_save _mm_store_si128
-#define ALIGN 16
+#define ALIGN 64
 #elif defined(__ARM_NEON)
 #define reg_type int16_t
 #define reg_type_s int32_t
@@ -90,7 +90,7 @@
 #define reg_madd16(a, b) ((a) * (b))
 #define reg_load(a) (*(a))
 #define reg_save(a, b) (*(a)) = (b)
-#define ALIGN 16
+#define ALIGN 64
 #endif
 
 INCBIN(Net, EVALFILE);

@@ -219,7 +219,7 @@ template <bool pvNode> int SearchThread::quiesce(int alpha, int beta, StackEntry
 
     while ((move = qs_movepicker.get_next_move(histories, stack, board)))
     {
-        if (qs_movepicker.stage == Stages::STAGE_QS_NOISY && !see(board, move, 0))
+        if (qs_movepicker.stage == Stages::STAGE_QS_NOISY && !see(board, move, QuiesceSEEMargin))
         {
             continue;
         }
@@ -466,7 +466,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
     {
         int bonus = std::clamp<int>(-EvalHistCoef * ((stack - 1)->eval + static_eval), EvalHistMin, EvalHistMax) +
                     EvalHistMargin;
-        histories.update_hist_move((stack - 1)->move, (stack - 1)->threats, 1 ^ turn, bonus);
+        histories.update_main_hist_move((stack - 1)->move, (stack - 1)->threats, 1 ^ turn, bonus);
     }
 
     if (previous_R >= 3 && !improving_after_move && !in_check && (stack - 1)->eval != INF)
@@ -503,7 +503,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
             /// null move pruning (when last move wasn't null, we still have non pawn material, we have a good position)
             if (!nullSearch && !stack->excluded && enemy_has_no_threats && board.has_non_pawn_material(turn) &&
                 eval >= beta + NMPEvalMargin * (depth <= 3) && eval >= static_eval &&
-                static_eval + 15 * depth - 100 >= beta)
+                static_eval + NMPStaticEvalCoef * depth - NMPStaticEvalMargin >= beta)
             {
                 int R = NMPReduction + depth / NMPDepthDiv + (eval - beta) / NMPEvalDiv + improving + is_ttmove_noisy;
 
@@ -650,7 +650,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
 
                     // futility pruning for noisy moves
                     auto noisy_futility_margin = [&](int depth, Piece captured, int history) {
-                        return FPNoisyBias + seeVal[captured] + FPNoisyMargin * depth + history / 32;
+                        return FPNoisyBias + seeVal[captured] + FPNoisyMargin * depth + history / FPNoisyHistoryDiv;
                     };
                     if (depth <= FPNoisyDepth && !in_check &&
                         static_eval + noisy_futility_margin(depth + is_ttmove_noisy, board.get_captured_type(move),
@@ -799,36 +799,52 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
                     update_pv(ply, move);
                 if (alpha >= beta)
                 {
-                    const int bonus = getHistoryBonus(depth + bad_static_eval + (cutNode && depth <= 3));
-                    const int malus = getHistoryMalus(depth + bad_static_eval + (cutNode && depth <= 3) + allNode);
-
                     stack->cutoff_cnt++;
+                    const int bonus_depth = depth + bad_static_eval + (cutNode && depth <= 3);
+                    const int malus_depth = depth + bad_static_eval + (cutNode && depth <= 3) + allNode;
+
                     if (!board.is_noisy_move(bestMove))
                     {
                         stack->killer = bestMove;
                         kp_move[turn][board.king_pawn_key() & KP_MOVE_MASK] = bestMove;
+
                         if (nr_quiets || depth >= HistoryUpdateMinDepth)
-                            histories.update_hist_quiet_move(bestMove, board.piece_at(bestMove.get_from()),
-                                                             board.threats().all_threats, turn, stack, pawn_key,
-                                                             bonus * tried_count);
+                        {
+                            const Piece piece = board.piece_at(bestMove.get_from());
+                            const Square to = bestMove.get_to();
+                            histories.update_main_hist_move(bestMove, board.threats().all_threats, turn,
+                                                            MainHistory::bonus(bonus_depth) * tried_count);
+                            histories.update_cont_hist_move(piece, to, stack,
+                                                            ContinuationHistory::bonus(bonus_depth) * tried_count);
+                            histories.update_pawn_hist_move(piece, to, pawn_key,
+                                                            PawnHistory::bonus(bonus_depth) * tried_count);
+                        }
+
                         for (int i = 0; i < nr_quiets; i++)
                         {
                             const auto [move, tried_count] = quiets[i];
-                            histories.update_hist_quiet_move(move, board.piece_at(move.get_from()),
-                                                             board.threats().all_threats, turn, stack, pawn_key,
-                                                             malus * tried_count);
+                            const Piece piece = board.piece_at(move.get_from());
+                            const Square to = move.get_to();
+                            histories.update_main_hist_move(move, board.threats().all_threats, turn,
+                                                            MainHistory::malus(malus_depth) * tried_count);
+                            histories.update_cont_hist_move(piece, to, stack,
+                                                            ContinuationHistory::malus(malus_depth) * tried_count);
+                            histories.update_pawn_hist_move(piece, to, pawn_key,
+                                                            PawnHistory::malus(malus_depth) * tried_count);
                         }
                     }
                     else
                     {
                         histories.update_cap_hist_move(board.piece_at(bestMove.get_from()), bestMove.get_to(),
-                                                       board.get_captured_type(bestMove), bonus * tried_count);
+                                                       board.get_captured_type(bestMove),
+                                                       CaptureHistory::bonus(bonus_depth) * tried_count);
                     }
                     for (int i = 0; i < nr_noisies; i++)
                     {
                         const auto [move, tried_count] = noisies[i];
                         histories.update_cap_hist_move(board.piece_at(move.get_from()), move.get_to(),
-                                                       board.get_captured_type(move), malus * tried_count);
+                                                       board.get_captured_type(move),
+                                                       CaptureHistory::malus(malus_depth) * tried_count);
                     }
                     break;
                 }
@@ -850,9 +866,9 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
     if (!bestMove && board.captured() == NO_PIECE && !nullSearch)
     {
         histories.update_cont_hist_move((stack - 1)->piece, (stack - 1)->move.get_to(), stack - 1,
-                                        getHistoryBonus(depth) * FailLowContHistCoef / 128);
-        histories.update_hist_move((stack - 1)->move, (stack - 1)->threats, 1 ^ turn,
-                                   getHistoryBonus(depth) * FailLowHistCoef / 128);
+                                        ContinuationHistory::bonus(depth) * FailLowContHistCoef / 128);
+        histories.update_main_hist_move((stack - 1)->move, (stack - 1)->threats, 1 ^ turn,
+                                        MainHistory::bonus(depth) * FailLowHistCoef / 128);
     }
 
     // update tt only if we aren't in a singular search
@@ -1002,7 +1018,7 @@ void SearchThread::iterative_deepening()
     {
         for (multipv = 1; multipv <= info.get_multipv(); multipv++)
         {
-            int window = AspirationWindosValue + root_scores[1] * root_scores[1] / AspirationWindowsDivisor;
+            int window = AspirationWindowsValue + root_scores[1] * root_scores[1] / AspirationWindowsDivisor;
             if (id_depth >= AspirationWindowsDepth)
             {
                 alpha = std::max(-INF, scores[multipv] - window);
@@ -1052,7 +1068,7 @@ void SearchThread::iterative_deepening()
                     break;
                 }
 
-                window += window * AspirationWindowExpandMargin / 100 + AspirationWindowExpandBias;
+                window += window * AspirationWindowExpandMargin / 100;
             }
         }
 

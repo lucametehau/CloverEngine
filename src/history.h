@@ -29,18 +29,30 @@ constexpr int KP_MOVE_MASK = KP_MOVE_SIZE - 1;
 constexpr int PAWN_HIST_SIZE = (1 << 12);
 constexpr int PAWN_HIST_MASK = PAWN_HIST_SIZE - 1;
 
-template <int16_t Divisor> class History
+class MainHistory
 {
-  public:
+  private:
     int16_t hist;
-    constexpr History() = default;
-    constexpr History(int16_t hist) : hist(hist)
+
+  public:
+    constexpr MainHistory() = default;
+    constexpr MainHistory(int16_t hist) : hist(hist)
     {
+    }
+
+    static constexpr int16_t bonus(int depth)
+    {
+        return std::min<int>(MainHistoryBonusMargin * depth - MainHistoryBonusBias, MainHistoryBonusMax);
+    }
+
+    static constexpr int16_t malus(int depth)
+    {
+        return -std::min<int>(MainHistoryMalusMargin * depth - MainHistoryMalusBias, MainHistoryMalusMax);
     }
 
     void update(int16_t score)
     {
-        hist += score - hist * abs(score) / Divisor;
+        hist += score - std::abs(score) * hist / MainHistoryDivisor;
     }
 
     operator int16_t() const
@@ -48,14 +60,156 @@ template <int16_t Divisor> class History
         return hist;
     }
 
-    History &operator=(int16_t value)
+    MainHistory &operator=(int16_t value)
     {
         hist = value;
         return *this;
     }
 };
 
-typedef History<1024> CorrectionHistory;
+class ContinuationHistory
+{
+  private:
+    int16_t hist;
+
+  public:
+    constexpr ContinuationHistory() = default;
+    constexpr ContinuationHistory(int16_t hist) : hist(hist)
+    {
+    }
+
+    static constexpr int16_t bonus(int depth)
+    {
+        return std::min<int>(ContinuationHistoryBonusMargin * depth - ContinuationHistoryBonusBias,
+                             ContinuationHistoryBonusMax);
+    }
+
+    static constexpr int16_t malus(int depth)
+    {
+        return -std::min<int>(ContinuationHistoryMalusMargin * depth - ContinuationHistoryMalusBias,
+                              ContinuationHistoryMalusMax);
+    }
+
+    void update(int16_t score)
+    {
+        hist += score - std::abs(score) * hist / ContinuationHistoryDivisor;
+    }
+
+    operator int16_t() const
+    {
+        return hist;
+    }
+
+    ContinuationHistory &operator=(int16_t value)
+    {
+        hist = value;
+        return *this;
+    }
+};
+
+class CaptureHistory
+{
+  private:
+    int16_t hist;
+
+  public:
+    constexpr CaptureHistory() = default;
+    constexpr CaptureHistory(int16_t hist) : hist(hist)
+    {
+    }
+
+    static constexpr int16_t bonus(int depth)
+    {
+        return std::min<int>(CaptureHistoryBonusMargin * depth - CaptureHistoryBonusBias, CaptureHistoryBonusMax);
+    }
+
+    static constexpr int16_t malus(int depth)
+    {
+        return -std::min<int>(CaptureHistoryMalusMargin * depth - CaptureHistoryMalusBias, CaptureHistoryMalusMax);
+    }
+
+    void update(int16_t score)
+    {
+        hist += score - std::abs(score) * hist / CaptureHistoryDivisor;
+    }
+
+    operator int16_t() const
+    {
+        return hist;
+    }
+
+    CaptureHistory &operator=(int16_t value)
+    {
+        hist = value;
+        return *this;
+    }
+};
+
+class PawnHistory
+{
+  private:
+    int16_t hist;
+
+  public:
+    constexpr PawnHistory() = default;
+    constexpr PawnHistory(int16_t hist) : hist(hist)
+    {
+    }
+
+    static constexpr int16_t bonus(int depth)
+    {
+        return std::min<int>(PawnHistoryBonusMargin * depth - PawnHistoryBonusBias, PawnHistoryBonusMax);
+    }
+
+    static constexpr int16_t malus(int depth)
+    {
+        return -std::min<int>(PawnHistoryMalusMargin * depth - PawnHistoryMalusBias, PawnHistoryMalusMax);
+    }
+
+    void update(int16_t score)
+    {
+        hist += score - std::abs(score) * hist / PawnHistoryDivisor;
+    }
+
+    operator int16_t() const
+    {
+        return hist;
+    }
+
+    PawnHistory &operator=(int16_t value)
+    {
+        hist = value;
+        return *this;
+    }
+};
+
+class CorrectionHistory
+{
+  private:
+    int16_t hist;
+
+  public:
+    constexpr CorrectionHistory() = default;
+    constexpr CorrectionHistory(int16_t hist) : hist(hist)
+    {
+    }
+
+    void update(int16_t score)
+    {
+        hist += score - std::abs(score) * hist / CorrectionHistoryDivisor;
+    }
+
+    operator int16_t() const
+    {
+        return hist;
+    }
+
+    CorrectionHistory &operator=(int16_t value)
+    {
+        hist = value;
+        return *this;
+    }
+};
 
 class SearchMove
 {
@@ -81,7 +235,7 @@ class StackEntry
     int eval;
     int R;          // reduction
     int cutoff_cnt; // number of cutoffs in the current search
-    MultiArray<History<16384>, 13, 64> *cont_hist;
+    MultiArray<ContinuationHistory, 13, 64> *cont_hist;
     MultiArray<CorrectionHistory, 13, 64> *cont_corr_hist;
     Bitboard threats;
 };
@@ -89,23 +243,23 @@ class StackEntry
 class Histories
 {
   private:
-    MultiArray<History<16384>, 2, 2, 2, 64 * 64> hist;
-    MultiArray<History<16384>, 12, 64, 7> cap_hist;
-    MultiArray<History<16384>, PAWN_HIST_SIZE, 12, 64> pawn_hist;
+    MultiArray<MainHistory, 2, 2, 2, 64 * 64> hist;
+    MultiArray<CaptureHistory, 12, 64, 7> cap_hist;
+    MultiArray<PawnHistory, PAWN_HIST_SIZE, 12, 64> pawn_hist;
     MultiArray<CorrectionHistory, 2, CORR_HIST_SIZE> corr_hist;
     MultiArray<CorrectionHistory, 2, 2, CORR_HIST_SIZE> mat_corr_hist;
 
   public:
-    MultiArray<History<16384>, 2, 13, 64, 13, 64> cont_history;
+    MultiArray<ContinuationHistory, 2, 13, 64, 13, 64> cont_history;
     MultiArray<CorrectionHistory, 13, 64, 13, 64> cont_corr_hist;
 
   public:
     void clear_history()
     {
-        fill_multiarray<History<16384>, 2, 2, 2, 64 * 64>(hist, 0);
-        fill_multiarray<History<16384>, 12, 64, 7>(cap_hist, 0);
-        fill_multiarray<History<16384>, PAWN_HIST_SIZE, 12, 64>(pawn_hist, 0);
-        fill_multiarray<History<16384>, 2, 13, 64, 13, 64>(cont_history, 0);
+        fill_multiarray<MainHistory, 2, 2, 2, 64 * 64>(hist, 0);
+        fill_multiarray<CaptureHistory, 12, 64, 7>(cap_hist, 0);
+        fill_multiarray<PawnHistory, PAWN_HIST_SIZE, 12, 64>(pawn_hist, 0);
+        fill_multiarray<ContinuationHistory, 2, 13, 64, 13, 64>(cont_history, 0);
         fill_multiarray<CorrectionHistory, 2, CORR_HIST_SIZE>(corr_hist, CorrectionHistory(0));
         fill_multiarray<CorrectionHistory, 2, 2, CORR_HIST_SIZE>(mat_corr_hist, CorrectionHistory(0));
         fill_multiarray<CorrectionHistory, 13, 64, 13, 64>(cont_corr_hist, CorrectionHistory(0));
@@ -116,44 +270,45 @@ class Histories
         clear_history();
     }
 
-    History<16384> &get_hist(const Square from, const Square to, const int from_to, const bool turn,
-                             const Bitboard threats)
+    MainHistory &get_hist(const Square from, const Square to, const int from_to, const bool turn,
+                          const Bitboard threats)
     {
         return hist[turn][!threats.has_square(from)][!threats.has_square(to)][from_to];
     }
 
-    const History<16384> get_hist(const Square from, const Square to, const int from_to, const bool turn,
-                                  const Bitboard threats) const
+    const MainHistory get_hist(const Square from, const Square to, const int from_to, const bool turn,
+                               const Bitboard threats) const
     {
         return hist[turn][!threats.has_square(from)][!threats.has_square(to)][from_to];
     }
 
-    History<16384> &get_cont_hist(const Piece piece, const Square to, StackEntry *stack, const int delta)
+    ContinuationHistory &get_cont_hist(const Piece piece, const Square to, StackEntry *stack, const int delta)
     {
         return (*(stack - delta)->cont_hist)[piece][to];
     }
 
-    const History<16384> get_cont_hist(const Piece piece, const Square to, StackEntry *stack, const int delta) const
+    const ContinuationHistory get_cont_hist(const Piece piece, const Square to, StackEntry *stack,
+                                            const int delta) const
     {
         return (*(stack - delta)->cont_hist)[piece][to];
     }
 
-    History<16384> &get_cap_hist(const Piece piece, const Square to, const int cap)
+    CaptureHistory &get_cap_hist(const Piece piece, const Square to, const int cap)
     {
         return cap_hist[piece][to][cap];
     }
 
-    const History<16384> get_cap_hist(const Piece piece, const Square to, const int cap) const
+    const CaptureHistory get_cap_hist(const Piece piece, const Square to, const int cap) const
     {
         return cap_hist[piece][to][cap];
     }
 
-    History<16384> &get_pawn_hist(const Piece piece, const Square to, const Key pawn_key)
+    PawnHistory &get_pawn_hist(const Piece piece, const Square to, const Key pawn_key)
     {
         return pawn_hist[pawn_key & PAWN_HIST_MASK][piece][to];
     }
 
-    const History<16384> get_pawn_hist(const Piece piece, const Square to, const Key pawn_key) const
+    const PawnHistory get_pawn_hist(const Piece piece, const Square to, const Key pawn_key) const
     {
         return pawn_hist[pawn_key & PAWN_HIST_MASK][piece][to];
     }
@@ -198,7 +353,7 @@ class Histories
             get_cont_hist(piece, to, stack, 4).update(bonus);
     }
 
-    void update_hist_move(const Move move, const Bitboard threats, const bool turn, const int16_t bonus)
+    void update_main_hist_move(const Move move, const Bitboard threats, const bool turn, const int16_t bonus)
     {
         get_hist(move.get_from(), move.get_to(), move.get_from_to(), turn, threats).update(bonus);
     }
@@ -208,31 +363,26 @@ class Histories
         get_pawn_hist(piece, to, pawn_key).update(bonus);
     }
 
-    void update_hist_quiet_move(const Move move, const Piece piece, const Bitboard threats, const bool turn,
-                                StackEntry *&stack, const Key pawn_key, const int16_t bonus)
-    {
-        update_hist_move(move, threats, turn, bonus);
-        update_cont_hist_move(piece, move.get_to(), stack, bonus);
-        update_pawn_hist_move(piece, move.get_to(), pawn_key, bonus);
-    }
-
     const int get_history_search(const Move move, const Piece piece, const Bitboard threats, const bool turn,
                                  StackEntry *stack, const Key pawn_key) const
     {
         const Square to = move.get_to();
-        return get_hist(move.get_from(), to, move.get_from_to(), turn, threats) + get_cont_hist(piece, to, stack, 1) +
-               get_cont_hist(piece, to, stack, 2) + get_cont_hist(piece, to, stack, 4);
+        return (QuietSearchHistCoef * get_hist(move.get_from(), to, move.get_from_to(), turn, threats) +
+                QuietSearchContHist1 * get_cont_hist(piece, to, stack, 1) +
+                QuietSearchContHist2 * get_cont_hist(piece, to, stack, 2) +
+                QuietSearchContHist4 * get_cont_hist(piece, to, stack, 4)) /
+               1024;
     }
 
     const int get_history_movepick(const Move move, const Piece piece, const Bitboard threats, const bool turn,
                                    StackEntry *stack, const Key pawn_key) const
     {
         const Square to = move.get_to();
-        return (QuietHistCoef * get_hist(move.get_from(), to, move.get_from_to(), turn, threats) +
-                QuietContHist1 * get_cont_hist(piece, to, stack, 1) +
-                QuietContHist2 * get_cont_hist(piece, to, stack, 2) +
-                QuietContHist4 * get_cont_hist(piece, to, stack, 4) +
-                QuietPawnHist * get_pawn_hist(piece, to, pawn_key)) /
+        return (QuietMPHistCoef * get_hist(move.get_from(), to, move.get_from_to(), turn, threats) +
+                QuietMPContHist1 * get_cont_hist(piece, to, stack, 1) +
+                QuietMPContHist2 * get_cont_hist(piece, to, stack, 2) +
+                QuietMPContHist4 * get_cont_hist(piece, to, stack, 4) +
+                QuietMPPawnHist * get_pawn_hist(piece, to, pawn_key)) /
                1024;
     }
 
@@ -272,18 +422,8 @@ class Histories
             if ((stack - 3)->move)
                 correction += CorrHistCont3 * get_cont_corr_hist(stack, 3);
             if ((stack - 4)->move)
-                correction += CorrHistCont3 * get_cont_corr_hist(stack, 4);
+                correction += CorrHistCont4 * get_cont_corr_hist(stack, 4);
         }
         return eval + correction / (16 * 1024);
     }
 };
-
-inline int getHistoryBonus(int depth)
-{
-    return std::min<int>(HistoryBonusMargin * depth - HistoryBonusBias, HistoryBonusMax);
-}
-
-inline int getHistoryMalus(int depth)
-{
-    return -std::min<int>(HistoryMalusMargin * depth - HistoryMalusBias, HistoryMalusMax);
-}
