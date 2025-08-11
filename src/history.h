@@ -20,14 +20,8 @@
 #include <algorithm>
 #include <vector>
 
-constexpr int CORR_HIST_SIZE = (1 << 16);
-constexpr int CORR_HIST_MASK = CORR_HIST_SIZE - 1;
-
 constexpr int KP_MOVE_SIZE = (1 << 14);
 constexpr int KP_MOVE_MASK = KP_MOVE_SIZE - 1;
-
-constexpr int PAWN_HIST_SIZE = (1 << 12);
-constexpr int PAWN_HIST_MASK = PAWN_HIST_SIZE - 1;
 
 class MainHistory
 {
@@ -151,6 +145,9 @@ class PawnHistory
     int16_t hist;
 
   public:
+    static constexpr int SIZE = (1 << 12);
+    static constexpr int MASK = SIZE - 1;
+
     constexpr PawnHistory() = default;
     constexpr PawnHistory(int16_t hist) : hist(hist)
     {
@@ -189,6 +186,9 @@ class CorrectionHistory
     int16_t hist;
 
   public:
+    static constexpr int SIZE = (1 << 16);
+    static constexpr int MASK = SIZE - 1;
+
     constexpr CorrectionHistory() = default;
     constexpr CorrectionHistory(int16_t hist) : hist(hist)
     {
@@ -245,9 +245,9 @@ class Histories
   private:
     MultiArray<MainHistory, 2, 2, 2, 64 * 64> hist;
     MultiArray<CaptureHistory, 12, 64, 7> cap_hist;
-    MultiArray<PawnHistory, PAWN_HIST_SIZE, 12, 64> pawn_hist;
-    MultiArray<CorrectionHistory, 2, CORR_HIST_SIZE> corr_hist;
-    MultiArray<CorrectionHistory, 2, 2, CORR_HIST_SIZE> mat_corr_hist;
+    MultiArray<PawnHistory, PawnHistory::SIZE, 12, 64> pawn_hist;
+    MultiArray<CorrectionHistory, 2, CorrectionHistory::SIZE> corr_hist;
+    MultiArray<CorrectionHistory, 2, 2, CorrectionHistory::SIZE> mat_corr_hist;
 
   public:
     MultiArray<ContinuationHistory, 2, 13, 64, 13, 64> cont_history;
@@ -258,10 +258,10 @@ class Histories
     {
         fill_multiarray<MainHistory, 2, 2, 2, 64 * 64>(hist, 0);
         fill_multiarray<CaptureHistory, 12, 64, 7>(cap_hist, 0);
-        fill_multiarray<PawnHistory, PAWN_HIST_SIZE, 12, 64>(pawn_hist, 0);
+        fill_multiarray<PawnHistory, PawnHistory::SIZE, 12, 64>(pawn_hist, 0);
         fill_multiarray<ContinuationHistory, 2, 13, 64, 13, 64>(cont_history, 0);
-        fill_multiarray<CorrectionHistory, 2, CORR_HIST_SIZE>(corr_hist, CorrectionHistory(0));
-        fill_multiarray<CorrectionHistory, 2, 2, CORR_HIST_SIZE>(mat_corr_hist, CorrectionHistory(0));
+        fill_multiarray<CorrectionHistory, 2, CorrectionHistory::SIZE>(corr_hist, CorrectionHistory(0));
+        fill_multiarray<CorrectionHistory, 2, 2, CorrectionHistory::SIZE>(mat_corr_hist, CorrectionHistory(0));
         fill_multiarray<CorrectionHistory, 13, 64, 13, 64>(cont_corr_hist, CorrectionHistory(0));
     }
 
@@ -305,32 +305,32 @@ class Histories
 
     PawnHistory &get_pawn_hist(const Piece piece, const Square to, const Key pawn_key)
     {
-        return pawn_hist[pawn_key & PAWN_HIST_MASK][piece][to];
+        return pawn_hist[pawn_key & PawnHistory::MASK][piece][to];
     }
 
     const PawnHistory get_pawn_hist(const Piece piece, const Square to, const Key pawn_key) const
     {
-        return pawn_hist[pawn_key & PAWN_HIST_MASK][piece][to];
+        return pawn_hist[pawn_key & PawnHistory::MASK][piece][to];
     }
 
     CorrectionHistory &get_corr_hist(const bool turn, const Key pawn_key)
     {
-        return corr_hist[turn][pawn_key & CORR_HIST_MASK];
+        return corr_hist[turn][pawn_key & CorrectionHistory::MASK];
     }
 
     const CorrectionHistory get_corr_hist(const bool turn, const Key pawn_key) const
     {
-        return corr_hist[turn][pawn_key & CORR_HIST_MASK];
+        return corr_hist[turn][pawn_key & CorrectionHistory::MASK];
     }
 
     CorrectionHistory &get_mat_corr_hist(const bool turn, const bool side, const Key mat_key)
     {
-        return mat_corr_hist[turn][side][mat_key & CORR_HIST_MASK];
+        return mat_corr_hist[turn][side][mat_key & CorrectionHistory::MASK];
     }
 
     const CorrectionHistory get_mat_corr_hist(const bool turn, const bool side, const Key mat_key) const
     {
-        return mat_corr_hist[turn][side][mat_key & CORR_HIST_MASK];
+        return mat_corr_hist[turn][side][mat_key & CorrectionHistory::MASK];
     }
 
     CorrectionHistory &get_cont_corr_hist(StackEntry *stack, const int delta)
