@@ -47,7 +47,7 @@ class Bitboard
         return sq;
     }
 
-    int count() const
+    constexpr int count() const
     {
         return __builtin_popcountll(bb);
     }
