@@ -34,12 +34,12 @@ class MainHistory
     {
     }
 
-    static constexpr int16_t bonus(int depth)
+    static int16_t bonus(int depth)
     {
         return std::min<int>(MainHistoryBonusMargin * depth - MainHistoryBonusBias, MainHistoryBonusMax);
     }
 
-    static constexpr int16_t malus(int depth)
+    static int16_t malus(int depth)
     {
         return -std::min<int>(MainHistoryMalusMargin * depth - MainHistoryMalusBias, MainHistoryMalusMax);
     }
@@ -72,13 +72,13 @@ class ContinuationHistory
     {
     }
 
-    static constexpr int16_t bonus(int depth)
+    static int16_t bonus(int depth)
     {
         return std::min<int>(ContinuationHistoryBonusMargin * depth - ContinuationHistoryBonusBias,
                              ContinuationHistoryBonusMax);
     }
 
-    static constexpr int16_t malus(int depth)
+    static int16_t malus(int depth)
     {
         return -std::min<int>(ContinuationHistoryMalusMargin * depth - ContinuationHistoryMalusBias,
                               ContinuationHistoryMalusMax);
@@ -112,12 +112,12 @@ class CaptureHistory
     {
     }
 
-    static constexpr int16_t bonus(int depth)
+    static int16_t bonus(int depth)
     {
         return std::min<int>(CaptureHistoryBonusMargin * depth - CaptureHistoryBonusBias, CaptureHistoryBonusMax);
     }
 
-    static constexpr int16_t malus(int depth)
+    static int16_t malus(int depth)
     {
         return -std::min<int>(CaptureHistoryMalusMargin * depth - CaptureHistoryMalusBias, CaptureHistoryMalusMax);
     }
@@ -153,12 +153,12 @@ class PawnHistory
     {
     }
 
-    static constexpr int16_t bonus(int depth)
+    static int16_t bonus(int depth)
     {
         return std::min<int>(PawnHistoryBonusMargin * depth - PawnHistoryBonusBias, PawnHistoryBonusMax);
     }
 
-    static constexpr int16_t malus(int depth)
+    static int16_t malus(int depth)
     {
         return -std::min<int>(PawnHistoryMalusMargin * depth - PawnHistoryMalusBias, PawnHistoryMalusMax);
     }
