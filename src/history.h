@@ -246,8 +246,8 @@ class Histories
     MultiArray<MainHistory, 2, 2, 2, 64 * 64> hist;
     MultiArray<CaptureHistory, 12, 64, 7> cap_hist;
     MultiArray<PawnHistory, PawnHistory::SIZE, 12, 64> pawn_hist;
-    MultiArray<CorrectionHistory, 2, CorrectionHistory::SIZE> corr_hist;
-    MultiArray<CorrectionHistory, 2, 2, CorrectionHistory::SIZE> mat_corr_hist;
+    MultiArray<CorrectionHistory, CorrectionHistory::SIZE, 2> corr_hist;
+    MultiArray<CorrectionHistory, CorrectionHistory::SIZE, 2, 2> mat_corr_hist;
 
   public:
     MultiArray<ContinuationHistory, 2, 13, 64, 13, 64> cont_history;
@@ -260,8 +260,8 @@ class Histories
         fill_multiarray<CaptureHistory, 12, 64, 7>(cap_hist, 0);
         fill_multiarray<PawnHistory, PawnHistory::SIZE, 12, 64>(pawn_hist, 0);
         fill_multiarray<ContinuationHistory, 2, 13, 64, 13, 64>(cont_history, 0);
-        fill_multiarray<CorrectionHistory, 2, CorrectionHistory::SIZE>(corr_hist, CorrectionHistory(0));
-        fill_multiarray<CorrectionHistory, 2, 2, CorrectionHistory::SIZE>(mat_corr_hist, CorrectionHistory(0));
+        fill_multiarray<CorrectionHistory, CorrectionHistory::SIZE, 2>(corr_hist, CorrectionHistory(0));
+        fill_multiarray<CorrectionHistory, CorrectionHistory::SIZE, 2, 2>(mat_corr_hist, CorrectionHistory(0));
         fill_multiarray<CorrectionHistory, 13, 64, 13, 64>(cont_corr_hist, CorrectionHistory(0));
     }
 
@@ -315,22 +315,22 @@ class Histories
 
     CorrectionHistory &get_corr_hist(const bool turn, const Key pawn_key)
     {
-        return corr_hist[turn][pawn_key & CorrectionHistory::MASK];
+        return corr_hist[pawn_key & CorrectionHistory::MASK][turn];
     }
 
     const CorrectionHistory get_corr_hist(const bool turn, const Key pawn_key) const
     {
-        return corr_hist[turn][pawn_key & CorrectionHistory::MASK];
+        return corr_hist[pawn_key & CorrectionHistory::MASK][turn];
     }
 
     CorrectionHistory &get_mat_corr_hist(const bool turn, const bool side, const Key mat_key)
     {
-        return mat_corr_hist[turn][side][mat_key & CorrectionHistory::MASK];
+        return mat_corr_hist[mat_key & CorrectionHistory::MASK][turn][side];
     }
 
     const CorrectionHistory get_mat_corr_hist(const bool turn, const bool side, const Key mat_key) const
     {
-        return mat_corr_hist[turn][side][mat_key & CorrectionHistory::MASK];
+        return mat_corr_hist[mat_key & CorrectionHistory::MASK][turn][side];
     }
 
     CorrectionHistory &get_cont_corr_hist(StackEntry *stack, const int delta)

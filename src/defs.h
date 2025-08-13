@@ -186,7 +186,7 @@ inline Key castle_rights_key(MultiArray<Square, 2, 2> &rook_sq)
 
 inline bool recalc(Square from, Square to, bool side)
 {
-    return (from & 4) != (to & 4) || kingIndTable[from ^ (56 * !side)] != kingIndTable[to ^ (56 * !side)];
+    return (from & 4) != (to & 4) || kingIndTable[from.mirror(side)] != kingIndTable[to.mirror(side)];
 }
 
 template <int direction> inline Square shift_square(bool color, Square sq)
@@ -199,11 +199,6 @@ template <int8_t direction> inline Bitboard shift_mask(int color, Bitboard bb)
     if (color == BLACK)
         return direction > 0 ? bb >> direction : bb << static_cast<int8_t>(-direction);
     return direction > 0 ? bb << direction : bb >> static_cast<int8_t>(-direction);
-}
-
-inline bool inside_board(int rank, int file)
-{
-    return rank >= 0 && file >= 0 && rank <= 7 && file <= 7;
 }
 
 inline void init_defs()
@@ -246,6 +241,12 @@ inline void init_defs()
             {
                 int r = rank, f = file;
                 Bitboard mask(0ull);
+
+                auto inside_board = [&](int rank, int file)
+                {
+                    return rank >= 0 && file >= 0 && rank <= 7 && file <= 7;
+                };
+
                 while (true)
                 {
                     r += kingDir[i].first, f += kingDir[i].second;
