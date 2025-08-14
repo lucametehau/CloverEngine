@@ -406,9 +406,7 @@ class Movepick
         }
         case Stages::STAGE_QS_GEN_QUIETS: {
             nrQuiets = board.gen_legal_moves<MOVEGEN_QUIET>(moves);
-            const bool turn = board.turn, enemy = 1 ^ turn;
-            const Bitboard allPieces = board.get_bb_color(WHITE) | board.get_bb_color(BLACK);
-            const Bitboard enemyKingRing = attacks::kingRingMask[board.get_king(enemy)];
+            const bool turn = board.turn;
             const Key pawn_key = board.pawn_key();
 
             int m = 0;
@@ -419,13 +417,8 @@ class Movepick
                     continue;
 
                 moves[m] = move;
-                const Square from = move.get_from(), to = move.get_to();
-                const Piece piece = board.piece_at(from), pt = piece.type();
-                int score = histories.get_history_movepick(move, piece, all_threats, turn, stack, pawn_key);
-
-                score += QuietPawnPushBonus * (pt == PieceTypes::PAWN); // pawn push, generally good
-
-                scores[m++] = score;
+                const Piece piece = board.piece_at(move.get_from());
+                scores[m++] = histories.get_history_movepick(move, piece, all_threats, turn, stack, pawn_key);
             }
 
             nrQuiets = m;
