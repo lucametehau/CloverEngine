@@ -275,18 +275,6 @@ class Movepick
 
                     if (pt != PieceTypes::KING && pt != PieceTypes::PAWN)
                     {
-                        [[unlikely]] if (pt < 0 || pt > PieceTypes::QUEEN)
-                        {
-                            board.print();
-                            for (int i = 0; i < 12; i++)
-                                board.bb[i].print();
-                            board.pieces[WHITE].print();
-                            board.pieces[BLACK].print();
-                            for (int i = 0; i <= board.ply; i++)
-                                std::cerr << "i: " << i << " " << (stack - i)->move.to_string(board.chess960) << "\n";
-                            std::cerr << "tried move " << move.to_string(board.chess960) << "\n";
-                            assert(0);
-                        }
                         score += QuietKingRingAttackBonus *
                                  (attacks::genAttacksSq(allPieces, to, pt) & enemyKingRing).count();
 
@@ -436,49 +424,6 @@ class Movepick
                 int score = histories.get_history_movepick(move, piece, all_threats, turn, stack, pawn_key);
 
                 score += QuietPawnPushBonus * (pt == PieceTypes::PAWN); // pawn push, generally good
-
-                if (pt != PieceTypes::KING && pt != PieceTypes::PAWN)
-                {
-                    [[unlikely]] if (pt < 0 || pt > PieceTypes::QUEEN)
-                    {
-                        board.print();
-                        for (int i = 0; i < 12; i++)
-                            board.bb[i].print();
-                        board.pieces[WHITE].print();
-                        board.pieces[BLACK].print();
-                        for (int i = 0; i <= board.ply; i++)
-                            std::cerr << "i: " << i << " " << (stack - i)->move.to_string(board.chess960) << "\n";
-                        std::cerr << "tried move " << move.to_string(board.chess960) << "\n";
-                        assert(0);
-                    }
-                    score +=
-                        QuietKingRingAttackBonus * (attacks::genAttacksSq(allPieces, to, pt) & enemyKingRing).count();
-
-                    auto score_threats = [&](Bitboard threats_p, Bitboard threats_bn, Bitboard threats_r, Piece pt,
-                                             Square to) -> int {
-                        if (threats_p.has_square(to))
-                            return QuietPawnAttackedCoef * seeVal[pt];
-                        if (pt >= PieceTypes::ROOK && threats_bn.has_square(to))
-                            return ThreatCoef1;
-                        if (pt == PieceTypes::QUEEN && threats_r.has_square(to))
-                            return ThreatCoef2;
-                        return 0;
-                    };
-
-                    auto score_threats_dodged = [&](Bitboard threats_p, Bitboard threats_bn, Bitboard threats_r,
-                                                    Piece pt, Square from) -> int {
-                        if (threats_p.has_square(from))
-                            return QuietPawnAttackedDodgeCoef * seeVal[pt];
-                        if (pt >= PieceTypes::ROOK && threats_bn.has_square(from))
-                            return ThreatCoef3;
-                        if (pt == PieceTypes::QUEEN && threats_r.has_square(from))
-                            return ThreatCoef4;
-                        return 0;
-                    };
-
-                    score += score_threats_dodged(threats_p, threats_bn, threats_r, pt, from) -
-                             score_threats(threats_p, threats_bn, threats_r, pt, to);
-                }
 
                 scores[m++] = score;
             }
