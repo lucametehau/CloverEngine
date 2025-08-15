@@ -1003,6 +1003,7 @@ void SearchThread::iterative_deepening()
                                    : MAX_DEPTH; // when limited by depth, allow helper threads to pass the fixed depth
     int last_root_score = 0;
     Move last_best_move = NULLMOVE;
+    double bestMoveStreak = 1.0;
 
     MoveList moves;
     int nr_moves = board.gen_legal_moves<MOVEGEN_ALL>(moves);
@@ -1078,7 +1079,7 @@ void SearchThread::iterative_deepening()
 
         if (main_thread() && !must_stop())
         {
-            double scoreChange = 1.0, bestMoveStreak = 1.0, nodesSearchedPercentage = 1.0;
+            double scoreChange = 1.0, currentBestMoveStreak = 1.0, nodesSearchedPercentage = 1.0;
             if (id_depth >= TimeManagerMinDepth)
             {
                 scoreChange = std::clamp<double>(
@@ -1089,10 +1090,11 @@ void SearchThread::iterative_deepening()
                 nodesSearchedPercentage = 1.0 * nodes_seached[best_moves[1].get_from_to()] / nodes;
                 nodesSearchedPercentage =
                     TimeManagerNodesSearchedMaxPercentage - TimeManagerNodesSearchedCoef * nodesSearchedPercentage;
-                bestMoveStreak =
+                currentBestMoveStreak =
                     TimeManagerBestMoveMax -
                     TimeManagerbestMoveStep *
                         std::min(10, best_move_cnt); /// adjust time based on how long the best move was the same
+                bestMoveStreak *= std::pow(currentBestMoveStreak / bestMoveStreak, 0.5);
             }
             info.set_recommended_soft_limit(scoreChange * bestMoveStreak * nodesSearchedPercentage);
             last_root_score = root_scores[1];
