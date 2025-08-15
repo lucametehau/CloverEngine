@@ -1090,9 +1090,12 @@ void SearchThread::iterative_deepening()
                 nodesSearchedPercentage = 1.0 * nodes_seached[best_moves[1].get_from_to()] / nodes;
                 nodesSearchedPercentage =
                     TimeManagerNodesSearchedMaxPercentage - TimeManagerNodesSearchedCoef * nodesSearchedPercentage;
-                currentBestMoveStreak = TimeManagerBestMoveMax - TimeManagerbestMoveStep *
+                currentBestMoveStreak =
+                    TimeManagerBestMoveMax -
+                    TimeManagerbestMoveStep *
                         std::min(10, best_move_cnt); /// adjust time based on how long the best move was the same
-                bestMoveStreak *= std::pow(currentBestMoveStreak / bestMoveStreak, 0.6);
+                double w = std::min(1.0, std::abs(currentBestMoveStreak - bestMoveStreak) * 1.5);
+                bestMoveStreak = bestMoveStreak * (1.0 - w) + currentBestMoveStreak * w;
             }
             info.set_recommended_soft_limit(scoreChange * bestMoveStreak * nodesSearchedPercentage);
             last_root_score = root_scores[1];
