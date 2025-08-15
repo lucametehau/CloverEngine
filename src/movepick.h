@@ -417,8 +417,12 @@ class Movepick
                     continue;
 
                 moves[m] = move;
-                const Piece piece = board.piece_at(move.get_from());
-                scores[m++] = histories.get_history_movepick(move, piece, all_threats, turn, stack, pawn_key);
+                const Piece piece = board.piece_at(move.get_from()), pt = piece.type();
+                int score = histories.get_history_movepick(move, piece, all_threats, turn, stack, pawn_key);
+
+                score += QuietPawnPushBonus * (pt == PieceTypes::PAWN); // pawn push, generally good
+
+                scores[m++] = score;
             }
 
             nrQuiets = m;
