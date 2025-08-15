@@ -1089,9 +1089,7 @@ void SearchThread::iterative_deepening()
                 nodesSearchedPercentage = 1.0 * nodes_seached[best_moves[1].get_from_to()] / nodes;
                 nodesSearchedPercentage =
                     TimeManagerNodesSearchedMaxPercentage - TimeManagerNodesSearchedCoef * nodesSearchedPercentage;
-                bestMoveStreak =
-                    TimeManagerBestMoveMax -
-                    TimeManagerbestMoveStep *
+                bestMoveStreak = TimeManagerBestMoveMax - TimeManagerbestMoveStep *
                         std::min(10, best_move_cnt); /// adjust time based on how long the best move was the same
             }
             info.set_recommended_soft_limit(scoreChange * bestMoveStreak * nodesSearchedPercentage);
