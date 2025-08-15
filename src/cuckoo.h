@@ -42,8 +42,9 @@ inline void init()
     int count = 0;
     for (Piece piece = Pieces::BlackPawn; piece <= Pieces::WhiteKing; piece++)
     {
+        // no pawns
         if (piece.type() == PieceTypes::PAWN)
-            continue; // no pawns
+            continue;
         for (Square from = 0; from < 64; from++)
         {
             for (Square to = from + 1; to < 64; to++)

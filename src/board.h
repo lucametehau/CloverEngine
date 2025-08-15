@@ -19,6 +19,13 @@
 #include "cuckoo.h"
 #include "defs.h"
 
+struct Threats
+{
+    std::array<Bitboard, 4> threats_pieces;
+    Bitboard all_threats;
+    Bitboard threatened_pieces;
+};
+
 struct HistoricalState
 {
     Square enPas;

@@ -3,7 +3,7 @@
 #include <chrono>
 #include <cstdint>
 
-inline const auto t_init = std::chrono::steady_clock::now();
+const auto t_init = std::chrono::steady_clock::now();
 
 inline std::time_t get_current_time()
 {
@@ -19,7 +19,7 @@ class Info
     int depth, multipv;
     int64_t nodes_lim, min_nodes, max_nodes;
 
-    bool timeset, san_mode, chess960;
+    bool timeset, chess960;
 
   public:
     Info() : depth(MAX_DEPTH), multipv(1), nodes_lim(-1), min_nodes(-1), max_nodes(-1), chess960(false)
@@ -28,25 +28,21 @@ class Info
 
     void init()
     {
-        timeset = san_mode = false;
+        timeset = false;
         nodes_lim = min_nodes = max_nodes = -1;
         depth = MAX_DEPTH;
         start_time = get_current_time();
     }
 
-    int get_depth_limit() const
+    constexpr int get_depth_limit() const
     {
         return depth;
     }
-    int get_multipv() const
+    constexpr int get_multipv() const
     {
         return multipv;
     }
-    bool is_san_mode() const
-    {
-        return san_mode;
-    }
-    bool is_chess960() const
+    constexpr bool is_chess960() const
     {
         return chess960;
     }
@@ -89,10 +85,6 @@ class Info
     {
         chess960 = _chess960;
     }
-    void set_san_mode()
-    {
-        san_mode = true;
-    }
 
     void set_time(std::time_t time, std::time_t inc)
     {
@@ -109,28 +101,28 @@ class Info
         hard_limit = time;
     }
 
-    std::time_t get_time_elapsed() const
+    const std::time_t get_time_elapsed() const
     {
         return get_current_time() - start_time;
     }
 
-    bool soft_limit_passed() const
+    const bool soft_limit_passed() const
     {
         return timeset && soft_limit != -1 && get_time_elapsed() >= recommended_soft_limit;
     }
-    bool hard_limit_passed() const
+    const bool hard_limit_passed() const
     {
         return timeset && get_time_elapsed() >= hard_limit;
     }
-    bool min_nodes_passed(int64_t nodes) const
+    constexpr bool min_nodes_passed(int64_t nodes) const
     {
         return min_nodes != -1 && nodes >= min_nodes;
     }
-    bool max_nodes_passed(int64_t nodes) const
+    constexpr bool max_nodes_passed(int64_t nodes) const
     {
         return max_nodes != -1 && nodes >= max_nodes;
     }
-    bool nodes_limit_passed(int64_t nodes) const
+    constexpr bool nodes_limit_passed(int64_t nodes) const
     {
         return nodes_lim != -1 && nodes >= nodes_lim;
     }

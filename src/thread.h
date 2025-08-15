@@ -178,8 +178,8 @@ class SearchThread
     void print_pv();
     void update_pv(int ply, Move move);
 
-    void print_iteration_info(bool san_mode, int multipv, int score, int alpha, int beta, uint64_t t, int depth,
-                              int sel_depth, uint64_t total_nodes, uint64_t total_tb_hits);
+    void print_iteration_info(int multipv, int score, int alpha, int beta, uint64_t t, int depth, int sel_depth,
+                              uint64_t total_nodes, uint64_t total_tb_hits);
 
     template <bool checkTime> bool check_for_stop();
 

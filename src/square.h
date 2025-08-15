@@ -20,7 +20,7 @@ class Square
         return sq;
     }
 
-    Square mirror(const bool side) const
+    constexpr Square mirror(const bool side) const
     {
         return sq ^ (56 * !side);
     };

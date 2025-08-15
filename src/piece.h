@@ -33,19 +33,19 @@ class Piece
         return piece >= 6 ? piece - 6 : piece;
     }
 
-    Piece operator+(const Piece &other) const
+    constexpr Piece operator+(const Piece &other) const
     {
         return piece + other.piece;
     }
-    Piece operator-(const Piece &other) const
+    constexpr Piece operator-(const Piece &other) const
     {
         return piece - other.piece;
     }
-    Piece operator+(const int &other) const
+    constexpr Piece operator+(const int &other) const
     {
         return piece + other;
     }
-    Piece operator-(const int &other) const
+    constexpr Piece operator-(const int &other) const
     {
         return piece - other;
     }
