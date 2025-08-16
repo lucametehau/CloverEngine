@@ -219,8 +219,8 @@ inline void initRookMagic()
     {
         rookAttacksMask[sq] |= raysMask[sq][NORTH_ID] & ~rank_mask[7];
         rookAttacksMask[sq] |= raysMask[sq][SOUTH_ID] & ~rank_mask[0];
-        rookAttacksMask[sq] |= raysMask[sq][EAST_ID] & ~file_mask[7];
-        rookAttacksMask[sq] |= raysMask[sq][WEST_ID] & ~file_mask[0];
+        rookAttacksMask[sq] |= raysMask[sq][EAST_ID] & not_edge_mask[1];
+        rookAttacksMask[sq] |= raysMask[sq][WEST_ID] & not_edge_mask[0];
         for (int blockerInd = 0; blockerInd < (1 << rookIndexBits[sq]); blockerInd++)
         {
             Bitboard blockers = get_blockers(rookAttacksMask[sq], blockerInd);

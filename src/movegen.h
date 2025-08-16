@@ -482,7 +482,6 @@ template <int movegen_type> int Board::gen_legal_moves(MoveList &moves)
         add_moves(moves, nrMoves, sq, attacks);
     }
 
-    int fileA = (color == WHITE ? 0 : 7), fileH = 7 - fileA;
     our_pawns &= ~pinned; /// remove pinned pawns from our pawns
     b1 = our_pawns & ~rank_mask[rank7];
 
@@ -506,8 +505,8 @@ template <int movegen_type> int Board::gen_legal_moves(MoveList &moves)
 
     if constexpr (noisy_movegen)
     {
-        b2 = shift_mask<NORTHWEST>(color, b1 & ~file_mask[fileA]) & capMask;
-        b3 = shift_mask<NORTHEAST>(color, b1 & ~file_mask[fileH]) & capMask;
+        b2 = shift_mask<NORTHWEST>(color, b1 & not_edge_mask[enemy]) & capMask;
+        b3 = shift_mask<NORTHEAST>(color, b1 & not_edge_mask[turn]) & capMask;
         /// captures
 
         while (b2)
@@ -529,8 +528,8 @@ template <int movegen_type> int Board::gen_legal_moves(MoveList &moves)
             add_promotions(moves, nrMoves, shift_square<SOUTH>(color, sq), sq);
         }
 
-        b2 = shift_mask<NORTHWEST>(color, b1 & ~file_mask[fileA]) & capMask;
-        b3 = shift_mask<NORTHEAST>(color, b1 & ~file_mask[fileH]) & capMask;
+        b2 = shift_mask<NORTHWEST>(color, b1 & not_edge_mask[enemy]) & capMask;
+        b3 = shift_mask<NORTHEAST>(color, b1 & not_edge_mask[turn]) & capMask;
         while (b2)
         {
             Square sq = b2.get_square_pop();

@@ -239,9 +239,8 @@ class Board
     Bitboard get_pawn_attacks(const bool color)
     {
         const Bitboard b = get_bb_piece(PieceTypes::PAWN, color);
-        const int fileA = 7 * !color, fileH = 7 - fileA;
-        return shift_mask<NORTHWEST>(color, b & ~file_mask[fileA]) |
-               shift_mask<NORTHEAST>(color, b & ~file_mask[fileH]);
+        return shift_mask<NORTHWEST>(color, b & not_edge_mask[!color]) |
+               shift_mask<NORTHEAST>(color, b & not_edge_mask[color]);
     }
 
     const Piece piece_at(const Square sq) const

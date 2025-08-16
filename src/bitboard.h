@@ -52,39 +52,39 @@ class Bitboard
         return __builtin_popcountll(bb);
     }
 
-    Bitboard operator|(const Bitboard &other) const
+    constexpr Bitboard operator|(const Bitboard &other) const
     {
         return bb | other.bb;
     }
-    Bitboard operator&(const Bitboard &other) const
+    constexpr Bitboard operator&(const Bitboard &other) const
     {
         return bb & other.bb;
     }
-    Bitboard operator^(const Bitboard &other) const
+    constexpr Bitboard operator^(const Bitboard &other) const
     {
         return bb ^ other.bb;
     }
-    Bitboard operator|(const unsigned long long &other) const
+    constexpr Bitboard operator|(const unsigned long long &other) const
     {
         return bb | other;
     }
-    Bitboard operator&(const unsigned long long &other) const
+    constexpr Bitboard operator&(const unsigned long long &other) const
     {
         return bb & other;
     }
-    Bitboard operator^(const unsigned long long &other) const
+    constexpr Bitboard operator^(const unsigned long long &other) const
     {
         return bb ^ other;
     }
-    Bitboard operator<<(const int8_t shift) const
+    constexpr Bitboard operator<<(const int8_t shift) const
     {
         return bb << shift;
     }
-    Bitboard operator>>(const int8_t shift) const
+    constexpr Bitboard operator>>(const int8_t shift) const
     {
         return bb >> shift;
     }
-    Bitboard operator~() const
+    constexpr Bitboard operator~() const
     {
         return ~bb;
     }
@@ -149,6 +149,10 @@ inline constexpr Bitboard ALL = 18446744073709551615ULL;
 inline constexpr std::array<Bitboard, 8> file_mask = {
     72340172838076673ull,   144680345676153346ull,  289360691352306692ull,  578721382704613384ull,
     1157442765409226768ull, 2314885530818453536ull, 4629771061636907072ull, 9259542123273814144ull};
+
+// not_edge_mask[0] = mask of not file A
+// not_edge_mask[1] = mask of not file H
+inline constexpr std::array<Bitboard, 2> not_edge_mask = {~file_mask[0], ~file_mask[7]};
 inline constexpr std::array<Bitboard, 8> rank_mask = {
     255ull,           65280ull,           16711680ull,          4278190080ull,
     1095216660480ull, 280375465082880ull, 71776119061217280ull, 18374686479671623680ull};
