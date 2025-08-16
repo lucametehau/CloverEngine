@@ -263,17 +263,17 @@ inline void init()
     initRookMagic();
 }
 
-inline Bitboard genAttacksPawn(bool color, Square sq)
+static constexpr Bitboard genAttacksPawn(bool color, Square sq)
 {
     return pawnAttacksMask[color][sq];
 }
 
-inline Bitboard genAttacksKnight(Square sq)
+static constexpr Bitboard genAttacksKnight(Square sq)
 {
     return knightBBAttacks[sq];
 }
 
-inline Bitboard genAttacksBishop(Bitboard blockers, Square sq)
+static inline Bitboard genAttacksBishop(Bitboard blockers, Square sq)
 {
 #ifndef PEXT_GOOD
     return bishopTable[sq][((blockers & bishopAttacksMask[sq]) * bishopMagics[sq]) >> (64 - bishopIndexBits[sq])];
@@ -282,7 +282,7 @@ inline Bitboard genAttacksBishop(Bitboard blockers, Square sq)
 #endif
 }
 
-inline Bitboard genAttacksRook(Bitboard blockers, Square sq)
+static inline Bitboard genAttacksRook(Bitboard blockers, Square sq)
 {
 #ifndef PEXT_GOOD
     return rookTable[sq][((blockers & rookAttacksMask[sq]) * rookMagics[sq]) >> (64 - rookIndexBits[sq])];
@@ -291,12 +291,12 @@ inline Bitboard genAttacksRook(Bitboard blockers, Square sq)
 #endif
 }
 
-inline Bitboard genAttacksQueen(Bitboard blockers, Square sq)
+static inline Bitboard genAttacksQueen(Bitboard blockers, Square sq)
 {
     return genAttacksBishop(blockers, sq) | genAttacksRook(blockers, sq);
 }
 
-inline Bitboard genAttacksKing(Square sq)
+static constexpr Bitboard genAttacksKing(Square sq)
 {
     return kingBBAttacks[sq];
 }

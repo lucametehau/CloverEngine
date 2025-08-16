@@ -19,23 +19,23 @@ class Bitboard
         assert(sq < NO_SQUARE);
     }
 
-    bool has_square(Square sq) const
+    constexpr bool has_square(Square sq) const
     {
         return (bb >> sq) & 1;
     }
-    Square get_msb_square() const
+    constexpr Square get_msb_square() const
     {
         return 63 - __builtin_clzll(bb);
     }
-    Square get_lsb_square() const
+    constexpr Square get_lsb_square() const
     {
         return __builtin_ctzll(bb);
     }
-    Bitboard lsb() const
+    constexpr Bitboard lsb() const
     {
         return bb & -bb;
     }
-    operator unsigned long long() const
+    constexpr operator unsigned long long() const
     {
         return bb;
     }
@@ -118,6 +118,21 @@ class Bitboard
     {
         bb ^= other;
         return *this;
+    }
+
+    constexpr bool operator!=(const Bitboard &other) const
+    {
+        return bb != other.bb;
+    }
+
+    constexpr bool operator!=(const unsigned long long &other) const
+    {
+        return bb != other;
+    }
+
+    constexpr bool operator==(const Bitboard &other) const
+    {
+        return bb == other.bb;
     }
 
     void set_bit(Square sq)

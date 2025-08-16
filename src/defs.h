@@ -190,12 +190,12 @@ constexpr bool recalc(Square from, Square to, bool side)
     return (from & 4) != (to & 4) || kingIndTable[from.mirror(side)] != kingIndTable[to.mirror(side)];
 }
 
-template <int direction> inline Square shift_square(bool color, Square sq)
+template <int direction> constexpr Square shift_square(bool color, Square sq)
 {
     return color == BLACK ? sq - direction : sq + direction;
 }
 
-template <int8_t direction> inline Bitboard shift_mask(int color, Bitboard bb)
+template <int8_t direction> constexpr Bitboard shift_mask(int color, Bitboard bb)
 {
     if (color == BLACK)
         return direction > 0 ? bb >> direction : bb << static_cast<int8_t>(-direction);

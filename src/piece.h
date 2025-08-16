@@ -20,15 +20,11 @@ class Piece
         return piece;
     }
 
-    const Piece color() const
+    constexpr Piece color() const
     {
         return piece >= 6;
     }
-    Piece type()
-    {
-        return piece >= 6 ? piece - 6 : piece;
-    }
-    const Piece type() const
+    constexpr Piece type() const
     {
         return piece >= 6 ? piece - 6 : piece;
     }

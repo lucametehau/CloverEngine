@@ -75,7 +75,15 @@ class Board
     {
         return state->key;
     }
+    constexpr Key key() const
+    {
+        return state->key;
+    }
     Key &pawn_key()
+    {
+        return state->pawn_key;
+    }
+    constexpr Key pawn_key() const
     {
         return state->pawn_key;
     }
@@ -88,7 +96,15 @@ class Board
     {
         return state->mat_key[color];
     }
+    constexpr Key mat_key(const bool color) const
+    {
+        return state->mat_key[color];
+    }
     Bitboard &checkers()
+    {
+        return state->checkers;
+    }
+    constexpr Bitboard checkers() const
     {
         return state->checkers;
     }
@@ -96,7 +112,15 @@ class Board
     {
         return state->pinnedPieces;
     }
+    constexpr Bitboard pinned_pieces() const
+    {
+        return state->pinnedPieces;
+    }
     Square &enpas()
+    {
+        return state->enPas;
+    }
+    constexpr Square enpas() const
     {
         return state->enPas;
     }
@@ -104,7 +128,15 @@ class Board
     {
         return state->halfMoves;
     }
+    constexpr uint16_t half_moves() const
+    {
+        return state->halfMoves;
+    }
     uint16_t &move_index()
+    {
+        return state->moveIndex;
+    }
+    constexpr uint16_t move_index() const
     {
         return state->moveIndex;
     }
@@ -112,7 +144,15 @@ class Board
     {
         return state->captured;
     }
+    constexpr Piece captured() const
+    {
+        return state->captured;
+    }
     Threats &threats()
+    {
+        return state->threats;
+    }
+    constexpr Threats threats() const
     {
         return state->threats;
     }
@@ -120,25 +160,29 @@ class Board
     {
         return state->rook_sq[color][side];
     }
+    constexpr Square rook_sq(bool color, bool side) const
+    {
+        return state->rook_sq[color][side];
+    }
 
-    const Bitboard get_bb_color(const bool color) const
+    constexpr Bitboard get_bb_color(const bool color) const
     {
         return pieces[color];
     }
-    const Bitboard get_bb_piece(const Piece piece_type, const bool color) const
+    constexpr Bitboard get_bb_piece(const Piece piece_type, const bool color) const
     {
         return bb[6 * color + piece_type];
     }
-    const Bitboard get_bb_piece_type(const Piece piece_type) const
+    constexpr Bitboard get_bb_piece_type(const Piece piece_type) const
     {
         return get_bb_piece(piece_type, WHITE) | get_bb_piece(piece_type, BLACK);
     }
 
-    const Bitboard diagonal_sliders(const bool color) const
+    constexpr Bitboard diagonal_sliders(const bool color) const
     {
         return get_bb_piece(PieceTypes::BISHOP, color) | get_bb_piece(PieceTypes::QUEEN, color);
     }
-    const Bitboard orthogonal_sliders(const bool color) const
+    constexpr Bitboard orthogonal_sliders(const bool color) const
     {
         return get_bb_piece(PieceTypes::ROOK, color) | get_bb_piece(PieceTypes::QUEEN, color);
     }
@@ -152,7 +196,7 @@ class Board
                (attacks::genAttacksKing(sq) & get_bb_piece(PieceTypes::KING, color));
     }
 
-    const int get_output_bucket() const
+    constexpr int get_output_bucket() const
     {
         const int count = (get_bb_color(WHITE) | get_bb_color(BLACK)).count();
         return (count - 2) / 4;
@@ -236,32 +280,32 @@ class Board
         threats().threatened_pieces = threatened_pieces;
     }
 
-    Bitboard get_pawn_attacks(const bool color)
+    constexpr Bitboard get_pawn_attacks(const bool color) const
     {
         const Bitboard b = get_bb_piece(PieceTypes::PAWN, color);
         return shift_mask<NORTHWEST>(color, b & not_edge_mask[!color]) |
                shift_mask<NORTHEAST>(color, b & not_edge_mask[color]);
     }
 
-    const Piece piece_at(const Square sq) const
+    constexpr Piece piece_at(const Square sq) const
     {
         return board[sq];
     }
-    const Piece piece_type_at(const Square sq) const
+    constexpr Piece piece_type_at(const Square sq) const
     {
         return piece_at(sq).type();
     }
-    const Piece get_captured_type(const Move move) const
+    constexpr Piece get_captured_type(const Move move) const
     {
         return move.get_type() == MoveTypes::ENPASSANT ? PieceTypes::PAWN : piece_type_at(move.get_to());
     }
 
-    const Square get_king(const bool color) const
+    constexpr Square get_king(const bool color) const
     {
         return get_bb_piece(PieceTypes::KING, color).get_lsb_square();
     }
 
-    const bool is_capture(const Move move) const
+    constexpr bool is_capture(const Move move) const
     {
         return move.get_type() != MoveTypes::CASTLE && piece_at(move.get_to()) != NO_PIECE;
     }
@@ -275,14 +319,14 @@ class Board
     void make_null_move(HistoricalState &state);
     void undo_null_move();
 
-    template <int movegen_type> int gen_legal_moves(MoveList &moves);
+    template <int movegen_type> constexpr int gen_legal_moves(MoveList &moves) const;
 
-    const bool has_non_pawn_material(const bool color) const
+    constexpr bool has_non_pawn_material(const bool color) const
     {
         return (get_bb_piece(PieceTypes::KING, color) ^ get_bb_piece(PieceTypes::PAWN, color)) != get_bb_color(color);
     }
 
-    NetInput to_netinput()
+    constexpr NetInput to_netinput() const
     {
         NetInput ans;
         for (auto color : {WHITE, BLACK})
@@ -360,7 +404,7 @@ class Board
 
     std::string fen();
 
-    Key speculative_next_key(const Move move)
+    constexpr Key speculative_next_key(const Move move) const
     {
         const int from = move.get_from(), to = move.get_to();
         const Piece piece = piece_at(from);
@@ -368,7 +412,7 @@ class Board
                (piece_at(to) != NO_PIECE ? hashKey[piece_at(to)][to] : 0) ^ 1;
     }
 
-    const bool is_material_draw() const
+    constexpr bool is_material_draw() const
     {
         /// KvK, KBvK, KNvK, KNNvK
         const int num = (get_bb_color(WHITE) | get_bb_color(BLACK)).count();
@@ -378,7 +422,7 @@ class Board
                              get_bb_piece(PieceTypes::KNIGHT, BLACK).count() == 2));
     }
 
-    bool is_repetition(const int ply)
+    constexpr bool is_repetition(const int ply) const
     {
         int cnt = 1;
         HistoricalState *temp_state = state;
@@ -395,7 +439,7 @@ class Board
         return false;
     }
 
-    bool is_draw(const int ply)
+    constexpr bool is_draw(const int ply) const
     {
         if (half_moves() < 100 || !checkers())
             return is_material_draw() || is_repetition(ply) || half_moves() >= 100;
@@ -403,7 +447,7 @@ class Board
         return gen_legal_moves<MOVEGEN_ALL>(moves) > 0;
     }
 
-    bool has_upcoming_repetition(const int ply)
+    constexpr bool has_upcoming_repetition(const int ply) const
     {
         const Bitboard all_pieces = get_bb_color(WHITE) | get_bb_color(BLACK);
         HistoricalState *temp_state = state->prev;
