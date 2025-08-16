@@ -2,7 +2,7 @@ SRCXX = $(wildcard *.cpp)
 SRCHEADERS = $(wildcard *.h)
 SRC = 3rdparty/Fathom/src/tbprobe.c
 OBJ = $(SRCXX:.cpp=.o) $(SRC:.c=.o)
-VERSION = 8.2.20
+VERSION = 8.2.21
 EXE = Clover.$(VERSION)
 EVALFILE = quantised.nnue
 
@@ -73,14 +73,14 @@ else ifneq ($(findstring generate, $(build_flag)),)
 endif
 
 %.o: %.cpp
-	$(CXX) $(BUILD_FLAGS) $(RFLAGS) -o $@ -c $<
+	$(CXX) $(BUILD_FLAGS) -DTUNE_FLAG $(RFLAGS) -o $@ -c $<
 
 # Fathom moment
 %.o: %.c
-	$(CXX) $(BUILD_FLAGS) $(RFLAGS) -o $@ -c $<
+	$(CXX) $(BUILD_FLAGS) -DTUNE_FLAG $(RFLAGS) -o $@ -c $<
 
 make: $(OBJ)
-	$(CXX) $(OBJ) $(RFLAGS) $(LIBS) $(BUILD_FLAGS) -o $(EXE)$(EXT)
+	$(CXX) $(OBJ) $(RFLAGS) $(LIBS) -DTUNE_FLAG $(BUILD_FLAGS) -o $(EXE)$(EXT)
 	make format
 
 ifeq ($(OS),Windows_NT)

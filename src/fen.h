@@ -53,7 +53,7 @@ void Board::set_fen(const std::string fen, HistoricalState &next_state)
     int ind = 0;
     state = &next_state;
 
-    key() = pawn_key() = mat_key(WHITE) = mat_key(BLACK) = 0;
+    key() = pawn_key() = mat_key(WHITE) = mat_key(BLACK) = minor_key() = major_key() = 0;
     ply = game_ply = 0;
     captured() = NO_PIECE;
 
@@ -266,7 +266,7 @@ void Board::set_dfrc(int idx, HistoricalState &next_state)
     state = &next_state;
     chess960 = true;
 
-    key() = pawn_key() = mat_key(WHITE) = mat_key(BLACK) = 0;
+    key() = pawn_key() = mat_key(WHITE) = mat_key(BLACK) = minor_key() = major_key() = 0;
     ply = game_ply = 0;
     captured() = NO_PIECE;
 

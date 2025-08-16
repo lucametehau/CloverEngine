@@ -33,7 +33,7 @@ struct HistoricalState
     Piece captured;
     uint16_t halfMoves, moveIndex;
     Bitboard checkers, pinnedPieces;
-    Key key, pawn_key, mat_key[2];
+    Key key, pawn_key, mat_key[2], minor_key, major_key;
     Threats threats;
 
     HistoricalState *prev;
@@ -99,6 +99,22 @@ class Board
     constexpr Key mat_key(const bool color) const
     {
         return state->mat_key[color];
+    }
+    Key &minor_key()
+    {
+        return state->minor_key;
+    }
+    constexpr Key minor_key() const
+    {
+        return state->minor_key;
+    }
+    Key &major_key()
+    {
+        return state->major_key;
+    }
+    constexpr Key major_key() const
+    {
+        return state->major_key;
     }
     Bitboard &checkers()
     {
@@ -359,7 +375,19 @@ class Board
         if (pt == PieceTypes::PAWN)
             pawn_key() ^= hash_delta;
         else
+        {
             mat_key(piece.color()) ^= hash_delta;
+
+            if (pt <= PieceTypes::BISHOP)
+                minor_key() ^= hash_delta;
+            else if (pt <= PieceTypes::QUEEN)
+                major_key() ^= hash_delta;
+            else
+            {
+                minor_key() ^= hash_delta;
+                major_key() ^= hash_delta;
+            }
+        }
 
         pieces[piece.color()] ^= (1ull << from) ^ (1ull << to);
         bb[piece] ^= (1ULL << from) ^ (1ull << to);
@@ -367,12 +395,24 @@ class Board
 
     void place_piece_at_sq(Piece piece, Square sq)
     {
+        const Piece pt = piece.type();
         board[sq] = piece;
         key() ^= hashKey[piece][sq];
-        if (piece.type() == PieceTypes::PAWN)
+        if (pt == PieceTypes::PAWN)
             pawn_key() ^= hashKey[piece][sq];
         else
+        {
             mat_key(piece.color()) ^= hashKey[piece][sq];
+            if (pt <= PieceTypes::BISHOP)
+                minor_key() ^= hashKey[piece][sq];
+            else if (pt <= PieceTypes::QUEEN)
+                major_key() ^= hashKey[piece][sq];
+            else
+            {
+                minor_key() ^= hashKey[piece][sq];
+                major_key() ^= hashKey[piece][sq];
+            }
+        }
 
         pieces[piece.color()].set_bit(sq);
         bb[piece].set_bit(sq);
@@ -392,6 +432,16 @@ class Board
             mat_key(color) ^= hashKey[piece][sq];
             if (pt == PieceTypes::ROOK && (sq == rook_sq(color, 0) || sq == rook_sq(color, 1)))
                 rook_sq(color, get_king(color) < sq) = NO_SQUARE;
+
+            if (pt <= PieceTypes::BISHOP)
+                minor_key() ^= hashKey[piece][sq];
+            else if (pt <= PieceTypes::QUEEN)
+                major_key() ^= hashKey[piece][sq];
+            else
+            {
+                minor_key() ^= hashKey[piece][sq];
+                major_key() ^= hashKey[piece][sq];
+            }
         }
 
         pieces[color].toggle_bit(sq);

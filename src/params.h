@@ -258,6 +258,8 @@ TUNE_PARAM(QuietMPPawnHist, 1046, 1, 3072)
 // corrhist constants
 TUNE_PARAM(CorrHistPawn, 918, 0, 2048)
 TUNE_PARAM(CorrHistMat, 1091, 0, 2048)
+TUNE_PARAM(CorrHistMinor, 1024, 0, 2048)
+TUNE_PARAM(CorrHistMajor, 1024, 0, 2048)
 TUNE_PARAM(CorrHistCont2, 913, 0, 2048)
 TUNE_PARAM(CorrHistCont3, 872, 0, 2048)
 TUNE_PARAM(CorrHistCont4, 897, 0, 2048)
