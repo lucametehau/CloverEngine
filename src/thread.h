@@ -175,15 +175,51 @@ class SearchThread
 
     void iterative_deepening();
 
-    void print_pv();
-    void update_pv(int ply, Move move);
+    void print_pv()
+    {
+        for (int i = 0; i < pv_table_len[0]; i++)
+            std::cout << pv_table[0][i].to_string(board.chess960) << " ";
+    }
+    void update_pv(const int ply, const Move move)
+    {
+        pv_table[ply][0] = move;
+        for (int i = 0; i < pv_table_len[ply + 1]; i++)
+            pv_table[ply][i + 1] = pv_table[ply + 1][i];
+        pv_table_len[ply] = 1 + pv_table_len[ply + 1];
+    }
 
     void print_iteration_info(int multipv, int score, int alpha, int beta, uint64_t t, int depth, int sel_depth,
                               uint64_t total_nodes, uint64_t total_tb_hits);
 
-    template <bool checkTime> bool check_for_stop();
+    template <bool checkTime> bool check_for_stop()
+    {
+        if (!main_thread())
+            return 0;
 
-    int draw_score()
+        if (must_stop())
+            return 1;
+
+        if (info.nodes_limit_passed(nodes) || info.max_nodes_passed(nodes))
+        {
+            state |= ThreadStates::STOP;
+            return 1;
+        }
+
+        time_check_count++;
+        if (time_check_count == (1 << 10))
+        {
+            if constexpr (checkTime)
+            {
+                if (info.hard_limit_passed())
+                    state |= ThreadStates::STOP;
+            }
+            time_check_count = 0;
+        }
+
+        return must_stop();
+    }
+
+    constexpr int draw_score() const
     {
         return 1 - (nodes & 2);
     }

@@ -24,34 +24,6 @@
 #include <fstream>
 #include <iomanip>
 
-template <bool checkTime> bool SearchThread::check_for_stop()
-{
-    if (!main_thread())
-        return 0;
-
-    if (must_stop())
-        return 1;
-
-    if (info.nodes_limit_passed(nodes) || info.max_nodes_passed(nodes))
-    {
-        state |= ThreadStates::STOP;
-        return 1;
-    }
-
-    time_check_count++;
-    if (time_check_count == (1 << 10))
-    {
-        if constexpr (checkTime)
-        {
-            if (info.hard_limit_passed())
-                state |= ThreadStates::STOP;
-        }
-        time_check_count = 0;
-    }
-
-    return must_stop();
-}
-
 uint32_t probe_TB(Board &board, int depth)
 {
     if (TB_LARGEST && depth >= 2 && !board.half_moves())
@@ -64,22 +36,6 @@ uint32_t probe_TB(Board &board, int depth)
                                 0, 0, board.enpas() == NO_SQUARE ? static_cast<Square>(0) : board.enpas(), board.turn);
     }
     return TB_RESULT_FAILED;
-}
-
-void SearchThread::print_pv()
-{
-    for (int i = 0; i < pv_table_len[0]; i++)
-    {
-        std::cout << pv_table[0][i].to_string(board.chess960) << " ";
-    }
-}
-
-void SearchThread::update_pv(int ply, Move move)
-{
-    pv_table[ply][0] = move;
-    for (int i = 0; i < pv_table_len[ply + 1]; i++)
-        pv_table[ply][i + 1] = pv_table[ply + 1][i];
-    pv_table_len[ply] = 1 + pv_table_len[ply + 1];
 }
 
 template <bool pvNode> int SearchThread::quiesce(int alpha, int beta, StackEntry *stack)

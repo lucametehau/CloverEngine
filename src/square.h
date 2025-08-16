@@ -25,19 +25,19 @@ class Square
         return sq ^ (56 * !side);
     };
 
-    Square operator+(const Square &other) const
+    constexpr Square operator+(const Square &other) const
     {
         return sq + other.sq;
     }
-    Square operator-(const Square &other) const
+    constexpr Square operator-(const Square &other) const
     {
         return sq - other.sq;
     }
-    Square operator+(const int &other) const
+    constexpr Square operator+(const int &other) const
     {
         return sq + other;
     }
-    Square operator-(const int &other) const
+    constexpr Square operator-(const int &other) const
     {
         return sq - other;
     }
