@@ -355,19 +355,25 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
     {
         stack->eval = raw_eval = eval = INF;
     }
-    // if we are in a singular search, we already know the evaluation
-    else if (stack->excluded)
-        raw_eval = eval = stack->eval;
     else if (!tt_hit)
     {
-        raw_eval = evaluate(board, NN);
-        stack->eval = eval =
-            histories.get_corrected_eval(raw_eval, turn, pawn_key, white_mat_key, black_mat_key, stack);
-        TT->save(entry, key, VALUE_NONE, 0, ply, 0, NULLMOVE, raw_eval, was_pv);
+        // if we are in a singular search, we already know the evaluation
+        if (stack->excluded)
+            raw_eval = eval = stack->eval;
+        else
+        {
+            raw_eval = evaluate(board, NN);
+            stack->eval = eval =
+                histories.get_corrected_eval(raw_eval, turn, pawn_key, white_mat_key, black_mat_key, stack);
+            TT->save(entry, key, VALUE_NONE, 0, ply, 0, NULLMOVE, raw_eval, was_pv);
+        }
     }
     else
     {
-        raw_eval = eval;
+        if (stack->excluded)
+            raw_eval = evaluate(board, NN);
+        else
+            raw_eval = eval;
         stack->eval = eval =
             histories.get_corrected_eval(raw_eval, turn, pawn_key, white_mat_key, black_mat_key, stack);
         // tt_value might be a better evaluation
