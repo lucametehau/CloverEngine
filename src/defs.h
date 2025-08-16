@@ -64,13 +64,6 @@ void fill_multiarray(MultiArray<typename MultiArray_impl<T, sizes...>::type, siz
 
 typedef uint64_t Key;
 
-struct Threats
-{
-    std::array<Bitboard, 4> threats_pieces;
-    Bitboard all_threats;
-    Bitboard threatened_pieces;
-};
-
 struct NetInput
 {
     std::vector<short> ind[2];
@@ -141,10 +134,18 @@ constexpr std::pair<int, int> kingDir[8] = {{-1, 0}, {0, 1}, {1, 0}, {0, -1}, {1
 constexpr std::pair<int, int> pawnCapDirWhite[2] = {{1, -1}, {1, 1}};
 constexpr std::pair<int, int> pawnCapDirBlack[2] = {{-1, -1}, {-1, 1}};
 
+// clang-format off
 constexpr std::array<int, 64> kingIndTable = {
-    0, 1, 2, 3, 3, 2, 1, 0, 0, 1, 2, 3, 3, 2, 1, 0, 4, 4, 5, 5, 5, 5, 4, 4, 4, 4, 5, 5, 5, 5, 4, 4,
-    6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+    0, 1, 2, 3, 3, 2, 1, 0,
+    0, 1, 2, 3, 3, 2, 1, 0, 
+    4, 4, 5, 5, 5, 5, 4, 4, 
+    4, 4, 5, 5, 5, 5, 4, 4,
+    6, 6, 6, 6, 6, 6, 6, 6,
+    6, 6, 6, 6, 6, 6, 6, 6, 
+    6, 6, 6, 6, 6, 6, 6, 6, 
+    6, 6, 6, 6, 6, 6, 6, 6,
 };
+// clang-format on
 
 class MeanValue
 {
@@ -170,13 +171,13 @@ class MeanValue
     }
 };
 
-inline int16_t net_index(Piece piece, Square sq, Square kingSq, bool side)
+constexpr int16_t net_index(Piece piece, Square sq, Square kingSq, bool side)
 {
     return 64 * 12 * kingIndTable[kingSq.mirror(side)] + 64 * (piece + side * (piece >= 6 ? -6 : +6)) +
            (sq.mirror(side) ^ (7 * ((kingSq >> 2) & 1))); // kingSq should be ^7, if kingSq&7 >= 4
 }
 
-inline Key castle_rights_key(MultiArray<Square, 2, 2> &rook_sq)
+inline Key castle_rights_key(MultiArray<Square, 2, 2> rook_sq)
 {
     return (castleKey[BLACK][0] * (rook_sq[BLACK][0] != NO_SQUARE)) ^
            (castleKey[BLACK][1] * (rook_sq[BLACK][1] != NO_SQUARE)) ^
@@ -184,24 +185,24 @@ inline Key castle_rights_key(MultiArray<Square, 2, 2> &rook_sq)
            (castleKey[WHITE][1] * (rook_sq[WHITE][1] != NO_SQUARE));
 }
 
-inline bool recalc(Square from, Square to, bool side)
+constexpr bool recalc(Square from, Square to, bool side)
 {
-    return (from & 4) != (to & 4) || kingIndTable[from ^ (56 * !side)] != kingIndTable[to ^ (56 * !side)];
+    return (from & 4) != (to & 4) || kingIndTable[from.mirror(side)] != kingIndTable[to.mirror(side)];
 }
 
-template <int direction> inline Square shift_square(bool color, Square sq)
+template <int direction> constexpr Square shift_square(bool color, Square sq)
 {
     return color == BLACK ? sq - direction : sq + direction;
 }
 
-template <int8_t direction> inline Bitboard shift_mask(int color, Bitboard bb)
+template <int8_t direction> constexpr Bitboard shift_mask(int color, Bitboard bb)
 {
     if (color == BLACK)
         return direction > 0 ? bb >> direction : bb << static_cast<int8_t>(-direction);
     return direction > 0 ? bb << direction : bb >> static_cast<int8_t>(-direction);
 }
 
-inline bool inside_board(int rank, int file)
+constexpr bool inside_board(int rank, int file)
 {
     return rank >= 0 && file >= 0 && rank <= 7 && file <= 7;
 }
@@ -246,6 +247,7 @@ inline void init_defs()
             {
                 int r = rank, f = file;
                 Bitboard mask(0ull);
+
                 while (true)
                 {
                     r += kingDir[i].first, f += kingDir[i].second;

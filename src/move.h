@@ -36,38 +36,38 @@ class Move
         return move != 0;
     }
 
-    Square get_from() const
+    constexpr Square get_from() const
     {
         return Square(move & 63);
     }
-    Square get_to() const
+    constexpr Square get_to() const
     {
         return Square((move >> 6) & 63);
     }
-    int get_from_to() const
+    constexpr int get_from_to() const
     {
         return move & 4095;
     }
-    bool is_promo() const
+    constexpr bool is_promo() const
     {
         return (move >> 12) & 4;
     }
-    Piece get_prom() const
+    constexpr Piece get_prom() const
     {
         return (move >> 12) & 3;
     }
-    MoveType get_type() const
+    constexpr MoveType get_type() const
     {
         return (move >> 12) & 7;
     }
-    Square get_special_to() const
+    constexpr Square get_special_to() const
     {
         return get_type() != MoveTypes::CASTLE
                    ? get_to()
                    : static_cast<Square>(8 * (get_from() / 8) + (get_from() < get_to() ? Squares::G1 : Squares::C1));
     }
 
-    bool operator==(const Move other) const
+    constexpr bool operator==(const Move other) const
     {
         return move == other.move;
     }

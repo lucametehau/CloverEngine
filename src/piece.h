@@ -20,32 +20,28 @@ class Piece
         return piece;
     }
 
-    const Piece color() const
+    constexpr Piece color() const
     {
         return piece >= 6;
     }
-    Piece type()
-    {
-        return piece >= 6 ? piece - 6 : piece;
-    }
-    const Piece type() const
+    constexpr Piece type() const
     {
         return piece >= 6 ? piece - 6 : piece;
     }
 
-    Piece operator+(const Piece &other) const
+    constexpr Piece operator+(const Piece &other) const
     {
         return piece + other.piece;
     }
-    Piece operator-(const Piece &other) const
+    constexpr Piece operator-(const Piece &other) const
     {
         return piece - other.piece;
     }
-    Piece operator+(const int &other) const
+    constexpr Piece operator+(const int &other) const
     {
         return piece + other;
     }
-    Piece operator-(const int &other) const
+    constexpr Piece operator-(const int &other) const
     {
         return piece - other;
     }

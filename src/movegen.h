@@ -271,7 +271,7 @@ inline void add_promotions(MoveList &moves, int &nr_moves, Square from, Square t
     moves[nr_moves++] = Move(from, to, MoveTypes::QUEEN_PROMO);
 }
 
-template <int movegen_type> int Board::gen_legal_moves(MoveList &moves)
+template <int movegen_type> constexpr int Board::gen_legal_moves(MoveList &moves) const
 {
     constexpr bool noisy_movegen = movegen_type & MOVEGEN_NOISY;
     constexpr bool quiet_movegen = movegen_type & MOVEGEN_QUIET;
@@ -482,7 +482,6 @@ template <int movegen_type> int Board::gen_legal_moves(MoveList &moves)
         add_moves(moves, nrMoves, sq, attacks);
     }
 
-    int fileA = (color == WHITE ? 0 : 7), fileH = 7 - fileA;
     our_pawns &= ~pinned; /// remove pinned pawns from our pawns
     b1 = our_pawns & ~rank_mask[rank7];
 
@@ -506,8 +505,8 @@ template <int movegen_type> int Board::gen_legal_moves(MoveList &moves)
 
     if constexpr (noisy_movegen)
     {
-        b2 = shift_mask<NORTHWEST>(color, b1 & ~file_mask[fileA]) & capMask;
-        b3 = shift_mask<NORTHEAST>(color, b1 & ~file_mask[fileH]) & capMask;
+        b2 = shift_mask<NORTHWEST>(color, b1 & not_edge_mask[enemy]) & capMask;
+        b3 = shift_mask<NORTHEAST>(color, b1 & not_edge_mask[turn]) & capMask;
         /// captures
 
         while (b2)
@@ -529,8 +528,8 @@ template <int movegen_type> int Board::gen_legal_moves(MoveList &moves)
             add_promotions(moves, nrMoves, shift_square<SOUTH>(color, sq), sq);
         }
 
-        b2 = shift_mask<NORTHWEST>(color, b1 & ~file_mask[fileA]) & capMask;
-        b3 = shift_mask<NORTHEAST>(color, b1 & ~file_mask[fileH]) & capMask;
+        b2 = shift_mask<NORTHWEST>(color, b1 & not_edge_mask[enemy]) & capMask;
+        b3 = shift_mask<NORTHEAST>(color, b1 & not_edge_mask[turn]) & capMask;
         while (b2)
         {
             Square sq = b2.get_square_pop();
@@ -546,7 +545,7 @@ template <int movegen_type> int Board::gen_legal_moves(MoveList &moves)
     return nrMoves;
 }
 
-bool is_pseudo_legal(Board &board, Move move)
+constexpr bool is_pseudo_legal(Board &board, Move move)
 {
     if (!move)
         return false;
@@ -593,7 +592,7 @@ bool is_pseudo_legal(Board &board, Move move)
     return t == MoveTypes::NO_TYPE && attacks::genAttacksSq(occ, from, pt).has_square(to);
 }
 
-bool is_legal_slow(Board &board, Move move)
+constexpr bool is_legal_slow(Board &board, Move move)
 {
     MoveList moves;
     int nrMoves = 0;
@@ -609,7 +608,7 @@ bool is_legal_slow(Board &board, Move move)
     return 0;
 }
 
-bool is_legal(Board &board, Move move)
+constexpr bool is_legal(Board &board, Move move)
 {
     if (!is_pseudo_legal(board, move))
         return false;
@@ -667,7 +666,7 @@ bool is_legal(Board &board, Move move)
                : (board.checkers() | between_mask[king][board.checkers().get_lsb_square()]).has_square(to);
 }
 
-Move parse_move_string(Board &board, std::string moveStr, Info &info)
+static Move parse_move_string(Board &board, std::string moveStr, Info &info)
 {
     if (moveStr[1] > '8' || moveStr[1] < '1' || moveStr[3] > '8' || moveStr[3] < '1' || moveStr[0] > 'h' ||
         moveStr[0] < 'a' || moveStr[2] > 'h' || moveStr[2] < 'a')

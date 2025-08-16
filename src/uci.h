@@ -354,8 +354,6 @@ void UCI::go(std::istringstream &iss, Info &info)
             iss >> min_nodes;
         else if (param == "max_nodes")
             iss >> max_nodes;
-        else if (param == "san")
-            info.set_san_mode();
     }
 
     if (movetime != -1)
