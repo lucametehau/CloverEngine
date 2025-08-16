@@ -525,7 +525,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
 
                     // approximately the new depth for the next search
                     int new_depth = std::max(0, depth - lmr_red[std::min(63, depth)][std::min(63, played)] / LMRGrain +
-                                                    improving + history / MoveloopHistDiv);
+                                                    improving - !was_pv - history / MoveloopHistDiv);
 
                     // futility pruning
                     auto futility_margin = [&](int depth) { return FPBias + FPMargin * depth; };
