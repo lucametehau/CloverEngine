@@ -281,17 +281,16 @@ template <int movegen_type> constexpr int Board::gen_legal_moves(MoveList &moves
     const int rank7 = color == WHITE ? 6 : 1, rank3 = color == WHITE ? 2 : 5;
     const Square king = get_king(color);
     Bitboard our_pawns = get_bb_piece(PieceTypes::PAWN, color);
-    Bitboard mask, us = get_bb_color(color), them = get_bb_color(enemy);
-    Bitboard b, b1, b2, b3;
+    Bitboard us = get_bb_color(color), them = get_bb_color(enemy);
     Bitboard attacked = threats().all_threats, pinned = pinned_pieces(); /// squares attacked by enemy / pinned pieces
     const Bitboard all = us | them, empty = ~all;
 
-    b1 = attacks::kingBBAttacks[king] & ~(us | attacked);
+    Bitboard b = attacks::kingBBAttacks[king] & ~(us | attacked);
 
     if constexpr (noisy_movegen)
-        add_moves(moves, nrMoves, king, b1 & them);
+        add_moves(moves, nrMoves, king, b & them);
     if constexpr (quiet_movegen)
-        add_moves(moves, nrMoves, king, b1 & empty);
+        add_moves(moves, nrMoves, king, b & empty);
 
     Bitboard capMask(0ull), quietMask(0ull);
     int cnt = checkers().count();
@@ -313,9 +312,9 @@ template <int movegen_type> constexpr int Board::gen_legal_moves(MoveList &moves
             if (pt == PieceTypes::PAWN && enpas() != NO_SQUARE &&
                 checkers() == Bitboard(shift_square<NORTH>(enemy, enpas())))
             {
-                mask = attacks::pawnAttacksMask[enemy][enpas()] & ~pinned & our_pawns;
-                while (mask)
-                    moves[nrMoves++] = Move(mask.get_square_pop(), enpas(), MoveTypes::ENPASSANT);
+                Bitboard b = attacks::pawnAttacksMask[enemy][enpas()] & ~pinned & our_pawns;
+                while (b)
+                    moves[nrMoves++] = Move(b.get_square_pop(), enpas(), MoveTypes::ENPASSANT);
             }
         }
         capMask = checkers();
@@ -332,8 +331,8 @@ template <int movegen_type> constexpr int Board::gen_legal_moves(MoveList &moves
             if (enpas() != NO_SQUARE)
             {
                 Square ep = enpas(), sq2 = shift_square<SOUTH>(color, ep);
-                b2 = attacks::pawnAttacksMask[enemy][ep] & our_pawns;
-                b1 = b2 & ~pinned;
+                Bitboard b2 = attacks::pawnAttacksMask[enemy][ep] & our_pawns;
+                Bitboard b1 = b2 & ~pinned;
                 while (b1)
                 {
                     b = b1.lsb();
@@ -408,14 +407,13 @@ template <int movegen_type> constexpr int Board::gen_legal_moves(MoveList &moves
 
         /// pinned pawns
 
-        b1 = pinned & our_pawns & ~rank_mask[rank7];
+        Bitboard b1 = pinned & our_pawns & ~rank_mask[rank7];
         while (b1)
         {
             Square sq = b1.get_square_pop();
             if constexpr (noisy_movegen)
             {
-                b2 = attacks::pawnAttacksMask[color][sq] & capMask & line_mask[king][sq];
-                add_moves(moves, nrMoves, sq, b2);
+                add_moves(moves, nrMoves, sq, attacks::pawnAttacksMask[color][sq] & capMask & line_mask[king][sq]);
             }
 
             if constexpr (quiet_movegen)
@@ -439,7 +437,7 @@ template <int movegen_type> constexpr int Board::gen_legal_moves(MoveList &moves
             while (b1)
             {
                 Square sq = b1.get_square_pop();
-                b2 = attacks::pawnAttacksMask[color][sq] & capMask & line_mask[king][sq];
+                Bitboard b2 = attacks::pawnAttacksMask[color][sq] & capMask & line_mask[king][sq];
                 while (b2)
                 {
                     Square sq2 = b2.get_square_pop();
@@ -455,27 +453,27 @@ template <int movegen_type> constexpr int Board::gen_legal_moves(MoveList &moves
     if constexpr (quiet_movegen)
         mobMask |= quietMask;
 
-    mask = get_bb_piece(PieceTypes::KNIGHT, color) & ~pinned;
-    while (mask)
+    Bitboard b = get_bb_piece(PieceTypes::KNIGHT, color) & ~pinned;
+    while (b)
     {
-        Square sq = mask.get_square_pop();
+        Square sq = b.get_square_pop();
         add_moves(moves, nrMoves, sq, attacks::genAttacksKnight(sq) & mobMask);
     }
 
-    mask = diagonal_sliders(color);
-    while (mask)
+    b = diagonal_sliders(color);
+    while (b)
     {
-        Square sq = mask.get_square_pop();
+        Square sq = b.get_square_pop();
         Bitboard attacks = attacks::genAttacksBishop(all, sq) & mobMask;
         if (pinned.has_square(sq))
             attacks &= line_mask[king][sq];
         add_moves(moves, nrMoves, sq, attacks);
     }
 
-    mask = orthogonal_sliders(color);
-    while (mask)
+    b = orthogonal_sliders(color);
+    while (b)
     {
-        Square sq = mask.get_square_pop();
+        Square sq = b.get_square_pop();
         Bitboard attacks = attacks::genAttacksRook(all, sq) & mobMask;
         if (pinned.has_square(sq))
             attacks &= line_mask[king][sq];
@@ -483,12 +481,12 @@ template <int movegen_type> constexpr int Board::gen_legal_moves(MoveList &moves
     }
 
     our_pawns &= ~pinned; /// remove pinned pawns from our pawns
-    b1 = our_pawns & ~rank_mask[rank7];
+    Bitboard b1 = our_pawns & ~rank_mask[rank7];
 
     if constexpr (quiet_movegen)
     {
-        b2 = shift_mask<NORTH>(color, b1) & ~all;                         /// single push
-        b3 = shift_mask<NORTH>(color, b2 & rank_mask[rank3]) & quietMask; /// double push
+        Bitboard b2 = shift_mask<NORTH>(color, b1) & ~all;                         /// single push
+        Bitboard b3 = shift_mask<NORTH>(color, b2 & rank_mask[rank3]) & quietMask; /// double push
         b2 &= quietMask;
 
         while (b2)
@@ -505,8 +503,8 @@ template <int movegen_type> constexpr int Board::gen_legal_moves(MoveList &moves
 
     if constexpr (noisy_movegen)
     {
-        b2 = shift_mask<NORTHWEST>(color, b1 & not_edge_mask[enemy]) & capMask;
-        b3 = shift_mask<NORTHEAST>(color, b1 & not_edge_mask[turn]) & capMask;
+        Bitboard b2 = shift_mask<NORTHWEST>(color, b1 & not_edge_mask[enemy]) & capMask;
+        Bitboard b3 = shift_mask<NORTHEAST>(color, b1 & not_edge_mask[turn]) & capMask;
         /// captures
 
         while (b2)

@@ -231,7 +231,7 @@ class Board
         Bitboard our_pieces = get_bb_color(color) ^ get_bb_piece(PieceTypes::PAWN, color);
         Bitboard att = get_pawn_attacks(enemy);
         Bitboard threatened_pieces = att & our_pieces;
-        Bitboard pieces, att_mask;
+        Bitboard pieces;
         Bitboard all = get_bb_color(WHITE) | get_bb_color(BLACK);
 
         threats().threats_pieces[PieceTypes::PAWN] = att;
@@ -243,7 +243,7 @@ class Board
         pieces = get_bb_piece(PieceTypes::KNIGHT, enemy);
         while (pieces)
         {
-            att_mask = attacks::genAttacksKnight(pieces.get_square_pop());
+            Bitboard att_mask = attacks::genAttacksKnight(pieces.get_square_pop());
             att |= att_mask;
             threats().threats_pieces[PieceTypes::KNIGHT] |= att_mask;
         }
@@ -254,7 +254,7 @@ class Board
         pieces = get_bb_piece(PieceTypes::BISHOP, enemy);
         while (pieces)
         {
-            att_mask = attacks::genAttacksBishop(all, pieces.get_square_pop());
+            Bitboard att_mask = attacks::genAttacksBishop(all, pieces.get_square_pop());
             att |= att_mask;
             threats().threats_pieces[PieceTypes::BISHOP] |= att_mask;
         }
@@ -265,7 +265,7 @@ class Board
         pieces = get_bb_piece(PieceTypes::ROOK, enemy);
         while (pieces)
         {
-            att_mask = attacks::genAttacksRook(all, pieces.get_square_pop());
+            Bitboard att_mask = attacks::genAttacksRook(all, pieces.get_square_pop());
             att |= att_mask;
             threats().threats_pieces[PieceTypes::ROOK] |= att_mask;
         }
@@ -326,7 +326,7 @@ class Board
         return (get_bb_piece(PieceTypes::KING, color) ^ get_bb_piece(PieceTypes::PAWN, color)) != get_bb_color(color);
     }
 
-    constexpr NetInput to_netinput() const
+    const NetInput to_netinput() const
     {
         NetInput ans;
         for (auto color : {WHITE, BLACK})
