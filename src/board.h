@@ -326,7 +326,7 @@ class Board
         return (get_bb_piece(PieceTypes::KING, color) ^ get_bb_piece(PieceTypes::PAWN, color)) != get_bb_color(color);
     }
 
-    constexpr NetInput to_netinput() const
+    const NetInput to_netinput() const
     {
         NetInput ans;
         for (auto color : {WHITE, BLACK})
