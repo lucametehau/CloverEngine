@@ -97,7 +97,7 @@ INCBIN(Net, EVALFILE);
 
 constexpr int KING_BUCKETS = 7;
 constexpr int INPUT_NEURONS = 768 * KING_BUCKETS;
-constexpr int SIDE_NEURONS = 1280;
+constexpr int SIDE_NEURONS = 1536;
 constexpr int HIDDEN_NEURONS = 2 * SIDE_NEURONS;
 constexpr int OUTPUT_NEURONS = 8;
 constexpr int REG_LENGTH = sizeof(reg_type) / sizeof(int16_t);
