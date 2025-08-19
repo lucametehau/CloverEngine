@@ -244,7 +244,7 @@ class Histories
 {
   private:
     MultiArray<MainHistory, 2, 2, 2, 64 * 64> hist;
-    MultiArray<CaptureHistory, 12, 64, 7> cap_hist;
+    MultiArray<CaptureHistory, 2, 12, 64, 7> cap_hist;
     MultiArray<PawnHistory, PawnHistory::SIZE, 12, 64> pawn_hist;
     MultiArray<CorrectionHistory, 2, CorrectionHistory::SIZE> corr_hist;
     MultiArray<CorrectionHistory, 2, 2, CorrectionHistory::SIZE> mat_corr_hist;
@@ -257,7 +257,7 @@ class Histories
     void clear_history()
     {
         fill_multiarray<MainHistory, 2, 2, 2, 64 * 64>(hist, 0);
-        fill_multiarray<CaptureHistory, 12, 64, 7>(cap_hist, 0);
+        fill_multiarray<CaptureHistory, 2, 12, 64, 7>(cap_hist, 0);
         fill_multiarray<PawnHistory, PawnHistory::SIZE, 12, 64>(pawn_hist, 0);
         fill_multiarray<ContinuationHistory, 2, 13, 64, 13, 64>(cont_history, 0);
         fill_multiarray<CorrectionHistory, 2, CorrectionHistory::SIZE>(corr_hist, CorrectionHistory(0));
@@ -293,14 +293,15 @@ class Histories
         return (*(stack - delta)->cont_hist)[piece][to];
     }
 
-    CaptureHistory &get_cap_hist(const Piece piece, const Square to, const int cap)
+    CaptureHistory &get_cap_hist(const Piece piece, const Square to, const int cap, const Bitboard threats)
     {
-        return cap_hist[piece][to][cap];
+        return cap_hist[!threats.has_square(to)][piece][to][cap];
     }
 
-    constexpr CaptureHistory get_cap_hist(const Piece piece, const Square to, const int cap) const
+    constexpr CaptureHistory get_cap_hist(const Piece piece, const Square to, const int cap,
+                                          const Bitboard threats) const
     {
-        return cap_hist[piece][to][cap];
+        return cap_hist[!threats.has_square(to)][piece][to][cap];
     }
 
     PawnHistory &get_pawn_hist(const Piece piece, const Square to, const Key pawn_key)
@@ -386,9 +387,10 @@ class Histories
                1024;
     }
 
-    void update_cap_hist_move(const Piece piece, const Square to, const int cap, const int16_t bonus)
+    void update_cap_hist_move(const Piece piece, const Square to, const int cap, const Bitboard threats,
+                              const int16_t bonus)
     {
-        get_cap_hist(piece, to, cap).update(bonus);
+        get_cap_hist(piece, to, cap, threats).update(bonus);
     }
 
     void update_corr_hist(const bool turn, const Key pawn_key, const Key white_mat_key, const Key black_mat_key,
