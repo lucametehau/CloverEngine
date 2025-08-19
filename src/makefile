@@ -44,7 +44,7 @@ endif
 AVX2_FLAGS     = -march=core-avx2
 NATIVE_FLAGS   = -mno-avx512f -march=native
 OLD_FLAGS      = -march=core2
-AVX512_FLAGS   = $(AVX2FLAGS) -mavx512f -mavx512bw -mavx512dq
+AVX512_FLAGS   = $(AVX2_FLAGS) -mavx512f -mavx512bw -mavx512dq
 EVALFILE_FLAGS = -DEVALFILE=\"$(EVALFILE)\" -I . -IFathom
 BUILD_FLAGS    = $(EVALFILE_FLAGS) $(PEXT_FLAGS) -DVERSION_NAME=\"$(VERSION)\"
 
