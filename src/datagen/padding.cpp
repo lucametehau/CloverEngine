@@ -3,6 +3,8 @@
 #include <vector>
 #include <fstream>
 #include <filesystem>
+// #include <cstring>
+#include "binpack.h"
 
 int main(int argc, char* argv[]) {
     if (argc != 3) {
@@ -38,10 +40,15 @@ int main(int argc, char* argv[]) {
                     file.close();
 
                     size_t last_zero_pos = std::string::npos;
+                    int games = 0, count = 0;
                     for (size_t i = 0; i < file_size; ) {
                         if (i + 32 >= file_size)
                             break;
                         i += 32;
+                        // games++;
+                        // int16_t score;
+                        // std::memcpy(&score, buffer.data() + i + 2, sizeof(score));
+                        // count += (abs(score) >= 600);
                         while (i + 3 < file_size && !(buffer[i] == 0 && buffer[i + 1] == 0 && buffer[i + 2] == 0 && buffer[i + 3] == 0)) {
                             i += 4;
                         }
@@ -52,6 +59,7 @@ int main(int argc, char* argv[]) {
 
                     if (last_zero_pos != std::string::npos) {
                         std::cout << "Last zero position: " << last_zero_pos << " File size: " << file_size << std::endl;
+                        std::cout << count << " bad out of " << games << "\n";
 
                         std::string temp_path = entry.path().string();
                         std::ofstream outFile(temp_path, std::ios::binary | std::ios::trunc);

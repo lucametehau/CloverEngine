@@ -41,9 +41,7 @@ int evaluate(Board &board, Network &NN)
 {
     NN.bring_up_to_date(board);
 
-    int output_bucket = ((board.get_bb_color(WHITE) | board.get_bb_color(BLACK)).count() - 2) / 4;
-
-    int eval = NN.get_output(board.turn, output_bucket);
+    int eval = NN.get_output(board.turn, board.get_output_bucket());
     eval = eval * scale(board) / 1024;
     return eval;
 }

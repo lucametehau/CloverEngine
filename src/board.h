@@ -19,15 +19,21 @@
 #include "cuckoo.h"
 #include "defs.h"
 
-class HistoricalState
+struct Threats
 {
-  public:
+    std::array<Bitboard, 4> threats_pieces;
+    Bitboard all_threats;
+    Bitboard threatened_pieces;
+};
+
+struct HistoricalState
+{
     Square enPas;
     MultiArray<Square, 2, 2> rook_sq;
     Piece captured;
     uint16_t halfMoves, moveIndex;
     Bitboard checkers, pinnedPieces;
-    uint64_t key, pawn_key, mat_key[2];
+    Key key, pawn_key, mat_key[2];
     Threats threats;
 
     HistoricalState *prev;
@@ -65,20 +71,32 @@ class Board
         }
     }
 
-    uint64_t &key()
+    Key &key()
     {
         return state->key;
     }
-    uint64_t &pawn_key()
+    constexpr Key key() const
+    {
+        return state->key;
+    }
+    Key &pawn_key()
     {
         return state->pawn_key;
     }
-    uint64_t king_pawn_key()
+    constexpr Key pawn_key() const
+    {
+        return state->pawn_key;
+    }
+    const Key king_pawn_key() const
     {
         return state->pawn_key ^ hashKey[Pieces::WhiteKing][get_king(WHITE)] ^
                hashKey[Pieces::BlackKing][get_king(BLACK)];
     }
-    uint64_t &mat_key(const bool color)
+    Key &mat_key(const bool color)
+    {
+        return state->mat_key[color];
+    }
+    constexpr Key mat_key(const bool color) const
     {
         return state->mat_key[color];
     }
@@ -86,7 +104,15 @@ class Board
     {
         return state->checkers;
     }
+    constexpr Bitboard checkers() const
+    {
+        return state->checkers;
+    }
     Bitboard &pinned_pieces()
+    {
+        return state->pinnedPieces;
+    }
+    constexpr Bitboard pinned_pieces() const
     {
         return state->pinnedPieces;
     }
@@ -94,7 +120,15 @@ class Board
     {
         return state->enPas;
     }
+    constexpr Square enpas() const
+    {
+        return state->enPas;
+    }
     uint16_t &half_moves()
+    {
+        return state->halfMoves;
+    }
+    constexpr uint16_t half_moves() const
     {
         return state->halfMoves;
     }
@@ -102,7 +136,15 @@ class Board
     {
         return state->moveIndex;
     }
+    constexpr uint16_t move_index() const
+    {
+        return state->moveIndex;
+    }
     Piece &captured()
+    {
+        return state->captured;
+    }
+    constexpr Piece captured() const
     {
         return state->captured;
     }
@@ -110,40 +152,54 @@ class Board
     {
         return state->threats;
     }
+    constexpr Threats threats() const
+    {
+        return state->threats;
+    }
     Square &rook_sq(bool color, bool side)
     {
         return state->rook_sq[color][side];
     }
+    constexpr Square rook_sq(bool color, bool side) const
+    {
+        return state->rook_sq[color][side];
+    }
 
-    Bitboard get_bb_color(const bool color) const
+    constexpr Bitboard get_bb_color(const bool color) const
     {
         return pieces[color];
     }
-    Bitboard get_bb_piece(const Piece piece_type, const bool color) const
+    constexpr Bitboard get_bb_piece(const Piece piece_type, const bool color) const
     {
         return bb[6 * color + piece_type];
     }
-    Bitboard get_bb_piece_type(const Piece piece_type) const
+    constexpr Bitboard get_bb_piece_type(const Piece piece_type) const
     {
         return get_bb_piece(piece_type, WHITE) | get_bb_piece(piece_type, BLACK);
     }
 
-    Bitboard diagonal_sliders(const bool color)
+    constexpr Bitboard diagonal_sliders(const bool color) const
     {
         return get_bb_piece(PieceTypes::BISHOP, color) | get_bb_piece(PieceTypes::QUEEN, color);
     }
-    Bitboard orthogonal_sliders(const bool color)
+    constexpr Bitboard orthogonal_sliders(const bool color) const
     {
         return get_bb_piece(PieceTypes::ROOK, color) | get_bb_piece(PieceTypes::QUEEN, color);
     }
 
-    Bitboard get_attackers(const bool color, const Bitboard blockers, const Square sq)
+    const Bitboard get_attackers(const bool color, const Bitboard blockers, const Square sq) const
     {
         return (attacks::genAttacksPawn(1 ^ color, sq) & get_bb_piece(PieceTypes::PAWN, color)) |
                (attacks::genAttacksKnight(sq) & get_bb_piece(PieceTypes::KNIGHT, color)) |
                (attacks::genAttacksBishop(blockers, sq) & diagonal_sliders(color)) |
                (attacks::genAttacksRook(blockers, sq) & orthogonal_sliders(color)) |
                (attacks::genAttacksKing(sq) & get_bb_piece(PieceTypes::KING, color));
+    }
+
+    constexpr int get_output_bucket() const
+    {
+        const int count = (get_bb_color(WHITE) | get_bb_color(BLACK)).count();
+        return (count - 2) / 4;
     }
 
     void get_pinned_pieces_and_checkers()
@@ -173,7 +229,7 @@ class Board
     {
         const bool enemy = 1 ^ color;
         Bitboard our_pieces = get_bb_color(color) ^ get_bb_piece(PieceTypes::PAWN, color);
-        Bitboard att = attacks::getPawnAttacks(enemy, get_bb_piece(PieceTypes::PAWN, enemy));
+        Bitboard att = get_pawn_attacks(enemy);
         Bitboard threatened_pieces = att & our_pieces;
         Bitboard pieces, att_mask;
         Bitboard all = get_bb_color(WHITE) | get_bb_color(BLACK);
@@ -190,10 +246,10 @@ class Board
             att_mask = attacks::genAttacksKnight(pieces.get_square_pop());
             att |= att_mask;
             threats().threats_pieces[PieceTypes::KNIGHT] |= att_mask;
-            threatened_pieces |= att & our_pieces;
         }
+        threatened_pieces |= att & our_pieces;
 
-        all ^= Bitboard(get_king(color));
+        all.toggle_bit(get_king(color));
 
         pieces = get_bb_piece(PieceTypes::BISHOP, enemy);
         while (pieces)
@@ -201,8 +257,8 @@ class Board
             att_mask = attacks::genAttacksBishop(all, pieces.get_square_pop());
             att |= att_mask;
             threats().threats_pieces[PieceTypes::BISHOP] |= att_mask;
-            threatened_pieces |= att & our_pieces;
         }
+        threatened_pieces |= att & our_pieces;
 
         our_pieces ^= get_bb_piece(PieceTypes::ROOK, color);
 
@@ -212,102 +268,50 @@ class Board
             att_mask = attacks::genAttacksRook(all, pieces.get_square_pop());
             att |= att_mask;
             threats().threats_pieces[PieceTypes::ROOK] |= att_mask;
-            threatened_pieces |= att & our_pieces;
         }
+        threatened_pieces |= att & our_pieces;
 
         pieces = get_bb_piece(PieceTypes::QUEEN, enemy);
         while (pieces)
-        {
             att |= attacks::genAttacksQueen(all, pieces.get_square_pop());
-        }
 
         att |= attacks::genAttacksKing(get_king(enemy));
         threats().all_threats = att;
         threats().threatened_pieces = threatened_pieces;
     }
 
-    bool sanity_check()
-    {
-        if (pieces[WHITE] & pieces[BLACK])
-        {
-            std::cerr << "pieces[WHITE] & pieces[BLACK]\n";
-            return false;
-        }
-        std::array<Bitboard, 2> temp_pieces = {0, 0};
-        for (int pa = 0; pa < 12; pa++)
-        {
-            for (int pb = pa + 1; pb < 12; pb++)
-            {
-                if (bb[pa] & bb[pb])
-                {
-                    std::cerr << "bb[" << pa << "] & bb[" << pb << "]\n";
-                    bb[pa].print();
-                    bb[pb].print();
-                    return false;
-                }
-            }
-            temp_pieces[pa / 6] |= bb[pa];
-        }
-        if (temp_pieces[WHITE] != pieces[WHITE] || temp_pieces[BLACK] != pieces[BLACK])
-        {
-            std::cerr << "pieces[WHITE] != temp_pieces[WHITE] || pieces[BLACK] != temp_pieces[BLACK]\n";
-            pieces[WHITE].print();
-            pieces[BLACK].print();
-            temp_pieces[WHITE].print();
-            temp_pieces[BLACK].print();
-            return false;
-        }
-        for (Square sq = 0; sq < 64; sq++)
-        {
-            if (board[sq] != NO_PIECE && !bb[board[sq]].has_square(sq))
-            {
-                std::cerr << "board[" << sq << "] != NO_PIECE && !bb[board[sq]].has_square(sq)\n";
-                std::cout << int(board[sq]) << " " << int(sq) << "\n";
-                bb[board[sq]].print();
-                return false;
-            }
-        }
-        return true;
-    }
-
-    Bitboard get_pawn_attacks(const bool color)
+    constexpr Bitboard get_pawn_attacks(const bool color) const
     {
         const Bitboard b = get_bb_piece(PieceTypes::PAWN, color);
-        const int fileA = color == WHITE ? 0 : 7, fileH = 7 - fileA;
-        return shift_mask<NORTHWEST>(color, b & ~file_mask[fileA]) |
-               shift_mask<NORTHEAST>(color, b & ~file_mask[fileH]);
+        return shift_mask<NORTHWEST>(color, b & not_edge_mask[!color]) |
+               shift_mask<NORTHEAST>(color, b & not_edge_mask[color]);
     }
 
-    Piece piece_at(const Square sq)
+    constexpr Piece piece_at(const Square sq) const
     {
         return board[sq];
     }
-    Piece piece_type_at(const Square sq)
+    constexpr Piece piece_type_at(const Square sq) const
     {
         return piece_at(sq).type();
     }
-    Piece get_captured_type(const Move move)
+    constexpr Piece get_captured_type(const Move move) const
     {
         return move.get_type() == MoveTypes::ENPASSANT ? PieceTypes::PAWN : piece_type_at(move.get_to());
     }
 
-    Square get_king(const bool color) const
+    constexpr Square get_king(const bool color) const
     {
         return get_bb_piece(PieceTypes::KING, color).get_lsb_square();
     }
 
-    bool is_capture(const Move move)
+    constexpr bool is_capture(const Move move) const
     {
         return move.get_type() != MoveTypes::CASTLE && piece_at(move.get_to()) != NO_PIECE;
     }
-    bool is_noisy_move(const Move move)
+    const bool is_noisy_move(const Move move) const
     {
         return (move.get_type() && move.get_type() != MoveTypes::CASTLE) || is_capture(move);
-    }
-
-    bool is_attacked_by(const bool color, const Square sq)
-    {
-        return get_attackers(color, get_bb_color(WHITE) | get_bb_color(BLACK), sq);
     }
 
     void make_move(const Move move, HistoricalState &state);
@@ -315,14 +319,14 @@ class Board
     void make_null_move(HistoricalState &state);
     void undo_null_move();
 
-    template <int movegen_type> int gen_legal_moves(MoveList &moves);
+    template <int movegen_type> constexpr int gen_legal_moves(MoveList &moves) const;
 
-    bool has_non_pawn_material(const bool color)
+    constexpr bool has_non_pawn_material(const bool color) const
     {
         return (get_bb_piece(PieceTypes::KING, color) ^ get_bb_piece(PieceTypes::PAWN, color)) != get_bb_color(color);
     }
 
-    NetInput to_netinput()
+    const NetInput to_netinput() const
     {
         NetInput ans;
         for (auto color : {WHITE, BLACK})
@@ -350,11 +354,12 @@ class Board
         board[from] = NO_PIECE;
         board[to] = piece;
 
-        key() ^= hashKey[piece][from] ^ hashKey[piece][to];
+        const Key hash_delta = hashKey[piece][from] ^ hashKey[piece][to];
+        key() ^= hash_delta;
         if (pt == PieceTypes::PAWN)
-            pawn_key() ^= hashKey[piece][from] ^ hashKey[piece][to];
+            pawn_key() ^= hash_delta;
         else
-            mat_key(piece.color()) ^= hashKey[piece][from] ^ hashKey[piece][to];
+            mat_key(piece.color()) ^= hash_delta;
 
         pieces[piece.color()] ^= (1ull << from) ^ (1ull << to);
         bb[piece] ^= (1ULL << from) ^ (1ull << to);
@@ -369,8 +374,8 @@ class Board
         else
             mat_key(piece.color()) ^= hashKey[piece][sq];
 
-        pieces[piece.color()] |= (1ULL << sq);
-        bb[piece] |= (1ULL << sq);
+        pieces[piece.color()].set_bit(sq);
+        bb[piece].set_bit(sq);
     }
 
     void erase_square(Square sq)
@@ -389,8 +394,8 @@ class Board
                 rook_sq(color, get_king(color) < sq) = NO_SQUARE;
         }
 
-        pieces[color] ^= (1ull << sq);
-        bb[piece] ^= (1ULL << sq);
+        pieces[color].toggle_bit(sq);
+        bb[piece].toggle_bit(sq);
     }
 
     void set_fen(const std::string fen, HistoricalState &state);
@@ -399,7 +404,7 @@ class Board
 
     std::string fen();
 
-    uint64_t speculative_next_key(const Move move)
+    constexpr Key speculative_next_key(const Move move) const
     {
         const int from = move.get_from(), to = move.get_to();
         const Piece piece = piece_at(from);
@@ -407,7 +412,7 @@ class Board
                (piece_at(to) != NO_PIECE ? hashKey[piece_at(to)][to] : 0) ^ 1;
     }
 
-    bool is_material_draw()
+    constexpr bool is_material_draw() const
     {
         /// KvK, KBvK, KNvK, KNNvK
         const int num = (get_bb_color(WHITE) | get_bb_color(BLACK)).count();
@@ -417,7 +422,7 @@ class Board
                              get_bb_piece(PieceTypes::KNIGHT, BLACK).count() == 2));
     }
 
-    bool is_repetition(const int ply)
+    constexpr bool is_repetition(const int ply) const
     {
         int cnt = 1;
         HistoricalState *temp_state = state;
@@ -434,7 +439,7 @@ class Board
         return false;
     }
 
-    bool is_draw(const int ply)
+    constexpr bool is_draw(const int ply) const
     {
         if (half_moves() < 100 || !checkers())
             return is_material_draw() || is_repetition(ply) || half_moves() >= 100;
@@ -442,11 +447,11 @@ class Board
         return gen_legal_moves<MOVEGEN_ALL>(moves) > 0;
     }
 
-    bool has_upcoming_repetition(const int ply)
+    constexpr bool has_upcoming_repetition(const int ply) const
     {
         const Bitboard all_pieces = get_bb_color(WHITE) | get_bb_color(BLACK);
         HistoricalState *temp_state = state->prev;
-        uint64_t b = ~(key() ^ temp_state->key);
+        Key b = ~(key() ^ temp_state->key);
         for (int i = 3; i <= half_moves() && i <= game_ply; i += 2)
         {
             assert(temp_state->prev->prev);
@@ -454,7 +459,7 @@ class Board
             b ^= ~(temp_state->next->key ^ temp_state->key);
             if (b)
                 continue;
-            const uint64_t key_delta = key() ^ temp_state->key;
+            const Key key_delta = key() ^ temp_state->key;
             int cuckoo_ind = cuckoo::hash1(key_delta);
 
             if (cuckoo::cuckoo[cuckoo_ind] != key_delta)

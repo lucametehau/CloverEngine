@@ -1,6 +1,7 @@
 #pragma once
 #include "../board.h"
 #include <fstream>
+#include <deque>
 
 class PackedBoard {
     Bitboard occ;
@@ -46,6 +47,36 @@ public:
         score = 0;
         result = 1;  // Default to draw
         unused = 0;
+    }
+
+    void unpack(Board& board) {
+        std::unique_ptr<std::deque<HistoricalState>> states = std::make_unique<std::deque<HistoricalState>>(1);
+        board.state = &states->back();
+        board.clear();
+        board.turn = (state & 0x80) ? BLACK : WHITE;
+        board.enpas() = state & 0x7F;
+        board.half_moves() = halfmove;
+        board.move_index() = fullmove;
+
+        board.bb.fill(Bitboard(0ull));
+        board.pieces.fill(Bitboard(0ull));
+        board.board.fill(NO_PIECE);
+
+        // Reconstruct squares in the same order as packed
+        std::vector<Square> squares;
+        for (Square sq = 0; sq < 64; sq++) {
+            if (occ.has_square(sq)) {
+                squares.push_back(sq);
+            }
+        }
+        for (int i = 0; i < (int)squares.size(); i++) {
+            uint8_t piece = (pieces[i >> 3] >> (4 * (i & 7))) & 0xF;
+            Piece p((piece & 0x7) == 6 ? 3 : piece & 0x7, piece < 8);
+            board.place_piece_at_sq(p, squares[i]);
+            if ((piece & 0x7) == 6)
+                std::cout << "castle rook at " << int(squares[i]) << std::endl;
+        }
+        std::cout << int(result) << std::endl;
     }
 
     void set_result(uint8_t res) {
@@ -105,6 +136,10 @@ public:
 
     void set_result(uint8_t res) {
         packed_board.set_result(res);
+    }
+
+    int size() {
+        return moves.size();
     }
 
     void write(std::ofstream& file) {

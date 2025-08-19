@@ -219,8 +219,8 @@ inline void initRookMagic()
     {
         rookAttacksMask[sq] |= raysMask[sq][NORTH_ID] & ~rank_mask[7];
         rookAttacksMask[sq] |= raysMask[sq][SOUTH_ID] & ~rank_mask[0];
-        rookAttacksMask[sq] |= raysMask[sq][EAST_ID] & ~file_mask[7];
-        rookAttacksMask[sq] |= raysMask[sq][WEST_ID] & ~file_mask[0];
+        rookAttacksMask[sq] |= raysMask[sq][EAST_ID] & not_edge_mask[1];
+        rookAttacksMask[sq] |= raysMask[sq][WEST_ID] & not_edge_mask[0];
         for (int blockerInd = 0; blockerInd < (1 << rookIndexBits[sq]); blockerInd++)
         {
             Bitboard blockers = get_blockers(rookAttacksMask[sq], blockerInd);
@@ -263,17 +263,17 @@ inline void init()
     initRookMagic();
 }
 
-inline Bitboard genAttacksPawn(bool color, Square sq)
+static constexpr Bitboard genAttacksPawn(bool color, Square sq)
 {
     return pawnAttacksMask[color][sq];
 }
 
-inline Bitboard genAttacksKnight(Square sq)
+static constexpr Bitboard genAttacksKnight(Square sq)
 {
     return knightBBAttacks[sq];
 }
 
-inline Bitboard genAttacksBishop(Bitboard blockers, Square sq)
+static inline Bitboard genAttacksBishop(Bitboard blockers, Square sq)
 {
 #ifndef PEXT_GOOD
     return bishopTable[sq][((blockers & bishopAttacksMask[sq]) * bishopMagics[sq]) >> (64 - bishopIndexBits[sq])];
@@ -282,7 +282,7 @@ inline Bitboard genAttacksBishop(Bitboard blockers, Square sq)
 #endif
 }
 
-inline Bitboard genAttacksRook(Bitboard blockers, Square sq)
+static inline Bitboard genAttacksRook(Bitboard blockers, Square sq)
 {
 #ifndef PEXT_GOOD
     return rookTable[sq][((blockers & rookAttacksMask[sq]) * rookMagics[sq]) >> (64 - rookIndexBits[sq])];
@@ -291,12 +291,12 @@ inline Bitboard genAttacksRook(Bitboard blockers, Square sq)
 #endif
 }
 
-inline Bitboard genAttacksQueen(Bitboard blockers, Square sq)
+static inline Bitboard genAttacksQueen(Bitboard blockers, Square sq)
 {
     return genAttacksBishop(blockers, sq) | genAttacksRook(blockers, sq);
 }
 
-inline Bitboard genAttacksKing(Square sq)
+static constexpr Bitboard genAttacksKing(Square sq)
 {
     return kingBBAttacks[sq];
 }
@@ -320,10 +320,4 @@ inline Bitboard genAttacksSq(Bitboard blockers, Square sq, Piece pt)
     return Bitboard(0ull);
 }
 
-/// same as the below one, only difference is that b is known
-inline Bitboard getPawnAttacks(int color, Bitboard b)
-{
-    const int fileA = color == WHITE ? 0 : 7, fileH = 7 - fileA;
-    return shift_mask<NORTHWEST>(color, b & ~file_mask[fileA]) | shift_mask<NORTHEAST>(color, b & ~file_mask[fileH]);
-}
 }; // namespace attacks

@@ -15,8 +15,15 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include "cuckoo.h"
+#include "net.h"
 #include "perft.h"
+
+#ifndef GENERATE
 #include "uci.h"
+#else
+#include "datagen/generate.h"
+#endif
+
 #include <cstring>
 #include <iostream>
 #include <string>
@@ -28,12 +35,12 @@ int main(int argc, char **argv)
     cuckoo::init();
     load_nnue_weights();
 
-    UCI uci;
-
     if (argc > 1)
     {
+#ifndef GENERATE
         if (!strncmp(argv[1], "bench", 5))
         {
+            UCI uci;
             int depth = -1;
             if (argc > 2)
             {
@@ -43,7 +50,26 @@ int main(int argc, char **argv)
             uci.bench(depth);
             return 0;
         }
-#ifdef GENERATE
+#else
+        if (!strncmp(argv[1], "replay", 6))
+        {
+            printStats = false;
+            std::string line;
+            std::getline(std::cin, line);
+            auto pos = line.find(':');
+            int dfrc_index = std::stoi(line.substr(0, pos));
+            std::vector<std::string> moves;
+            while (pos != std::string::npos)
+            {
+                auto j = pos + 1;
+                pos = line.find(' ', j);
+                std::string move_str = line.substr(j, pos - j);
+                moves.push_back(move_str);
+            }
+            play_datagen_game(dfrc_index, moves);
+            return 0;
+        }
+
         std::map<std::string, std::string> args;
         for (int i = 1; i < argc; i++)
         {
@@ -98,6 +124,9 @@ int main(int argc, char **argv)
         return 0;
     }
 
+#ifndef GENERATE
+    UCI uci;
     uci.uci_loop();
+#endif
     return 0;
 }

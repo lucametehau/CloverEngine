@@ -62,12 +62,7 @@ void fill_multiarray(MultiArray<typename MultiArray_impl<T, sizes...>::type, siz
         fill_multiarray<T, sizes...>(array[i], value);
 }
 
-struct Threats
-{
-    Bitboard threats_pieces[4];
-    Bitboard all_threats;
-    Bitboard threatened_pieces;
-};
+typedef uint64_t Key;
 
 struct NetInput
 {
@@ -89,7 +84,8 @@ enum
     NORTHEAST = 9,
     NORTHWEST = 7,
     SOUTHEAST = -7,
-    SOUTHWEST = -9
+    SOUTHWEST = -9,
+    SOUTHSOUTH = -16,
 };
 
 enum
@@ -122,10 +118,10 @@ constexpr int STACK_SIZE = MAX_DEPTH + 5;
 inline const std::string START_POS_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 inline std::map<char, Piece> cod;
-inline MultiArray<uint64_t, 12, 64> hashKey;
-inline MultiArray<uint64_t, 2, 2> castleKey;
-inline std::array<uint64_t, 64> enPasKey;
-inline std::array<uint64_t, 16> castleKeyModifier;
+inline MultiArray<Key, 12, 64> hashKey;
+inline MultiArray<Key, 2, 2> castleKey;
+inline std::array<Key, 64> enPasKey;
+inline std::array<Key, 16> castleKeyModifier;
 
 inline MultiArray<Bitboard, 64, 64> between_mask, line_mask;
 
@@ -166,13 +162,13 @@ class MeanValue
     }
 };
 
-inline int16_t net_index(Piece piece, Square sq, Square kingSq, bool side)
+constexpr int16_t net_index(Piece piece, Square sq, Square kingSq, bool side)
 {
     return 64 * 12 * kingIndTable[kingSq.mirror(side)] + 64 * (piece + side * (piece >= 6 ? -6 : +6)) +
            (sq.mirror(side) ^ (7 * ((kingSq >> 2) & 1))); // kingSq should be ^7, if kingSq&7 >= 4
 }
 
-inline uint64_t castle_rights_key(MultiArray<Square, 2, 2> &rook_sq)
+inline Key castle_rights_key(MultiArray<Square, 2, 2> rook_sq)
 {
     return (castleKey[BLACK][0] * (rook_sq[BLACK][0] != NO_SQUARE)) ^
            (castleKey[BLACK][1] * (rook_sq[BLACK][1] != NO_SQUARE)) ^
@@ -180,24 +176,24 @@ inline uint64_t castle_rights_key(MultiArray<Square, 2, 2> &rook_sq)
            (castleKey[WHITE][1] * (rook_sq[WHITE][1] != NO_SQUARE));
 }
 
-inline bool recalc(Square from, Square to, bool side)
+constexpr bool recalc(Square from, Square to, bool side)
 {
-    return (from & 4) != (to & 4) || kingIndTable[from ^ (56 * !side)] != kingIndTable[to ^ (56 * !side)];
+    return (from & 4) != (to & 4) || kingIndTable[from.mirror(side)] != kingIndTable[to.mirror(side)];
 }
 
-template <int direction> inline Square shift_square(bool color, Square sq)
+template <int direction> constexpr Square shift_square(bool color, Square sq)
 {
     return color == BLACK ? sq - direction : sq + direction;
 }
 
-template <int8_t direction> inline Bitboard shift_mask(int color, Bitboard bb)
+template <int8_t direction> constexpr Bitboard shift_mask(int color, Bitboard bb)
 {
     if (color == BLACK)
         return direction > 0 ? bb >> direction : bb << static_cast<int8_t>(-direction);
     return direction > 0 ? bb << direction : bb >> static_cast<int8_t>(-direction);
 }
 
-inline bool inside_board(int rank, int file)
+constexpr bool inside_board(int rank, int file)
 {
     return rank >= 0 && file >= 0 && rank <= 7 && file <= 7;
 }
@@ -210,9 +206,9 @@ inline void init_defs()
     cod['R'] = Pieces::WhiteRook, cod['Q'] = Pieces::WhiteQueen, cod['K'] = Pieces::WhiteKing;
 
     /// zobrist keys
-    for (Piece i = Pieces::BlackPawn; i <= Pieces::WhiteKing; i++)
+    for (auto i = Pieces::BlackPawn; i <= Pieces::WhiteKing; i++)
     {
-        for (Square j = 0; j < 64; j++)
+        for (auto j = Squares::A1; j <= Squares::H8; j++)
             hashKey[i][j] = rng(gen);
     }
 
@@ -242,6 +238,7 @@ inline void init_defs()
             {
                 int r = rank, f = file;
                 Bitboard mask(0ull);
+
                 while (true)
                 {
                     r += kingDir[i].first, f += kingDir[i].second;
@@ -252,18 +249,18 @@ inline void init_defs()
                     Bitboard mask2(0ull);
                     while (inside_board(x, y))
                     {
-                        mask2 |= Bitboard(Square(x, y));
+                        mask2.set_bit(Square(x, y));
                         x += kingDir[i].first, y += kingDir[i].second;
                     }
                     x = rank, y = file;
                     while (inside_board(x, y))
                     {
-                        mask2 |= Bitboard(Square(x, y));
+                        mask2.set_bit(Square(x, y));
                         x += kingDir[d].first, y += kingDir[d].second;
                     }
                     line_mask[Square(rank, file)][Square(r, f)] = mask | mask2;
 
-                    mask |= Bitboard(Square(r, f));
+                    mask.set_bit(Square(r, f));
                 }
             }
         }

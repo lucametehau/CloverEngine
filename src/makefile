@@ -2,7 +2,7 @@ SRCXX = $(wildcard *.cpp)
 SRCHEADERS = $(wildcard *.h)
 SRC = 3rdparty/Fathom/src/tbprobe.c
 OBJ = $(SRCXX:.cpp=.o) $(SRC:.c=.o)
-VERSION = 8.1.18-obs
+VERSION = 9.0-obs
 EXE = Clover.$(VERSION)
 EVALFILE = net45.nnue
 
@@ -17,7 +17,7 @@ else
 endif
 
 
-WFLAGS = -Wall -g -flto
+WFLAGS = -Wall -g -flto -flto-partition=one
 RFLAGS = $(WFLAGS) -std=c++20 -O3 -funroll-loops
 LIBS =
 RM_CMD = 
@@ -44,7 +44,7 @@ endif
 AVX2_FLAGS     = -march=core-avx2
 NATIVE_FLAGS   = -mno-avx512f -march=native
 OLD_FLAGS      = -march=core2
-AVX512_FLAGS   = $(AVX2FLAGS) -mavx512f -mavx512bw -mavx512dq
+AVX512_FLAGS   = $(AVX2_FLAGS) -mavx512f -mavx512bw -mavx512dq
 EVALFILE_FLAGS = -DEVALFILE=\"$(EVALFILE)\" -I . -IFathom
 BUILD_FLAGS    = $(EVALFILE_FLAGS) $(PEXT_FLAGS) -DVERSION_NAME=\"$(VERSION)\"
 
