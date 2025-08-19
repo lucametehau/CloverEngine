@@ -125,27 +125,19 @@ inline int get_king_bucket_cache_index(const Square king_sq, const bool side)
 void load_nnue_weights()
 {
     int16_t *int_data = (int16_t *)gNetData;
-    std::copy(int_data, int_data + sizeof(input_weights) / sizeof(int16_t), input_weights);
-    std::copy(int_data + sizeof(input_weights) / sizeof(int16_t),
-              int_data + (sizeof(input_weights) + sizeof(input_biases)) / sizeof(int16_t), input_biases);
-    std::copy(int_data + (sizeof(input_weights) + sizeof(input_biases)) / sizeof(int16_t),
-              int_data + (sizeof(input_weights) + sizeof(input_biases) + sizeof(output_weights)) / sizeof(int16_t),
-              output_weights);
-    alignas(ALIGN) int16_t transposed_output_weights[HIDDEN_NEURONS * OUTPUT_NEURONS];
+    std::copy(int_data, int_data + INPUT_NEURONS * SIDE_NEURONS, input_weights);
+    int_data += INPUT_NEURONS * SIDE_NEURONS;
+    std::copy(int_data, int_data + SIDE_NEURONS, input_biases);
+    int_data += SIDE_NEURONS;
     for (int h = 0; h < HIDDEN_NEURONS; ++h)
     {
         for (int o = 0; o < OUTPUT_NEURONS; ++o)
         {
-            transposed_output_weights[o * HIDDEN_NEURONS + h] = output_weights[h * OUTPUT_NEURONS + o];
+            output_weights[o * HIDDEN_NEURONS + h] = *int_data;
+            int_data++;
         }
     }
-    std::copy(transposed_output_weights, transposed_output_weights + sizeof(output_weights) / sizeof(int16_t),
-              output_weights);
-    std::copy(int_data + sizeof(input_weights) + sizeof(input_biases) + sizeof(output_weights),
-              int_data +
-                  (sizeof(input_weights) + sizeof(input_biases) + sizeof(output_weights) + sizeof(output_biases)) /
-                      sizeof(int16_t),
-              output_biases);
+    std::copy(int_data, int_data + OUTPUT_NEURONS, output_biases);
 }
 
 inline reg_type reg_clamp(reg_type reg)
