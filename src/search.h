@@ -589,8 +589,12 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
                 stack->excluded = NULLMOVE;
 
                 if (score < rBeta)
+                {
                     ex = 1 + (!pvNode && rBeta - score > SEDoubleExtensionsMargin) +
                          (!pvNode && !is_tt_move_noisy && rBeta - score > SETripleExtensionsMargin);
+                    if (previous_R && depth <= 10)
+                        depth++;
+                }
                 else if (rBeta >= beta)
                     return rBeta; // multicut
                 else if (tt_value >= beta)
