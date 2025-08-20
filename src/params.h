@@ -244,6 +244,7 @@ TUNE_PARAM(PawnHistoryDivisor, 15433, 1, 32768)
 TUNE_PARAM(HistoryUpdateMinDepth, 4, 2, 6)
 TUNE_PARAM(FailLowContHistCoef, 53, 0, 256)
 TUNE_PARAM(FailLowHistCoef, 71, 0, 256)
+TUNE_PARAM(HistoryBetaMargin, 75, 0, 150)
 
 TUNE_PARAM(QuietSearchHistCoef, 723, 1, 3072)
 TUNE_PARAM(QuietSearchContHist1, 1117, 1, 3072)

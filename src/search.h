@@ -715,7 +715,8 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
                 if (alpha >= beta)
                 {
                     stack->cutoff_cnt++;
-                    const int bonus_depth = depth + bad_static_eval + (cutNode && depth <= 3);
+                    const int bonus_depth =
+                        depth + bad_static_eval + (cutNode && depth <= 3) + (score > beta + HistoryBetaMargin);
                     const int malus_depth = depth + bad_static_eval + (cutNode && depth <= 3) + allNode;
 
                     if (!board.is_noisy_move(bestMove))
