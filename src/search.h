@@ -551,7 +551,8 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
                 }
                 else
                 {
-                    history = histories.get_cap_hist(piece, to, board.get_captured_type(move));
+                    history =
+                        histories.get_cap_hist(piece, to, board.get_captured_type(move), board.threats().all_threats);
                     // see pruning for noisy moves
                     auto noisy_see_pruning_margin = [&](int depth, int history) {
                         return -SEEPruningNoisyMargin * depth * depth - history / SEENoisyHistDiv;
@@ -750,14 +751,14 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
                     else
                     {
                         histories.update_cap_hist_move(board.piece_at(bestMove.get_from()), bestMove.get_to(),
-                                                       board.get_captured_type(bestMove),
+                                                       board.get_captured_type(bestMove), board.threats().all_threats,
                                                        CaptureHistory::bonus(bonus_depth) * tried_count);
                     }
                     for (std::size_t i = 0; i < nr_noisies; i++)
                     {
                         const auto [move, tried_count] = noisies[i];
                         histories.update_cap_hist_move(board.piece_at(move.get_from()), move.get_to(),
-                                                       board.get_captured_type(move),
+                                                       board.get_captured_type(move), board.threats().all_threats,
                                                        CaptureHistory::malus(malus_depth) * tried_count);
                     }
                     break;

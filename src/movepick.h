@@ -195,7 +195,7 @@ class Movepick
                 const Piece piece = board.piece_at(move.get_from()), cap = board.get_captured_type(move);
                 const Square to = move.get_to();
                 int score = GoodNoisyValueCoef * seeVal[cap];
-                score += histories.get_cap_hist(piece, to, cap);
+                score += histories.get_cap_hist(piece, to, cap, all_threats);
                 scores[m++] = score;
             }
 
@@ -385,7 +385,7 @@ class Movepick
                 const Piece piece = board.piece_at(move.get_from()), cap = board.get_captured_type(move);
                 const Square to = move.get_to();
                 int score = GoodNoisyValueCoef * seeVal[cap];
-                score += histories.get_cap_hist(piece, to, cap);
+                score += histories.get_cap_hist(piece, to, cap, all_threats);
                 scores[m++] = score;
             }
 
@@ -487,7 +487,7 @@ class Movepick
                 const Piece piece = board.piece_at(move.get_from()), cap = board.get_captured_type(move);
                 const Square to = move.get_to();
                 int score = GoodNoisyValueCoef * seeVal[cap];
-                score += histories.get_cap_hist(piece, to, cap);
+                score += histories.get_cap_hist(piece, to, cap, all_threats);
                 scores[m++] = score;
             }
 
