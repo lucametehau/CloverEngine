@@ -240,6 +240,15 @@ TUNE_PARAM(PawnHistoryMalusBias, 299, 200, 600)
 TUNE_PARAM(PawnHistoryMalusMax, 2636, 1000, 4000)
 TUNE_PARAM(PawnHistoryDivisor, 15433, 1, 32768)
 
+// material history constants
+TUNE_PARAM(MaterialHistoryBonusMargin, 274, 100, 500)
+TUNE_PARAM(MaterialHistoryBonusBias, 335, 200, 600)
+TUNE_PARAM(MaterialHistoryBonusMax, 2623, 1000, 4000)
+TUNE_PARAM(MaterialHistoryMalusMargin, 334, 200, 500)
+TUNE_PARAM(MaterialHistoryMalusBias, 299, 200, 600)
+TUNE_PARAM(MaterialHistoryMalusMax, 2636, 1000, 4000)
+TUNE_PARAM(MaterialHistoryDivisor, 15433, 1, 32768)
+
 // misc history constants
 TUNE_PARAM(HistoryUpdateMinDepth, 4, 2, 6)
 TUNE_PARAM(FailLowContHistCoef, 53, 0, 256)
@@ -254,6 +263,7 @@ TUNE_PARAM(QuietMPContHist1, 1869, 1, 3072)
 TUNE_PARAM(QuietMPContHist2, 2008, 1, 3072)
 TUNE_PARAM(QuietMPContHist4, 1159, 1, 3072)
 TUNE_PARAM(QuietMPPawnHist, 1046, 1, 3072)
+TUNE_PARAM(QuietMPMatHist, 1024, 1, 3072)
 
 // corrhist constants
 TUNE_PARAM(CorrHistPawn, 918, 0, 2048)

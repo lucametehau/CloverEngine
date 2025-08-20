@@ -733,6 +733,8 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
                                                             ContinuationHistory::bonus(bonus_depth) * tried_count);
                             histories.update_pawn_hist_move(piece, to, pawn_key,
                                                             PawnHistory::bonus(bonus_depth) * tried_count);
+                            histories.update_mat_hist_move(piece, to, white_mat_key, black_mat_key,
+                                                           MaterialHistory::bonus(bonus_depth) * tried_count);
                         }
 
                         for (std::size_t i = 0; i < nr_quiets; i++)
@@ -746,6 +748,8 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
                                                             ContinuationHistory::malus(malus_depth) * tried_count);
                             histories.update_pawn_hist_move(piece, to, pawn_key,
                                                             PawnHistory::malus(malus_depth) * tried_count);
+                            histories.update_mat_hist_move(piece, to, white_mat_key, black_mat_key,
+                                                           MaterialHistory::malus(malus_depth) * tried_count);
                         }
                     }
                     else

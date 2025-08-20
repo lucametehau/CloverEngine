@@ -180,6 +180,47 @@ class PawnHistory
     }
 };
 
+class MaterialHistory
+{
+  private:
+    int16_t hist;
+
+  public:
+    static constexpr int SIZE = (1 << 12);
+    static constexpr int MASK = SIZE - 1;
+
+    constexpr MaterialHistory() = default;
+    constexpr MaterialHistory(int16_t hist) : hist(hist)
+    {
+    }
+
+    static int16_t bonus(int depth)
+    {
+        return std::min<int>(MaterialHistoryBonusMargin * depth - MaterialHistoryBonusBias, MaterialHistoryBonusMax);
+    }
+
+    static int16_t malus(int depth)
+    {
+        return -std::min<int>(MaterialHistoryMalusMargin * depth - MaterialHistoryMalusBias, MaterialHistoryMalusMax);
+    }
+
+    void update(int16_t score)
+    {
+        hist += score - std::abs(score) * hist / MaterialHistoryDivisor;
+    }
+
+    constexpr operator int16_t() const
+    {
+        return hist;
+    }
+
+    MaterialHistory &operator=(int16_t value)
+    {
+        hist = value;
+        return *this;
+    }
+};
+
 class CorrectionHistory
 {
   private:
@@ -246,6 +287,7 @@ class Histories
     MultiArray<MainHistory, 2, 2, 2, 64 * 64> hist;
     MultiArray<CaptureHistory, 2, 12, 64, 7> cap_hist;
     MultiArray<PawnHistory, PawnHistory::SIZE, 12, 64> pawn_hist;
+    MultiArray<MaterialHistory, 2, MaterialHistory::SIZE, 12, 64> mat_hist;
     MultiArray<CorrectionHistory, 2, CorrectionHistory::SIZE> corr_hist;
     MultiArray<CorrectionHistory, 2, 2, CorrectionHistory::SIZE> mat_corr_hist;
 
@@ -259,6 +301,7 @@ class Histories
         fill_multiarray<MainHistory, 2, 2, 2, 64 * 64>(hist, 0);
         fill_multiarray<CaptureHistory, 2, 12, 64, 7>(cap_hist, 0);
         fill_multiarray<PawnHistory, PawnHistory::SIZE, 12, 64>(pawn_hist, 0);
+        fill_multiarray<MaterialHistory, 2, MaterialHistory::SIZE, 12, 64>(mat_hist, 0);
         fill_multiarray<ContinuationHistory, 2, 13, 64, 13, 64>(cont_history, 0);
         fill_multiarray<CorrectionHistory, 2, CorrectionHistory::SIZE>(corr_hist, CorrectionHistory(0));
         fill_multiarray<CorrectionHistory, 2, 2, CorrectionHistory::SIZE>(mat_corr_hist, CorrectionHistory(0));
@@ -307,6 +350,16 @@ class Histories
     PawnHistory &get_pawn_hist(const Piece piece, const Square to, const Key pawn_key)
     {
         return pawn_hist[pawn_key & PawnHistory::MASK][piece][to];
+    }
+
+    constexpr MaterialHistory get_mat_hist(const bool side, const Piece piece, const Square to, const Key mat_key) const
+    {
+        return mat_hist[side][mat_key & MaterialHistory::MASK][piece][to];
+    }
+
+    MaterialHistory &get_mat_hist(const bool side, const Piece piece, const Square to, const Key mat_key)
+    {
+        return mat_hist[side][mat_key & MaterialHistory::MASK][piece][to];
     }
 
     constexpr PawnHistory get_pawn_hist(const Piece piece, const Square to, const Key pawn_key) const
@@ -364,6 +417,13 @@ class Histories
         get_pawn_hist(piece, to, pawn_key).update(bonus);
     }
 
+    void update_mat_hist_move(const Piece piece, const Square to, const Key white_mat_key, const Key black_mat_key,
+                              const int16_t bonus)
+    {
+        get_mat_hist(WHITE, piece, to, white_mat_key).update(bonus);
+        get_mat_hist(BLACK, piece, to, black_mat_key).update(bonus);
+    }
+
     constexpr int get_history_search(const Move move, const Piece piece, const Bitboard threats, const bool turn,
                                      StackEntry *stack, const Key pawn_key) const
     {
@@ -376,14 +436,17 @@ class Histories
     }
 
     constexpr int get_history_movepick(const Move move, const Piece piece, const Bitboard threats, const bool turn,
-                                       StackEntry *stack, const Key pawn_key) const
+                                       StackEntry *stack, const Key pawn_key, const Key white_mat_key,
+                                       const Key black_mat_key) const
     {
         const Square to = move.get_to();
         return (QuietMPHistCoef * get_hist(move.get_from(), to, move.get_from_to(), turn, threats) +
                 QuietMPContHist1 * get_cont_hist(piece, to, stack, 1) +
                 QuietMPContHist2 * get_cont_hist(piece, to, stack, 2) +
                 QuietMPContHist4 * get_cont_hist(piece, to, stack, 4) +
-                QuietMPPawnHist * get_pawn_hist(piece, to, pawn_key)) /
+                QuietMPPawnHist * get_pawn_hist(piece, to, pawn_key) +
+                QuietMPMatHist * get_mat_hist(WHITE, piece, to, white_mat_key) +
+                QuietMPMatHist * get_mat_hist(BLACK, piece, to, black_mat_key)) /
                1024;
     }
 

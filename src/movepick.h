@@ -258,6 +258,8 @@ class Movepick
                 const Bitboard allPieces = board.get_bb_color(WHITE) | board.get_bb_color(BLACK);
                 const Bitboard enemyKingRing = attacks::kingRingMask[board.get_king(enemy)];
                 const Key pawn_key = board.pawn_key();
+                const Key white_mat_key = board.mat_key(WHITE);
+                const Key black_mat_key = board.mat_key(BLACK);
 
                 int m = 0;
                 for (int i = 0; i < nrQuiets; i++)
@@ -269,7 +271,8 @@ class Movepick
                     moves[m] = move;
                     const Square from = move.get_from(), to = move.get_to();
                     const Piece piece = board.piece_at(from), pt = piece.type();
-                    int score = histories.get_history_movepick(move, piece, all_threats, turn, stack, pawn_key);
+                    int score = histories.get_history_movepick(move, piece, all_threats, turn, stack, pawn_key,
+                                                               white_mat_key, black_mat_key);
 
                     score += QuietPawnPushBonus * (pt == PieceTypes::PAWN); // pawn push, generally good
 
@@ -408,6 +411,8 @@ class Movepick
             nrQuiets = board.gen_legal_moves<MOVEGEN_QUIET>(moves);
             const bool turn = board.turn;
             const Key pawn_key = board.pawn_key();
+            const Key white_mat_key = board.mat_key(WHITE);
+            const Key black_mat_key = board.mat_key(BLACK);
 
             int m = 0;
             for (int i = 0; i < nrQuiets; i++)
@@ -418,7 +423,8 @@ class Movepick
 
                 moves[m] = move;
                 const Piece piece = board.piece_at(move.get_from()), pt = piece.type();
-                int score = histories.get_history_movepick(move, piece, all_threats, turn, stack, pawn_key);
+                int score = histories.get_history_movepick(move, piece, all_threats, turn, stack, pawn_key,
+                                                           white_mat_key, black_mat_key);
 
                 score += QuietPawnPushBonus * (pt == PieceTypes::PAWN); // pawn push, generally good
 
