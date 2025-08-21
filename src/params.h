@@ -62,7 +62,7 @@ template <typename T> struct CreateParam
 // search constants
 TUNE_PARAM(DeltaPruningMargin, 1033, 900, 1100)
 TUNE_PARAM(QuiesceFutilityBias, 193, 150, 250)
-TUNE_PARAM(QuiesceSEEMargin, -11, -100, 100)
+TUNE_PARAM(QuiesceSEEMargin, -71, -100, 100)
 
 TUNE_PARAM(NegativeImprovingMargin, -146, -300, -100)
 
