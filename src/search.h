@@ -383,6 +383,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
         histories.update_main_hist_move((stack - 1)->move, (stack - 1)->threats, 1 ^ turn, bonus);
         histories.update_pawn_hist_move((stack - 1)->piece, (stack - 1)->move.get_to(), board.state->prev->pawn_key,
                                         bonus);
+        histories.update_cont_hist_move((stack - 1)->piece, (stack - 1)->move.get_to(), stack - 1, bonus);
     }
 
     if (previous_R >= 3 && !improving_after_move && !in_check && (stack - 1)->eval != INF)
