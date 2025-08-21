@@ -927,7 +927,7 @@ void SearchThread::iterative_deepening()
             int depth = id_depth;
             while (true)
             {
-                depth = std::max({depth, 1, id_depth - 4});
+                depth = std::max(depth, 1);
                 sel_depth = 0;
                 scores[multipv] = search<true, true, false>(alpha, beta, depth, stack);
 
