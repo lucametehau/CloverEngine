@@ -649,7 +649,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
             R += LMREvalDifference *
                  (enemy_has_no_threats && !in_check && static_eval - root_eval > EvalDifferenceReductionMargin &&
                   ply % 2 == 0); /// the position in quiet and static eval is way bigger than root eval
-            R -= LMRRefutation * (is_quiet && picker.trueStage == Stages::STAGE_KILLER); // reduce for refutation moves
+            R -= LMRRefutation * (picker.trueStage == Stages::STAGE_KILLER); // reduce for refutation moves
             R += LMRBadNoisy * (enemy_has_no_threats &&
                                 picker.trueStage == Stages::STAGE_BAD_NOISY); // if the position is relatively quiet
                                                                               // and the capture is "very losing"
