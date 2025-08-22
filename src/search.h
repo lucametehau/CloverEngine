@@ -387,6 +387,8 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
 
     if (previous_R >= 3 && !improving_after_move && !in_check && (stack - 1)->eval != INF)
         depth += 1 + bad_static_eval;
+    if (depth > 1 && previous_R && !in_check && (stack - 1)->eval != INF && static_eval + (stack - 1)->eval >= 150)
+        depth--;
 
     if (static_eval != INF && static_eval >= beta)
         improving = 1;
