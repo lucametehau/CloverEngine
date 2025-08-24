@@ -18,6 +18,13 @@ int main(int argc, char* argv[]) {
         "G:\\CloverData\\testrun19_stm_tt_5k",
         "G:\\CloverData\\testrun20_20k",
         "G:\\CloverData\\testrun21_20k",
+        "G:\\CloverData\\testrun22_20k_dfrc",
+        "G:\\CloverData\\testrun23_20k",
+        "G:\\CloverData\\testrun24_20k_dfrc_std\\Clover_data",
+        "G:\\CloverData\\testrun25_20k_dfrc",
+        "G:\\CloverData\\testrun26_20k_dfrc",
+        "G:\\CloverData\\testrun27_20k",
+        "G:\\CloverData\\testrun28_20k_dfrc",
     }) {
         // std::string prefix = "data";
         // std::filesystem::path directory_path(directory_path_str);
@@ -47,6 +54,6 @@ int main(int argc, char* argv[]) {
     std::cout << "./target/release/bullet-utils.exe viribinpack interleave ";
     for (auto &filename : files)
         std::cout << filename << " ";
-    std::cout << "--output G:\\CloverData\\interleaved8.bin\n";
+    std::cout << "--output G:\\CloverData\\interleaved11-28.bin\n";
     return 0;
 }
