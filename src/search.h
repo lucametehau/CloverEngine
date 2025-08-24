@@ -484,6 +484,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
                     -(rootNode ? RootSeeDepthCoef : PVSSeeDepthCoef) * depth, board.threats());
 
     Move move;
+    const bool is_tt_move_sac = tt_move && !see(board, tt_move, 0);
 
     while ((move = picker.get_next_move(histories, stack, board)) != NULLMOVE)
     {
@@ -664,6 +665,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
             R -= LMRGrain * complexity / LMRCorrectionDivisor;
             R += (LMRFailLowPV + LMRFailLowPVHighDepth * (tt_depth > depth)) * (was_pv && tt_value <= alpha && tt_hit);
             R += LMRCutoffCount * (stack->cutoff_cnt > 3); // reduce if we had a lot of cutoffs
+            R -= 1024 * is_tt_move_sac;                    // reduce if the ttmove is a sacrifice
 
             R /= LMRGrain;
 
