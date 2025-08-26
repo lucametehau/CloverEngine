@@ -130,20 +130,16 @@ template <bool pvNode> int SearchThread::quiesce(int alpha, int beta, StackEntry
 
     while ((move = qs_movepicker.get_next_move(histories, stack, board)))
     {
-        if (qs_movepicker.stage == Stages::STAGE_QS_NOISY && !see(board, move, QuiesceSEEMargin))
-        {
-            continue;
-        }
         played++;
-
-        if (played == 4)
-            break;
 
         if (played > 1)
         {
             // futility pruning
             if (futility_base > -MATE)
             {
+                if (played >= 4)
+                    break;
+
                 const int futility_value = futility_base + seeVal[board.get_captured_type(move)];
                 if (!move.is_promo() && futility_value <= alpha)
                 {
@@ -154,6 +150,9 @@ template <bool pvNode> int SearchThread::quiesce(int alpha, int beta, StackEntry
 
             if (in_check)
                 break;
+
+            if (!see(board, move, QuiesceSEEMargin))
+                continue;
         }
 
         // update stack info
