@@ -137,9 +137,6 @@ template <bool pvNode> int SearchThread::quiesce(int alpha, int beta, StackEntry
             // futility pruning
             if (futility_base > -MATE)
             {
-                if (played >= 4)
-                    break;
-
                 const int futility_value = futility_base + seeVal[board.get_captured_type(move)];
                 if (!move.is_promo() && futility_value <= alpha)
                 {
