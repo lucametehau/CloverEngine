@@ -148,9 +148,6 @@ template <bool pvNode> int SearchThread::quiesce(int alpha, int beta, StackEntry
                 }
             }
 
-            if (in_check)
-                break;
-
             if (!see(board, move, QuiesceSEEMargin))
                 continue;
         }
