@@ -18,6 +18,7 @@ class Info
     std::time_t recommended_soft_limit, soft_limit, hard_limit;
     int depth, multipv;
     int64_t nodes_lim, min_nodes, max_nodes;
+    int64_t recommended_min_nodes_limit;
 
     bool timeset, chess960;
     bool nodes_are_min_nodes;
@@ -57,6 +58,7 @@ class Info
     void set_recommended_soft_limit(float coef)
     {
         recommended_soft_limit = soft_limit * coef;
+        recommended_min_nodes_limit = min_nodes * coef;
     }
     void set_hard_limit(std::time_t time)
     {
@@ -72,7 +74,7 @@ class Info
         if (!nodes_are_min_nodes)
             nodes_lim = nodes;
         else
-            min_nodes = nodes;
+            recommended_min_nodes_limit = min_nodes = nodes;
     }
     void set_min_nodes(int64_t nodes)
     {
@@ -126,7 +128,7 @@ class Info
     }
     constexpr bool min_nodes_passed(int64_t nodes) const
     {
-        return min_nodes != -1 && nodes >= min_nodes;
+        return min_nodes != -1 && nodes >= recommended_min_nodes_limit;
     }
     constexpr bool max_nodes_passed(int64_t nodes) const
     {
