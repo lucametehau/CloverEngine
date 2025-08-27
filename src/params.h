@@ -118,7 +118,7 @@ TUNE_PARAM(SEEPruningQuietMargin, 70, 60, 90)
 TUNE_PARAM(SEEPruningNoisyDepth, 8, 5, 10)
 TUNE_PARAM(SEEPruningNoisyMargin, 14, 5, 25)
 TUNE_PARAM(SEENoisyHistDiv, 275, 128, 512)
-TUNE_PARAM(FPNoisyDepth, 8, 5, 15)
+TUNE_PARAM(FPNoisyDepth, 10, 5, 15)
 
 TUNE_PARAM(FPNoisyBias, 99, 0, 150)
 TUNE_PARAM(FPNoisyMargin, 88, 0, 150)
