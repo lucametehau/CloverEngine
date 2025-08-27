@@ -370,9 +370,9 @@ void UCI::go(std::istringstream &iss, Info &info)
         info.set_time(time, inc);
     }
 
-    info.set_nodes(nodes);
     info.set_min_nodes(min_nodes);
     info.set_max_nodes(max_nodes);
+    info.set_nodes(nodes);
     info.set_depth(depth);
     TT->age();
     thread_pool.clear_board();

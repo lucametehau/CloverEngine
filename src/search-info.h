@@ -23,7 +23,9 @@ class Info
     bool nodes_are_min_nodes;
 
   public:
-    Info() : depth(MAX_DEPTH), multipv(1), nodes_lim(-1), min_nodes(-1), max_nodes(-1), chess960(false)
+    Info()
+        : depth(MAX_DEPTH), multipv(1), nodes_lim(-1), min_nodes(-1), max_nodes(-1), chess960(false),
+          nodes_are_min_nodes(false)
     {
     }
 
