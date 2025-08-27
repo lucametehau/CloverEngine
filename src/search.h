@@ -378,11 +378,12 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
 
     if (!stack->excluded && !in_check && !nullSearch && (stack - 1)->eval != INF && board.captured() == NO_PIECE)
     {
-        int bonus = std::clamp<int>(-EvalHistCoef * ((stack - 1)->eval + static_eval), EvalHistMin, EvalHistMax) +
-                    EvalHistMargin;
+        const int eval_delta = (stack - 1)->eval + static_eval;
+        int bonus = std::clamp<int>(-EvalHistCoef * eval_delta, EvalHistMin, EvalHistMax) + EvalHistMargin;
         histories.update_main_hist_move((stack - 1)->move, (stack - 1)->threats, 1 ^ turn, bonus);
         histories.update_pawn_hist_move((stack - 1)->piece, (stack - 1)->move.get_to(), board.state->prev->pawn_key,
                                         bonus);
+        histories.update_eval_hist_move((stack - 1)->piece, (stack - 1)->move.get_to(), eval_delta);
     }
 
     if (previous_R >= 3 && !improving_after_move && !in_check && (stack - 1)->eval != INF)
@@ -528,8 +529,10 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
                                                     improving + history / MoveloopHistDiv);
 
                     // futility pruning
-                    auto futility_margin = [&](int depth) { return FPBias + FPMargin * depth; };
-                    if (new_depth <= FPDepth && !in_check && static_eval + futility_margin(new_depth) <= alpha)
+                    auto futility_margin = [&](int depth, Move move) {
+                        return FPBias + FPMargin * depth + histories.get_eval_hist(piece, to);
+                    };
+                    if (new_depth <= FPDepth && !in_check && static_eval + futility_margin(new_depth, move) <= alpha)
                         picker.skip_quiets();
 
                     // late move pruning

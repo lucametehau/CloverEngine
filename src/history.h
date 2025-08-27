@@ -248,6 +248,7 @@ class Histories
     MultiArray<PawnHistory, PawnHistory::SIZE, 12, 64> pawn_hist;
     MultiArray<CorrectionHistory, 2, CorrectionHistory::SIZE> corr_hist;
     MultiArray<CorrectionHistory, 2, 2, CorrectionHistory::SIZE> mat_corr_hist;
+    MultiArray<int, 12, 64> eval_hist;
 
   public:
     MultiArray<ContinuationHistory, 2, 13, 64, 13, 64> cont_history;
@@ -263,6 +264,7 @@ class Histories
         fill_multiarray<CorrectionHistory, 2, CorrectionHistory::SIZE>(corr_hist, CorrectionHistory(0));
         fill_multiarray<CorrectionHistory, 2, 2, CorrectionHistory::SIZE>(mat_corr_hist, CorrectionHistory(0));
         fill_multiarray<CorrectionHistory, 13, 64, 13, 64>(cont_corr_hist, CorrectionHistory(0));
+        fill_multiarray<int, 12, 64>(eval_hist, 0);
     }
 
     Histories()
@@ -342,6 +344,16 @@ class Histories
     constexpr CorrectionHistory get_cont_corr_hist(StackEntry *stack, const int delta) const
     {
         return (*(stack - delta)->cont_corr_hist)[(stack - 1)->piece][(stack - 1)->move.get_to()];
+    }
+
+    int &get_eval_hist(const Piece piece, const Square to)
+    {
+        return eval_hist[piece][to];
+    }
+
+    constexpr int get_eval_hist(const Piece piece, const Square to) const
+    {
+        return eval_hist[piece][to];
     }
 
     void update_cont_hist_move(const Piece piece, const Square to, StackEntry *stack, const int16_t bonus)
@@ -427,5 +439,10 @@ class Histories
                 correction += CorrHistCont4 * get_cont_corr_hist(stack, 4);
         }
         return eval + correction / (16 * 1024);
+    }
+
+    void update_eval_hist_move(const Piece piece, const Square to, const int delta)
+    {
+        get_eval_hist(piece, to) = std::max(get_eval_hist(piece, to), delta);
     }
 };
