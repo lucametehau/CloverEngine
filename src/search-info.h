@@ -20,9 +20,12 @@ class Info
     int64_t nodes_lim, min_nodes, max_nodes;
 
     bool timeset, chess960;
+    bool nodes_are_min_nodes;
 
   public:
-    Info() : depth(MAX_DEPTH), multipv(1), nodes_lim(-1), min_nodes(-1), max_nodes(-1), chess960(false)
+    Info()
+        : depth(MAX_DEPTH), multipv(1), nodes_lim(-1), min_nodes(-1), max_nodes(-1), chess960(false),
+          nodes_are_min_nodes(false)
     {
     }
 
@@ -60,9 +63,16 @@ class Info
         hard_limit = time;
     }
 
+    void set_nodes_to_min(bool flag)
+    {
+        nodes_are_min_nodes = flag;
+    }
     void set_nodes(int64_t nodes)
     {
-        nodes_lim = nodes;
+        if (!nodes_are_min_nodes)
+            nodes_lim = nodes;
+        else
+            min_nodes = nodes;
     }
     void set_min_nodes(int64_t nodes)
     {

@@ -81,46 +81,49 @@ class UCI
   public:
     UCI() : tt_size_mb(8)
     {
-        options = {
-            {"Hash",
-             {"Hash", "spin", "8", "2", "262144",
-              [&](std::istringstream &iss) {
-                  std::string value;
-                  iss >> value >> tt_size_mb;
-                  TT->init(tt_size_mb * MB, thread_pool.get_num_threads());
-              }}},
-            {"Threads",
-             {"Threads", "spin", "1", "1", "512",
-              [&](std::istringstream &iss) {
-                  std::string value;
-                  int thread_count;
-                  iss >> value >> thread_count;
-                  thread_pool.create_pool(thread_count);
-                  ucinewgame();
-              }}},
-            {"SyzygyPath",
-             {"SyzygyPath", "string", "<empty>", "", "",
-              [&](std::istringstream &iss) {
-                  std::string value, path;
-                  iss >> value >> path;
-                  tb_init(path.c_str());
-              }}},
-            {"MultiPV",
-             {"MultiPV", "spin", "1", "1", "255",
-              [&](std::istringstream &iss) {
-                  std::string value;
-                  int multipv;
-                  iss >> value >> multipv;
-                  info.set_multipv(multipv);
-              }}},
-            {"UCI_Chess960",
-             {"UCI_Chess960", "check", "false", "", "",
-              [&](std::istringstream &iss) {
-                  std::string value;
-                  iss >> value >> value;
-                  info.set_chess960(value == "true");
-              }}},
-        };
+        options = {{"Hash",
+                    {"Hash", "spin", "8", "2", "262144",
+                     [&](std::istringstream &iss) {
+                         std::string value;
+                         iss >> value >> tt_size_mb;
+                         TT->init(tt_size_mb * MB, thread_pool.get_num_threads());
+                     }}},
+                   {"Threads",
+                    {"Threads", "spin", "1", "1", "512",
+                     [&](std::istringstream &iss) {
+                         std::string value;
+                         int thread_count;
+                         iss >> value >> thread_count;
+                         thread_pool.create_pool(thread_count);
+                         ucinewgame();
+                     }}},
+                   {"SyzygyPath",
+                    {"SyzygyPath", "string", "<empty>", "", "",
+                     [&](std::istringstream &iss) {
+                         std::string value, path;
+                         iss >> value >> path;
+                         tb_init(path.c_str());
+                     }}},
+                   {"MultiPV",
+                    {"MultiPV", "spin", "1", "1", "255",
+                     [&](std::istringstream &iss) {
+                         std::string value;
+                         int multipv;
+                         iss >> value >> multipv;
+                         info.set_multipv(multipv);
+                     }}},
+                   {"UCI_Chess960",
+                    {"UCI_Chess960", "check", "false", "", "",
+                     [&](std::istringstream &iss) {
+                         std::string value;
+                         iss >> value >> value;
+                         info.set_chess960(value == "true");
+                     }}},
+                   {"UCI_MinNodes", {"UCI_MinNodes", "check", "false", "", "", [&](std::istringstream &iss) {
+                                         std::string value;
+                                         iss >> value >> value;
+                                         info.set_nodes_to_min(value == "true");
+                                     }}}};
 
         for (auto &param : params_int)
         {
@@ -367,9 +370,9 @@ void UCI::go(std::istringstream &iss, Info &info)
         info.set_time(time, inc);
     }
 
-    info.set_nodes(nodes);
     info.set_min_nodes(min_nodes);
     info.set_max_nodes(max_nodes);
+    info.set_nodes(nodes);
     info.set_depth(depth);
     TT->age();
     thread_pool.clear_board();
