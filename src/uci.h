@@ -119,14 +119,11 @@ class UCI
                          iss >> value >> value;
                          info.set_chess960(value == "true");
                      }}},
-                   {"MinNodes",
-                    {"MinNodes", "check", "false", "", "", 
-                     [&](std::istringstream &iss) {
-                        std::string value;
-                        iss >> value >> value;
-                        info.set_nodes_to_min(value == "true");
-                    }}}
-                };
+                   {"MinNodes", {"MinNodes", "check", "false", "", "", [&](std::istringstream &iss) {
+                                     std::string value;
+                                     iss >> value >> value;
+                                     info.set_nodes_to_min(value == "true");
+                                 }}}};
 
         for (auto &param : params_int)
         {

@@ -199,7 +199,7 @@ class Board
     constexpr int get_output_bucket() const
     {
         const int count = (get_bb_color(WHITE) | get_bb_color(BLACK)).count();
-        return (count - 2) / 4;
+        return 0;
     }
 
     void get_pinned_pieces_and_checkers()
