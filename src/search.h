@@ -697,7 +697,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
             RootMove &root_move = root_moves.get_root_move(move);
 
             root_move.nodes_searched += nodes - nodes_previously;
-            root_move.search_score = score;
+            root_move.search_score = root_move.search_score == -INF ? score : (root_move.search_score + score) / 2;
 
             if (played == 1 || score > alpha)
             {

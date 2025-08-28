@@ -2,7 +2,7 @@ SRCXX = $(wildcard *.cpp)
 SRCHEADERS = $(wildcard *.h)
 SRC = 3rdparty/Fathom/src/tbprobe.c
 OBJ = $(SRCXX:.cpp=.o) $(SRC:.c=.o)
-VERSION = 9.0.7
+VERSION = 9.0.8
 EXE = Clover.$(VERSION)
 EVALFILE = quantised.nnue
 
