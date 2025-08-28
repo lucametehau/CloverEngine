@@ -970,7 +970,7 @@ void SearchThread::iterative_deepening()
                 window += window * AspirationWindowExpandMargin / 100;
             }
 
-            root_moves.sort();
+            root_moves.sort(multipv);
 
             for (int i = 0; i <= multipv; i++)
                 root_moves[i].searched = true;

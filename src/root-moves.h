@@ -67,9 +67,11 @@ class RootMoves
         return root_moves[index];
     }
 
-    void sort()
+    void sort(int len = -1)
     {
-        std::sort(root_moves.begin(), root_moves.end());
+        if (len == -1)
+            len = root_moves.size();
+        std::sort(root_moves.begin(), root_moves.begin() + len);
     }
 
     const bool empty() const
