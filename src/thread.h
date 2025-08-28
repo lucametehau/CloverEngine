@@ -20,6 +20,7 @@
 #include "fen.h"
 #include "history.h"
 #include "net.h"
+#include "root-moves.h"
 #include "search-info.h"
 #include "tt.h"
 #include <atomic>
@@ -48,8 +49,7 @@ class SearchThread
   public:
     Info info;
 
-    MoveList best_moves;
-    std::array<int, MAX_MOVES> scores, root_scores;
+    RootMoves root_moves;
     std::array<MeanValue, 100> values;
 
   private:
@@ -175,11 +175,6 @@ class SearchThread
 
     void iterative_deepening();
 
-    void print_pv()
-    {
-        for (int i = 0; i < pv_table_len[0]; i++)
-            std::cout << pv_table[0][i].to_string(board.chess960) << " ";
-    }
     void update_pv(const int ply, const Move move)
     {
         pv_table[ply][0] = move;
@@ -188,8 +183,7 @@ class SearchThread
         pv_table_len[ply] = 1 + pv_table_len[ply + 1];
     }
 
-    void print_iteration_info(int multipv, int score, int alpha, int beta, uint64_t t, int depth, int sel_depth,
-                              uint64_t total_nodes, uint64_t total_tb_hits);
+    void print_iteration_info(uint64_t t, int depth, uint64_t total_nodes, uint64_t total_tb_hits);
 
     template <bool checkTime> bool check_for_stop()
     {
@@ -339,14 +333,14 @@ class ThreadPool
         Move best_move = NULLMOVE;
 
         int bestDepth = threads.front()->completed_depth;
-        best_score = threads.front()->root_scores[1];
-        best_move = threads.front()->best_moves[1];
+        best_score = threads.front()->root_moves[0].score;
+        best_move = threads.front()->root_moves[0].pv[0];
         for (std::size_t i = 1; i < threads.size(); i++)
         {
-            if (threads[i]->root_scores[1] > best_score && threads[i]->completed_depth >= bestDepth)
+            if (threads[i]->root_moves[0].score > best_score && threads[i]->completed_depth >= bestDepth)
             {
-                best_score = threads[i]->root_scores[1];
-                best_move = threads[i]->best_moves[1];
+                best_score = threads[i]->root_moves[0].score;
+                best_move = threads[i]->root_moves[0].pv[0];
                 bestDepth = threads[i]->completed_depth;
             }
         }

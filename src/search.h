@@ -489,16 +489,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
     {
         if constexpr (rootNode)
         {
-            bool move_was_searched = false;
-            for (int i = 1; i < multipv; i++)
-            {
-                if (move == best_moves[i])
-                {
-                    move_was_searched = true;
-                    break;
-                }
-            }
-            if (move_was_searched)
+            if (root_moves.move_was_searched(move))
                 continue;
         }
         if (move == stack->excluded)
@@ -697,21 +688,41 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
         }
 
         undo_move(move);
-        nodes_seached[move.get_from_to()] += nodes - nodes_previously;
 
         [[unlikely]] if (must_stop()) // stop search
             return best;
+
+        if constexpr (rootNode)
+        {
+            RootMove &root_move = root_moves.get_root_move(move);
+
+            root_move.nodes_searched += nodes - nodes_previously;
+            root_move.search_score = score;
+
+            if (played == 1 || score > alpha)
+            {
+                root_move.score = score;
+                root_move.sel_depth = sel_depth;
+
+                root_move.lowerbound = score >= beta;
+                root_move.upperbound = score <= alpha;
+
+                root_move.pv[0] = move;
+                root_move.pv_len = 1 + pv_table_len[1];
+                for (int i = 0; i < pv_table_len[1]; i++)
+                    root_move.pv[i + 1] = pv_table[1][i];
+            }
+            else
+            {
+                root_move.score = -INF;
+            }
+        }
 
         if (score > best)
         {
             best = score;
             if (score > alpha)
             {
-                if constexpr (rootNode)
-                {
-                    best_moves[multipv] = move;
-                    root_scores[multipv] = score;
-                }
                 bestMove = move;
                 alpha = score;
                 if constexpr (pvNode)
@@ -804,31 +815,34 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
     return best;
 }
 
-void SearchThread::print_iteration_info(int multipv, int score, int alpha, int beta, uint64_t t, int depth,
-                                        int sel_depth, uint64_t total_nodes, uint64_t total_tb_hits)
+void SearchThread::print_iteration_info(uint64_t t, int depth, uint64_t total_nodes, uint64_t total_tb_hits)
 {
-    std::cout << "info multipv " << multipv << " score ";
+    for (int multipv = 0; multipv < info.get_multipv(); multipv++)
+    {
+        std::cout << "info multipv " << multipv + 1 << " score ";
 
-    if (score > MATE)
-        std::cout << "mate " << (INF - score + 1) / 2;
-    else if (score < -MATE)
-        std::cout << "mate -" << (INF + score + 1) / 2;
+        if (root_moves[multipv].score > MATE)
+            std::cout << "mate " << (INF - root_moves[multipv].score + 1) / 2;
+        else if (root_moves[multipv].score < -MATE)
+            std::cout << "mate -" << (INF + root_moves[multipv].score + 1) / 2;
 
-    else
-        std::cout << "cp " << score;
-    if (score >= beta)
-        std::cout << " lowerbound";
-    else if (score <= alpha)
-        std::cout << " upperbound";
+        else
+            std::cout << "cp " << root_moves[multipv].score;
+        if (root_moves[multipv].lowerbound)
+            std::cout << " lowerbound";
+        else if (root_moves[multipv].upperbound)
+            std::cout << " upperbound";
 
-    std::cout << " depth " << depth << " seldepth " << sel_depth << " nodes " << total_nodes;
-    if (t)
-        std::cout << " nps " << total_nodes * 1000 / t;
-    std::cout << " time " << t << " ";
-    std::cout << "tbhits " << total_tb_hits << " hashfull " << TT->hashfull() << " ";
-    std::cout << "pv ";
-    print_pv();
-    std::cout << std::endl;
+        std::cout << " depth " << depth << " seldepth " << root_moves[multipv].sel_depth << " nodes " << total_nodes;
+        if (t)
+            std::cout << " nps " << total_nodes * 1000 / t;
+        std::cout << " time " << t << " ";
+        std::cout << "tbhits " << total_tb_hits << " hashfull " << TT->hashfull() << " ";
+        std::cout << "pv ";
+        for (int i = 0; i < root_moves[multipv].pv_len; i++)
+            std::cout << root_moves[multipv].pv[i].to_string(board.chess960) << " ";
+        std::cout << std::endl;
+    }
 }
 
 void SearchThread::start_search()
@@ -857,9 +871,6 @@ void SearchThread::start_search()
     completed_depth = 0;
     root_eval = !board.checkers() ? evaluate(board, NN) : INF;
 
-    scores.fill(0);
-    best_moves.fill(NULLMOVE);
-    root_scores.fill(0);
     search_stack.fill(StackEntry());
     stack = search_stack.data() + 10;
 
@@ -897,26 +908,20 @@ void SearchThread::iterative_deepening()
     MoveList moves;
     int nr_moves = board.gen_legal_moves<MOVEGEN_ALL>(moves);
 
-    if (nr_moves)
-    {
-        best_moves[1] = moves[0];
-        root_scores[1] = 0;
-    }
-    else
-    {
-        root_scores[1] = INF + 69;
-        return; // no legal moves, return immediately
-    }
+    root_moves = RootMoves(moves, nr_moves);
 
     for (id_depth = 1; id_depth <= limitDepth; id_depth++)
     {
-        for (multipv = 1; multipv <= info.get_multipv(); multipv++)
+        for (int i = 0; i < nr_moves; i++)
+            root_moves[i].searched = false;
+        for (multipv = 0; multipv < info.get_multipv(); multipv++)
         {
-            int window = AspirationWindowsValue + root_scores[1] * root_scores[1] / AspirationWindowsDivisor;
+            int window = AspirationWindowsValue +
+                         root_moves[0].search_score * root_moves[0].search_score / AspirationWindowsDivisor;
             if (id_depth >= AspirationWindowsDepth)
             {
-                alpha = std::max(-INF, scores[multipv] - window);
-                beta = std::min(INF, scores[multipv] + window);
+                alpha = std::max(-INF, root_moves[multipv].search_score - window);
+                beta = std::min(INF, root_moves[multipv].search_score + window);
             }
             else
             {
@@ -929,27 +934,28 @@ void SearchThread::iterative_deepening()
             {
                 depth = std::max(depth, 1);
                 sel_depth = 0;
-                scores[multipv] = search<true, true, false>(alpha, beta, depth, stack);
+                int score = search<true, true, false>(alpha, beta, depth, stack);
+
+                root_moves.sort();
 
                 if (must_stop())
                     break;
 
-                if (main_thread() && printStats &&
-                    ((alpha < scores[multipv] && scores[multipv] < beta) ||
-                     (multipv == 1 && info.get_time_elapsed() > 3000)))
+                if (main_thread() && printStats && !(alpha < score && score < beta) && info.get_multipv() == 1 &&
+                    info.get_time_elapsed() > 3000)
                 {
-                    print_iteration_info(multipv, scores[multipv], alpha, beta, info.get_time_elapsed(), depth,
-                                         sel_depth, thread_pool->get_nodes(), thread_pool->get_tbhits());
+                    print_iteration_info(info.get_time_elapsed(), depth, thread_pool->get_nodes(),
+                                         thread_pool->get_tbhits());
                 }
 
-                if (scores[multipv] <= alpha)
+                if (score <= alpha)
                 {
                     beta = (beta + alpha) / 2;
                     alpha = std::max(-INF, alpha - window);
                     depth = id_depth;
                     completed_depth = id_depth - 1;
                 }
-                else if (beta <= scores[multipv])
+                else if (beta <= score)
                 {
                     beta = std::min(INF, beta + window);
                     depth--;
@@ -963,6 +969,17 @@ void SearchThread::iterative_deepening()
 
                 window += window * AspirationWindowExpandMargin / 100;
             }
+
+            root_moves.sort();
+
+            for (int i = 0; i <= multipv; i++)
+                root_moves[i].searched = true;
+
+            if (main_thread() && printStats && (multipv == info.get_multipv() - 1 || must_stop()))
+            {
+                print_iteration_info(info.get_time_elapsed(), id_depth, thread_pool->get_nodes(),
+                                     thread_pool->get_tbhits());
+            }
         }
 
         if (main_thread() && !must_stop())
@@ -971,11 +988,11 @@ void SearchThread::iterative_deepening()
             if (id_depth >= TimeManagerMinDepth)
             {
                 scoreChange = std::clamp<double>(
-                    TimeManagerScoreBias + 1.0 * (last_root_score - root_scores[1]) / TimeManagerScoreDiv,
+                    TimeManagerScoreBias + 1.0 * (last_root_score - root_moves[0].search_score) / TimeManagerScoreDiv,
                     TimeManagerScoreMin, TimeManagerScoreMax); /// adjust time based on score change
-                best_move_cnt = (best_moves[1] == last_best_move ? best_move_cnt + 1 : 1);
+                best_move_cnt = (root_moves[0].pv[0] == last_best_move ? best_move_cnt + 1 : 1);
                 /// adjust time based on how many nodes from the total searched nodes were used for the best move
-                nodesSearchedPercentage = 1.0 * nodes_seached[best_moves[1].get_from_to()] / nodes;
+                nodesSearchedPercentage = 1.0 * root_moves[0].nodes_searched / nodes;
                 nodesSearchedPercentage =
                     TimeManagerNodesSearchedMaxPercentage - TimeManagerNodesSearchedCoef * nodesSearchedPercentage;
                 bestMoveStreak =
@@ -984,8 +1001,8 @@ void SearchThread::iterative_deepening()
                         std::min(10, best_move_cnt); /// adjust time based on how long the best move was the same
             }
             info.set_recommended_soft_limit(scoreChange * bestMoveStreak * nodesSearchedPercentage);
-            last_root_score = root_scores[1];
-            last_best_move = best_moves[1];
+            last_root_score = root_moves[0].score;
+            last_best_move = root_moves[0].pv[0];
         }
 
         if (must_stop())
