@@ -56,7 +56,6 @@ class SearchThread
     std::array<int, MAX_DEPTH + 5> pv_table_len;
     MultiArray<Move, MAX_DEPTH + 5, 2 * MAX_DEPTH + 5> pv_table;
     MultiArray<Move, 2, KP_MOVE_SIZE> kp_move;
-    std::array<uint64_t, 64 * 64> nodes_seached;
     std::array<StackEntry, MAX_DEPTH + 15> search_stack;
     StackEntry *stack;
 
@@ -146,7 +145,6 @@ class SearchThread
     void clear_stack()
     {
         pv_table_len.fill(0);
-        nodes_seached.fill(0);
         fill_multiarray<Move, MAX_DEPTH + 5, 2 * MAX_DEPTH + 5>(pv_table, NULLMOVE);
     }
     void clear_history()

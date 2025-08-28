@@ -29,6 +29,11 @@ class RootMove
     {
         return score > other.score; // descending
     }
+
+    constexpr Move move() const {
+        assert(pv_len > 0);
+        return pv[0];
+    }
 };
 
 class RootMoves

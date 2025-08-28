@@ -990,7 +990,7 @@ void SearchThread::iterative_deepening()
                 scoreChange = std::clamp<double>(
                     TimeManagerScoreBias + 1.0 * (last_root_score - root_moves[0].search_score) / TimeManagerScoreDiv,
                     TimeManagerScoreMin, TimeManagerScoreMax); /// adjust time based on score change
-                best_move_cnt = (root_moves[0].pv[0] == last_best_move ? best_move_cnt + 1 : 1);
+                best_move_cnt = (root_moves[0].move() == last_best_move ? best_move_cnt + 1 : 1);
                 /// adjust time based on how many nodes from the total searched nodes were used for the best move
                 nodesSearchedPercentage = 1.0 * root_moves[0].nodes_searched / nodes;
                 nodesSearchedPercentage =
@@ -1002,7 +1002,7 @@ void SearchThread::iterative_deepening()
             }
             info.set_recommended_soft_limit(scoreChange * bestMoveStreak * nodesSearchedPercentage);
             last_root_score = root_moves[0].score;
-            last_best_move = root_moves[0].pv[0];
+            last_best_move = root_moves[0].move();
         }
 
         if (must_stop())
