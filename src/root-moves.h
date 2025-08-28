@@ -9,8 +9,8 @@ class RootMove
     bool lowerbound, upperbound;
     bool searched;
     MoveList pv;
-    int pv_len;
     int16_t score, search_score;
+    int pv_len;
     int sel_depth;
     uint64_t nodes_searched;
 
@@ -30,7 +30,8 @@ class RootMove
         return score > other.score; // descending
     }
 
-    constexpr Move move() const {
+    constexpr Move move() const
+    {
         assert(pv_len > 0);
         return pv[0];
     }

@@ -100,7 +100,7 @@ class SearchThread
     ~SearchThread() = default;
 
   public:
-    bool main_thread()
+    constexpr bool main_thread() const
     {
         return thread_id == 0;
     }
