@@ -425,8 +425,8 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
 
                 stack->move = NULLMOVE;
                 stack->piece = NO_PIECE;
-                stack->cont_hist = &histories.cont_history[0][NO_PIECE][0];
-                stack->cont_corr_hist = &histories.cont_corr_hist[NO_PIECE][0];
+                stack->cont_hist = &histories.cont_history[0][PieceTypes::PAWN][Squares::A8];
+                stack->cont_corr_hist = &histories.cont_corr_hist[PieceTypes::PAWN][Squares::A8];
 
                 board.make_null_move(next_state);
                 int score = -search<false, false, !cutNode>(-beta, -beta + 1, depth - R, stack + 1);
@@ -880,8 +880,8 @@ void SearchThread::start_search()
 
     for (int i = 1; i <= 10; i++)
     {
-        (stack - i)->cont_hist = &histories.cont_history[0][NO_PIECE][0];
-        (stack - i)->cont_corr_hist = &histories.cont_corr_hist[NO_PIECE][0];
+        (stack - i)->cont_hist = &histories.cont_history[0][PieceTypes::PAWN][Squares::A8];
+        (stack - i)->cont_corr_hist = &histories.cont_corr_hist[PieceTypes::PAWN][Squares::A8];
         (stack - i)->eval = INF;
         (stack - i)->move = NULLMOVE;
     }

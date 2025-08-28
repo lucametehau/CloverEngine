@@ -235,8 +235,8 @@ class StackEntry
     int eval;
     int R;          // reduction
     int cutoff_cnt; // number of cutoffs in the current search
-    MultiArray<ContinuationHistory, 13, 64> *cont_hist;
-    MultiArray<CorrectionHistory, 13, 64> *cont_corr_hist;
+    MultiArray<ContinuationHistory, 12, 64> *cont_hist;
+    MultiArray<CorrectionHistory, 12, 64> *cont_corr_hist;
     Bitboard threats;
 };
 
@@ -246,12 +246,12 @@ class Histories
     MultiArray<MainHistory, 2, 2, 2, 64 * 64> hist;
     MultiArray<CaptureHistory, 2, 12, 64, 7> cap_hist;
     MultiArray<PawnHistory, PawnHistory::SIZE, 12, 64> pawn_hist;
-    MultiArray<CorrectionHistory, 2, CorrectionHistory::SIZE> corr_hist;
+    MultiArray<CorrectionHistory, CorrectionHistory::SIZE, 2> corr_hist;
     MultiArray<CorrectionHistory, 2, 2, CorrectionHistory::SIZE> mat_corr_hist;
 
   public:
-    MultiArray<ContinuationHistory, 2, 13, 64, 13, 64> cont_history;
-    MultiArray<CorrectionHistory, 13, 64, 13, 64> cont_corr_hist;
+    MultiArray<ContinuationHistory, 2, 12, 64, 12, 64> cont_history;
+    MultiArray<CorrectionHistory, 12, 64, 12, 64> cont_corr_hist;
 
   public:
     void clear_history()
@@ -259,10 +259,10 @@ class Histories
         fill_multiarray<MainHistory, 2, 2, 2, 64 * 64>(hist, 0);
         fill_multiarray<CaptureHistory, 2, 12, 64, 7>(cap_hist, 0);
         fill_multiarray<PawnHistory, PawnHistory::SIZE, 12, 64>(pawn_hist, 0);
-        fill_multiarray<ContinuationHistory, 2, 13, 64, 13, 64>(cont_history, 0);
-        fill_multiarray<CorrectionHistory, 2, CorrectionHistory::SIZE>(corr_hist, CorrectionHistory(0));
+        fill_multiarray<ContinuationHistory, 2, 12, 64, 12, 64>(cont_history, 0);
+        fill_multiarray<CorrectionHistory, CorrectionHistory::SIZE, 2>(corr_hist, CorrectionHistory(0));
         fill_multiarray<CorrectionHistory, 2, 2, CorrectionHistory::SIZE>(mat_corr_hist, CorrectionHistory(0));
-        fill_multiarray<CorrectionHistory, 13, 64, 13, 64>(cont_corr_hist, CorrectionHistory(0));
+        fill_multiarray<CorrectionHistory, 12, 64, 12, 64>(cont_corr_hist, CorrectionHistory(0));
     }
 
     Histories()
@@ -316,12 +316,12 @@ class Histories
 
     CorrectionHistory &get_corr_hist(const bool turn, const Key pawn_key)
     {
-        return corr_hist[turn][pawn_key & CorrectionHistory::MASK];
+        return corr_hist[pawn_key & CorrectionHistory::MASK][turn];
     }
 
     constexpr CorrectionHistory get_corr_hist(const bool turn, const Key pawn_key) const
     {
-        return corr_hist[turn][pawn_key & CorrectionHistory::MASK];
+        return corr_hist[pawn_key & CorrectionHistory::MASK][turn];
     }
 
     CorrectionHistory &get_mat_corr_hist(const bool turn, const bool side, const Key mat_key)
