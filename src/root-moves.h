@@ -51,13 +51,13 @@ class RootMoves
                              [move](const RootMove &rm) { return rm.pv[0] == move; });
     }
 
-    constexpr bool move_was_searched(Move move) const
+    const bool move_was_searched(Move move) const
     {
         return std::any_of(root_moves.begin(), root_moves.end(),
                            [move](const RootMove &rm) { return rm.pv[0] == move && rm.searched; });
     }
 
-    constexpr RootMove operator[](int index) const
+    const RootMove operator[](int index) const
     {
         return root_moves[index];
     }
@@ -72,7 +72,7 @@ class RootMoves
         std::sort(root_moves.begin(), root_moves.end());
     }
 
-    constexpr bool empty() const
+    const bool empty() const
     {
         return root_moves.empty();
     }
