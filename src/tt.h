@@ -246,5 +246,5 @@ class HashTable
 };
 
 #ifndef GENERATE
-HashTable *TT; /// shared hash table
+HashTable *TT; // shared hash table
 #endif

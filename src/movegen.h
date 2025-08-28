@@ -353,61 +353,33 @@ template <int movegen_type> constexpr int Board::gen_legal_moves(MoveList &moves
 
         if constexpr (quiet_movegen)
         {
-            if (!chess960)
+            // castle king side
+            if (rook_sq(color, 0) != NO_SQUARE)
             {
-                /// castle queen side
-                if (rook_sq(color, 0) != NO_SQUARE)
+                Square kingTo = Squares::C1.mirror(color), rook = rook_sq(color, 0), rookTo = Squares::D1.mirror(color);
+                if (!(attacked & (between_mask[king][kingTo] | Bitboard(kingTo))) &&
+                    (!((all ^ Bitboard(rook)) & (between_mask[king][kingTo] | Bitboard(kingTo))) || king == kingTo) &&
+                    (!((all ^ Bitboard(king)) & (between_mask[rook][rookTo] | Bitboard(rookTo))) || rook == rookTo) &&
+                    !(pinned & Bitboard(rook)))
                 {
-                    if (!(attacked & (7ULL << (king - 2))) && !(all & (7ULL << (king - 3))))
-                    {
-                        moves[nrMoves++] = Move(king, king - 4, MoveTypes::CASTLE);
-                    }
-                }
-                /// castle king side
-                if (rook_sq(color, 1) != NO_SQUARE)
-                {
-                    if (!(attacked & (7ULL << king)) && !(all & (3ULL << (king + 1))))
-                    {
-                        moves[nrMoves++] = Move(king, king + 3, MoveTypes::CASTLE);
-                    }
+                    moves[nrMoves++] = Move(king, rook, MoveTypes::CASTLE);
                 }
             }
-            else
+            // castle king side
+            if (rook_sq(color, 1) != NO_SQUARE)
             {
-                if (rook_sq(color, 0) != NO_SQUARE)
+                Square kingTo = Squares::G1.mirror(color), rook = rook_sq(color, 1), rookTo = Squares::F1.mirror(color);
+                if (!(attacked & (between_mask[king][kingTo] | Bitboard(kingTo))) &&
+                    (!((all ^ Bitboard(rook)) & (between_mask[king][kingTo] | Bitboard(kingTo))) || king == kingTo) &&
+                    (!((all ^ Bitboard(king)) & (between_mask[rook][rookTo] | Bitboard(rookTo))) || rook == rookTo) &&
+                    !(pinned & Bitboard(rook)))
                 {
-                    Square kingTo = Squares::C1.mirror(color), rook = rook_sq(color, 0),
-                           rookTo = Squares::D1.mirror(color);
-                    if (!(attacked & (between_mask[king][kingTo] | Bitboard(kingTo))) &&
-                        (!((all ^ Bitboard(rook)) & (between_mask[king][kingTo] | Bitboard(kingTo))) ||
-                         king == kingTo) &&
-                        (!((all ^ Bitboard(king)) & (between_mask[rook][rookTo] | Bitboard(rookTo))) ||
-                         rook == rookTo) &&
-                        !(pinned & Bitboard(rook)))
-                    {
-                        moves[nrMoves++] = Move(king, rook, MoveTypes::CASTLE);
-                    }
-                }
-                /// castle king side
-                if (rook_sq(color, 1) != NO_SQUARE)
-                {
-                    Square kingTo = Squares::G1.mirror(color), rook = rook_sq(color, 1),
-                           rookTo = Squares::F1.mirror(color);
-                    if (!(attacked & (between_mask[king][kingTo] | Bitboard(kingTo))) &&
-                        (!((all ^ Bitboard(rook)) & (between_mask[king][kingTo] | Bitboard(kingTo))) ||
-                         king == kingTo) &&
-                        (!((all ^ Bitboard(king)) & (between_mask[rook][rookTo] | Bitboard(rookTo))) ||
-                         rook == rookTo) &&
-                        !(pinned & Bitboard(rook)))
-                    {
-                        moves[nrMoves++] = Move(king, rook, MoveTypes::CASTLE);
-                    }
+                    moves[nrMoves++] = Move(king, rook, MoveTypes::CASTLE);
                 }
             }
         }
 
-        /// pinned pawns
-
+        // pinned pawns
         b1 = pinned & our_pawns & ~rank_mask[rank7];
         while (b1)
         {

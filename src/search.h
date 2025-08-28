@@ -215,7 +215,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
         return quiesce<pvNode>(alpha, beta, stack);
 
     constexpr bool allNode = !pvNode && !cutNode;
-    const bool nullSearch = (stack - 1)->move == NULLMOVE;
+    const bool null_search = (stack - 1)->move == NULLMOVE;
     const int previous_R = (stack - 1)->R;
     const int original_alpha = alpha;
     const Key key = board.key(), pawn_key = board.pawn_key(), white_mat_key = board.mat_key(WHITE),
@@ -369,14 +369,14 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
     (stack + 1)->killer = NULLMOVE;
     stack->threats = board.threats().all_threats;
 
-    /// internal iterative deepening (search at reduced depth to find a tt_move) (Rebel like)
+    // internal iterative deepening (search at reduced depth to find a tt_move) (Rebel like)
     if (pvNode && depth >= IIRPvNodeDepth && (!tt_hit || tt_depth + 4 <= depth))
         depth -= IIRPvNodeReduction;
-    /// also for cut nodes
+    // also for cut nodes
     if (cutNode && depth >= IIRCutNodeDepth && (!tt_hit || tt_depth + 4 <= depth))
         depth -= IIRCutNodeReduction;
 
-    if (!stack->excluded && !in_check && !nullSearch && (stack - 1)->eval != INF && board.captured() == NO_PIECE)
+    if (!stack->excluded && !in_check && !null_search && (stack - 1)->eval != INF && board.captured() == NO_PIECE)
     {
         int bonus = std::clamp<int>(-EvalHistCoef * ((stack - 1)->eval + static_eval), EvalHistMin, EvalHistMax) +
                     EvalHistMargin;
@@ -404,7 +404,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
                     return value;
             }
 
-            /// static null move pruning (don't prune when having a mate line, again stability)
+            // static null move pruning (don't prune when having a mate line, again stability)
             auto snmp_margin = [&](int depth, int improving, bool improving_after_move, bool is_cutnode,
                                    int complexity) {
                 return (SNMPMargin - SNMPImproving * improving) * depth -
@@ -416,8 +416,8 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
                     beta)
                 return beta > -MATE ? (eval + beta) / 2 : eval;
 
-            /// null move pruning (when last move wasn't null, we still have non pawn material, we have a good position)
-            if (!nullSearch && !stack->excluded && enemy_has_no_threats && board.has_non_pawn_material(turn) &&
+            // null move pruning (when last move wasn't null, we still have non pawn material, we have a good position)
+            if (!null_search && !stack->excluded && enemy_has_no_threats && board.has_non_pawn_material(turn) &&
                 eval >= beta + NMPEvalMargin * (depth <= 3) && eval >= static_eval &&
                 static_eval + NMPStaticEvalCoef * depth - NMPStaticEvalMargin >= beta)
             {
@@ -793,7 +793,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
     if (!played)
         return in_check ? -INF + ply : 0;
 
-    if (!bestMove && board.captured() == NO_PIECE && !nullSearch)
+    if (!bestMove && board.captured() == NO_PIECE && !null_search)
     {
         histories.update_cont_hist_move((stack - 1)->piece, (stack - 1)->move.get_to(), stack - 1,
                                         ContinuationHistory::bonus(depth) * FailLowContHistCoef / 128);
