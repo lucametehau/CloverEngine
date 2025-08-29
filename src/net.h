@@ -273,35 +273,29 @@ class Network
         {
             const int offset = b * BUCKET_UNROLL;
             const reg_type *reg_in = reinterpret_cast<const reg_type *>(&input[offset]);
+            const reg_type *reg1 = reinterpret_cast<const reg_type *>(&input_weights1[offset]);
+            const reg_type *reg2 = reinterpret_cast<const reg_type *>(&input_weights2[offset]);
+            const reg_type *reg3 =
+                sub3 ? reinterpret_cast<const reg_type *>(&nnue->input_weights[ind3 * SIDE_NEURONS + offset]) : nullptr;
+            const reg_type *reg4 =
+                add4 ? reinterpret_cast<const reg_type *>(&nnue->input_weights[ind4 * SIDE_NEURONS + offset]) : nullptr;
+            reg_type *reg_out = (reg_type *)&output[offset];
+
             for (int i = 0; i < UNROLL_LENGTH; i++)
+            {
                 regs[i] = reg_load(&reg_in[i]);
 
-            const reg_type *reg1 = reinterpret_cast<const reg_type *>(&input_weights1[offset]);
-            for (int i = 0; i < UNROLL_LENGTH; i++)
                 regs[i] = reg_sub16(regs[i], reg1[i]);
-            const reg_type *reg2 = reinterpret_cast<const reg_type *>(&input_weights2[offset]);
-            for (int i = 0; i < UNROLL_LENGTH; i++)
                 regs[i] = reg_add16(regs[i], reg2[i]);
 
-            if constexpr (sub3)
-            {
-                const reg_type *reg3 =
-                    reinterpret_cast<const reg_type *>(&nnue->input_weights[ind3 * SIDE_NEURONS + offset]);
-                for (int i = 0; i < UNROLL_LENGTH; i++)
+                if constexpr (sub3)
                     regs[i] = reg_sub16(regs[i], reg3[i]);
-            }
 
-            if constexpr (add4)
-            {
-                const reg_type *reg4 =
-                    reinterpret_cast<const reg_type *>(&nnue->input_weights[ind4 * SIDE_NEURONS + offset]);
-                for (int i = 0; i < UNROLL_LENGTH; i++)
+                if constexpr (add4)
                     regs[i] = reg_add16(regs[i], reg4[i]);
-            }
 
-            reg_type *reg_out = (reg_type *)&output[offset];
-            for (int i = 0; i < UNROLL_LENGTH; i++)
                 reg_save(&reg_out[i], regs[i]);
+            }
         }
     }
 
