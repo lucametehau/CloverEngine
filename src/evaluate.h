@@ -19,11 +19,7 @@
 #include "defs.h"
 #include "net.h"
 
-#ifndef TUNE_FLAG
-constexpr int seeVal[] = {SeeValPawn, SeeValKnight, SeeValBishop, SeeValRook, SeeValQueen, 20000, 0};
-#else
 int seeVal[] = {SeeValPawn, SeeValKnight, SeeValBishop, SeeValRook, SeeValQueen, 20000, 0};
-#endif
 
 inline int scale(Board &board)
 {
