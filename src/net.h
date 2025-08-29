@@ -232,40 +232,37 @@ class Network
 
     void apply_updates(int16_t *output, int16_t *input)
     {
-        reg_type regs[UNROLL_LENGTH];
-
         for (int b = 0; b < SIDE_NEURONS / BUCKET_UNROLL; b++)
         {
             const int offset = b * BUCKET_UNROLL;
             const reg_type *reg_in = reinterpret_cast<const reg_type *>(&input[offset]);
-            for (int i = 0; i < UNROLL_LENGTH; i++)
-                regs[i] = reg_load(&reg_in[i]);
-            for (int idx = 0; idx < add_size; idx++)
-            {
-                const reg_type *reg =
-                    reinterpret_cast<const reg_type *>(&nnue->input_weights[add_ind[idx] * SIDE_NEURONS + offset]);
-                for (int i = 0; i < UNROLL_LENGTH; i++)
-                    regs[i] = reg_add16(regs[i], reg[i]);
-            }
-
-            for (int idx = 0; idx < sub_size; idx++)
-            {
-                const reg_type *reg =
-                    reinterpret_cast<const reg_type *>(&nnue->input_weights[sub_ind[idx] * SIDE_NEURONS + offset]);
-                for (int i = 0; i < UNROLL_LENGTH; i++)
-                    regs[i] = reg_sub16(regs[i], reg[i]);
-            }
-
             reg_type *reg_out = (reg_type *)&output[offset];
+
             for (int i = 0; i < UNROLL_LENGTH; i++)
-                reg_save(&reg_out[i], regs[i]);
+            {
+                reg_type res = reg_load(&reg_in[i]);
+                for (int idx = 0; idx < add_size; idx++)
+                {
+                    const reg_type *reg =
+                        reinterpret_cast<const reg_type *>(&nnue->input_weights[add_ind[idx] * SIDE_NEURONS + offset]);
+                    res = reg_add16(res, reg[i]);
+                }
+
+                for (int idx = 0; idx < sub_size; idx++)
+                {
+                    const reg_type *reg =
+                        reinterpret_cast<const reg_type *>(&nnue->input_weights[sub_ind[idx] * SIDE_NEURONS + offset]);
+                    res = reg_sub16(res, reg[i]);
+                }
+
+                reg_save(&reg_out[i], res);
+            }
         }
     }
 
     template <bool sub3, bool add4>
     void apply_move_updates(int16_t *output, int16_t *input, int ind1, int ind2, int ind3 = 0, int ind4 = 0)
     {
-        reg_type regs[UNROLL_LENGTH];
         const int16_t *input_weights1 = reinterpret_cast<const int16_t *>(&nnue->input_weights[ind1 * SIDE_NEURONS]);
         const int16_t *input_weights2 = reinterpret_cast<const int16_t *>(&nnue->input_weights[ind2 * SIDE_NEURONS]);
 
@@ -283,18 +280,16 @@ class Network
 
             for (int i = 0; i < UNROLL_LENGTH; i++)
             {
-                regs[i] = reg_load(&reg_in[i]);
-
-                regs[i] = reg_sub16(regs[i], reg1[i]);
-                regs[i] = reg_add16(regs[i], reg2[i]);
+                reg_type reg = reg_sub16(reg_load(&reg_in[i]), reg1[i]);
+                reg = reg_add16(reg, reg2[i]);
 
                 if constexpr (sub3)
-                    regs[i] = reg_sub16(regs[i], reg3[i]);
+                    reg = reg_sub16(reg, reg3[i]);
 
                 if constexpr (add4)
-                    regs[i] = reg_add16(regs[i], reg4[i]);
+                    reg = reg_add16(reg, reg4[i]);
 
-                reg_save(&reg_out[i], regs[i]);
+                reg_save(&reg_out[i], reg);
             }
         }
     }
