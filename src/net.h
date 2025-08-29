@@ -446,14 +446,29 @@ class Network
         const reg_type *v = reinterpret_cast<const reg_type *>(&nnue->output_weights[output_bucket * HIDDEN_NEURONS]);
         const reg_type *v2 =
             reinterpret_cast<const reg_type *>(&nnue->output_weights[output_bucket * HIDDEN_NEURONS + SIDE_NEURONS]);
-        reg_type clamped;
-
-        for (int j = 0; j < NUM_REGS; j++)
+        
+        reg_type regs[4];
+        for (int j = 0; j < NUM_REGS; j += 4)
         {
-            clamped = reg_clamp(w[j]);
-            acc = reg_add32(acc, reg_madd16(reg_mullo(clamped, v[j]), clamped));
-            clamped = reg_clamp(w2[j]);
-            acc = reg_add32(acc, reg_madd16(reg_mullo(clamped, v2[j]), clamped));
+            regs[0] = reg_clamp(w[j]);
+            regs[1] = reg_clamp(w[j + 1]);
+            regs[2] = reg_clamp(w[j + 2]);
+            regs[3] = reg_clamp(w[j + 3]);
+
+            acc = reg_add32(acc, reg_madd16(reg_mullo(regs[0], v[j]), regs[0]));
+            acc = reg_add32(acc, reg_madd16(reg_mullo(regs[1], v[j + 1]), regs[1]));
+            acc = reg_add32(acc, reg_madd16(reg_mullo(regs[2], v[j + 2]), regs[2]));
+            acc = reg_add32(acc, reg_madd16(reg_mullo(regs[3], v[j + 3]), regs[3]));
+
+            regs[0] = reg_clamp(w2[j]);
+            regs[1] = reg_clamp(w2[j + 1]);
+            regs[2] = reg_clamp(w2[j + 2]);
+            regs[3] = reg_clamp(w2[j + 3]);
+
+            acc = reg_add32(acc, reg_madd16(reg_mullo(regs[0], v2[j]), regs[0]));
+            acc = reg_add32(acc, reg_madd16(reg_mullo(regs[1], v2[j + 1]), regs[1]));
+            acc = reg_add32(acc, reg_madd16(reg_mullo(regs[2], v2[j + 2]), regs[2]));
+            acc = reg_add32(acc, reg_madd16(reg_mullo(regs[3], v2[j + 3]), regs[3]));
         }
 
         return (nnue->output_biases[output_bucket] + get_sum(acc) / Q_IN) * 225 / Q_IN_HIDDEN;
