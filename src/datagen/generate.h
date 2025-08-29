@@ -69,7 +69,6 @@ void generate_fens(SearchThread &white_thread_data, SearchThread &black_thread_d
         thread_data->TT = new HashTable();
         thread_data->TT->init(4 * MB);
         thread_data->info = info;
-        thread_data->board.chess960 = FRC_DATAGEN;
     }
 
 
@@ -214,8 +213,6 @@ void play_datagen_game(uint64_t dfrc_index, std::vector<std::string> &moves)
     thread_data.TT->init(4 * MB);
     thread_data.info = info;
 
-    thread_data.board.chess960 = FRC_DATAGEN;
-
     std::unique_ptr<std::deque<HistoricalState>> states;
     states = std::make_unique<std::deque<HistoricalState>>(1);
     double result = 0;
@@ -245,7 +242,7 @@ void play_datagen_game(uint64_t dfrc_index, std::vector<std::string> &moves)
 
     // for (int i = 0; i < nr_moves; i++)
     // {
-    //     std::cout << pos_moves[i].to_string(thread_data.board.chess960) << "\n";
+    //     std::cout << pos_moves[i].to_string(true) << "\n";
     // }
 
     thread_data.board.print();

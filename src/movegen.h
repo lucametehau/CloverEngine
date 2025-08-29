@@ -601,8 +601,6 @@ constexpr bool is_legal(Board &board, Move move)
 
         if (board.threats().all_threats & (between_mask[from][to] | Bitboard(to)))
             return false;
-        if (!board.chess960)
-            return side ? !(all & (3ULL << (from + 1))) : !(all & (7ULL << (from - 3)));
 
         if ((!((all ^ Bitboard(rFrom)) & (between_mask[from][to] | Bitboard(to))) || from == to) &&
             (!((all ^ Bitboard(from)) & (between_mask[rFrom][rTo] | Bitboard(rTo))) || rFrom == rTo))

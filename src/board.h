@@ -43,7 +43,7 @@ struct HistoricalState
 class Board
 {
   public:
-    bool turn, chess960;
+    bool turn;
 
     HistoricalState *state;
 

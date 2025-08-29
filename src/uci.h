@@ -198,7 +198,6 @@ void UCI::uci_loop()
                         iss >> component;
                         fen += component + " ";
                     }
-                    thread_pool.get_board().chess960 = info.is_chess960();
                     thread_pool.get_board().set_fen(fen, states->back());
                 }
                 else if (type == "moves")
@@ -285,8 +284,7 @@ void UCI::uci_loop()
                 {
                     std::cout << is_legal(thread_pool.get_board(), move) << ", "
                               << is_legal_slow(thread_pool.get_board(), move) << "\n";
-                    std::cout << move.to_string(thread_pool.get_board().chess960) << " " << int(move.get_type()) << " "
-                              << i << "\n";
+                    std::cout << move.to_string(info.is_chess960()) << " " << int(move.get_type()) << " " << i << "\n";
                     exit(0);
                 }
             }
@@ -405,7 +403,11 @@ void UCI::is_ready()
 void UCI::go_perft(int depth)
 {
     std::time_t t1 = get_current_time();
-    uint64_t nodes = perft<true>(thread_pool.get_board(), depth);
+    uint64_t nodes;
+    if (info.is_chess960())
+        nodes = perft<true, true>(thread_pool.get_board(), depth);
+    else
+        nodes = perft<true, false>(thread_pool.get_board(), depth);
     std::time_t t2 = get_current_time();
     long double t = (t2 - t1) / 1000.0;
     uint64_t nps = nodes / t;

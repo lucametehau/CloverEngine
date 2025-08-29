@@ -17,7 +17,7 @@
 #pragma once
 #include "movegen.h"
 
-template <bool RootNode> uint64_t perft(Board &board, int depth)
+template <bool RootNode, bool Chess960> uint64_t perft(Board &board, int depth)
 {
     MoveList moves;
     int nrMoves = board.gen_legal_moves<MOVEGEN_ALL>(moves);
@@ -33,11 +33,11 @@ template <bool RootNode> uint64_t perft(Board &board, int depth)
         // Board new_board = board;
         board.make_move(move, next_state);
         uint64_t x;
-        x = perft<false>(board, depth - 1);
+        x = perft<false, Chess960>(board, depth - 1);
         nodes += x;
         board.undo_move(move);
         if constexpr (RootNode)
-            std::cout << move.to_string(board.chess960) << ": " << x << "\n";
+            std::cout << move.to_string(Chess960) << ": " << x << "\n";
     }
     return nodes;
 }

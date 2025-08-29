@@ -614,7 +614,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
             // current root move info
             if (main_thread() && printStats && info.get_time_elapsed() > 2500)
             {
-                std::cout << "info depth " << depth << " currmove " << move.to_string(board.chess960)
+                std::cout << "info depth " << depth << " currmove " << move.to_string(info.is_chess960())
                           << " currmovenumber " << played << std::endl;
             }
         }
@@ -840,7 +840,7 @@ void SearchThread::print_iteration_info(uint64_t t, int depth, uint64_t total_no
         std::cout << "tbhits " << total_tb_hits << " hashfull " << TT->hashfull() << " ";
         std::cout << "pv ";
         for (int i = 0; i < root_moves[multipv].pv_len; i++)
-            std::cout << root_moves[multipv].pv[i].to_string(board.chess960) << " ";
+            std::cout << root_moves[multipv].pv[i].to_string(info.is_chess960()) << " ";
         std::cout << std::endl;
     }
 }
