@@ -452,10 +452,6 @@ class Network
         {
             clamped = reg_clamp(w[j]);
             acc = reg_add32(acc, reg_madd16(reg_mullo(clamped, v[j]), clamped));
-        }
-
-        for (int j = 0; j < NUM_REGS; j++)
-        {
             clamped = reg_clamp(w2[j]);
             acc = reg_add32(acc, reg_madd16(reg_mullo(clamped, v2[j]), clamped));
         }
