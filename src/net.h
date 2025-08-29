@@ -232,6 +232,7 @@ class Network
 
     void apply_updates(int16_t *output, int16_t *input)
     {
+        reg_type regs[UNROLL_LENGTH];
         for (int b = 0; b < SIDE_NEURONS / BUCKET_UNROLL; b++)
         {
             const int offset = b * BUCKET_UNROLL;
@@ -240,22 +241,22 @@ class Network
 
             for (int i = 0; i < UNROLL_LENGTH; i++)
             {
-                reg_type res = reg_load(&reg_in[i]);
+                regs[i] = reg_load(&reg_in[i]);
                 for (int idx = 0; idx < add_size; idx++)
                 {
                     const reg_type *reg =
                         reinterpret_cast<const reg_type *>(&nnue->input_weights[add_ind[idx] * SIDE_NEURONS + offset]);
-                    res = reg_add16(res, reg[i]);
+                    regs[i] = reg_add16(regs[i], reg[i]);
                 }
 
                 for (int idx = 0; idx < sub_size; idx++)
                 {
                     const reg_type *reg =
                         reinterpret_cast<const reg_type *>(&nnue->input_weights[sub_ind[idx] * SIDE_NEURONS + offset]);
-                    res = reg_sub16(res, reg[i]);
+                    regs[i] = reg_sub16(regs[i], reg[i]);
                 }
 
-                reg_save(&reg_out[i], res);
+                reg_save(&reg_out[i], regs[i]);
             }
         }
     }
