@@ -280,9 +280,9 @@ void UCI::uci_loop()
             for (int i = 0; i < 32768; i++)
             {
                 Move move(i);
-                if (is_legal(thread_pool.get_board(), move) != is_legal_slow(thread_pool.get_board(), move))
+                if (thread_pool.get_board().is_legal(move) != is_legal_slow(thread_pool.get_board(), move))
                 {
-                    std::cout << is_legal(thread_pool.get_board(), move) << ", "
+                    std::cout << thread_pool.get_board().is_legal(move) << ", "
                               << is_legal_slow(thread_pool.get_board(), move) << "\n";
                     std::cout << move.to_string(info.is_chess960()) << " " << int(move.get_type()) << " " << i << "\n";
                     exit(0);
