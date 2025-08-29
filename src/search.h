@@ -658,9 +658,9 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
 
             R /= LMRGrain;
 
-            R = std::clamp(R, 1, new_depth); // clamp R
             stack->R = R;
-            score = -search<false, false, true>(-alpha - 1, -alpha, new_depth - R, stack + 1);
+            int lmr_depth = std::clamp(new_depth - R, 0, new_depth - 1) + pvNode;
+            score = -search<false, false, true>(-alpha - 1, -alpha, lmr_depth, stack + 1);
             stack->R = 0;
             tried_count++;
 
