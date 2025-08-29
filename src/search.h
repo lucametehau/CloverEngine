@@ -524,7 +524,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
                         picker.skip_quiets();
 
                     // late move pruning
-                    if (new_depth <= LMPDepth && played >= (LMPBias + new_depth * new_depth) / (2 - improving))
+                    if (new_depth <= LMPDepth && played >= (LMPBias + depth * depth) / (2 - improving))
                         picker.skip_quiets();
 
                     // history pruning
