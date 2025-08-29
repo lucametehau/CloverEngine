@@ -263,6 +263,7 @@ class Network
     template <bool sub3, bool add4>
     void apply_move_updates(int16_t *output, int16_t *input, int ind1, int ind2, int ind3 = 0, int ind4 = 0)
     {
+        reg_type regs[UNROLL_LENGTH];
         const int16_t *input_weights1 = reinterpret_cast<const int16_t *>(&nnue->input_weights[ind1 * SIDE_NEURONS]);
         const int16_t *input_weights2 = reinterpret_cast<const int16_t *>(&nnue->input_weights[ind2 * SIDE_NEURONS]);
 
@@ -280,16 +281,18 @@ class Network
 
             for (int i = 0; i < UNROLL_LENGTH; i++)
             {
-                reg_type reg = reg_sub16(reg_load(&reg_in[i]), reg1[i]);
-                reg = reg_add16(reg, reg2[i]);
+                regs[i] = reg_load(&reg_in[i]);
+
+                regs[i] = reg_sub16(regs[i], reg1[i]);
+                regs[i] = reg_add16(regs[i], reg2[i]);
 
                 if constexpr (sub3)
-                    reg = reg_sub16(reg, reg3[i]);
+                    regs[i] = reg_sub16(regs[i], reg3[i]);
 
                 if constexpr (add4)
-                    reg = reg_add16(reg, reg4[i]);
+                    regs[i] = reg_add16(regs[i], reg4[i]);
 
-                reg_save(&reg_out[i], reg);
+                reg_save(&reg_out[i], regs[i]);
             }
         }
     }
