@@ -273,35 +273,29 @@ class Network
         {
             const int offset = b * BUCKET_UNROLL;
             const reg_type *reg_in = reinterpret_cast<const reg_type *>(&input[offset]);
+            const reg_type *reg1 = reinterpret_cast<const reg_type *>(&input_weights1[offset]);
+            const reg_type *reg2 = reinterpret_cast<const reg_type *>(&input_weights2[offset]);
+            const reg_type *reg3 =
+                sub3 ? reinterpret_cast<const reg_type *>(&nnue->input_weights[ind3 * SIDE_NEURONS + offset]) : nullptr;
+            const reg_type *reg4 =
+                add4 ? reinterpret_cast<const reg_type *>(&nnue->input_weights[ind4 * SIDE_NEURONS + offset]) : nullptr;
+            reg_type *reg_out = (reg_type *)&output[offset];
+
             for (int i = 0; i < UNROLL_LENGTH; i++)
+            {
                 regs[i] = reg_load(&reg_in[i]);
 
-            const reg_type *reg1 = reinterpret_cast<const reg_type *>(&input_weights1[offset]);
-            for (int i = 0; i < UNROLL_LENGTH; i++)
                 regs[i] = reg_sub16(regs[i], reg1[i]);
-            const reg_type *reg2 = reinterpret_cast<const reg_type *>(&input_weights2[offset]);
-            for (int i = 0; i < UNROLL_LENGTH; i++)
                 regs[i] = reg_add16(regs[i], reg2[i]);
 
-            if constexpr (sub3)
-            {
-                const reg_type *reg3 =
-                    reinterpret_cast<const reg_type *>(&nnue->input_weights[ind3 * SIDE_NEURONS + offset]);
-                for (int i = 0; i < UNROLL_LENGTH; i++)
+                if constexpr (sub3)
                     regs[i] = reg_sub16(regs[i], reg3[i]);
-            }
 
-            if constexpr (add4)
-            {
-                const reg_type *reg4 =
-                    reinterpret_cast<const reg_type *>(&nnue->input_weights[ind4 * SIDE_NEURONS + offset]);
-                for (int i = 0; i < UNROLL_LENGTH; i++)
+                if constexpr (add4)
                     regs[i] = reg_add16(regs[i], reg4[i]);
-            }
 
-            reg_type *reg_out = (reg_type *)&output[offset];
-            for (int i = 0; i < UNROLL_LENGTH; i++)
                 reg_save(&reg_out[i], regs[i]);
+            }
         }
     }
 
@@ -446,29 +440,14 @@ class Network
         const reg_type *v = reinterpret_cast<const reg_type *>(&nnue->output_weights[output_bucket * HIDDEN_NEURONS]);
         const reg_type *v2 =
             reinterpret_cast<const reg_type *>(&nnue->output_weights[output_bucket * HIDDEN_NEURONS + SIDE_NEURONS]);
-        
-        reg_type regs[4];
-        for (int j = 0; j < NUM_REGS; j += 4)
+        reg_type clamped;
+
+        for (int j = 0; j < NUM_REGS; j++)
         {
-            regs[0] = reg_clamp(w[j]);
-            regs[1] = reg_clamp(w[j + 1]);
-            regs[2] = reg_clamp(w[j + 2]);
-            regs[3] = reg_clamp(w[j + 3]);
-
-            acc = reg_add32(acc, reg_madd16(reg_mullo(regs[0], v[j]), regs[0]));
-            acc = reg_add32(acc, reg_madd16(reg_mullo(regs[1], v[j + 1]), regs[1]));
-            acc = reg_add32(acc, reg_madd16(reg_mullo(regs[2], v[j + 2]), regs[2]));
-            acc = reg_add32(acc, reg_madd16(reg_mullo(regs[3], v[j + 3]), regs[3]));
-
-            regs[0] = reg_clamp(w2[j]);
-            regs[1] = reg_clamp(w2[j + 1]);
-            regs[2] = reg_clamp(w2[j + 2]);
-            regs[3] = reg_clamp(w2[j + 3]);
-
-            acc = reg_add32(acc, reg_madd16(reg_mullo(regs[0], v2[j]), regs[0]));
-            acc = reg_add32(acc, reg_madd16(reg_mullo(regs[1], v2[j + 1]), regs[1]));
-            acc = reg_add32(acc, reg_madd16(reg_mullo(regs[2], v2[j + 2]), regs[2]));
-            acc = reg_add32(acc, reg_madd16(reg_mullo(regs[3], v2[j + 3]), regs[3]));
+            clamped = reg_clamp(w[j]);
+            acc = reg_add32(acc, reg_madd16(reg_mullo(clamped, v[j]), clamped));
+            clamped = reg_clamp(w2[j]);
+            acc = reg_add32(acc, reg_madd16(reg_mullo(clamped, v2[j]), clamped));
         }
 
         return (nnue->output_biases[output_bucket] + get_sum(acc) / Q_IN) * 225 / Q_IN_HIDDEN;
