@@ -321,6 +321,106 @@ class Board
 
     template <int movegen_type> constexpr int gen_legal_moves(MoveList &moves) const;
 
+    constexpr bool is_pseudo_legal(Move move) const
+    {
+        if (!move)
+            return false;
+
+        const Square from = move.get_from(), to = move.get_to();
+        const int t = move.get_type();
+        const Piece pt = piece_type_at(from);
+        const bool color = turn;
+        const Bitboard own = get_bb_color(color), enemy = get_bb_color(1 ^ color);
+        const Bitboard occ = own | enemy;
+
+        if (!own.has_square(from))
+            return false;
+
+        if (t == MoveTypes::CASTLE)
+            return true;
+
+        if (own.has_square(to))
+            return false;
+
+        if (pt == PieceTypes::PAWN)
+        {
+            Bitboard att = attacks::pawnAttacksMask[color][from];
+
+            if (t == MoveTypes::ENPASSANT)
+                return to == enpas() && att.has_square(to);
+
+            Bitboard push = shift_mask<NORTH>(color, Bitboard(from)) & ~occ;
+            const int rank_to = to / 8;
+
+            if (move.is_promo())
+                return (rank_to == 0 || rank_to == 7) && ((att & enemy) | push).has_square(to);
+
+            // add double push to mask
+            if (from / 8 == 1 || from / 8 == 6)
+                push |= shift_mask<NORTH>(color, push) & ~occ;
+
+            return (rank_to != 0 && rank_to != 7) && t == MoveTypes::NO_TYPE && ((att & enemy) | push).has_square(to);
+        }
+
+        // check for normal moves
+        return t == MoveTypes::NO_TYPE && attacks::genAttacksSq(occ, from, pt).has_square(to);
+    }
+
+    constexpr bool is_legal(Move move) const
+    {
+        if (!is_pseudo_legal(move))
+            return false;
+
+        const bool us = turn, enemy = 1 ^ us;
+        const Square king = get_king(us);
+        Square from = move.get_from(), to = move.get_to();
+        const Bitboard all = get_bb_color(WHITE) | get_bb_color(BLACK);
+
+        if (move.get_type() == MoveTypes::CASTLE)
+        {
+            bool side = to > from;
+            if (from != king || to != rook_sq(us, side) || checkers())
+                return false;
+
+            const Square rFrom = to, rTo = (side ? Squares::F1 : Squares::D1).mirror(us);
+            to = (side ? Squares::G1 : Squares::C1).mirror(us);
+
+            if (threats().all_threats & (between_mask[from][to] | Bitboard(to)))
+                return false;
+
+            if ((!((all ^ Bitboard(rFrom)) & (between_mask[from][to] | Bitboard(to))) || from == to) &&
+                (!((all ^ Bitboard(from)) & (between_mask[rFrom][rTo] | Bitboard(rTo))) || rFrom == rTo))
+            {
+                return !pinned_pieces().has_square(rFrom);
+            }
+
+            return false;
+        }
+
+        if (move.get_type() == MoveTypes::ENPASSANT)
+        {
+            const Square cap = shift_square<SOUTH>(us, to);
+            const Bitboard all_no_move = all ^ Bitboard(from) ^ Bitboard(to) ^ Bitboard(cap);
+
+            return !(attacks::genAttacksBishop(all_no_move, king) & diagonal_sliders(enemy)) &&
+                   !(attacks::genAttacksRook(all_no_move, king) & orthogonal_sliders(enemy));
+        }
+
+        if (piece_type_at(from) == PieceTypes::KING)
+            return !get_attackers(enemy, all ^ Bitboard(from), to);
+
+        bool notInCheck = !pinned_pieces().has_square(from) || between_mask[king][to].has_square(from) ||
+                          between_mask[king][from].has_square(to);
+        if (!notInCheck)
+            return 0;
+
+        if (!checkers())
+            return 1;
+
+        return checkers().count() == 2 ? false
+                                       : (checkers() | between_mask[king][checkers().get_lsb_square()]).has_square(to);
+    }
+
     constexpr bool has_non_pawn_material(const bool color) const
     {
         return (get_bb_piece(PieceTypes::KING, color) ^ get_bb_piece(PieceTypes::PAWN, color)) != get_bb_color(color);

@@ -138,7 +138,7 @@ class Movepick
         case Stages::STAGE_TTMOVE: {
             trueStage = Stages::STAGE_TTMOVE;
             stage++;
-            if (is_legal(board, tt_move))
+            if (board.is_legal(tt_move))
                 return tt_move;
         }
         case Stages::STAGE_GEN_NOISY: {
@@ -189,7 +189,7 @@ class Movepick
         case Stages::STAGE_KILLER: {
             trueStage = Stages::STAGE_KILLER;
             stage++;
-            if (!skip_quiets_flag && is_legal(board, killer))
+            if (!skip_quiets_flag && board.is_legal(killer))
                 return killer;
         }
         case Stages::STAGE_GEN_QUIETS: {
@@ -283,7 +283,7 @@ class Movepick
         // Here begin the QS stages.
         case Stages::STAGE_QS_TTMOVE: {
             stage++;
-            if (is_legal(board, tt_move))
+            if (board.is_legal(tt_move))
                 return tt_move;
         }
         case Stages::STAGE_QS_GEN_NOISY: {
@@ -361,7 +361,7 @@ class Movepick
         // Here begin the Probcut stages.
         case Stages::STAGE_PC_TTMOVE: {
             stage++;
-            if (is_legal(board, tt_move))
+            if (board.is_legal(tt_move))
                 return tt_move;
         }
         case Stages::STAGE_PC_GEN_NOISY: {
