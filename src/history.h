@@ -364,8 +364,9 @@ class Histories
         get_pawn_hist(piece, to, pawn_key).update(bonus);
     }
 
-    constexpr int get_history_search(const Move move, const Piece piece, const Bitboard threats, const bool turn,
-                                     StackEntry *stack, const Key pawn_key) const
+    __attribute__((always_inline)) constexpr int get_history_search(const Move move, const Piece piece,
+                                                                    const Bitboard threats, const bool turn,
+                                                                    StackEntry *stack, const Key pawn_key) const
     {
         const Square to = move.get_to();
         return (QuietSearchHistCoef * get_hist(move.get_from(), to, move.get_from_to(), turn, threats) +
