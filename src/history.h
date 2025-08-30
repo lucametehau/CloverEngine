@@ -226,10 +226,11 @@ class StackEntry
 { /// info to keep in the stack
   public:
     constexpr StackEntry()
-        : piece(NO_PIECE), move(NULLMOVE), killer(NULLMOVE), excluded(NULLMOVE), eval(0), R(0), cutoff_cnt(0),
-          threats(0)
+        : was_pv(false), piece(NO_PIECE), move(NULLMOVE), killer(NULLMOVE), excluded(NULLMOVE), eval(0), R(0),
+          cutoff_cnt(0), threats(0)
     {
     }
+    bool was_pv;
     Piece piece;
     Move move, killer, excluded;
     int eval;

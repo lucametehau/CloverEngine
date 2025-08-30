@@ -268,7 +268,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
         tt_move = entry->move;
         eval = entry->eval;
         tt_depth = entry->depth();
-        was_pv |= entry->was_pv();
+        stack->was_pv = was_pv |= entry->was_pv();
         if constexpr (!pvNode)
         {
             if (score != VALUE_NONE && tt_depth >= depth &&
@@ -792,6 +792,9 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
 
     if (!played)
         return in_check ? -INF + ply : 0;
+
+    if (!bestMove)
+        was_pv |= (stack - 1)->was_pv;
 
     if (!bestMove && board.captured() == NO_PIECE && !null_search)
     {
