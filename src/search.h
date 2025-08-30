@@ -45,7 +45,7 @@ template <bool pvNode> int SearchThread::quiesce(int alpha, int beta, StackEntry
         return evaluate(board, NN);
 
     pv_table_len[ply] = 0;
-    nodes++;
+    nodes.fetch_add(1, std::memory_order_relaxed);
     if (board.is_draw(ply))
         return draw_score();
 
@@ -234,7 +234,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
     int tt_bound = NONE, tt_value = 0, tt_depth = -100;
     bool tt_hit = false;
 
-    nodes++;
+    nodes.fetch_add(1, std::memory_order_relaxed);
     sel_depth = std::max(sel_depth, ply);
     (stack - 1)->R = 0; // reset to not have to reset in LMR
 
@@ -621,7 +621,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
 
         int new_depth = depth + ex, R = 1 * LMRGrain;
 
-        uint64_t nodes_previously = nodes;
+        uint64_t nodes_previously = get_nodes();
         int score = -INF, tried_count = 0;
 
         // late move reductions
@@ -696,7 +696,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
         {
             RootMove &root_move = root_moves.get_root_move(move);
 
-            root_move.nodes_searched += nodes - nodes_previously;
+            root_move.nodes_searched += get_nodes() - nodes_previously;
             root_move.search_score = score;
 
             if (played == 1 || score > alpha)

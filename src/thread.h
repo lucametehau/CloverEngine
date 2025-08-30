@@ -44,7 +44,7 @@ enum ThreadStates : ThreadState
 
 class ThreadPool;
 
-class SearchThread
+class alignas(64) SearchThread
 {
   public:
     Info info;
@@ -68,8 +68,8 @@ class SearchThread
     int root_eval;
 
   public:
-    uint64_t tb_hits;
-    int64_t nodes;
+    std::atomic<int64_t> tb_hits;
+    std::atomic<int64_t> nodes;
     int completed_depth;
     Board board;
     Network NN;
@@ -107,6 +107,15 @@ class SearchThread
     bool must_stop()
     {
         return state & (ThreadStates::STOP | ThreadStates::EXIT);
+    }
+
+    int64_t get_nodes()
+    {
+        return nodes.load(std::memory_order_relaxed);
+    }
+    int64_t get_tb_hits()
+    {
+        return tb_hits.load(std::memory_order_relaxed);
     }
 
     void wait_for_finish()
@@ -211,9 +220,9 @@ class SearchThread
         return must_stop();
     }
 
-    constexpr int draw_score() const
+    int draw_score()
     {
-        return 1 - (nodes & 2);
+        return 1 - (get_nodes() & 2);
     }
 };
 
@@ -296,7 +305,7 @@ class ThreadPool
     {
         uint64_t nodes = 0;
         for (auto &thread : threads)
-            nodes += thread->nodes;
+            nodes += thread->get_nodes();
         return nodes;
     }
 
@@ -304,7 +313,7 @@ class ThreadPool
     {
         uint64_t tbhits = 0;
         for (auto &thread : threads)
-            tbhits += thread->tb_hits;
+            tbhits += thread->get_tb_hits();
         return tbhits;
     }
 
