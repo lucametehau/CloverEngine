@@ -44,7 +44,7 @@ enum ThreadStates : ThreadState
 
 class ThreadPool;
 
-align(64) class SearchThread
+class alignas(64) SearchThread
 {
   public:
     Info info;
