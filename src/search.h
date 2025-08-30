@@ -914,7 +914,7 @@ void SearchThread::iterative_deepening()
     {
         for (int i = 0; i < nr_moves; i++)
             root_moves[i].searched = false;
-        for (multipv = 0; multipv < info.get_multipv(); multipv++)
+        for (multipv = 0; multipv < info.get_multipv() + (thread_id % 4 == 3); multipv++)
         {
             int window = AspirationWindowsValue +
                          root_moves[0].search_score * root_moves[0].search_score / AspirationWindowsDivisor;
