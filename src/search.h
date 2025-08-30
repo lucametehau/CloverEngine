@@ -865,6 +865,7 @@ void SearchThread::start_search()
 #endif
     NN.init(board);
     clear_stack();
+    passed_soft_limit = false;
     nodes = sel_depth = tb_hits = 0;
     time_check_count = 0;
     best_move_cnt = 0;
@@ -888,7 +889,10 @@ void SearchThread::start_search()
     iterative_deepening();
 
     if (!main_thread())
+    {
+        passed_soft_limit = false; // reset
         return;
+    }
 
 #ifndef GENERATE
     thread_pool->stop();
@@ -982,33 +986,35 @@ void SearchThread::iterative_deepening()
             }
         }
 
-        if (main_thread() && !must_stop())
+        double scoreChange = 1.0, bestMoveStreak = 1.0, nodesSearchedPercentage = 1.0;
+        if (id_depth >= TimeManagerMinDepth)
         {
-            double scoreChange = 1.0, bestMoveStreak = 1.0, nodesSearchedPercentage = 1.0;
-            if (id_depth >= TimeManagerMinDepth)
-            {
-                scoreChange = std::clamp<double>(
-                    TimeManagerScoreBias + 1.0 * (last_root_score - root_moves[0].search_score) / TimeManagerScoreDiv,
-                    TimeManagerScoreMin, TimeManagerScoreMax); /// adjust time based on score change
-                best_move_cnt = (root_moves[0].move() == last_best_move ? best_move_cnt + 1 : 1);
-                /// adjust time based on how many nodes from the total searched nodes were used for the best move
-                nodesSearchedPercentage = 1.0 * root_moves[0].nodes_searched / nodes;
-                nodesSearchedPercentage =
-                    TimeManagerNodesSearchedMaxPercentage - TimeManagerNodesSearchedCoef * nodesSearchedPercentage;
-                bestMoveStreak =
-                    TimeManagerBestMoveMax -
-                    TimeManagerbestMoveStep *
-                        std::min(10, best_move_cnt); /// adjust time based on how long the best move was the same
-            }
-            info.set_recommended_soft_limit(scoreChange * bestMoveStreak * nodesSearchedPercentage);
-            last_root_score = root_moves[0].score;
-            last_best_move = root_moves[0].move();
+            scoreChange = std::clamp<double>(
+                TimeManagerScoreBias + 1.0 * (last_root_score - root_moves[0].search_score) / TimeManagerScoreDiv,
+                TimeManagerScoreMin, TimeManagerScoreMax); /// adjust time based on score change
+            best_move_cnt = (root_moves[0].move() == last_best_move ? best_move_cnt + 1 : 1);
+            /// adjust time based on how many nodes from the total searched nodes were used for the best move
+            nodesSearchedPercentage = 1.0 * root_moves[0].nodes_searched / nodes;
+            nodesSearchedPercentage =
+                TimeManagerNodesSearchedMaxPercentage - TimeManagerNodesSearchedCoef * nodesSearchedPercentage;
+            bestMoveStreak =
+                TimeManagerBestMoveMax -
+                TimeManagerbestMoveStep *
+                    std::min(10, best_move_cnt); /// adjust time based on how long the best move was the same
         }
+        last_root_score = root_moves[0].score;
+        last_best_move = root_moves[0].move();
+
+        double factor = scoreChange * bestMoveStreak * nodesSearchedPercentage;
+        if (main_thread() && !must_stop())
+            info.set_recommended_soft_limit(factor);
+        else if (!main_thread() && info.would_pass_soft_limit(factor))
+            passed_soft_limit = true;
 
         if (must_stop())
             break;
 
-        if (id_depth == limitDepth)
+        if (id_depth == limitDepth || (info.is_timeset() && thread_pool->threads_recommend_stopping()))
         {
             state |= STOP;
             break;

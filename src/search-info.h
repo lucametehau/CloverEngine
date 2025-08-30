@@ -49,6 +49,10 @@ class Info
     {
         return chess960;
     }
+    constexpr bool is_timeset() const
+    {
+        return timeset;
+    }
 
     void set_soft_limit(std::time_t time)
     {
@@ -119,6 +123,10 @@ class Info
     const bool soft_limit_passed() const
     {
         return timeset && soft_limit != -1 && get_time_elapsed() >= recommended_soft_limit;
+    }
+    const bool would_pass_soft_limit(const float factor) const
+    {
+        return timeset && soft_limit != -1 && get_time_elapsed() >= soft_limit * factor;
     }
     const bool hard_limit_passed() const
     {

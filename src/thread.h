@@ -70,6 +70,7 @@ class alignas(64) SearchThread
   public:
     std::atomic<int64_t> tb_hits;
     std::atomic<int64_t> nodes;
+    std::atomic<bool> passed_soft_limit;
     int completed_depth;
     Board board;
     Network NN;
@@ -116,6 +117,10 @@ class alignas(64) SearchThread
     int64_t get_tb_hits()
     {
         return tb_hits.load(std::memory_order_relaxed);
+    }
+    bool has_passed_soft_limit()
+    {
+        return passed_soft_limit.load(std::memory_order_relaxed);
     }
 
     void wait_for_finish()
@@ -284,7 +289,9 @@ class ThreadPool
     void clear_info()
     {
         for (auto &thread : threads)
+        {
             thread->nodes = thread->tb_hits = 0;
+        }
     }
     void clear_history()
     {
@@ -315,6 +322,14 @@ class ThreadPool
         for (auto &thread : threads)
             tbhits += thread->get_tb_hits();
         return tbhits;
+    }
+
+    bool threads_recommend_stopping()
+    {
+        std::size_t count = 0;
+        for (auto &thread : threads)
+            count += thread->has_passed_soft_limit();
+        return count >= threads.size() / 2;
     }
 
     void search(Info _info)
