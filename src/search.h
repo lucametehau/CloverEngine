@@ -967,7 +967,7 @@ void SearchThread::iterative_deepening()
                     break;
                 }
 
-                window += window * AspirationWindowExpandMargin / 100;
+                window += window * AspirationWindowExpandMargin * (4 + thread_id % 4) / 400;
             }
 
             root_moves.sort(multipv);
