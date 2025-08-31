@@ -537,7 +537,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
 
                     // see pruning for quiet moves
                     if (new_depth <= SEEPruningQuietDepth && !in_check &&
-                        !see(board, move, -SEEPruningQuietMargin * new_depth))
+                        !see(board, move, -SEEPruningQuietMargin * new_depth - history / SEEQuietHistDiv))
                         continue;
                 }
                 else
