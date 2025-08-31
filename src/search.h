@@ -368,6 +368,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
     (stack + 2)->cutoff_cnt = 0;
     (stack + 1)->killer = NULLMOVE;
     stack->threats = board.threats().all_threats;
+    stack->complexity = complexity;
 
     // internal iterative deepening (search at reduced depth to find a tt_move) (Rebel like)
     if (pvNode && depth >= IIRPvNodeDepth && (!tt_hit || tt_depth + 4 <= depth))
@@ -387,6 +388,9 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
 
     if (previous_R >= 3 && !improving_after_move && !in_check && (stack - 1)->eval != INF)
         depth += 1 + bad_static_eval;
+
+    if (pvNode && complexity > 50 && (stack - 1)->complexity <= 20)
+        depth++;
 
     if (static_eval != INF && static_eval >= beta)
         improving = 1;

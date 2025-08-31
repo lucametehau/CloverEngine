@@ -227,7 +227,7 @@ class StackEntry
   public:
     constexpr StackEntry()
         : piece(NO_PIECE), move(NULLMOVE), killer(NULLMOVE), excluded(NULLMOVE), eval(0), R(0), cutoff_cnt(0),
-          threats(0)
+          complexity(0), threats(0)
     {
     }
     Piece piece;
@@ -235,6 +235,7 @@ class StackEntry
     int eval;
     int R;          // reduction
     int cutoff_cnt; // number of cutoffs in the current search
+    int complexity;
     MultiArray<ContinuationHistory, 12, 64> *cont_hist;
     MultiArray<CorrectionHistory, 12, 64> *cont_corr_hist;
     Bitboard threats;
