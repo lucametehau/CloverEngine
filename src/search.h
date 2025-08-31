@@ -272,7 +272,8 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
         if constexpr (!pvNode)
         {
             if (score != VALUE_NONE && tt_depth >= depth &&
-                (tt_bound & (score >= beta ? TTBounds::LOWER : TTBounds::UPPER)))
+                ((tt_bound == TTBounds::UPPER && tt_value <= alpha && cutNode) ||
+                 (tt_bound == TTBounds::LOWER && tt_value >= beta) || tt_bound == TTBounds::EXACT))
                 return score;
         }
     }
