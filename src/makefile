@@ -4,7 +4,7 @@ SRC = 3rdparty/Fathom/src/tbprobe.c
 OBJ = $(SRCXX:.cpp=.o) $(SRC:.c=.o)
 VERSION = 9.0.15
 EXE = Clover.$(VERSION)
-EVALFILE = quantised600.nnue
+EVALFILE = quantised.nnue
 
 ifeq ($(CXX),)
     CXX = g++
