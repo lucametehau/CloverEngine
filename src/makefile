@@ -2,9 +2,9 @@ SRCXX = $(wildcard *.cpp)
 SRCHEADERS = $(wildcard *.h)
 SRC = 3rdparty/Fathom/src/tbprobe.c
 OBJ = $(SRCXX:.cpp=.o) $(SRC:.c=.o)
-VERSION = 9.0.14
+VERSION = 9.0.15
 EXE = Clover.$(VERSION)
-EVALFILE = quantised.nnue
+EVALFILE = quantised600.nnue
 
 ifeq ($(CXX),)
     CXX = g++
