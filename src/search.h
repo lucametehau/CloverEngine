@@ -439,7 +439,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
             }
 
             // probcut
-            const int probcut_beta = beta + ProbcutMargin;
+            const int probcut_beta = beta + ProbcutMargin - 40 * improving;
             if (depth >= ProbcutDepth && abs(beta) < MATE &&
                 !(tt_hit && tt_depth >= depth - 3 && tt_value < probcut_beta))
             {
