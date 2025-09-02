@@ -625,7 +625,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
         int score = -INF, tried_count = 0;
 
         // late move reductions
-        if (depth >= 2 && played > 1 + pvNode + rootNode)
+        if (depth >= 2 && played > 1 + rootNode)
         {
             R = lmr_red[std::min(63, depth)][std::min(63, played)];
 
