@@ -440,7 +440,7 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
 
             // probcut
             const int probcut_beta = beta + ProbcutMargin - 40 * improving;
-            if (depth >= ProbcutDepth && abs(beta) < MATE &&
+            if (depth >= ProbcutDepth && abs(beta) < MATE && cutNode &&
                 !(tt_hit && tt_depth >= depth - 3 && tt_value < probcut_beta))
             {
                 Movepick picker(tt_move && board.is_noisy_move(tt_move) &&
@@ -464,8 +464,8 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
 
                     int score = -quiesce<false>(-probcut_beta, -probcut_beta + 1, stack + 1);
                     if (score >= probcut_beta)
-                        score = -search<false, false, !cutNode>(-probcut_beta, -probcut_beta + 1,
-                                                                depth - ProbcutReduction, stack + 1);
+                        score = -search<false, false, false>(-probcut_beta, -probcut_beta + 1, depth - ProbcutReduction,
+                                                             stack + 1);
 
                     undo_move(move);
 
