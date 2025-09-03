@@ -479,8 +479,8 @@ template <int movegen_type> constexpr int Board::gen_legal_moves(MoveList &moves
     {
         b2 = shift_mask<NORTHWEST>(color, b1 & not_edge_mask[enemy]) & capMask;
         b3 = shift_mask<NORTHEAST>(color, b1 & not_edge_mask[turn]) & capMask;
-        /// captures
 
+        // captures
         while (b2)
         {
             Square sq = b2.get_square_pop();

@@ -162,7 +162,7 @@ void UCI::uci_loop()
 {
     std::cout << "Clover " << VERSION << " by Luca Metehau" << std::endl;
 
-    TT = new HashTable();
+    TT = std::make_unique<HashTable>();
     thread_pool.create_pool(1);
     ucinewgame();
 
@@ -474,7 +474,7 @@ std::string benchPos[] = {
 
 void UCI::bench(int depth)
 {
-    TT = new HashTable();
+    TT = std::make_unique<HashTable>();
 
     info = Info();
     tt_size_mb = 16;
