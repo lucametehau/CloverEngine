@@ -66,7 +66,7 @@ void generate_fens(SearchThread &white_thread_data, SearchThread &black_thread_d
 
     for (auto &thread_data : threads) {
         thread_data->thread_id = 0;
-        thread_data->TT = new HashTable();
+        thread_data->TT = std::make_unique<HashTable>();
         thread_data->TT->init(4 * MB);
         thread_data->info = info;
     }
@@ -209,7 +209,7 @@ void play_datagen_game(uint64_t dfrc_index, std::vector<std::string> &moves)
     info.set_min_nodes(MIN_NODES);
     info.set_max_nodes(MAX_NODES);
 
-    thread_data.TT = new HashTable();
+    thread_data.TT = std::make_unique<HashTable>();
     thread_data.TT->init(4 * MB);
     thread_data.info = info;
 

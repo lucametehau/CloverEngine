@@ -83,7 +83,7 @@ class alignas(64) SearchThread
     std::atomic<ThreadState> state{ThreadStates::IDLE};
 
 #ifdef GENERATE
-    HashTable *TT;
+    std::unique_ptr<HashTable> TT;
 #endif
 
   public:
@@ -185,9 +185,8 @@ class alignas(64) SearchThread
     void update_pv(const int ply, const Move move)
     {
         pv_table[ply][0] = move;
-        for (int i = 0; i < pv_table_len[ply + 1]; i++)
-            pv_table[ply][i + 1] = pv_table[ply + 1][i];
         pv_table_len[ply] = 1 + pv_table_len[ply + 1];
+        std::copy(pv_table[ply + 1].data(), pv_table[ply + 1].data() + pv_table_len[ply + 1], pv_table[ply].data() + 1);
     }
 
     void print_iteration_info(uint64_t t, int depth, uint64_t total_nodes, uint64_t total_tb_hits);
