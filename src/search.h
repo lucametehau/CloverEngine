@@ -413,7 +413,13 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
             if (depth <= SNMPDepth && eval > beta && eval < MATE && (!tt_move || is_tt_move_noisy) &&
                 eval - snmp_margin(depth - enemy_has_no_threats, improving, improving_after_move, cutNode, complexity) >
                     beta)
-                return beta > -MATE ? (eval + beta) / 2 : eval;
+            {
+                int snmp_score = beta > -MATE ? (eval + beta) / 2 : eval;
+                if (!tt_move && snmp_score > static_eval)
+                    histories.update_corr_hist(turn, pawn_key, white_mat_key, black_mat_key, stack, depth,
+                                               snmp_score - static_eval);
+                return snmp_score;
+            }
 
             // null move pruning (when last move wasn't null, we still have non pawn material, we have a good position)
             if (!null_search && !stack->excluded && enemy_has_no_threats && board.has_non_pawn_material(turn) &&
