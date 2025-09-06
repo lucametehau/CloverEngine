@@ -364,8 +364,8 @@ class Histories
         get_pawn_hist(piece, to, pawn_key).update(bonus);
     }
 
-    constexpr int get_history_search(const Move move, const Piece piece, const Bitboard threats, const bool turn,
-                                     StackEntry *stack, const Key pawn_key) const
+    const int get_history_search(const Move move, const Piece piece, const Bitboard threats, const bool turn,
+                                 StackEntry *stack, const Key pawn_key) const
     {
         const Square to = move.get_to();
         return (QuietSearchHistCoef * get_hist(move.get_from(), to, move.get_from_to(), turn, threats) +
@@ -375,8 +375,8 @@ class Histories
                1024;
     }
 
-    constexpr int get_history_movepick(const Move move, const Piece piece, const Bitboard threats, const bool turn,
-                                       StackEntry *stack, const Key pawn_key) const
+    const int get_history_movepick(const Move move, const Piece piece, const Bitboard threats, const bool turn,
+                                   StackEntry *stack, const Key pawn_key) const
     {
         const Square to = move.get_to();
         return (QuietMPHistCoef * get_hist(move.get_from(), to, move.get_from_to(), turn, threats) +
@@ -411,8 +411,8 @@ class Histories
         }
     }
 
-    constexpr int get_corrected_eval(const int eval, const bool turn, const Key pawn_key, const Key white_mat_key,
-                                     const Key black_mat_key, StackEntry *stack) const
+    const int get_corrected_eval(const int eval, const bool turn, const Key pawn_key, const Key white_mat_key,
+                                 const Key black_mat_key, StackEntry *stack) const
     {
         int correction = CorrHistPawn * get_corr_hist(turn, pawn_key) +
                          CorrHistMat * get_mat_corr_hist(turn, WHITE, white_mat_key) +
