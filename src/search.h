@@ -273,7 +273,17 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
         {
             if (score != VALUE_NONE && tt_depth >= depth &&
                 (tt_bound & (score >= beta ? TTBounds::LOWER : TTBounds::UPPER)))
+            {
+                if (score >= beta && !board.is_noisy_move(tt_move))
+                {
+                    histories.update_main_hist_move(tt_move, board.threats().all_threats, turn,
+                                                    MainHistory::bonus(depth));
+                    histories.update_pawn_hist_move(board.piece_at(tt_move.get_from()), tt_move.get_to(), pawn_key,
+                                                    PawnHistory::bonus(depth));
+                }
+
                 return score;
+            }
         }
     }
 
