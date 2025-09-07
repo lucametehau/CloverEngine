@@ -538,6 +538,9 @@ int SearchThread::search(int alpha, int beta, int depth, StackEntry *stack)
                     if (new_depth <= SEEPruningQuietDepth && !in_check &&
                         !see(board, move, -SEEPruningQuietMargin * new_depth - history / SEEQuietHistDiv))
                         continue;
+
+                    if (0 < alpha && board.would_repeat_after_move(move, ply))
+                        continue;
                 }
                 else
                 {

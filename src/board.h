@@ -539,6 +539,30 @@ class Board
         return false;
     }
 
+    constexpr bool would_repeat_after_move(const Move move, const int ply) const
+    {
+        const Key next_key = speculative_next_key(move);
+        int cnt = 1;
+        HistoricalState *temp_state = state->prev;
+        if (temp_state->key == next_key)
+        {
+            cnt++;
+            if (ply > 1)
+                return true;
+        }
+        for (int i = 3; i <= game_ply && i <= half_moves(); i += 2)
+        {
+            temp_state = temp_state->prev->prev;
+            if (temp_state->key == next_key)
+            {
+                cnt++;
+                if (ply > i || cnt == 3)
+                    return true;
+            }
+        }
+        return false;
+    }
+
     constexpr bool is_draw(const int ply) const
     {
         if (half_moves() < 100 || !checkers())
