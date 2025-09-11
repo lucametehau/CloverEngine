@@ -204,13 +204,29 @@ class Network
 
     void init(Board &board)
     {
-        NetInput input = board.to_netinput();
+        std::vector<int> inputs[2];
+        for (auto color : {WHITE, BLACK})
+        {
+            for (auto c : {WHITE, BLACK})
+            {
+                for (Piece pt = PieceTypes::PAWN; pt <= PieceTypes::KING; pt++)
+                {
+                    Bitboard b = board.get_bb_piece(pt, c);
+                    while (b)
+                    {
+                        inputs[color].push_back(
+                            net_index(Piece(pt, c), b.get_lsb_square(), board.get_king(color), color));
+                        b ^= b.lsb();
+                    }
+                }
+            }
+        }
         int32_t sum;
 
         for (int n = 0; n < SIDE_NEURONS; n++)
         {
             sum = nnue->input_biases[n];
-            for (auto &prevN : input.ind[WHITE])
+            for (auto &prevN : inputs[WHITE])
             {
                 sum += nnue->input_weights[prevN * SIDE_NEURONS + n];
             }
@@ -218,7 +234,7 @@ class Network
             output_history[0][SIDE_NEURONS + n] = sum;
 
             sum = nnue->input_biases[n];
-            for (auto &prevN : input.ind[BLACK])
+            for (auto &prevN : inputs[BLACK])
             {
                 sum += nnue->input_weights[prevN * SIDE_NEURONS + n];
             }

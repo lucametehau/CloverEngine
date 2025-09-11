@@ -64,11 +64,6 @@ void fill_multiarray(MultiArray<typename MultiArray_impl<T, sizes...>::type, siz
 
 typedef uint64_t Key;
 
-struct NetInput
-{
-    std::vector<short> ind[2];
-};
-
 enum
 {
     BLACK = 0,
