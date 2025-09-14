@@ -426,28 +426,6 @@ class Board
         return (get_bb_piece(PieceTypes::KING, color) ^ get_bb_piece(PieceTypes::PAWN, color)) != get_bb_color(color);
     }
 
-    const NetInput to_netinput() const
-    {
-        NetInput ans;
-        for (auto color : {WHITE, BLACK})
-        {
-            for (auto c : {WHITE, BLACK})
-            {
-                for (Piece pt = PieceTypes::PAWN; pt <= PieceTypes::KING; pt++)
-                {
-                    Bitboard b = get_bb_piece(pt, c);
-                    while (b)
-                    {
-                        ans.ind[color].push_back(net_index(Piece(pt, c), b.get_lsb_square(), get_king(color), color));
-                        b ^= b.lsb();
-                    }
-                }
-            }
-        }
-
-        return ans;
-    }
-
     void move_from_to(Square from, Square to, const Piece piece)
     {
         const Piece pt = piece.type();
